@@ -5720,7 +5720,7 @@ function onSuccess(res) {
   if(!res.success) return onFailure({message:res.error || res.message});
 
   if (res.timedOut) {
-    stopStatusAnimation("?? Upload took longer than expected.");
+    stopStatusAnimation("?? Upload took longer than expected...");
     document.getElementById('loadingSpinner').style.display='none';
     document.getElementById('successIcon').style.display='block';
     document.getElementById('statusTitle').innerText="CHECK MY PROJECTS";
