@@ -42,21 +42,91 @@ function docImportGetCallerEmail_() {
   }
 }
 
-function docImportAppendQueueRow_(rowValuesByHeader) {
+function docImportGetQueueSheet_() {
   var ss = SpreadsheetApp.openById(DOC_IMPORT_SHEET_ID_);
   var sh = ss.getSheetByName(DOC_IMPORT_SHEET_NAME_);
   if (!sh) throw new Error("Queue-Sheet '" + DOC_IMPORT_SHEET_NAME_ + "' nicht gefunden.");
+  return sh;
+}
+
+function docImportGetHeaderMap_(sh) {
   var lastCol = sh.getLastColumn();
-  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
-    return String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  var map = {};
+  headers.forEach(function(h, i) {
+    map[String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "")] = i;
   });
-  var row = new Array(lastCol).fill("");
+  return { map: map, lastCol: lastCol };
+}
+
+/**
+ * Legt die Spalte "Drive Folder ID" im Queue-Sheet an, falls sie noch nicht
+ * existiert. Notwendig f?r die Duplikat-Erkennung beim Doc Import - ohne
+ * manuellen Eingriff im Sheet.
+ */
+function docImportEnsureFolderIdColumn_(sh) {
+  var info = docImportGetHeaderMap_(sh);
+  if (info.map.hasOwnProperty("drivefolderid")) return;
+  sh.getRange(1, info.lastCol + 1).setValue("Drive Folder ID");
+}
+
+function docImportAppendQueueRow_(rowValuesByHeader) {
+  var sh = docImportGetQueueSheet_();
+  docImportEnsureFolderIdColumn_(sh);
+  var info = docImportGetHeaderMap_(sh);
+  var row = new Array(info.lastCol).fill("");
   Object.keys(rowValuesByHeader).forEach(function(key) {
     var normKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
-    var idx = headers.indexOf(normKey);
-    if (idx !== -1) row[idx] = rowValuesByHeader[key];
+    var idx = info.map[normKey];
+    if (idx !== undefined) row[idx] = rowValuesByHeader[key];
   });
   sh.appendRow(row);
+}
+
+/**
+ * Liefert alle bisherigen Import-Zeilen f?r eine Drive-Ordner-ID (dedupliziert
+ * nach Timestamp+Projektname), damit das Frontend vor einem erneuten Import
+ * warnen kann.
+ */
+function docImportGetFolderImportHistory_(folderId) {
+  if (!folderId) return [];
+  var sh = docImportGetQueueSheet_();
+  docImportEnsureFolderIdColumn_(sh);
+  var info = docImportGetHeaderMap_(sh);
+  var folderIdx = info.map["drivefolderid"];
+  var lastRow = sh.getLastRow();
+  if (lastRow < 2 || folderIdx === undefined) return [];
+  var data = sh.getRange(2, 1, lastRow - 1, info.lastCol).getValues();
+  var projIdx = info.map["projectname"];
+  var tsIdx = info.map["timestamp"];
+  var userIdx = info.map["userid"];
+  var seen = {};
+  var out = [];
+  data.forEach(function(row) {
+    var fid = String(row[folderIdx] || "").trim();
+    if (!fid || fid !== String(folderId).trim()) return;
+    var ts = tsIdx !== undefined ? row[tsIdx] : "";
+    var proj = projIdx !== undefined ? row[projIdx] : "";
+    var key = String(ts) + "|" + proj;
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push({ timestamp: ts, projectName: proj, userId: userIdx !== undefined ? row[userIdx] : "" });
+  });
+  return out;
+}
+
+/**
+ * API: Import-Historie f?r einen Drive-Ordner abfragen (f?r die proaktive
+ * Warnung direkt nach Ordnerauswahl im Frontend).
+ */
+function apiGetDocImportFolderHistory(folderId) {
+  var access = apiCheckAccess();
+  if (!access.allowed) return { success: false, error: "Not authorized." };
+  try {
+    return { success: true, history: docImportGetFolderImportHistory_(folderId) };
+  } catch (e) {
+    return { success: false, error: e.message || String(e) };
+  }
 }
 
 /**
@@ -91,13 +161,56 @@ function apiUploadDocXmlBatch(payload) {
   if (!access.allowed) return { success: false, error: "Not authorized." };
 
   try {
-    if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgew?hlt." };
+        if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgew?hlt." };
     if (!payload.projectName || !payload.projectName.trim()) return { success: false, error: "Projektname fehlt." };
     if (!payload.iaNumber || !/^[0-9]+$/.test(String(payload.iaNumber).trim())) {
       return { success: false, error: "IA Number ist Pflicht und muss numerisch sein." };
     }
     if (!Array.isArray(payload.files) || !payload.files.length) {
       return { success: false, error: "Keine XML-Dateien im Drive-Ordner gefunden." };
+    }
+
+    // ?? Due Date ist Pflichtfeld ?????????????????????????????????????????????
+    if (!payload.dueDate) {
+      return { success: false, error: "Due Date ist ein Pflichtfeld." };
+    }
+    var dueDateObj_ = new Date(payload.dueDate);
+    if (isNaN(dueDateObj_.getTime())) {
+      return { success: false, error: "Due Date ist ung?ltig." };
+    }
+
+    // ?? Wochenende / bundesweiter deutscher Feiertag ?????????????????????????
+    var nonWorking_ = checkGermanNonWorkingDay_(dueDateObj_);
+    if (nonWorking_.blocked) {
+      return { success: false, error: "Due Date f?llt auf " + nonWorking_.reason + ". Bitte ein anderes Datum w?hlen." };
+    }
+
+    // ?? Express-Vorlage: Due Date max. 72h in der Zukunft + Aufschlag best?tigt ??
+    var isExpress_ = /express/i.test(String(payload.templateName || ""));
+    if (isExpress_) {
+      var hoursUntilDue_ = (dueDateObj_.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntilDue_ < 0 || hoursUntilDue_ > 72) {
+        return { success: false, error: "Bei Express-Vorlagen muss das Due Date innerhalb der n?chsten 72 Stunden liegen." };
+      }
+      if (!payload.expressSurchargeConfirmed) {
+        return { success: false, error: "Bitte best?tigen Sie den 15%-Express-Aufschlag.", needsExpressConfirmation: true };
+      }
+    }
+
+    // ?? Duplikat-Check: wurde dieser Drive-Ordner schon einmal importiert? ???
+    if (!payload.driveFolderId) {
+      return { success: false, error: "Kein Drive-Ordner ausgew?hlt." };
+    }
+    if (!payload.confirmDuplicate) {
+      var history_ = docImportGetFolderImportHistory_(payload.driveFolderId);
+      if (history_.length) {
+        return {
+          success: false,
+          needsConfirmation: true,
+          error: "Dieser Drive-Ordner wurde bereits importiert.",
+          history: history_
+        };
+      }
     }
 
     // ?? Referenzdatei-Pflichtpr?fung (PDF, XLSX, JPG, JPEG) ??????????????????????
@@ -163,7 +276,8 @@ function apiUploadDocXmlBatch(payload) {
           "Comments": payload.note || "",
           "IA Number": String(payload.iaNumber).trim(),
           "Order Number": "",
-          "Phrase Project Status": "NEW"
+          "Phrase Project Status": "NEW",
+          "Drive Folder ID": payload.driveFolderId || ""
         });
 
         results.push({ targetLang: f.targetLang, fileName: f.fileName, jobUid: jobUid, success: true });
