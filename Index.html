@@ -784,16 +784,9 @@
                     </div>
                   </div>
                   <div style="display:none;">
-                    <div class="multiselect-wrapper" id="targetLangWrapper_docimport">
-                      <div class="multiselect-trigger disabled" id="targetLangTrigger_docimport">
-                        <div id="targetLangText_docimport" style="flex:1;">-</div>
-                      </div>
-                      <div class="multiselect-options" id="targetLangList_docimport"></div>
-                    </div>
-                  </div>
                   <div class="form-row">
                     <label>Project Name <span class="required">*</span></label>
-                    <input type="text" id="projectName_docimport" placeholder="Muss exakt dem Drive-Ordnernamen entsprechen...">
+                    <input type="text" id="projectName_docimport" placeholder="Wird nach Ordnerauswahl automatisch vorbef?llt, kann angepasst werden...">
                   </div>
                   <div class="form-row">
                     <label>IA Number <span class="required">*</span></label>
@@ -803,8 +796,14 @@
                 <div class="card">
                   <div class="section-title">Settings & Reference</div>
                   <div class="form-row">
-                    <label>Due Date</label>
-                    <input type="date" id="dateDue_docimport">
+                    <label>Due Date <span class="required">*</span></label>
+                    <input type="date" id="dateDue_docimport" required>
+                    <div id="docImportExpressNotice" style="display:none;margin-top:8px;padding:10px 12px;background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;font-size:12px;color:#7a4a00;">
+                      <div>Express-Vorlage: Das Due Date muss innerhalb der n?chsten 72 Stunden liegen.</div>
+                      <label style="display:block;margin-top:8px;font-weight:600;cursor:pointer;">
+                        <input type="checkbox" id="docImportExpressConfirmCb"> Ich best?tige den 15%-Express-Aufschlag.
+                      </label>
+                    </div>
                   </div>
                   <div class="form-row">
                     <label>Note</label>
@@ -822,19 +821,27 @@
                   </div>
                 </div>
                 <div class="card" style="border-top:5px solid var(--primary-yellow); grid-column: 1 / -1;">
-                  <details id="docImportFolderDetails">
+                  <details id="docImportFolderDetails" open>
                     <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;">
                       <span class="section-title" style="margin:0;border:none;padding:0;display:flex;align-items:center;gap:8px;">
-                        Ordner mit Sprachunterordnern <span class="required">*</span>
-                        <span id="docImportErrorBadge" style="display:none;background:#d93025;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">? Problem</span>
+                        Drive-Ordner (Sprachunterordner) <span class="required">*</span>
+                        <span id="docImportErrorBadge" style="display:none;background:#d93025;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">! Problem</span>
                       </span>
                       <span class="material-icons-outlined" id="docImportChevron" style="color:#999;">expand_more</span>
                     </summary>
                     <div style="padding-top:15px;">
-                      <div class="upload-actions">
-                        <button type="button" class="btn btn-secondary" onclick="docImportSearchDriveFolder_()"><i class="material-icons-outlined">search</i> Ordner suchen (Drive)</button>
+                      <div class="tmpl-dropdown-wrapper" id="docImportFolderWrapper">
+                        <div class="tmpl-dropdown-trigger" id="docImportFolderTrigger" onclick="openDocImportFolderDropdown_()">
+                          <span class="tmpl-dropdown-trigger-text" id="docImportFolderTriggerText" style="color:#999;">Ordner ausw?hlen...</span>
+                          <span class="tmpl-dropdown-arrow">?</span>
+                        </div>
+                        <div class="tmpl-dropdown-panel" id="docImportFolderPanel">
+                          <input type="text" class="tmpl-search-input" id="docImportFolderSearch" placeholder="? Ordner suchen..." oninput="onDocImportFolderSearchInput_()" onclick="event.stopPropagation()">
+                          <div class="tmpl-options-list" id="docImportFolderOptionsList"></div>
+                        </div>
                       </div>
-                      <div style="font-size:11px;color:#888;margin-top:6px;">Sucht automatisch unter dem konfigurierten Drive-Root nach einem Ordner mit exakt diesem Projektnamen.</div>
+                      <div style="font-size:11px;color:#888;margin-top:6px;">Buchstaben eingeben, um die Unterordner des konfigurierten Drive-Roots zu filtern.</div>
+                      <div id="docImportDuplicateWarning" style="display:none;margin-top:12px;padding:10px 14px;background:#fff8e1;border:1px solid #f9c74f;border-radius:6px;font-size:12px;color:#7a5b00;"></div>
                       <div id="docImportValidationContainer" style="margin-top:15px;"></div>
                     </div>
                   </details>
@@ -4885,9 +4892,15 @@ function docExportStartFor_(projectUid, projectName) {
   }, 'Export best?tigen');
 }
 
-let _docImportDriveFolderId_ = null;
 let _docImportDriveTree_ = null;
-let _docImportTemplateTargets_ = [];
+let _docImportSelectedFolderId_ = null;
+let _docImportSelectedFolderName_ = null;
+let _docImportDuplicateHistory_ = [];
+let _docImportDuplicateConfirmed_ = false;
+let _docImportIsExpress_ = false;
+let _docImportFolderSearchTimer_ = null;
+let _germanHolidaySet_ = null;
+
 function attachDocImportFormLogic_() {
   mainFilesMap['_docimport'] = [];
   refFilesMap['_docimport'] = [];
@@ -4896,48 +4909,189 @@ function attachDocImportFormLogic_() {
   tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
   renderTemplateOptions('_docimport');
   tmplSelect.addEventListener('change', () => {
-    onTemplateGroupChange('_docimport');
-    setTimeout(docImportRefreshTemplateTargets_, 400);
+    docImportOnTemplateChange_();
   });
+  docImportSetupRefFileListener_();
   document.getElementById('projectForm_docimport').addEventListener('submit', function(e) {
     e.preventDefault();
     docImportSubmit_();
   });
+  const dueDateInput = document.getElementById('dateDue_docimport');
+  if (dueDateInput) dueDateInput.addEventListener('change', docImportValidateDueDate_);
+  docImportLoadHolidays_();
 }
-function docImportRefreshTemplateTargets_() {
-  if (!finalSelectedUid) { _docImportTemplateTargets_ = []; return; }
+
+/**
+ * Eigener, schlanker Listener statt der generischen setupFileListeners():
+ * Doc Import hat kein "mainFilePC"-Upload-Feld (Quelldateien kommen aus dem
+ * Drive-Baum), setupFileListeners() w?rde dort auf ein nicht existierendes
+ * Element zugreifen und abbrechen. Das war der Grund, warum ausgew?hlte
+ * Referenzdateien bisher nirgendwo ankamen.
+ */
+function docImportSetupRefFileListener_() {
+  const refInput = document.getElementById('refFilePC_docimport');
+  if (!refInput) return;
+  refInput.addEventListener('change', function() {
+    for (let i = 0; i < this.files.length; i++) {
+      refFilesMap['_docimport'].push({ type: 'pc', fileObj: this.files[i], name: this.files[i].name });
+    }
+    this.value = "";
+    renderFileList('ref', '_docimport');
+  });
+}
+
+function docImportOnTemplateChange_() {
+  onTemplateGroupChange('_docimport');
+  const tmplSelect = document.getElementById('templateUid_docimport');
+  const label = (tmplSelect && tmplSelect.options[tmplSelect.selectedIndex]) ? tmplSelect.options[tmplSelect.selectedIndex].text : '';
+  _docImportIsExpress_ = /express/i.test(label);
+  const notice = document.getElementById('docImportExpressNotice');
+  const cb = document.getElementById('docImportExpressConfirmCb');
+  if (notice) notice.style.display = _docImportIsExpress_ ? 'block' : 'none';
+  if (cb) cb.checked = false;
+  docImportValidateDueDate_();
+}
+
+function docImportLoadHolidays_() {
+  const y = new Date().getFullYear();
   google.script.run
     .withSuccessHandler(res => {
-      _docImportTemplateTargets_ = (res && res.success) ? res.targetLangs : [];
-      docImportRenderValidation_();
+      if (!res.success) return;
+      _germanHolidaySet_ = new Set(res.holidays.map(h => h.date));
     })
-    .withFailureHandler(() => { _docImportTemplateTargets_ = []; })
-    .apiGetDocImportTemplateLangs(finalSelectedUid);
+    .apiGetGermanHolidays([y, y + 1]);
 }
-function docImportSearchDriveFolder_() {
-  const projectName = document.getElementById('projectName_docimport').value.trim();
-  if (!projectName) { showCustomAlert('Bitte zuerst den Projektnamen eingeben.', 'Hinweis'); return; }
+
+function docImportCheckNonWorkingDay_(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  if (day === 0 || day === 6) return { blocked: true, reason: 'ein Wochenende' };
+  if (_germanHolidaySet_ && _germanHolidaySet_.has(dateStr)) return { blocked: true, reason: 'einen gesetzlichen Feiertag' };
+  return { blocked: false, reason: '' };
+}
+
+function docImportValidateDueDate_() {
+  const input = document.getElementById('dateDue_docimport');
+  const val = input.value;
+  if (!val) return;
+  const nonWorking = docImportCheckNonWorkingDay_(val);
+  if (nonWorking.blocked) {
+    showCustomAlert('Das Due Date f?llt auf ' + nonWorking.reason + '. Bitte ein anderes Datum w?hlen.', 'Ung?ltiges Datum');
+    input.value = '';
+    return;
+  }
+  if (_docImportIsExpress_) {
+    const due = new Date(val + 'T12:00:00');
+    const hoursUntil = (due.getTime() - Date.now()) / 36e5;
+    if (hoursUntil < 0 || hoursUntil > 72) {
+      showCustomAlert('Bei dieser Express-Vorlage muss das Due Date innerhalb der n?chsten 72 Stunden liegen.', 'Express-Vorlage');
+      input.value = '';
+    }
+  }
+}
+
+function openDocImportFolderDropdown_() {
+  const panel = document.getElementById('docImportFolderPanel');
+  const trigger = document.getElementById('docImportFolderTrigger');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.tmpl-dropdown-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.tmpl-dropdown-trigger.open').forEach(t => t.classList.remove('open'));
+  if (!isOpen) {
+    panel.classList.add('open');
+    if (trigger) trigger.classList.add('open');
+    const input = document.getElementById('docImportFolderSearch');
+    if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+    docImportSearchFolders_('');
+  }
+}
+
+function onDocImportFolderSearchInput_() {
+  const q = document.getElementById('docImportFolderSearch').value;
+  clearTimeout(_docImportFolderSearchTimer_);
+  _docImportFolderSearchTimer_ = setTimeout(() => docImportSearchFolders_(q), 250);
+}
+
+function docImportSearchFolders_(query) {
+  const list = document.getElementById('docImportFolderOptionsList');
+  list.innerHTML = '<div class="tmpl-option-empty">Suche...</div>';
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) {
+        list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || 'Fehler') + '</div>';
+        return;
+      }
+      const folders = res.folders || [];
+      if (!folders.length) {
+        list.innerHTML = '<div class="tmpl-option-empty">Keine Ordner gefunden.</div>';
+        return;
+      }
+      list.innerHTML = folders.map(f =>
+        `<div class="tmpl-option" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>${escapeHtml(f.name)}</div>`
+      ).join('');
+    })
+    .withFailureHandler(err => {
+      list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(err.message) + '</div>';
+    })
+    .apiSearchDocDriveFolders(query);
+}
+
+function selectDocImportFolder_(folderId, folderName) {
+  _docImportSelectedFolderId_ = folderId;
+  _docImportSelectedFolderName_ = folderName;
+  _docImportDuplicateConfirmed_ = false;
+  _docImportDuplicateHistory_ = [];
+
+  const triggerText = document.getElementById('docImportFolderTriggerText');
+  if (triggerText) { triggerText.textContent = folderName; triggerText.style.color = '#333'; }
+  const panel = document.getElementById('docImportFolderPanel');
+  const trigger = document.getElementById('docImportFolderTrigger');
+  if (panel) panel.classList.remove('open');
+  if (trigger) trigger.classList.remove('open');
+
+  const pName = document.getElementById('projectName_docimport');
+  if (pName && !pName.value.trim()) pName.value = folderName;
+
   const container = document.getElementById('docImportValidationContainer');
   container.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loader" style="width:28px;height:28px;border-width:3px;margin:0 auto;"></div></div>';
+  const warnBox = document.getElementById('docImportDuplicateWarning');
+  if (warnBox) warnBox.style.display = 'none';
+
   google.script.run
     .withSuccessHandler(res => {
       if (!res.success || !res.found) {
-        _docImportDriveFolderId_ = null;
         _docImportDriveTree_ = null;
-        container.innerHTML = '<div style="color:#c62828;font-size:13px;">Kein Drive-Ordner mit dem Namen "' + escapeHtml(projectName) + '" im konfigurierten Root gefunden.</div>';
+        container.innerHTML = '<div style="color:#c62828;font-size:13px;">Ordner konnte nicht gelesen werden' + (res.error ? ': ' + escapeHtml(res.error) : '.') + '</div>';
         const badge = document.getElementById('docImportErrorBadge');
         if (badge) badge.style.display = 'inline-block';
         return;
       }
-      _docImportDriveFolderId_ = res.tree.folderId;
       _docImportDriveTree_ = res.tree;
       docImportRenderValidation_();
     })
     .withFailureHandler(err => {
       container.innerHTML = '<div style="color:#d93025;font-size:13px;">Fehler: ' + escapeHtml(err.message) + '</div>';
     })
-    .apiGetDocDriveTree(projectName);
+    .apiGetDocDriveTreeById(folderId);
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) return;
+      _docImportDuplicateHistory_ = res.history || [];
+      if (!warnBox) return;
+      if (_docImportDuplicateHistory_.length) {
+        const last = _docImportDuplicateHistory_[_docImportDuplicateHistory_.length - 1];
+        const dateStr = last.timestamp ? new Date(last.timestamp).toLocaleDateString('de-DE') : 'unbekanntem Datum';
+        warnBox.innerHTML = 'Dieser Ordner wurde bereits am ' + escapeHtml(dateStr) + ' importiert (Projekt "' + escapeHtml(last.projectName || '') + '"). ' +
+          '<label style="display:block;margin-top:6px;font-weight:600;cursor:pointer;"><input type="checkbox" id="docImportDuplicateConfirmCb" onchange="_docImportDuplicateConfirmed_=this.checked"> Ich m?chte trotzdem fortfahren (z.B. weil Dateien aktualisiert wurden).</label>';
+        warnBox.style.display = 'block';
+      } else {
+        warnBox.style.display = 'none';
+      }
+    })
+    .apiGetDocImportFolderHistory(folderId);
 }
+
 function docImportRenderValidation_() {
   const container = document.getElementById('docImportValidationContainer');
   const badge = document.getElementById('docImportErrorBadge');
@@ -4947,23 +5101,16 @@ function docImportRenderValidation_() {
     if (badge) badge.style.display = 'none';
     return;
   }
-  const foundLangs = (_docImportDriveTree_.langFolders || []).map(l => l.lang);
-  const foundNorm = foundLangs.map(l => l.toLowerCase().replace(/-/g,'_'));
+  const langFolders = _docImportDriveTree_.langFolders || [];
   let rows = '';
-  let hasMissing = false;
-  (_docImportDriveTree_.langFolders || []).forEach(lf => {
-    rows += `<tr><td>${escapeHtml(lf.lang)}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">? gefunden</td></tr>`;
+  langFolders.forEach(lf => {
+    rows += `<tr><td>${escapeHtml(getPrettyLangName(lf.lang))}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">? wird importiert</td></tr>`;
   });
-  _docImportTemplateTargets_.forEach(t => {
-    const norm = t.toLowerCase().replace(/-/g,'_');
-    if (!foundNorm.includes(norm)) {
-      hasMissing = true;
-      rows += `<tr><td>${escapeHtml(getPrettyLangName(t))}</td><td>?</td><td class="docimport-status-missing">? fehlt</td></tr>`;
-    }
-  });
-  container.innerHTML = `<table class="docimport-validation-table"><thead><tr><th>Sprache</th><th>Dateiname</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+  container.innerHTML = langFolders.length
+    ? `<table class="docimport-validation-table"><thead><tr><th>Sprache</th><th>Dateiname</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<div style="color:#c62828;font-size:13px;">Keine Sprachunterordner mit Dateien in diesem Ordner gefunden.</div>';
   if (badge) {
-    if (hasMissing || !foundLangs.length) {
+    if (!langFolders.length) {
       badge.style.display = 'inline-block';
       if (details) details.open = true;
     } else {
@@ -4974,11 +5121,11 @@ function docImportRenderValidation_() {
 
 function docImportSubmit_() {
   if (!finalSelectedUid) { showCustomAlert('Bitte Template und Quellsprache w?hlen.'); return; }
-  if (!_docImportDriveTree_ || !(_docImportDriveTree_.langFolders || []).length) {
-    showCustomAlert('Bitte zuerst den Drive-Ordner suchen und Sprachunterordner finden.');
+  if (!_docImportSelectedFolderId_ || !_docImportDriveTree_ || !(_docImportDriveTree_.langFolders || []).length) {
+    showCustomAlert('Bitte zuerst einen Drive-Ordner mit Sprachunterordnern ausw?hlen.');
     return;
   }
-  
+
   if (!refFilesMap['_docimport'] || refFilesMap['_docimport'].length === 0) {
     showCustomAlert("? Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist f?r Documentation Projects obligatorisch.", "Pflichtfeld");
     return;
@@ -4992,7 +5139,21 @@ function docImportSubmit_() {
   const templateName = tmplSelect.options[tmplSelect.selectedIndex] ? tmplSelect.options[tmplSelect.selectedIndex].text : '';
   const srcLang = document.getElementById('sourceLang_docimport').value;
   let rDate = document.getElementById('dateDue_docimport').value;
-  let fDate = rDate ? new Date(rDate + "T12:00:00").toISOString() : null;
+  if (!rDate) { showCustomAlert('Due Date ist ein Pflichtfeld.'); return; }
+  let fDate = new Date(rDate + "T12:00:00").toISOString();
+
+  if (_docImportIsExpress_) {
+    const cb = document.getElementById('docImportExpressConfirmCb');
+    if (!cb || !cb.checked) {
+      showCustomAlert('Bitte best?tigen Sie den 15%-Express-Aufschlag, um mit dieser Vorlage fortzufahren.', 'Express-Aufschlag');
+      return;
+    }
+  }
+
+  if (_docImportDuplicateHistory_.length && !_docImportDuplicateConfirmed_) {
+    showCustomAlert('Dieser Ordner wurde bereits importiert. Bitte best?tigen Sie im Warnhinweis, dass Sie trotzdem fortfahren m?chten.', 'Bereits importiert');
+    return;
+  }
 
   const filesPayload = (_docImportDriveTree_.langFolders || [])
     .filter(lf => lf.xmlFileId)
@@ -5029,7 +5190,10 @@ function docImportSubmit_() {
         note: document.getElementById('note_docimport').value,
         files: filesPayload,
         refFiles: readyRef,
-        refDriveIds: refIds
+        refDriveIds: refIds,
+        driveFolderId: _docImportSelectedFolderId_,
+        expressSurchargeConfirmed: _docImportIsExpress_ ? !!(document.getElementById('docImportExpressConfirmCb') && document.getElementById('docImportExpressConfirmCb').checked) : false,
+        confirmDuplicate: _docImportDuplicateConfirmed_
       };
 
       google.script.run
