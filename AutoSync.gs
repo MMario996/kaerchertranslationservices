@@ -124,6 +124,7 @@ function autoSyncProjectStatuses_() {
             // Status + notified Property setzen
             sh.getRange(i + 1, 8).setValue(newStatus);
             props.setProperty(notifiedKey, "true");
+            try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
 
             // FIX: Thread-IDs nach Completion aus Sheet l?schen
             _clearThreadIds_(sh, i + 1);
@@ -134,6 +135,7 @@ function autoSyncProjectStatuses_() {
 
           } else if (newStatus !== currentStatus) {
             sh.getRange(i + 1, 8).setValue(newStatus);
+            try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
             updated++;
             console.log("? " + projectUid + ": " + currentStatus + " ? " + newStatus);
             currentStatus = newStatus;
