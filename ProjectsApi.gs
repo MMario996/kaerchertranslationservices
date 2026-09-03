@@ -278,6 +278,59 @@ function phraseSetProjectOwner_(projectUid, userEmail) {
 }
 
 /**
+ * Setzt ein Custom Field am Projekt anhand des Feldnamens statt UID.
+ * Gleiches GET-dann-PUT-Muster wie phraseSetProjectCreator_.
+ * Non-blocking: Fehler werden nur geloggt, nie geworfen.
+ */
+function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
+  if (!projectUid || !fieldName || value === undefined || value === null || value === "") return;
+
+  try {
+    var cfDefs = phraseGetCustomFieldDefinitionsMap_(); // { uid: name }
+    var fieldUid = null;
+    for (var uid in cfDefs) {
+      if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
+    }
+    if (!fieldUid) {
+      console.warn("phraseSetProjectCustomFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
+      return;
+    }
+
+    var getUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields?pageSize=50");
+    var getRes = phraseFetchJson_(getUrl, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var instances = (getRes && Array.isArray(getRes.content)) ? getRes.content : (Array.isArray(getRes) ? getRes : []);
+
+    var instanceUid = null;
+    for (var i = 0; i < instances.length; i++) {
+      var instFieldUid = instances[i].customField && instances[i].customField.uid;
+      if (instFieldUid === fieldUid) { instanceUid = instances[i].uid; break; }
+    }
+
+    var putUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields");
+    var putPayload = instanceUid
+      ? { updateInstances: [{ customFieldInstance: { uid: instanceUid }, customField: { uid: fieldUid }, value: value }] }
+      : { addInstances: [{ customField: { uid: fieldUid }, value: value }] };
+
+    var putRes = UrlFetchApp.fetch(putUrl, {
+      method: "put",
+      contentType: "application/json",
+      headers: { Authorization: getPhraseAuthHeader_() },
+      payload: JSON.stringify(putPayload),
+      muteHttpExceptions: true
+    });
+
+    var putCode = putRes.getResponseCode();
+    if (putCode >= 400) {
+      console.warn("phraseSetProjectCustomFieldByName_ PUT HTTP " + putCode + " (" + fieldName + "): " + putRes.getContentText().substring(0, 200));
+    } else {
+      console.log("Custom Field gesetzt: " + fieldName + " = '" + value + "' (" + projectUid + ")");
+    }
+  } catch (e) {
+    console.warn("phraseSetProjectCustomFieldByName_ fehlgeschlagen (" + fieldName + "): " + e.message);
+  }
+}
+
+/**
  * Create project from template (v2)
  * POST /api2/v2/projects/applyTemplate/{templateUid}
  */
