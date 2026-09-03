@@ -243,6 +243,32 @@ function apiUploadDocXmlBatch(payload) {
     });
 
     try { phraseSetProjectCreator_(projectUid, callerEmail); } catch (e) { /* ignore */ }
+    try { phraseSetProjectCustomFieldByName_(projectUid, "IA Number", String(payload.iaNumber).trim()); } catch (e) { /* ignore */ }
+
+    // -- Referenzdateien an Phrase hochladen ---------------------------------
+    var refUploadResults = [];
+    refFiles.forEach(function(rf) {
+      try {
+        var refBlob = resolveFileToBlob_(rf);
+        var refName = refBlob.getName() || rf.name || rf.fileName || "reference";
+        phraseUploadReference_(projectUid, refBlob, refName);
+        refUploadResults.push({ name: refName, ok: true });
+      } catch (e) {
+        console.warn("Doc Import: Referenzdatei-Upload fehlgeschlagen: " + e.message);
+        refUploadResults.push({ name: rf.name || rf.fileName || "reference", ok: false, error: e.message });
+      }
+    });
+    refDriveIds.forEach(function(fid) {
+      try {
+        var driveFile = DriveApp.getFileById(fid);
+        var refBlob2 = driveFile.getBlob();
+        phraseUploadReference_(projectUid, refBlob2, driveFile.getName());
+        refUploadResults.push({ name: driveFile.getName(), ok: true });
+      } catch (e) {
+        console.warn("Doc Import: Referenzdatei (Drive) Upload fehlgeschlagen: " + e.message);
+        refUploadResults.push({ name: fid, ok: false, error: e.message });
+      }
+    });
 
     var phraseUser = phraseGetUserByEmail_(callerEmail);
     var userIdForSheet = (phraseUser && phraseUser.userName) ? phraseUser.userName : callerEmail;
@@ -300,6 +326,7 @@ function apiUploadDocXmlBatch(payload) {
         var firstAsyncId = successfulJobs[0].asyncId || "";
 
         var mainQueueSh = getQueueSheet_();
+        var mainQueueRowIndex = mainQueueSh.getLastRow() + 1;
         mainQueueSh.appendRow([
           timestamp,                    // A: Timestamp
           callerEmail,                  // B: User Email
@@ -333,6 +360,11 @@ function apiUploadDocXmlBatch(payload) {
         if (chatEnabled) {
           var phraseUrl = "[https://cloud.memsource.com/web/project/show/](https://cloud.memsource.com/web/project/show/)" + encodeURIComponent(projectUid);
           var filesBlock = docImportBuildFilesSummary_(results);
+          if (refUploadResults.length > 0) {
+            filesBlock += "\n\nReference Files:\n" + refUploadResults.map(function(r) {
+              return "- " + r.name + (r.ok ? "" : " (Upload failed)");
+            }).join("\n");
+          }
           var props = PropertiesService.getScriptProperties();
           var firstSubmitKey = "CHAT_FIRST_SUBMIT__" + normalizeEmail_(callerEmail);
           var isFirstSubmit = !props.getProperty(firstSubmitKey);
@@ -353,7 +385,10 @@ function apiUploadDocXmlBatch(payload) {
               Utilities.sleep(500);
             } catch (e0) {}
           }
-          sendPrivateMessage_(callerEmail, msg);
+          var chatResp = sendPrivateMessage_(callerEmail, msg);
+          if (chatResp && chatResp.name && typeof mainQueueRowIndex !== "undefined") {
+            try { mainQueueSh.getRange(mainQueueRowIndex, 20).setValue(chatResp.name); } catch (e3) {}
+          }
           try {
             notifyWatchers_(payload.templateName || "", payload.projectName.trim(), callerEmail, projectUid, targetLangs, payload.templateUid || "");
           } catch (e2) {}
@@ -373,5 +408,37 @@ function apiUploadDocXmlBatch(payload) {
     };
   } catch (e) {
     return { success: false, error: e.message || String(e) };
+  }
+}
+
+/**
+ * Schreibt den aktuellen Phrase Projekt-Status in alle passenden Zeilen
+ * des externen MAT-D Kanban-Sheets zur?ck (Spalte "Phrase Project Status").
+ * Wird von autoSyncProjectStatuses_ nach jedem Statuswechsel aufgerufen.
+ * Non-blocking: Fehler werden nur geloggt, nie geworfen.
+ */
+function docImportUpdateProjectStatusInKanban_(projectUid, newStatus) {
+  if (!projectUid || !newStatus) return;
+  try {
+    var sh = docImportGetQueueSheet_();
+    var info = docImportGetHeaderMap_(sh);
+    var uidIdx = info.map["projectuid"];
+    var statusIdx = info.map["phraseprojectstatus"];
+    if (uidIdx === undefined || statusIdx === undefined) return;
+
+    var lastRow = sh.getLastRow();
+    if (lastRow < 2) return;
+
+    var data = sh.getRange(2, 1, lastRow - 1, info.lastCol).getValues();
+    var updated = false;
+    for (var i = 0; i < data.length; i++) {
+      if (String(data[i][uidIdx]).trim() === String(projectUid).trim()) {
+        sh.getRange(i + 2, statusIdx + 1).setValue(newStatus);
+        updated = true;
+      }
+    }
+    if (updated) console.log("Doc Import: Phrase Project Status im MAT-D Sheet aktualisiert -> " + newStatus + " (" + projectUid + ")");
+  } catch (e) {
+    console.warn("docImportUpdateProjectStatusInKanban_ fehlgeschlagen: " + e.message);
   }
 }
