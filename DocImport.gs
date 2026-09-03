@@ -5,9 +5,11 @@
  * (DocDriveConfig.gs); der Unterordner-Name muss exakt dem Projektnamen
  * entsprechen (DocDriveTree.gs). Erstellt EIN Phrase-Projekt aus dem
  * gew?hlten Template und l?dt pro erkannter Zielsprache eine eigene XML-Datei
- * als separaten Job hoch. Schreibt NUR ins externe MAT-D Queue-Sheet ? NICHT
- * ins interne OPS-Sheet, Projekte erscheinen daher absichtlich nicht unter
- * "My Projects".
+ * als separaten Job hoch. 
+ * Schreibt das Projekt in das externe MAT-D Kanban-Sheet (aufgeteilt pro Sprache)
+ * UND in das interne Standard-OPS-Queue-Sheet (als EINE zusammengefasste Projekt-Zeile),
+ * damit es in "My Projects" korrekt als ein Projekt sichtbar ist und
+ * automatisiert vom Chatbot/AutoSync ?berwacht wird.
  */
 var DOC_IMPORT_SHEET_ID_   = "1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs";
 var DOC_IMPORT_SHEET_NAME_ = "Queue";
@@ -161,7 +163,7 @@ function apiUploadDocXmlBatch(payload) {
   if (!access.allowed) return { success: false, error: "Not authorized." };
 
   try {
-        if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgew?hlt." };
+    if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgew?hlt." };
     if (!payload.projectName || !payload.projectName.trim()) return { success: false, error: "Projektname fehlt." };
     if (!payload.iaNumber || !/^[0-9]+$/.test(String(payload.iaNumber).trim())) {
       return { success: false, error: "IA Number ist Pflicht und muss numerisch sein." };
@@ -170,7 +172,7 @@ function apiUploadDocXmlBatch(payload) {
       return { success: false, error: "Keine XML-Dateien im Drive-Ordner gefunden." };
     }
 
-    // ?? Due Date ist Pflichtfeld ?????????????????????????????????????????????
+    // -- Due Date ist Pflichtfeld ---------------------------------------------
     if (!payload.dueDate) {
       return { success: false, error: "Due Date ist ein Pflichtfeld." };
     }
@@ -179,13 +181,13 @@ function apiUploadDocXmlBatch(payload) {
       return { success: false, error: "Due Date ist ung?ltig." };
     }
 
-    // ?? Wochenende / bundesweiter deutscher Feiertag ?????????????????????????
+    // -- Wochenende / bundesweiter deutscher Feiertag -------------------------
     var nonWorking_ = checkGermanNonWorkingDay_(dueDateObj_);
     if (nonWorking_.blocked) {
       return { success: false, error: "Due Date f?llt auf " + nonWorking_.reason + ". Bitte ein anderes Datum w?hlen." };
     }
 
-    // ?? Express-Vorlage: Due Date max. 72h in der Zukunft + Aufschlag best?tigt ??
+    // -- Express-Vorlage: Due Date max. 72h in der Zukunft + Aufschlag best?tigt --
     var isExpress_ = /express/i.test(String(payload.templateName || ""));
     if (isExpress_) {
       var hoursUntilDue_ = (dueDateObj_.getTime() - Date.now()) / (1000 * 60 * 60);
@@ -197,7 +199,7 @@ function apiUploadDocXmlBatch(payload) {
       }
     }
 
-    // ?? Duplikat-Check: wurde dieser Drive-Ordner schon einmal importiert? ???
+    // -- Duplikat-Check: wurde dieser Drive-Ordner schon einmal importiert? ---
     if (!payload.driveFolderId) {
       return { success: false, error: "Kein Drive-Ordner ausgew?hlt." };
     }
@@ -213,7 +215,7 @@ function apiUploadDocXmlBatch(payload) {
       }
     }
 
-    // ?? Referenzdatei-Pflichtpr?fung (PDF, XLSX, JPG, JPEG) ??????????????????????
+    // -- Referenzdatei-Pflichtpr?fung (PDF, XLSX, JPG, JPEG) ----------------------
     var refFiles = Array.isArray(payload.refFiles) ? payload.refFiles : [];
     var refDriveIds = Array.isArray(payload.refDriveIds) ? payload.refDriveIds : [];
     if (!refFiles.length && !refDriveIds.length) {
@@ -259,6 +261,7 @@ function apiUploadDocXmlBatch(payload) {
         var jobUid = (jobRes && Array.isArray(jobRes.jobs) && jobRes.jobs[0] && jobRes.jobs[0].uid) || "";
         var asyncId = (jobRes && jobRes.asyncRequest && jobRes.asyncRequest.id) || "";
 
+        // 1. In das Kanban-Sheet eintragen (Einzeleintr?ge pro Sprache/Datei)
         docImportAppendQueueRow_({
           "Timestamp": timestamp,
           "User ID": userIdForSheet,
@@ -280,19 +283,55 @@ function apiUploadDocXmlBatch(payload) {
           "Drive Folder ID": payload.driveFolderId || ""
         });
 
-        results.push({ targetLang: f.targetLang, fileName: f.fileName, jobUid: jobUid, success: true });
+        results.push({ targetLang: f.targetLang, fileName: f.fileName, jobUid: jobUid, asyncId: asyncId, success: true });
       } catch (e) {
         errors.push(f.targetLang + " (" + f.fileName + "): " + e.message);
         results.push({ targetLang: f.targetLang, fileName: f.fileName, success: false, error: e.message });
       }
     });
 
-    // ?? Google Chat Notification (gleicher Mechanismus wie Standard-Upload) ??
-    if (results.some(function(r) { return r.success; })) {
+    // 2. Dual-Write: EXACTLY ONE ROW into standard OPS-Queue-Sheet f?r AutoSync & Chat
+    var successfulJobs = results.filter(function(r) { return r.success; });
+    if (successfulJobs.length > 0) {
+      try {
+        var allJobUids = successfulJobs.map(function(r) { return r.jobUid; });
+        var allFileNames = successfulJobs.map(function(r) { return r.fileName; }).join(", ");
+        var allTargetLangs = successfulJobs.map(function(r) { return r.targetLang; }).join(", ");
+        var firstAsyncId = successfulJobs[0].asyncId || "";
+
+        var mainQueueSh = getQueueSheet_();
+        mainQueueSh.appendRow([
+          timestamp,                    // A: Timestamp
+          callerEmail,                  // B: User Email
+          projectUid,                   // C: Project UID
+          "",                           // D: File ID (F?r Download im Standard-Tab nicht mehr relevant, da DriveDoc Export genutzt wird)
+          allFileNames,                 // E: File Name
+          "xml",                        // F: Mime Type
+          allTargetLangs,               // G: Target Lang
+          "UPLOADED",                   // H: Status
+          JSON.stringify(allJobUids),   // I: Job UID
+          firstAsyncId,                 // J: Async ID
+          callerEmail,                  // K: Notification Email
+          payload.projectName.trim(),   // L: Project Name
+          payload.dueDate || "",        // M: Due Date
+          "",                           // N: CC Email
+          "",                           // O: Analysis UID
+          "",                           // P: Total Words
+          "",                           // Q: Net Words
+          "",                           // R: Shared With
+          payload.templateName || ""    // S: Template Name
+        ]);
+      } catch (queueErr) {
+        console.warn("DocImport: Failed to write to internal main Queue sheet: ", queueErr);
+      }
+    }
+
+    // -- Google Chat Notification (gleicher Mechanismus wie Standard-Upload) --
+    if (successfulJobs.length > 0) {
       try {
         var chatEnabled = getUserChatPreference_(callerEmail);
         if (chatEnabled) {
-          var phraseUrl = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);
+          var phraseUrl = "[https://cloud.memsource.com/web/project/show/](https://cloud.memsource.com/web/project/show/)" + encodeURIComponent(projectUid);
           var filesBlock = docImportBuildFilesSummary_(results);
           var props = PropertiesService.getScriptProperties();
           var firstSubmitKey = "CHAT_FIRST_SUBMIT__" + normalizeEmail_(callerEmail);
@@ -304,7 +343,7 @@ function apiUploadDocXmlBatch(payload) {
             SOURCE_LANG: payload.sourceLang || "",
             TARGET_LANGS: targetLangs.join(", "),
             DEADLINE: payload.dueDate ? new Date(payload.dueDate).toLocaleDateString("en-GB") : "Not set",
-            NOTE_LINE: payload.note ? "? *Note:* " + payload.note + "\n" : "",
+            NOTE_LINE: payload.note ? "\n*Note:* " + payload.note + "\n" : "",
             FILES: filesBlock,
             PHRASE_URL: phraseUrl
           });
@@ -327,10 +366,10 @@ function apiUploadDocXmlBatch(payload) {
     return {
       success: true,
       projectUid: projectUid,
-      createdCount: results.filter(function(r) { return r.success; }).length,
+      createdCount: successfulJobs.length,
       totalCount: payload.files.length,
       errors: errors,
-      sheetUrl: "https://docs.google.com/spreadsheets/d/" + DOC_IMPORT_SHEET_ID_ + "/edit?gid=" + DOC_IMPORT_QUEUE_GID_
+      sheetUrl: "[https://docs.google.com/spreadsheets/d/](https://docs.google.com/spreadsheets/d/)" + DOC_IMPORT_SHEET_ID_ + "/edit?gid=" + DOC_IMPORT_QUEUE_GID_
     };
   } catch (e) {
     return { success: false, error: e.message || String(e) };
