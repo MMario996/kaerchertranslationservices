@@ -74,11 +74,13 @@ function apiGetDocBoardData() {
   }
 }
 
-function phraseGetCustomFieldDefinitionsMap_() {
+function phraseGetCustomFieldDefinitionsMap_(forceRefresh) {
   var cache = CacheService.getScriptCache();
-  var cached = cache.get("phrase_cf_defs_map");
-  if (cached) {
-    try { return JSON.parse(cached); } catch (e) {}
+  if (!forceRefresh) {
+    var cached = cache.get("phrase_cf_defs_map");
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
   }
   var map = {};
   var pageNumber = 0;
