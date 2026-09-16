@@ -489,7 +489,15 @@ function apiArtPickerListProjects() {
 function apiArtPickerListJobs(projectUid) {
   var email = getUserEmail_();
   if (!isArticulateUser_(email) && !isAdmin_(email)) throw new Error("Not authorized.");
+  return phraseListProjectJobs_(projectUid);
+}
 
+/**
+ * Ungegateter interner Kern von apiArtPickerListJobs - von Zeit-Triggern
+ * (kein "aktiver Nutzer" vorhanden) sicher aufrufbar, z.B.
+ * checkArticulateJobCompletions_ in AutoSync.gs.
+ */
+function phraseListProjectJobs_(projectUid) {
   var pUid = String(projectUid || "").trim();
   if (!pUid) throw new Error("projectUid fehlt.");
 

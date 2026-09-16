@@ -725,7 +725,7 @@
             Sprachunterordner (werden bei Bedarf automatisch angelegt).
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:15px;">
-            <input type="text" id="docExportFilter" placeholder="? Projektname..." oninput="docExportRenderProjects_()"
+            <input type="text" id="docExportFilter" placeholder="🔍 Projektname..." oninput="docExportRenderProjects_()"
                    style="flex:1;min-width:180px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
             <select id="docExportLangFilter" onchange="docExportRenderProjects_()"
                     style="height:40px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;min-width:140px;">
@@ -735,9 +735,9 @@
                     style="height:40px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;min-width:140px;">
               <option value="">Alle Status</option>
             </select>
-            <input type="text" id="docExportIaFilter" placeholder="? IA Number..." oninput="docExportRenderProjects_()"
+            <input type="text" id="docExportIaFilter" placeholder="🔍 IA Number..." oninput="docExportRenderProjects_()"
                    style="width:150px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
-            <input type="text" id="docExportOwnerFilter" placeholder="? Einreicher..." oninput="docExportRenderProjects_()"
+            <input type="text" id="docExportOwnerFilter" placeholder="🔍 Einreicher..." oninput="docExportRenderProjects_()"
                    style="width:150px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
             <button type="button" class="btn-refresh" onclick="docExportLoadEligibleProjects_()">
               <i class="material-icons-outlined">refresh</i> Aktualisieren
@@ -766,7 +766,7 @@
                         <span class="tmpl-dropdown-arrow">?</span>
                       </div>
                       <div class="tmpl-dropdown-panel" id="tmplPanel_docimport">
-                        <input type="text" class="tmpl-search-input" id="tmplSearch_docimport" placeholder="? Search template..." oninput="filterTemplateDropdown_('_docimport')" onclick="event.stopPropagation()">
+                        <input type="text" class="tmpl-search-input" id="tmplSearch_docimport" placeholder="🔍 Search template..." oninput="filterTemplateDropdown_('_docimport')" onclick="event.stopPropagation()">
                         <div class="tmpl-options-list" id="tmplOptionsList_docimport"></div>
                       </div>
                       <select id="templateUid_docimport" required style="display:none;"><option disabled selected value="">Select Template Type</option></select>
@@ -838,7 +838,7 @@
                           <span class="tmpl-dropdown-arrow">?</span>
                         </div>
                         <div class="tmpl-dropdown-panel" id="docImportFolderPanel">
-                          <input type="text" class="tmpl-search-input" id="docImportFolderSearch" placeholder="? Ordner suchen..." oninput="onDocImportFolderSearchInput_()" onclick="event.stopPropagation()">
+                          <input type="text" class="tmpl-search-input" id="docImportFolderSearch" placeholder="🔍 Ordner suchen..." oninput="onDocImportFolderSearchInput_()" onclick="event.stopPropagation()">
                           <div class="tmpl-options-list" id="docImportFolderOptionsList"></div>
                         </div>
                       </div>
@@ -879,7 +879,7 @@
                 </a>
               </div>
               <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                <input type="text" id="docBoardFilter_sidebar" placeholder="? Projektname..." oninput="filterDocBoardCards('sidebar')"
+                <input type="text" id="docBoardFilter_sidebar" placeholder="🔍 Projektname..." oninput="filterDocBoardCards('sidebar')"
                        style="flex:1;min-width:120px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
                 <select id="docBoardLangFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
                         style="height:36px;padding:0 8px;font-size:12px;border:1px solid #ccc;background:#fff;">
@@ -891,9 +891,9 @@
                         style="height:36px;padding:0 8px;font-size:12px;border:1px solid #ccc;background:#fff;">
                   <option value="">Alle Status</option>
                 </select>
-                <input type="text" id="docBoardIaFilter_sidebar" placeholder="? IA Number..." oninput="filterDocBoardCards('sidebar')"
+                <input type="text" id="docBoardIaFilter_sidebar" placeholder="🔍 IA Number..." oninput="filterDocBoardCards('sidebar')"
                        style="flex:1;min-width:80px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
-                <input type="text" id="docBoardOwnerFilter_sidebar" placeholder="? Einreicher..." oninput="filterDocBoardCards('sidebar')"
+                <input type="text" id="docBoardOwnerFilter_sidebar" placeholder="🔍 Einreicher..." oninput="filterDocBoardCards('sidebar')"
                        style="flex:1;min-width:80px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
               </div>
               <div id="docBoardContainer"></div>
@@ -929,7 +929,7 @@
                 <option value="shared">Shared with me</option>
              </select>
 
-             <input type="text" id="globalSearchInput" placeholder="? Search..." 
+             <input type="text" id="globalSearchInput" placeholder="🔍 Search..." 
                     oninput="globalSearch()" 
                     style="width:200px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
              
@@ -1094,7 +1094,7 @@
             </div>
             <div style="display:flex;gap:10px;align-items:center;">
               <input type="text" id="articulateTableSearch" oninput="renderArticulateTable()"
-                     data-i18n-placeholder="art_ph_search" placeholder="? Suchen..."
+                     data-i18n-placeholder="art_ph_search" placeholder="🔍 Suchen..."
                      style="width:220px;height:36px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
               <button class="btn btn-secondary" onclick="loadArticulateProjects()"
                       style="height:36px;width:auto;padding:0 16px;font-size:12px;">
@@ -1677,7 +1677,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                 <div class="section-title" style="margin:0;border:none;font-size:18px;">User Manager</div>
                 <div style="display:flex;gap:10px;align-items:center;">
-                  <input type="text" id="userMgrSearch" placeholder="? Global suchen..." oninput="renderUserManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
+                  <input type="text" id="userMgrSearch" placeholder="🔍 Global suchen..." oninput="renderUserManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
                   <button class="btn-refresh" onclick="loadUserManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
                 </div>
               </div>
@@ -1731,7 +1731,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                 <div class="section-title" style="margin:0;border:none;font-size:18px;">Template Manager</div>
                 <div style="display:flex;gap:10px;align-items:center;">
-                  <input type="text" id="tmplMgrSearch" placeholder="? Global suchen..." oninput="renderTemplateManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
+                  <input type="text" id="tmplMgrSearch" placeholder="🔍 Global suchen..." oninput="renderTemplateManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
                   <button class="btn-refresh" onclick="loadTemplateManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
                   <button class="btn-refresh" onclick="tmplMgrSyncFromPhrase()" title="Neue Templates aus Phrase ins Sheet holen"><i class="material-icons-outlined">cloud_sync</i> Sync aus Phrase</button>
                 </div>
@@ -2269,7 +2269,7 @@
                   </div>
                   <div class="tmpl-dropdown-panel" id="tmplPanel_{SUFFIX}">
                     <input type="text" class="tmpl-search-input" id="tmplSearch_{SUFFIX}"
-                           placeholder="? Search template..."
+                           placeholder="🔍 Search template..."
                            oninput="filterTemplateDropdown_('_{SUFFIX}')"
                            onclick="event.stopPropagation()">
                     <div class="tmpl-options-list" id="tmplOptionsList_{SUFFIX}"></div>
@@ -2372,7 +2372,7 @@
                     <span class="tmpl-dropdown-arrow">?</span>
                   </div>
                   <div class="tmpl-dropdown-panel" id="tmplPanel_{SUFFIX}">
-                    <input type="text" class="tmpl-search-input" id="tmplSearch_{SUFFIX}" placeholder="? Search template..." oninput="filterTemplateDropdown_('_{SUFFIX}')" onclick="event.stopPropagation()">
+                    <input type="text" class="tmpl-search-input" id="tmplSearch_{SUFFIX}" placeholder="🔍 Search template..." oninput="filterTemplateDropdown_('_{SUFFIX}')" onclick="event.stopPropagation()">
                     <div class="tmpl-options-list" id="tmplOptionsList_{SUFFIX}"></div>
                   </div>
                   <select id="templateUid_{SUFFIX}" style="display:none;"><option disabled selected value="">Select Template Type</option></select>
@@ -2647,7 +2647,7 @@ const i18n = {
     "art_check_folder":   "Ordner",
     "art_check_files":    "Dateien",
     "art_check_path":     "Pfad",
-    "art_ph_search":      "? Suchen...",
+    "art_ph_search":      "🔍 Suchen...",
     "art_btn_refresh":    "Aktualisieren",
     "art_link_project":   "Projekt",
     "art_col_course":     "Kurs",
@@ -2673,8 +2673,9 @@ const i18n = {
     "title_mainfiles":    'Hauptdateien (Zur Übersetzung) <span class="required">*</span>',
     "title_reffiles":     'Referenzdateien (Optional)',
     "ph_projectname":     "Wird aus Dateinamen übernommen...",
-    "alert_pdf_block":    "? ACHTUNG: PDFs können nicht als zu übersetzende Hauptdatei verwendet werden.\n\nBitte laden Sie das offene Originalformat (Word, Excel, InDesign etc.) hoch.",
-    "ph_search_template": "? Template suchen...",
+    "alert_pdf_block":    "⚠️ ACHTUNG: PDFs können nicht als zu übersetzende Hauptdatei verwendet werden.\n\nBitte laden Sie das offene Originalformat (Word, Excel, InDesign etc.) hoch.",
+    "ph_search_template": "🔍 Template suchen...",
+    "ph_search_language": "🔍 Sprache suchen...",
     "txt_select_source":  "Quellsprache auswählen",
     "txt_select_target":  "Zielsprache(n) auswählen",
     "alert_multifile_name": "?? Mehrere Dateien ausgewählt. Bitte vergeben Sie den Projektnamen manuell.",
@@ -2744,7 +2745,7 @@ const i18n = {
     "art_check_folder":   "Folder",
     "art_check_files":    "files",
     "art_check_path":     "Path",
-    "art_ph_search":      "? Search...",
+    "art_ph_search":      "🔍 Search...",
     "art_btn_refresh":    "Refresh",
     "art_link_project":   "Project",
     "art_col_course":     "Course",
@@ -2770,8 +2771,9 @@ const i18n = {
     "title_mainfiles":    'Main Files (To Translate) <span class="required">*</span>',
     "title_reffiles":     'Reference Files (Optional)',
     "ph_projectname":     "Auto-filled from filename...",
-    "alert_pdf_block":    "? WARNING: PDFs cannot be used as main files for translation.\n\nPlease upload the original editable format (Word, Excel, InDesign, etc.).",
-    "ph_search_template": "? Search template...",
+    "alert_pdf_block":    "⚠️ WARNING: PDFs cannot be used as main files for translation.\n\nPlease upload the original editable format (Word, Excel, InDesign, etc.).",
+    "ph_search_template": "🔍 Search template...",
+    "ph_search_language": "🔍 Search language...",
     "txt_select_source":  "Select Source Language",
     "txt_select_target":  "Select Target Language(s)",
     "alert_multifile_name": "?? Multiple files selected. Please enter the project name manually.",
@@ -3218,8 +3220,8 @@ function applyI18nToHtmlString_(html, lang) {
   );
 
   html = html.replace(
-    /placeholder="? Search template\.\.\."/g,
-    `placeholder="${t['ph_search_template'] || '? Search template...'}"`
+    /placeholder="🔍 Search template\.\.\."/g,
+    `placeholder="${t['ph_search_template'] || '🔍 Search template...'}"`
   );
 
   html = html.replace(
@@ -3754,7 +3756,7 @@ function onTemplateGroupChange(suffix) {
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text'; searchInput.className = 'multiselect-search';
-  searchInput.placeholder = i18n[currentLang]['ph_search_template'] || 'Search language...';
+  searchInput.placeholder = i18n[currentLang]['ph_search_language'] || 'Search language...';
   searchInput.oninput = function() {
     const q = this.value.toLowerCase();
     srcOptions.querySelectorAll('.multiselect-option').forEach(o => {
@@ -3825,7 +3827,7 @@ function initMultiSelect(suffix, targetCodes) {
   if(!list) return;
   list.innerHTML = "";
   const searchInput = document.createElement("input");
-  searchInput.type = "text"; searchInput.className = "multiselect-search"; searchInput.placeholder = i18n[currentLang]['ph_search_template'] || "Search language...";
+  searchInput.type = "text"; searchInput.className = "multiselect-search"; searchInput.placeholder = i18n[currentLang]['ph_search_language'] || "Search language...";
   searchInput.onclick = (e) => e.stopPropagation();
   searchInput.onkeyup = (e) => {
     const filter = e.target.value.toLowerCase();
@@ -5895,9 +5897,14 @@ function submitStandard(suffix) {
 /**
  * Wird nach dem Einreichen eines Campus-Projekts aufgerufen, wenn im
  * optionalen SCORM-Feld ein Drive-Ordner angegeben wurde: legt fuer jeden
- * neu erzeugten Job (=Zielsprache) einen Articulate-Registry-Eintrag an
- * und erzeugt anschliessend automatisch die Preview - dieselbe Logik wie
- * beim manuellen "Alle Jobs im Projekt batch-patchen".
+ * neu erzeugten Job (=Zielsprache) einen Articulate-Registry-Eintrag an.
+ * Erzeugt bewusst NOCH KEINE Preview direkt hier - unmittelbar nach dem
+ * Einreichen ist noch nichts uebersetzt, ein sofortiger Link wuerde nur
+ * den (unuebersetzten) Originaltext des SCORM-Exports zeigen. Stattdessen
+ * uebernimmt checkArticulateJobCompletions_ (AutoSync.gs / Articualtepreview.gs)
+ * die automatische Preview-Generierung, sobald einer der Workflow-Schritte
+ * (Translation / PE / Revision) tatsaechlich abgeschlossen ist - und zwar
+ * erneut bei jedem weiteren Schritt.
  */
 function triggerArticulateAutoPreview_(uploadResult) {
   const folderEl = document.getElementById('artSubmitScormFolder');
@@ -5946,7 +5953,14 @@ function triggerArticulateAutoPreview_(uploadResult) {
         else failed.push((r.courseName || ('Job ' + (i + 1))) + ': ' + (r.error || 'Unbekannter Fehler'));
       });
       loadArticulateProjects();
-      if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
+      if (ok.length) {
+        showCustomAlert(
+          'SCORM-Preview für ' + ok.length + ' Zielsprache(n) eingerichtet. Sobald ein Übersetzungsschritt ' +
+          '(Translation / PE / Revision) abgeschlossen ist, wird automatisch ein aktueller Preview-Link erzeugt ' +
+          '– im Tab "Campus Projekte" unter "Gespeicherte Kurse" sichtbar.',
+          'SCORM-Preview eingerichtet'
+        );
+      }
       if (failed.length) {
         showCustomAlert(
           'SCORM-Preview konnte für ' + failed.length + ' von ' + payloads.length + ' Zielsprache(n) nicht automatisch ' +
@@ -8598,7 +8612,7 @@ function removeWatcher(idx) {
         </div>
         <div style="flex:1;overflow:hidden;position:relative;background:#f5f5f5;display:flex;flex-direction:column;">
           <div style="padding:10px 16px;flex-shrink:0;background:#fff;border-bottom:1px solid #eee;display:flex;gap:10px;flex-wrap:wrap;">
-            <input type="text" id="docBoardFilter_modal" placeholder="? Projektname..." oninput="filterDocBoardCards('modal')"
+            <input type="text" id="docBoardFilter_modal" placeholder="🔍 Projektname..." oninput="filterDocBoardCards('modal')"
                    style="flex:1;min-width:180px;max-width:400px;height:36px;padding:0 10px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
             <select id="docBoardLangFilter_modal" onchange="filterDocBoardCards('modal')"
                     style="height:36px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;">
@@ -8608,9 +8622,9 @@ function removeWatcher(idx) {
                     style="height:36px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;">
               <option value="">Alle Status</option>
             </select>
-            <input type="text" id="docBoardIaFilter_modal" placeholder="? IA Number..." oninput="filterDocBoardCards('modal')"
+            <input type="text" id="docBoardIaFilter_modal" placeholder="🔍 IA Number..." oninput="filterDocBoardCards('modal')"
                    style="width:140px;height:36px;padding:0 10px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
-            <input type="text" id="docBoardOwnerFilter_modal" placeholder="? Einreicher..." oninput="filterDocBoardCards('modal')"
+            <input type="text" id="docBoardOwnerFilter_modal" placeholder="🔍 Einreicher..." oninput="filterDocBoardCards('modal')"
                    style="width:140px;height:36px;padding:0 10px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
           </div>
           <div id="docBoardModalBody" style="flex:1;overflow:auto;padding:16px;"></div>

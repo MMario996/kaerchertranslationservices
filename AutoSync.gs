@@ -68,6 +68,12 @@ function autoSyncProjectStatuses_() {
     var reminderWindowMs = 24 * 60 * 60 * 1000;
     var props = PropertiesService.getScriptProperties();
 
+    // Campus-SCORM-Previews: laeuft unabhaengig vom Projekt-Gesamtstatus,
+    // damit auch ZWISCHENstufen eines Multi-Step-Workflows (z.B. Translation
+    // fertig, PE/Revision noch offen) sofort eine aktualisierte Preview
+    // bekommen statt erst am Projektende.
+    try { checkArticulateJobCompletions_(); } catch (e) { console.warn("checkArticulateJobCompletions_ fehlgeschlagen: " + e.message); }
+
     for (var i = 1; i < data.length; i++) {
       var row           = data[i];
       var projectUid    = String(row[2]  || "").trim();
@@ -125,7 +131,6 @@ function autoSyncProjectStatuses_() {
             sh.getRange(i + 1, 8).setValue(newStatus);
             props.setProperty(notifiedKey, "true");
             try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
-            try { triggerArticulatePreviewsForCompletedProject_(projectUid); } catch (e) {}
 
             // FIX: Thread-IDs nach Completion aus Sheet l?schen
             _clearThreadIds_(sh, i + 1);
