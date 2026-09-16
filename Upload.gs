@@ -526,10 +526,24 @@ function sendPrivateMessage_(userEmail, messageText) {
   const service          = requireChatBotService_();
   const token            = service.getAccessToken();
   const userResourceName = resolveChatUserResourceName_(normalizedEmail);
-  const spaceName        = findDirectMessageSpaceName_(token, userResourceName);
-  const result           = postChatMessage_(token, spaceName, messageText);
-  console.log("? Chat DM sent to " + normalizedEmail);
-  return result;
+
+  try {
+    const spaceName = findDirectMessageSpaceName_(token, userResourceName);
+    const result     = postChatMessage_(token, spaceName, messageText);
+    console.log("? Chat DM sent to " + normalizedEmail);
+    return result;
+  } catch (dmErr) {
+    // FIX: Kein 1:1-Chat vorhanden ? das passiert z.B. wenn der Nutzer den Bot
+    // nur ?ber einen Space (Room) kennt und ihn nie direkt angeschrieben hat.
+    // In dem Fall auf den zuletzt bekannten Space ausweichen und den Nutzer dort taggen,
+    // statt die Nachricht stillschweigend zu verlieren.
+    const fallbackSpace = getStoredChatUserSpace_(normalizedEmail);
+    if (!fallbackSpace) throw dmErr;
+    const mention = "<" + userResourceName + "> ";
+    const result  = postChatMessage_(token, fallbackSpace, mention + messageText);
+    console.log("? Chat message sent via space fallback to " + normalizedEmail + " (" + fallbackSpace + ")");
+    return result;
+  }
 }
 
 function updateChatMessage_(messageName, newText) {
@@ -750,6 +764,14 @@ function rememberChatUserFromEvent_(event) {
         .setProperty(CHAT_USER_MAP_PREFIX_ + userEmail, userName);
     }
   }
+
+  // FIX: Ist der Bot Teil eines Spaces (Room), statt einer 1:1-DM, merken wir uns
+  // diesen Space als Fallback-Ziel. Sonst kommen bei Nutzern, die den Bot nur ?ber
+  // einen gemeinsamen Space kennen (statt ihn direkt anzuschreiben), keine Benachrichtigungen an.
+  if (userEmail && event.space && event.space.name && String(event.space.type || "").toUpperCase() !== "DM") {
+    try { saveChatUserSpace_(userEmail, event.space.name); } catch(e) {}
+  }
+
   return { userName, userEmail, displayName };
 }
 

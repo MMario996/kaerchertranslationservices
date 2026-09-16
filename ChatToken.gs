@@ -70,6 +70,24 @@ function saveChatUserResourceName_(userEmail, userResourceName) {
     .setProperty("CHAT_USER_MAP__" + email, userName);
 }
 
+// ??? Space-Fallback Mapping ???????????????????????????????????????????????????
+// Wenn der Bot nur zu einem Space (Room) hinzugef?gt wurde statt zu einer 1:1-DM,
+// gibt es keinen "findDirectMessage"-Space f?r den Nutzer. Damit Benachrichtigungen
+// trotzdem ankommen, merken wir uns den zuletzt bekannten Space je Nutzer als Fallback.
+
+function getStoredChatUserSpace_(userEmail) {
+  const email = normalizeEmail_(userEmail);
+  if (!email) return "";
+  return PropertiesService.getScriptProperties().getProperty("CHAT_USER_SPACE__" + email) || "";
+}
+
+function saveChatUserSpace_(userEmail, spaceName) {
+  const email = normalizeEmail_(userEmail);
+  const name  = String(spaceName || "").trim();
+  if (!email || !/^spaces\/.+/.test(name)) return;
+  PropertiesService.getScriptProperties().setProperty("CHAT_USER_SPACE__" + email, name);
+}
+
 // ??? Bulk Resolve: Emails aus Sheet ? Chat IDs via People API ????????????????
 
 function copyPropsToSheet() {
