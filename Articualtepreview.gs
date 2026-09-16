@@ -51,25 +51,26 @@ function apiGetPreviewProgress(sessionId) {
  * @param {string} articulateProjectId  ID-Spalte aus dem Registry-Sheet
  * @param {string} [sessionId]          fuer Fortschritts-Polling
  */
-function apiGenerateArticulatePreviewById(articulateProjectId, sessionId) {
+function apiGenerateArticulatePreviewById(articulateProjectId, sessionId, overrideJobUid) {
   var project = getArticulateProjectById_(articulateProjectId);
   sessionId = sessionId || String(Date.now());
+  var jobUidToUse = overrideJobUid || project.jobUid;
 
   try {
     var result = apiGenerateArticulatePreview({
       sessionId: sessionId,
       projectUid: project.projectUid,
-      jobUid: project.jobUid,
+      jobUid: jobUidToUse,
       scormFolderId: project.driveFolderId,
       firebasePath: project.firebasePath,
       firebaseSiteId: project.firebaseSite,
     });
 
     var cfResult = phraseSetJobCustomFieldByName_(
-      project.projectUid, project.jobUid, "SCORM File-URL", result.liveUrl
+      project.projectUid, jobUidToUse, "SCORM File-URL", result.liveUrl
     );
 
-    var statusText = "OK (" + result.applied + " Segmente ?bersetzt)";
+    var statusText = "OK (" + result.applied + " Segmente übersetzt, Job " + jobUidToUse + ")";
     if (!cfResult.ok) statusText += " - CF FEHLER: " + cfResult.error;
 
     updateArticulateDeployResult_(project.rowIndex, result.liveUrl, statusText);
@@ -89,24 +90,48 @@ function apiGenerateArticulatePreviewById(articulateProjectId, sessionId) {
 }
 
 /**
- * Wird vom Zeit-Trigger (autoSyncProjectStatuses_ in AutoSync.gs) aufgerufen,
- * sobald ein Phrase-Projekt COMPLETED/DELIVERED wird. Regeneriert automatisch
- * die SCORM-Preview fuer alle Campus-Kurse, die bei der Einreichung mit einem
- * Drive-SCORM-Ordner verknuepft wurden (registryEintrag.driveFolderId gesetzt)
- * - schreibt die finale (uebersetzte) Preview-URL, setzt das Job-Custom-Field
- * "SCORM File-URL" und verschickt die Chat-Benachrichtigung, genau wie ein
- * manueller Play-Klick im Preview-Generator.
- * Non-blocking: Fehler pro Kurs werden nur geloggt, nie geworfen.
+ * Wird vom Zeit-Trigger (autoSyncProjectStatuses_ in AutoSync.gs) bei JEDEM
+ * Lauf aufgerufen - unabhaengig vom Gesamt-Projektstatus. Campus-Kurse mit
+ * Multi-Step-Workflow (Translation -> PE -> Revision) haben pro Zielsprache
+ * MEHRERE Jobs, die nacheinander COMPLETED werden. Sobald IRGENDEINER dieser
+ * Jobs fertig wird, soll die Preview mit dessen aktuellem Uebersetzungsstand
+ * aktualisiert werden - nicht erst wenn das GANZE Projekt fertig ist. Reagiert
+ * daher pro Job statt pro Projekt: nach Abschluss der Translation-Stufe kommt
+ * bereits ein funktionierender Link, dann erneut nach PE, dann erneut nach
+ * Revision.
+ * Non-blocking: Fehler pro Kurs/Job werden nur geloggt, nie geworfen.
  */
-function triggerArticulatePreviewsForCompletedProject_(projectUid) {
-  if (!projectUid) return;
-  var rows = apiListArticulateProjects().rows;
-  rows.forEach(function(row) {
-    if (row.projectUid !== projectUid || !row.driveFolderId) return;
+function checkArticulateJobCompletions_() {
+  var rows = apiListArticulateProjects().rows.filter(function (r) { return !!r.driveFolderId; });
+  if (!rows.length) return;
+
+  var props = PropertiesService.getScriptProperties();
+  var jobsByProject = {};
+  var COMPLETION_STATUSES = ["COMPLETED", "DELIVERED"];
+
+  rows.forEach(function (row) {
     try {
-      apiGenerateArticulatePreviewById(row.id);
+      if (!jobsByProject[row.projectUid]) {
+        jobsByProject[row.projectUid] = phraseListProjectJobs_(row.projectUid);
+      }
+      var jobs = jobsByProject[row.projectUid].filter(function (j) { return j.targetLang === row.targetLang; });
+
+      jobs.forEach(function (j) {
+        var status = String(j.status || "").toUpperCase();
+        if (COMPLETION_STATUSES.indexOf(status) === -1) return;
+
+        var notifiedKey = "SCORM_JOB_NOTIFIED__" + j.uid;
+        if (props.getProperty(notifiedKey) === "true") return;
+
+        try {
+          apiGenerateArticulatePreviewById(row.id, null, j.uid);
+        } catch (e) {
+          console.warn("Auto-Preview für abgeschlossenen Job " + j.uid + " fehlgeschlagen: " + e.message);
+        }
+        props.setProperty(notifiedKey, "true");
+      });
     } catch (e) {
-      console.warn("Auto-Preview nach Projektabschluss fehlgeschlagen (" + row.id + "): " + e.message);
+      console.warn("checkArticulateJobCompletions_ fehlgeschlagen für Kurs " + row.id + ": " + e.message);
     }
   });
 }
@@ -132,13 +157,13 @@ function apiGenerateArticulatePreview(params) {
   params = params || {};
   var sessionId = params.sessionId || String(Date.now());
 
-  setPreviewProgress_(sessionId, 5, "Hole aktuelle ?bersetzung aus Phrase...");
+  setPreviewProgress_(sessionId, 5, "Hole aktuelle Übersetzung aus Phrase...");
 
   // 1) Uebersetzte XLIFF aus Phrase holen (bestehende Kaercher-Funktion)
   var xliffBlob = phraseDownloadTargetFile_(params.projectUid, params.jobUid);
   var xliffText = xliffBlob.getDataAsString("UTF-8");
 
-  setPreviewProgress_(sessionId, 20, "?bersetzung wird ausgewertet...");
+  setPreviewProgress_(sessionId, 20, "Übersetzung wird ausgewertet...");
 
   // 2) XLIFF -> Patches. Im echten Betrieb useSourceIfNoTarget:false, damit
   // noch nicht uebersetzte Segmente ihren Originaltext im Kurs behalten.
@@ -149,7 +174,7 @@ function apiGenerateArticulatePreview(params) {
   setPreviewProgress_(
     sessionId,
     30,
-    patches.length + " ?bersetzte Segmente gefunden. Kurs wird zusammengebaut..."
+    patches.length + " übersetzte Segmente gefunden. Kurs wird zusammengebaut..."
   );
 
   // 3) Patchen + zu Firebase deployen. Wir rufen die bestehende
@@ -192,7 +217,7 @@ function patchAndDeployScormFolderToFirebase_withProgress_(
   var found = findRuntimeDataEntry_(fileEntries);
   var jsText = found.entry.blob.getDataAsString("UTF-8");
 
-  setPreviewProgress_(sessionId, 55, "?bersetzungen werden eingesetzt...");
+  setPreviewProgress_(sessionId, 55, "übersetzungen werden eingesetzt...");
   var patchResult = patchRuntimeDataJs_(jsText, patches);
 
   var patchedBlob = Utilities.newBlob(
