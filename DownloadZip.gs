@@ -412,6 +412,98 @@ function apiDownloadAllJobsAsZip(projectUid, jobUids, projectName, targetLangs, 
   }
 }
 
+// ??? Save to Google Drive (My Drive) ??????????????????????????????????????????
+// Liefert jede ?bersetzte Datei EINZELN (kein ZIP) inkl. Info, ob eine Umwandlung
+// in Google Docs/Sheets/Slides m?glich ist. Der tats?chliche Upload ins Drive des
+// Nutzers passiert client-seitig (siehe DriveSaveConfig.gs f?r den Hintergrund).
+
+var DRIVE_CONVERTIBLE_EXT_ = [".docx", ".xlsx", ".pptx"];
+
+function _googleMimeForExt_(ext) {
+  switch (String(ext || "").toLowerCase()) {
+    case ".docx": return "application/vnd.google-apps.document";
+    case ".xlsx": return "application/vnd.google-apps.spreadsheet";
+    case ".pptx": return "application/vnd.google-apps.presentation";
+    default: return "";
+  }
+}
+
+function apiGetFilesForDriveExport(projectUid, jobUids, projectName, targetLangs, jobMapping) {
+  const access = apiCheckAccess();
+  if (!access.allowed) return { success: false, error: "Not authorized." };
+
+  if (!Array.isArray(jobUids)) jobUids = [jobUids];
+  jobUids = jobUids.filter(j => j && String(j).trim());
+  if (jobUids.length === 0) return { success: false, error: "No job UIDs provided" };
+
+  if (jobMapping && typeof jobMapping === "string") {
+    try { jobMapping = JSON.parse(jobMapping); } catch (e) { jobMapping = null; }
+  }
+
+  const { maxLevel, jobsForDownload } = phraseGetJobsForMaxLevel_(projectUid, jobUids);
+  const filteredJobUids = jobsForDownload.map(j => j.uid).filter(Boolean);
+  if (filteredJobUids.length === 0) {
+    return { success: false, error: "Keine downloadbaren Jobs gefunden (Level " + maxLevel + ")." };
+  }
+
+  const files = [];
+  const errors = [];
+
+  for (let i = 0; i < filteredJobUids.length; i++) {
+    const jobUid = filteredJobUids[i];
+    const apiJob = jobsForDownload.find(j => j.uid === jobUid);
+    const apiFileName = apiJob && apiJob.fileName ? String(apiJob.fileName).trim() : "";
+    const apiLang = apiJob && apiJob.targetLang ? String(apiJob.targetLang).trim() : "";
+
+    let mappingFileName = "";
+    let mappingLang = "";
+    if (Array.isArray(jobMapping)) {
+      const m = jobMapping.find(m => m.jobUid === jobUid) || jobMapping[i];
+      if (m) {
+        mappingFileName = String(m.fileName || "").trim();
+        mappingLang     = String(m.targetLang || "").trim();
+      }
+    }
+
+    const jobFileName = (!_isGenericFileName_(mappingFileName) ? mappingFileName : null)
+                      || (!_isGenericFileName_(apiFileName)     ? apiFileName     : null)
+                      || projectName || "translation";
+    const jobLang = mappingLang || apiLang || (Array.isArray(targetLangs) ? targetLangs[i] : "") || "";
+
+    try {
+      const raw  = phraseDownloadTargetFile_(String(projectUid).trim(), jobUid);
+      const blob = _normalizeToBlob_(raw);
+
+      const blobContentType = (blob.getContentType && blob.getContentType()) || "";
+      const blobName        = _flattenBlobName_((blob.getName && blob.getName()) || "");
+
+      const sourceExt   = _getExt_(String(jobFileName || ""));
+      const fallbackExt = _fallbackExtFromMime_(blobContentType);
+
+      const outName = _buildTargetFileName_(jobFileName, jobLang, fallbackExt, blobName, sourceExt);
+      const ext     = _getExt_(outName).toLowerCase();
+      const mime    = sourceExt ? _mimeFromExt_(sourceExt) : (blobContentType || _mimeFromExt_(ext));
+      const googleMime = _googleMimeForExt_(ext);
+
+      files.push({
+        fileName: outName,
+        mimeType: mime,
+        base64: Utilities.base64Encode(blob.getBytes()),
+        canConvertToGoogle: !!googleMime,
+        googleMimeType: googleMime || null,
+        targetLang: jobLang
+      });
+    } catch (e) {
+      errors.push({ jobUid: jobUid, targetLang: jobLang, error: e.message });
+    }
+  }
+
+  if (!files.length) return { success: false, error: "Keine Dateien konnten geladen werden.", errors: errors };
+
+  recordDownloadTimestamp_(projectUid);
+  return { success: true, files: files, errors: errors, projectName: projectName };
+}
+
 /** Legacy / Explicit single download: returns base64 + filename so UI can download without Drive */
 function apiDownloadTargetFile(projectUid, jobUid) {
   const access = apiCheckAccess();
