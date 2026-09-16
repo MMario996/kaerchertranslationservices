@@ -5904,8 +5904,20 @@ function triggerArticulateAutoPreview_(uploadResult) {
   const folder = folderEl ? folderEl.value.trim() : '';
   if (!folder) return;
 
-  const jobMapping = uploadResult.jobMapping || [];
-  if (!jobMapping.length) return;
+  const rawJobMapping = uploadResult.jobMapping || [];
+  if (!rawJobMapping.length) return;
+
+  // Bei Multi-Step-Workflows (Translation -> PE -> Revision) legt Phrase pro
+  // Zielsprache mehrere Jobs gleichzeitig an (ein Job je Workflow-Stufe).
+  // Fuer die SCORM-Preview soll nur der erste (aktive Uebersetzungs-)Job je
+  // Zielsprache verknuepft werden.
+  const seenLangs = {};
+  const jobMapping = rawJobMapping.filter(function(j) {
+    const lang = j.targetLang || '';
+    if (seenLangs[lang]) return false;
+    seenLangs[lang] = true;
+    return true;
+  });
 
   const projectUid = uploadResult.projectUid;
   const projectName = document.getElementById('projectName_articulate')
@@ -5928,12 +5940,30 @@ function triggerArticulateAutoPreview_(uploadResult) {
     .withSuccessHandler(function(res) {
       const results = res.results || [];
       const ok = [];
-      results.forEach(function(r, i) { if (r.success) ok.push({ id: r.id, index: i }); });
+      const failed = [];
+      results.forEach(function(r, i) {
+        if (r.success) ok.push({ id: r.id, index: i });
+        else failed.push((r.courseName || ('Job ' + (i + 1))) + ': ' + (r.error || 'Unbekannter Fehler'));
+      });
       loadArticulateProjects();
       if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
+      if (failed.length) {
+        showCustomAlert(
+          'SCORM-Preview konnte für ' + failed.length + ' von ' + payloads.length + ' Zielsprache(n) nicht automatisch ' +
+          'verknüpft werden:\n\n' + failed.join('\n') +
+          '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
+          'über den Preview-Generator nachgeholt werden.',
+          'SCORM-Preview teilweise fehlgeschlagen'
+        );
+      }
     })
     .withFailureHandler(function(err) {
-      console.warn('Automatische SCORM-Preview fehlgeschlagen: ' + err.message);
+      showCustomAlert(
+        'Automatische SCORM-Preview-Verknüpfung fehlgeschlagen: ' + err.message +
+        '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
+        'über den Preview-Generator nachgeholt werden.',
+        'SCORM-Preview fehlgeschlagen'
+      );
     })
     .apiBatchCreateArticulateProjectsFromUi(payloads);
 }

@@ -241,15 +241,25 @@ function apiCreateProjectAndUpload(payload) {
       const fileJobMap = {};
       overallMainResults.forEach(f => {
          if (!fileJobMap[f.name]) fileJobMap[f.name] = { unsupported: false, lines: [] };
-         if (f.unsupported) {
-           fileJobMap[f.name].unsupported = true;
-         } else {
-           (f.jobUids || []).forEach((jUid, idx) => {
-              const tLang = (f.targetLangs && f.targetLangs[idx]) || "Target";
-              const jobUrl = "https://cloud.memsource.com/web/job/" + encodeURIComponent(jUid) + "/translate";
-              fileJobMap[f.name].lines.push(`   ? ${tLang}: ${jobUrl}`);
-           });
-         }
+         if (f.unsupported) fileJobMap[f.name].unsupported = true;
+      });
+      // Fuer die Job-URLs wird overallJobMapping genutzt (nicht f.jobUids +
+      // f.targetLangs positionsbasiert) - bei Multi-Step-Workflows (Translation
+      // -> PE -> Revision) legt Phrase pro Zielsprache MEHRERE Jobs gleichzeitig
+      // an, die beiden Arrays haben dann unterschiedliche Laenge und die
+      // Zuordnung per Index war falsch ("Target:" statt der echten Sprache).
+      // overallJobMapping paart jobUid+targetLang korrekt; pro Zielsprache wird
+      // hier nur der erste (aktive Uebersetzungs-)Job gezeigt.
+      const seenLangsPerFile = {};
+      overallJobMapping.forEach(j => {
+         const entry = fileJobMap[j.fileName];
+         if (!entry || entry.unsupported) return;
+         const tLang = j.targetLang || "Target";
+         seenLangsPerFile[j.fileName] = seenLangsPerFile[j.fileName] || {};
+         if (seenLangsPerFile[j.fileName][tLang]) return;
+         seenLangsPerFile[j.fileName][tLang] = true;
+         const jobUrl = "https://cloud.memsource.com/web/job/" + encodeURIComponent(j.jobUid) + "/translate";
+         entry.lines.push(`   ? ${tLang}: ${jobUrl}`);
       });
 
       const filesBlockArr = [];
