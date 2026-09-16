@@ -4802,7 +4802,7 @@ function switchTab(tabName) {
   if(btn) btn.classList.add('active');
   if(tabName === 'history')   loadMyProjects();
   if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
-  if(tabName === 'documentation') loadDocBoard('sidebar');
+  if(tabName === 'documentation') { loadDocBoard('sidebar'); docImportPreloadFolders_(); }
   if(tabName === 'dashboard') renderDashboard();
   if(tabName === 'admin')     applyAdminAccessRestrictions_();
   if(tabName === 'health')    loadHealthCheck();
@@ -4831,6 +4831,7 @@ function switchDocSubtab(name) {
   document.getElementById('docsub-export').style.display = isImport ? 'none' : 'block';
   document.getElementById('docsubBtn-import').classList.toggle('active', isImport);
   document.getElementById('docsubBtn-export').classList.toggle('active', !isImport);
+  if (isImport) docImportPreloadFolders_();
   if (!isImport && !(_docQueueData_['export'] && _docQueueData_['export'].length)) loadDocBoard('export');
 }
 // ??? DOCUMENTATION EXPORT ? d?nne Wrapper auf die gemeinsame Queue-Engine ??
@@ -4901,6 +4902,8 @@ let _docImportDuplicateHistory_ = [];
 let _docImportDuplicateConfirmed_ = false;
 let _docImportIsExpress_ = false;
 let _docImportFolderSearchTimer_ = null;
+let _docImportFolderCache_ = null;
+let _docImportFolderCacheLoading_ = false;
 let _germanHolidaySet_ = null;
 
 function attachDocImportFormLogic_() {
@@ -5004,6 +5007,9 @@ function openDocImportFolderDropdown_() {
     if (trigger) trigger.classList.add('open');
     const input = document.getElementById('docImportFolderSearch');
     if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+    // Cache sofort anzeigen (kein Warten auf den Server), im Hintergrund trotzdem
+    // aktualisieren, damit die Liste immer die aktuellen Projekte zeigt.
+    if (_docImportFolderCache_) renderDocImportFolderList_(_docImportFolderCache_);
     docImportSearchFolders_('');
   }
 }
@@ -5014,28 +5020,59 @@ function onDocImportFolderSearchInput_() {
   _docImportFolderSearchTimer_ = setTimeout(() => docImportSearchFolders_(q), 250);
 }
 
+function renderDocImportFolderList_(folders) {
+  const list = document.getElementById('docImportFolderOptionsList');
+  if (!list) return;
+  if (!folders.length) {
+    list.innerHTML = '<div class="tmpl-option-empty">Keine Ordner gefunden.</div>';
+    return;
+  }
+  list.innerHTML = folders.map(f =>
+    `<div class="tmpl-option" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>${escapeHtml(f.name)}</div>`
+  ).join('');
+}
+
 function docImportSearchFolders_(query) {
   const list = document.getElementById('docImportFolderOptionsList');
-  list.innerHTML = '<div class="tmpl-option-empty">Suche...</div>';
+  const hasCache = !query && _docImportFolderCache_;
+  // Bei leerer Suche und vorhandenem Cache keinen Lade-Spinner zeigen - die
+  // gecachten (aktuellen) Projekte bleiben sichtbar, bis die Aktualisierung durch ist.
+  if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">Suche...</div>';
   google.script.run
     .withSuccessHandler(res => {
       if (!res.success) {
-        list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || 'Fehler') + '</div>';
+        if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || 'Fehler') + '</div>';
         return;
       }
       const folders = res.folders || [];
-      if (!folders.length) {
-        list.innerHTML = '<div class="tmpl-option-empty">Keine Ordner gefunden.</div>';
-        return;
-      }
-      list.innerHTML = folders.map(f =>
-        `<div class="tmpl-option" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>${escapeHtml(f.name)}</div>`
-      ).join('');
+      if (!query) _docImportFolderCache_ = folders;
+      renderDocImportFolderList_(folders);
     })
     .withFailureHandler(err => {
-      list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(err.message) + '</div>';
+      if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(err.message) + '</div>';
     })
     .apiSearchDocDriveFolders(query);
+}
+
+// L?dt die aktuellen Projektordner im Hintergrund, sobald der Import-Tab
+// sichtbar wird - damit die Auswahl beim ?ffnen sofort aktuell ist, statt
+// erst nach Klick auf "Ordner ausw?hlen" nachzuladen.
+function docImportPreloadFolders_() {
+  if (_docImportFolderCacheLoading_) return;
+  _docImportFolderCacheLoading_ = true;
+  google.script.run
+    .withSuccessHandler(res => {
+      _docImportFolderCacheLoading_ = false;
+      if (!res.success) return;
+      _docImportFolderCache_ = res.folders || [];
+      const panel = document.getElementById('docImportFolderPanel');
+      if (panel && panel.classList.contains('open')) {
+        const searchInput = document.getElementById('docImportFolderSearch');
+        if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
+      }
+    })
+    .withFailureHandler(() => { _docImportFolderCacheLoading_ = false; })
+    .apiSearchDocDriveFolders('');
 }
 
 function selectDocImportFolder_(folderId, folderName) {

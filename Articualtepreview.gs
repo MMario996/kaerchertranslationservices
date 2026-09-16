@@ -71,6 +71,10 @@ function apiGenerateArticulatePreviewById(articulateProjectId, sessionId) {
       "OK (" + result.applied + " Segmente ?bersetzt)"
     );
 
+    phraseSetJobCustomFieldByName_(
+      project.projectUid, project.jobUid, "SCORM File-URL", result.liveUrl
+    );
+
     try {
       sendArticulateDeployedReply_(project, result);
     } catch (e) {

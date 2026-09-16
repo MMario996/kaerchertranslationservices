@@ -331,6 +331,65 @@ function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
 }
 
 /**
+ * Setzt ein JOB-basiertes Custom Field anhand des Feldnamens (z.B. "SCORM
+ * File-URL"). Gleiches GET-dann-PUT-Muster wie phraseSetProjectCustomFieldByName_,
+ * nur auf Job- statt Projekt-Ebene:
+ *   1. GET  /api2/v1/projects/{projectUid}/jobs/{jobUid}/customFields
+ *   2. PUT  /api2/v1/projects/{projectUid}/jobs/{jobUid}/customFields
+ * Non-blocking: Fehler werden nur geloggt, nie geworfen.
+ */
+function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
+  if (!projectUid || !jobUid || !fieldName || value === undefined || value === null || value === "") return;
+
+  try {
+    var cfDefs = phraseGetCustomFieldDefinitionsMap_(); // { uid: name }
+    var fieldUid = null;
+    for (var uid in cfDefs) {
+      if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
+    }
+    if (!fieldUid) {
+      console.warn("phraseSetJobCustomFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
+      return;
+    }
+
+    var basePath = "/projects/" + encodeURIComponent(projectUid) +
+      "/jobs/" + encodeURIComponent(jobUid) + "/customFields";
+
+    var getUrl = phraseApiUrlV1_(basePath + "?pageSize=50");
+    var getRes = phraseFetchJson_(getUrl, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var instances = (getRes && Array.isArray(getRes.content)) ? getRes.content : (Array.isArray(getRes) ? getRes : []);
+
+    var instanceUid = null;
+    for (var i = 0; i < instances.length; i++) {
+      var instFieldUid = instances[i].customField && instances[i].customField.uid;
+      if (instFieldUid === fieldUid) { instanceUid = instances[i].uid; break; }
+    }
+
+    var putUrl = phraseApiUrlV1_(basePath);
+    var putPayload = instanceUid
+      ? { updateInstances: [{ customFieldInstance: { uid: instanceUid }, customField: { uid: fieldUid }, value: value }] }
+      : { addInstances: [{ customField: { uid: fieldUid }, value: value }] };
+
+    var putRes = UrlFetchApp.fetch(putUrl, {
+      method: "put",
+      contentType: "application/json",
+      headers: { Authorization: getPhraseAuthHeader_() },
+      payload: JSON.stringify(putPayload),
+      muteHttpExceptions: true
+    });
+
+    var putCode = putRes.getResponseCode();
+    if (putCode >= 400) {
+      console.warn("phraseSetJobCustomFieldByName_ PUT HTTP " + putCode + " (" + fieldName + "): " + putRes.getContentText().substring(0, 200));
+    } else {
+      console.log("Job Custom Field gesetzt: " + fieldName + " = '" + value + "' (Job " + jobUid + ")");
+    }
+  } catch (e) {
+    console.warn("phraseSetJobCustomFieldByName_ fehlgeschlagen (" + fieldName + "): " + e.message);
+  }
+}
+
+/**
  * Create project from template (v2)
  * POST /api2/v2/projects/applyTemplate/{templateUid}
  */
