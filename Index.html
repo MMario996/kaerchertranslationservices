@@ -3070,7 +3070,25 @@ function initForm(config) {
     const artContainer = document.getElementById('articulate-form-container');
     if (artContainer && !artContainer.dataset.formInjected) {
       const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
-      artContainer.innerHTML += templateHtml.replace(/\{SUFFIX\}/g, 'articulate').replace(/\{NAME\}/g, 'Articulate');
+      let articulateFormHtml = templateHtml.replace(/\{SUFFIX\}/g, 'articulate').replace(/\{NAME\}/g, 'Articulate');
+      const scormCard =
+        '<div class="card" style="border-top:5px solid #1a73e8;">' +
+          '<div class="section-title" style="color:#1a73e8;">SCORM Preview (Optional)</div>' +
+          '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">' +
+            'Drive-Ordner mit dem entpackten SCORM-Export angeben, um automatisch eine Preview zu erzeugen ' +
+            '– direkt nach dem Einreichen (mit dem noch unübersetzten Text) und erneut, sobald die Übersetzung fertig ist. ' +
+            'Leer lassen, um wie bisher nur manuell über den Preview-Generator zu arbeiten.' +
+          '</div>' +
+          '<div class="form-row">' +
+            '<label>Drive-Ordner (SCORM-Export)</label>' +
+            '<input type="text" id="artSubmitScormFolder" placeholder="Drive-Ordner-Link (entpackter SCORM-Export)">' +
+          '</div>' +
+        '</div>';
+      articulateFormHtml = articulateFormHtml.replace(
+        '<div style="margin-top:40px; margin-bottom:60px; text-align:right;">',
+        scormCard + '<div style="margin-top:40px; margin-bottom:60px; text-align:right;">'
+      );
+      artContainer.innerHTML += articulateFormHtml;
       attachFormLogic('_articulate');
       activePortals.push('_articulate');
       artContainer.dataset.formInjected = '1';
@@ -5861,11 +5879,63 @@ function submitStandard(suffix) {
                 "<br><small style='color:#999;font-size:12px;'>The project may still complete in the background.</small>";
             }, 270000); 
 
-            google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).apiHandleUpload(payload);
+            google.script.run
+              .withSuccessHandler(function(res) {
+                onSuccess(res);
+                if (suffix === '_articulate' && res && res.success) triggerArticulateAutoPreview_(res);
+              })
+              .withFailureHandler(onFailure)
+              .apiHandleUpload(payload);
         } catch(e) {
             onFailure(e);
         }
     })();
+}
+
+/**
+ * Wird nach dem Einreichen eines Campus-Projekts aufgerufen, wenn im
+ * optionalen SCORM-Feld ein Drive-Ordner angegeben wurde: legt fuer jeden
+ * neu erzeugten Job (=Zielsprache) einen Articulate-Registry-Eintrag an
+ * und erzeugt anschliessend automatisch die Preview - dieselbe Logik wie
+ * beim manuellen "Alle Jobs im Projekt batch-patchen".
+ */
+function triggerArticulateAutoPreview_(uploadResult) {
+  const folderEl = document.getElementById('artSubmitScormFolder');
+  const folder = folderEl ? folderEl.value.trim() : '';
+  if (!folder) return;
+
+  const jobMapping = uploadResult.jobMapping || [];
+  if (!jobMapping.length) return;
+
+  const projectUid = uploadResult.projectUid;
+  const projectName = document.getElementById('projectName_articulate')
+    ? document.getElementById('projectName_articulate').value.trim()
+    : 'Campus Kurs';
+
+  const payloads = jobMapping.map(function(j) {
+    return {
+      courseName: projectName,
+      targetLang: j.targetLang,
+      projectUidOrUrl: projectUid,
+      jobUidOrUrl: j.jobUid,
+      driveFolderUrl: folder,
+      firebaseSite: '',
+      _fileLabel: (j.fileName || projectName) + ' (' + j.targetLang + ')'
+    };
+  });
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const results = res.results || [];
+      const ok = [];
+      results.forEach(function(r, i) { if (r.success) ok.push({ id: r.id, index: i }); });
+      loadArticulateProjects();
+      if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
+    })
+    .withFailureHandler(function(err) {
+      console.warn('Automatische SCORM-Preview fehlgeschlagen: ' + err.message);
+    })
+    .apiBatchCreateArticulateProjectsFromUi(payloads);
 }
 
 function submitKecExisting(suffix, existingProjectUid) {
