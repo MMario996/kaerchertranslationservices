@@ -65,15 +65,14 @@ function apiGenerateArticulatePreviewById(articulateProjectId, sessionId) {
       firebaseSiteId: project.firebaseSite,
     });
 
-    updateArticulateDeployResult_(
-      project.rowIndex,
-      result.liveUrl,
-      "OK (" + result.applied + " Segmente ?bersetzt)"
-    );
-
-    phraseSetJobCustomFieldByName_(
+    var cfResult = phraseSetJobCustomFieldByName_(
       project.projectUid, project.jobUid, "SCORM File-URL", result.liveUrl
     );
+
+    var statusText = "OK (" + result.applied + " Segmente ?bersetzt)";
+    if (!cfResult.ok) statusText += " - CF FEHLER: " + cfResult.error;
+
+    updateArticulateDeployResult_(project.rowIndex, result.liveUrl, statusText);
 
     try {
       sendArticulateDeployedReply_(project, result);

@@ -292,6 +292,14 @@ function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
       if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
     }
     if (!fieldUid) {
+      // Cache kann bis zu 6h alt sein - bei neu angelegten Custom Fields
+      // einmal mit erzwungenem Refresh nachschlagen, bevor aufgegeben wird.
+      cfDefs = phraseGetCustomFieldDefinitionsMap_(true);
+      for (var uid2 in cfDefs) {
+        if (cfDefs[uid2] === fieldName) { fieldUid = uid2; break; }
+      }
+    }
+    if (!fieldUid) {
       console.warn("phraseSetProjectCustomFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
       return;
     }
@@ -339,7 +347,9 @@ function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
  * Non-blocking: Fehler werden nur geloggt, nie geworfen.
  */
 function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
-  if (!projectUid || !jobUid || !fieldName || value === undefined || value === null || value === "") return;
+  if (!projectUid || !jobUid || !fieldName || value === undefined || value === null || value === "") {
+    return { ok: false, error: "Fehlende Parameter." };
+  }
 
   try {
     var cfDefs = phraseGetCustomFieldDefinitionsMap_(); // { uid: name }
@@ -348,8 +358,17 @@ function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
       if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
     }
     if (!fieldUid) {
-      console.warn("phraseSetJobCustomFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
-      return;
+      // Cache kann bis zu 6h alt sein - bei neu angelegten Custom Fields
+      // einmal mit erzwungenem Refresh nachschlagen, bevor aufgegeben wird.
+      cfDefs = phraseGetCustomFieldDefinitionsMap_(true);
+      for (var uid2 in cfDefs) {
+        if (cfDefs[uid2] === fieldName) { fieldUid = uid2; break; }
+      }
+    }
+    if (!fieldUid) {
+      var notFoundMsg = "Custom Field '" + fieldName + "' nicht gefunden (Name prüfen / Feld existiert nicht).";
+      console.warn("phraseSetJobCustomFieldByName_: " + notFoundMsg);
+      return { ok: false, error: notFoundMsg };
     }
 
     var basePath = "/projects/" + encodeURIComponent(projectUid) +
@@ -380,12 +399,15 @@ function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
 
     var putCode = putRes.getResponseCode();
     if (putCode >= 400) {
-      console.warn("phraseSetJobCustomFieldByName_ PUT HTTP " + putCode + " (" + fieldName + "): " + putRes.getContentText().substring(0, 200));
-    } else {
-      console.log("Job Custom Field gesetzt: " + fieldName + " = '" + value + "' (Job " + jobUid + ")");
+      var putErr = "PUT HTTP " + putCode + ": " + putRes.getContentText().substring(0, 200);
+      console.warn("phraseSetJobCustomFieldByName_ " + putErr + " (" + fieldName + ")");
+      return { ok: false, error: putErr };
     }
+    console.log("Job Custom Field gesetzt: " + fieldName + " = '" + value + "' (Job " + jobUid + ")");
+    return { ok: true };
   } catch (e) {
     console.warn("phraseSetJobCustomFieldByName_ fehlgeschlagen (" + fieldName + "): " + e.message);
+    return { ok: false, error: e.message };
   }
 }
 
