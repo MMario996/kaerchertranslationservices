@@ -7559,9 +7559,9 @@ function openJobNoteModal(projectUid, jobUids) {
                   '<th style="padding:10px;border-bottom:2px solid #ddd;">Value</th>' +
                   '<th style="padding:10px;border-bottom:2px solid #ddd;width:120px;text-align:center;">Actions</th>' +
                   '</tr></thead><tbody>';
-          res.forEach(p => {
+          res.properties.forEach(p => {
             const isProt = p.protected;
-            const isSens = p.blocked;
+            const isSens = p.sensitive;
             html += `<tr style="border-bottom:1px solid #eee;">
               <td style="padding:10px;font-family:monospace;font-weight:bold;color:${isProt?'#d93025':'#333'};">
                 ${escapeHtml(p.key)} ${isProt?'<span title="Protected" style="cursor:help;">?</span>':''}
@@ -7655,7 +7655,11 @@ function openJobNoteModal(projectUid, jobUids) {
                   '<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">Action</th>' +
                   '<th style="padding:8px;border-bottom:1px solid #ddd;">Details</th>' +
                   '</tr></thead><tbody>';
-          res.forEach(row => {
+          if (res.error) {
+            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(res.error) + '</div>';
+            return;
+          }
+          (res.entries || []).forEach(row => {
             html += `<tr style="border-bottom:1px solid #eee;">
               <td style="padding:8px;color:#666;">${escapeHtml(row.timestamp)}</td>
               <td style="padding:8px;color:#1565c0;">${escapeHtml(row.user)}</td>
