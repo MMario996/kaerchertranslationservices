@@ -90,6 +90,29 @@ function apiGenerateArticulatePreviewById(articulateProjectId, sessionId) {
 }
 
 /**
+ * Wird vom Zeit-Trigger (autoSyncProjectStatuses_ in AutoSync.gs) aufgerufen,
+ * sobald ein Phrase-Projekt COMPLETED/DELIVERED wird. Regeneriert automatisch
+ * die SCORM-Preview fuer alle Campus-Kurse, die bei der Einreichung mit einem
+ * Drive-SCORM-Ordner verknuepft wurden (registryEintrag.driveFolderId gesetzt)
+ * - schreibt die finale (uebersetzte) Preview-URL, setzt das Job-Custom-Field
+ * "SCORM File-URL" und verschickt die Chat-Benachrichtigung, genau wie ein
+ * manueller Play-Klick im Preview-Generator.
+ * Non-blocking: Fehler pro Kurs werden nur geloggt, nie geworfen.
+ */
+function triggerArticulatePreviewsForCompletedProject_(projectUid) {
+  if (!projectUid) return;
+  var rows = apiListArticulateProjects().rows;
+  rows.forEach(function(row) {
+    if (row.projectUid !== projectUid || !row.driveFolderId) return;
+    try {
+      apiGenerateArticulatePreviewById(row.id);
+    } catch (e) {
+      console.warn("Auto-Preview nach Projektabschluss fehlgeschlagen (" + row.id + "): " + e.message);
+    }
+  });
+}
+
+/**
  * HAUPTFUNKTION - von der UI ueber den Play-Button aufgerufen.
  *
  * @param {Object} params

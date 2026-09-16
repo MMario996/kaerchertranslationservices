@@ -125,6 +125,7 @@ function autoSyncProjectStatuses_() {
             sh.getRange(i + 1, 8).setValue(newStatus);
             props.setProperty(notifiedKey, "true");
             try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
+            try { triggerArticulatePreviewsForCompletedProject_(projectUid); } catch (e) {}
 
             // FIX: Thread-IDs nach Completion aus Sheet l?schen
             _clearThreadIds_(sh, i + 1);
