@@ -21,7 +21,7 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('simulator')" title="Help">?</button>
                     </div>
                     <div id="help-simulator" class="admin-help-panel">
-                        <span class="help-impact impact-low">Read-only ? No impact</span>
+                        <span class="help-impact impact-low">Read-only &#8211; No impact</span>
                         <p>Preview the app exactly as a specific user would see it.</p>
                         <ul>
                             <li>Admin controls remain visible; a purple banner indicates simulation mode.</li>
@@ -40,7 +40,7 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('maintenance')" title="Help">?</button>
                     </div>
                     <div id="help-maintenance" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? All users locked out</span>
+                        <span class="help-impact impact-critical">Critical &#8211; All users locked out</span>
                         <p>Blocks access for <strong>all non-admin users</strong> during the configured window.</p>
                         <ul>
                             <li>Admins can bypass the lock via the "ADMIN UNLOCK" button.</li>
@@ -127,7 +127,7 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('drivesave')" title="Help">?</button>
                     </div>
                     <div id="help-drivesave" class="admin-help-panel">
-                        <span class="help-impact impact-low">Low impact ? opt-in feature per user</span>
+                        <span class="help-impact impact-low">Low impact &#8211; opt-in feature per user</span>
                         <p>Lets users save translated files directly into their own Google "My Drive" (with the option to convert Word/Excel/PowerPoint files to Google Docs/Sheets/Slides), instead of only downloading to their computer.</p>
                         <p>This requires a one-time <strong>OAuth Client ID</strong> (type "Web application") created in the Google Cloud Console project linked to this script, with this portal's URL added under "Authorized JavaScript origins". Paste that Client ID below.</p>
                     </div>
@@ -163,7 +163,7 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('admins')" title="Help">?</button>
                     </div>
                     <div id="help-admins" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Full access granted</span>
+                        <span class="help-impact impact-critical">Critical &#8211; Full access granted</span>
                         <p>Administrators have <strong>complete access</strong> to all features including this Admin Console.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
@@ -178,8 +178,8 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('adminlight')" title="Help">?</button>
                     </div>
                     <div id="help-adminlight" class="admin-help-panel">
-                        <span class="help-impact impact-high">High Impact ? Eingeschränkter Admin-Zugriff</span>
-                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager und/oder Template Manager ? ohne Console (Whitelists, Maintenance, Script Properties etc.).</p>
+                        <span class="help-impact impact-high">High Impact &#8211; Eingeschränkter Admin-Zugriff</span>
+                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager und/oder Template Manager &#8211; ohne Console (Whitelists, Maintenance, Script Properties etc.).</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:10px;">
                         <input type="email" id="newAdminLightEmail" placeholder="user@karcher.com">
@@ -202,8 +202,8 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('mktgwl')" title="Help">?</button>
                     </div>
                     <div id="help-mktgwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "Marketing Projects"</strong> tab ? the standard "General Projects" tab is hidden for them.</p>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "Marketing Projects"</strong> tab &#8211; the standard "General Projects" tab is hidden for them.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <input type="email" id="newMarketingWhitelistEmail" placeholder="colleague@karcher.com">
@@ -217,8 +217,8 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('womawl')" title="Help">?</button>
                     </div>
                     <div id="help-womawl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "WOMA"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "WOMA"</strong> tab (funktional identisch zu "General Projects") &#8211; der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <input type="email" id="newWomaWhitelistEmail" placeholder="colleague@karcher.com">
@@ -233,8 +233,8 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('ccwl')" title="Help">?</button>
                     </div>
                     <div id="help-ccwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "Competence Center Projects"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "Competence Center Projects"</strong> tab (funktional identisch zu "General Projects") &#8211; der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <input type="email" id="newCcWhitelistEmail" placeholder="colleague@karcher.com">
@@ -248,7 +248,7 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('kecwl')" title="Help">?</button>
                     </div>
                     <div id="help-kecwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
                         <p>Users listed here see the <strong>"KeC Projects"</strong> tab.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
@@ -264,7 +264,7 @@
                       <button class="help-toggle-btn" onclick="toggleAdminHelp('docwl')" title="Help">?</button>
                     </div>
                     <div id="help-docwl" class="admin-help-panel">
-                      <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                      <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
                       <p>Users listed here see the <strong>"Documentation Projects"</strong> tab.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
@@ -283,10 +283,10 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('artwl')" title="Help">?</button>
                     </div>
                     <div id="help-artwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Zusatz-Tab</span>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Zusatz-Tab</span>
                         <p>Users listed here see the <strong>"Campus Projects"</strong> tab und können Rise-Kurs-Previews erzeugen.</p>
                         <ul>
-                            <li>Anders als bei Marketing/KeC/Documentation ist dieser Tab <strong>nicht exklusiv</strong> ? die Nutzer behalten "General Projects".</li>
+                            <li>Anders als bei Marketing/KeC/Documentation ist dieser Tab <strong>nicht exklusiv</strong> &#8211; die Nutzer behalten "General Projects".</li>
                             <li>Admins sehen den Tab automatisch, ohne Eintrag hier.</li>
                         </ul>
                     </div>
@@ -303,10 +303,10 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('kecelig')" title="Help">?</button>
                     </div>
                     <div id="help-kecelig" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Steuert KeC-Projekt-Filter</span>
+                        <span class="help-impact impact-critical">Critical &#8211; Steuert KeC-Projekt-Filter</span>
                         <p>Diese IDs bestimmen, welche Phrase-Projekte im "KeC Projects" Dropdown erscheinen (Client, Domain, Business Unit).</p>
                         <ul>
-                            <li>Standardmäßig <strong>gesperrt</strong> ? Klick auf das Schloss zum Entsperren.</li>
+                            <li>Standardmäßig <strong>gesperrt</strong> &#8211; Klick auf das Schloss zum Entsperren.</li>
                             <li>Falsche Werte können dazu führen, dass gar keine Projekte mehr gefunden werden.</li>
                         </ul>
                     </div>
@@ -314,7 +314,7 @@
                         <button id="kecEligLockBtn" onclick="toggleKecEligLock()" 
                                 style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
                             <span class="material-icons-outlined" id="kecEligLockIcon" style="font-size:16px;">lock</span>
-                            <span id="kecEligLockText">Locked ? Click to unlock</span>
+                            <span id="kecEligLockText">Locked &#8211; Click to unlock</span>
                         </button>
                     </div>
                     <div class="form-row">
@@ -339,14 +339,14 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('docdriveroot')" title="Help">?</button>
                     </div>
                     <div id="help-docdriveroot" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Steuert Import/Export-Ordner</span>
+                        <span class="help-impact impact-critical">Critical &#8211; Steuert Import/Export-Ordner</span>
                         <p>Dieser Drive-Ordner ist der Root für Documentation Import/Export. Unterordner müssen exakt so heißen wie das jeweilige Phrase-Projekt.</p>
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
                         <button id="docDriveRootLockBtn" onclick="toggleDocDriveRootLock()"
                                 style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
                             <span class="material-icons-outlined" id="docDriveRootLockIcon" style="font-size:16px;">lock</span>
-                            <span id="docDriveRootLockText">Locked ? Click to unlock</span>
+                            <span id="docDriveRootLockText">Locked &#8211; Click to unlock</span>
                         </button>
                     </div>
                     <div class="form-row">
@@ -362,7 +362,7 @@
                     <div class="admin-card-header">
                         <div class="section-title">System Logs (Last 20)</div>
                         <div style="display:flex;gap:6px;align-items:center;">
-                            <button class="help-toggle-btn" onclick="openLogsModal()" title="Full screen" style="width:auto;padding:0 8px;border-radius:2px;font-size:11px;letter-spacing:0;">? Expand</button>
+                            <button class="help-toggle-btn" onclick="openLogsModal()" title="Full screen" style="width:auto;padding:0 8px;border-radius:2px;font-size:11px;letter-spacing:0;">&#8226; Expand</button>
                         </div>
                     </div>
                     <div id="errorLogContainer" style="max-height:280px; overflow-y:auto; background:#1a1a2e; color:#a0e0a0; font-family:monospace; padding:12px; font-size:11px; line-height:1.6; border-radius:2px;">
@@ -419,7 +419,7 @@
                       </div>
                   </div>
                   <div id="help-watchers" class="admin-help-panel">
-                      <span class="help-impact impact-low">Info-only ? Notifications</span>
+                      <span class="help-impact impact-low">Info-only &#8211; Notifications</span>
                       <p>Bestimmte Personen werden automatisch benachrichtigt wenn ein Projekt aus einem konfigurierten Template eingereicht wird.</p>
                       <ul>
                           <li>Template-Namen müssen exakt mit dem Anzeigenamen im Dropdown übereinstimmen (oder als Teilstring enthalten sein).</li>
@@ -455,10 +455,10 @@
                         </div>
                     </div>
                     <div id="help-msgtemplates" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Chat Messages</span>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Chat Messages</span>
                         <p>Customize the text of all automated Chat notifications sent by Translation-Services.</p>
                         <ul>
-                            <li>Use <strong>{{PLACEHOLDER}}</strong> syntax ? these are replaced dynamically with real values.</li>
+                            <li>Use <strong>{{PLACEHOLDER}}</strong> syntax &#8211; these are replaced dynamically with real values.</li>
                             <li>Click <strong>Reset</strong> to restore the built-in default for a template.</li>
                             <li>Available placeholders: <code>{{PROJECT_NAME}}</code> <code>{{PHRASE_ID}}</code> <code>{{SOURCE_LANG}}</code> <code>{{TARGET_LANGS}}</code> <code>{{DEADLINE}}</code> <code>{{TEMPLATE_NAME}}</code> <code>{{STATUS}}</code> <code>{{PHRASE_URL}}</code> <code>{{PORTAL_URL}}</code> <code>{{SHARED_BY}}</code> <code>{{UPDATED_BY}}</code> <code>{{NEW_DATE}}</code> <code>{{NOTE_LINE}}</code> <code>{{FILES}}</code></li>
                         </ul>
@@ -482,14 +482,14 @@
                         </div>
                     </div>
                     <div id="help-advprops" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? System Configuration</span>
+                        <span class="help-impact impact-critical">Critical &#8211; System Configuration</span>
                         <p>These are the raw system variables that control how the application works. <strong>Only edit if you know what you're doing.</strong></p>
                         <ul>
                             <li><strong>ACCESS_SHEET_ID / OPS_SHEET_ID:</strong> Google Sheet IDs for the config and uploads databases.</li>
                             <li><strong>ADMIN_EMAILS:</strong> Comma-separated admin email addresses.</li>
                             <li><strong>PHRASE_API_TOKEN:</strong> API token for Phrase TMS (masked for security).</li>
-                            <li>? Protected keys cannot be deleted, only edited.</li>
-                            <li>?? Click the eye icon to temporarily reveal masked values.</li>
+                            <li>&#8226; Protected keys cannot be deleted, only edited.</li>
+                            <li>&#9888; Click the eye icon to temporarily reveal masked values.</li>
                         </ul>
                     </div>
 
@@ -597,8 +597,8 @@
               <div style="font-size:12px;color:#888;margin-bottom:12px;">Live aus Phrase gezogen. Der <strong>Active</strong>-Schalter steuert, ob das Template im Upload-Dropdown erscheint (wird ins Sheet geschrieben).</div>
               <div id="tmplMgrBatchBar" style="display:none;align-items:center;gap:12px;background:#fff9c4;border:1px solid #fff59d;padding:8px 14px;margin-bottom:12px;font-size:13px;">
                 <strong id="tmplMgrSelCount">0</strong> ausgewählt
-                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#4CAF50;color:#fff;" onclick="batchSetTemplateActive(true)">? Aktivieren</button>
-                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#d93025;color:#fff;" onclick="batchSetTemplateActive(false)">? Deaktivieren</button>
+                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#4CAF50;color:#fff;" onclick="batchSetTemplateActive(true)">&#10003; Aktivieren</button>
+                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#d93025;color:#fff;" onclick="batchSetTemplateActive(false)">&#10003; Deaktivieren</button>
                 <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;text-decoration:underline;" onclick="tmplMgrClearSelection()">Auswahl aufheben</button>
               </div>
               <div id="tmplMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>

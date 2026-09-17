@@ -156,11 +156,11 @@
       #adminBypassBtn { margin-top: 30px; background-color: transparent; border: 2px solid #ccc; color: #888; font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 0 25px; height: 40px; border-radius: 30px; transition: all 0.3s ease; display: none; align-items: center; gap: 8px; }
       #adminBypassBtn:hover { border-color: var(--primary-black); color: var(--primary-black); background-color: rgba(0,0,0,0.05); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: pointer; }
 
-      /* ??? ADMIN GRID ??????????????????????????????? */
+      /* --- ADMIN GRID ------------------------------- */
       .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; align-items: start; }
       .admin-grid .card { border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: box-shadow 0.2s; }
       .admin-grid .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-      /* ??? MODERN TABLE (User/Template Manager) ??????? */
+      /* --- MODERN TABLE (User/Template Manager) ------- */
       .modern-table-wrap { border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
       .modern-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
       .modern-table thead th { position: sticky; top: 0; z-index: 5; background: #fafafa; text-align: left; padding: 12px 14px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #555; border-bottom: 2px solid #eee; }
@@ -189,7 +189,7 @@
       .icon-btn-danger { color: #ccc; cursor: pointer; transition: color 0.2s; }
       .icon-btn-danger:hover { color: #d93025; }
 
-      /* ??? ADMIN HELP PANELS ???????????????????????? */
+      /* --- ADMIN HELP PANELS ------------------------ */
       .admin-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
       .admin-card-header .section-title { margin: 0; border: none; padding: 0; font-size: 15px; }
       .help-toggle-btn { background: #f0f0f0; border: 1px solid #ddd; color: #666; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; line-height: 1; }
@@ -205,7 +205,7 @@
       .admin-help-panel li { margin-bottom: 3px; }
       .admin-help-panel strong { color: #222; }
 
-      /* ??? USER GUIDE ??????????????????????????????? */
+      /* --- USER GUIDE ------------------------------- */
       .guide-list { display: flex; flex-direction: column; gap: 20px; }
       .guide-item { display: flex; align-items: flex-start; gap: 15px; }
       .guide-number { background-color: var(--primary-yellow); color: var(--primary-black); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -214,10 +214,10 @@
       .guide-content h4 { margin: 0 0 5px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
       .guide-content p { margin: 0; font-size: 13px; color: #666; line-height: 1.5; }
 
-      /* ??? MULTI-SELECT ????????????????????????????? */
+      /* --- MULTI-SELECT ----------------------------- */
       .multiselect-wrapper { position: relative; width: 100%; user-select: none; }
       .multiselect-trigger { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 15px; font-weight: 400; color: #333; min-height: 48px; height: auto; border: 1px solid #ccc; background: #fff; cursor: pointer; box-sizing: border-box; }
-      .multiselect-trigger:after { content: '?'; font-size: 10px; color: #666; margin-left: 10px; }
+      .multiselect-trigger:after { content: '\25BE'; font-size: 10px; color: #666; margin-left: 10px; }
       .multiselect-trigger.disabled { background-color: #f9f9f9; color: #999; pointer-events: none; cursor: not-allowed; }
       .multiselect-options { position: absolute; display: none; top: 100%; left: 0; right: 0; border: 1px solid #ccc; border-top: none; background: #fff; z-index: 999; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
       .multiselect-options.open { display: block; }
@@ -231,7 +231,7 @@
       .chip-remove { cursor: pointer; font-weight: bold; font-size: 12px; line-height: 1; padding: 0 2px; }
       .chip-remove:hover { color: #d93025; }
 
-      /* ??? TEMPLATE CUSTOM DROPDOWN ???????????????????? */
+      /* --- TEMPLATE CUSTOM DROPDOWN -------------------- */
       .tmpl-dropdown-wrapper { position: relative; width: 100%; }
       .tmpl-dropdown-trigger { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 15px; border: 1px solid #ccc; background: #fff; cursor: pointer; box-sizing: border-box; min-height: 48px; user-select: none; }
       .tmpl-dropdown-trigger:hover { border-color: #999; }
@@ -260,7 +260,7 @@
       #autoSyncToggle:checked + span { background: #4CAF50; }
       #autoSyncToggle:checked ~ #autoSyncSlider { transform: translateX(20px); }
 
-      /* ??? DOC BOARD (Kanban) ??????????????????????? */
+      /* --- DOC BOARD (Kanban) ----------------------- */
       .doc-board-wrapper { display:flex; gap:12px; overflow-x:auto; padding-bottom:4px; }
       .doc-board-column { flex:1; min-width:280px; background:#fafafa; border:1px solid #eee; border-top:4px solid #999; display:flex; flex-direction:column; }
       .doc-board-col-header { padding:10px 12px; font-weight:800; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; background:#fff; }
@@ -282,7 +282,7 @@
       .doc-board-file-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f5f5f5; font-size:11px; }
       .doc-board-file-row:last-child { border-bottom:none; }
       .doc-board-meta-box { margin-top:10px; padding:10px; background:#f9f9f9; border-left:3px solid var(--primary-yellow); font-size:11px; line-height:1.7; }
-      /* ??? DOC IMPORT/EXPORT SUB-TABS ??????????????????? */
+      /* --- DOC IMPORT/EXPORT SUB-TABS ------------------- */
       .docsub-nav { display:flex; gap:4px; border-bottom:2px solid #eee; margin-bottom:20px; }
       .docsub-btn { padding:10px 24px; background:none; border:none; font-size:13px; font-weight:800; text-transform:uppercase; color:#999; cursor:pointer; border-bottom:3px solid transparent; }
       .docsub-btn.active { color:#000; border-bottom-color:var(--primary-yellow); }
@@ -294,12 +294,12 @@
       .docimport-status-missing { color:#c62828; font-weight:700; }
       .docexport-row-completed { color:#2e7d32; font-weight:700; }
       .docexport-row-pending { color:#999; }
-      /* ??? ACTION BUTTONS (My Projects table) ??????????????????????? */
+      /* --- ACTION BUTTONS (My Projects table) ----------------------- */
       .btn-icon { background:none; border:1px solid #e0e0e0; cursor:pointer; padding:5px; border-radius:4px; color:#555; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s; margin:0 1px; }
       .btn-icon:hover { background:#fffbe6; border-color:#FFED00; color:#000; }
       .btn-icon.danger:hover { background:#ffebee; border-color:#ffcdd2; color:#c62828; }
       .btn-icon span { font-size:18px; }
-      /* ??? Prevent flash of nav before app loads ??????????????????????? */
+      /* --- Prevent flash of nav before app loads ----------------------- */
       .tab-nav { visibility: hidden; }
       .tab-nav.app-ready { visibility: visible; }
     </style>
@@ -323,7 +323,7 @@
         <div style="text-align:center;margin-bottom:20px;">
           <span class="material-icons-outlined" style="font-size:50px;color:var(--primary-yellow);">notifications_active</span>
           <h2 style="margin:10px 0 5px;font-size:18px;text-transform:uppercase;font-weight:800;">Stay Updated!</h2>
-          <p style="color:#666;font-size:13px;margin:0;">Get notified automatically ? right in Google Chat.</p>
+          <p style="color:#666;font-size:13px;margin:0;">Get notified automatically &#8211; right in Google Chat.</p>
         </div>
 
         <div style="background:#f9f9f9;border:1px solid #eee;padding:20px;margin-bottom:20px;">
@@ -336,19 +336,19 @@
           </p>
           <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
             <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#333;">
-              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">?</span>
+              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">&#10003;</span>
               Your project has been <strong>successfully submitted</strong>
             </div>
             <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#333;">
-              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">?</span>
+              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">&#10003;</span>
               Your translation is <strong>ready to download</strong>
             </div>
             <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#333;">
-              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">?</span>
+              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">&#10003;</span>
               A colleague <strong>shares a project</strong> with you
             </div>
             <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#333;">
-              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">?</span>
+              <span style="background:#e8f5e9;color:#2e7d32;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">&#10003;</span>
               A project <strong>deadline is approaching</strong> (24h reminder)
             </div>
           </div>
@@ -362,23 +362,23 @@
               </div>
               <div style="display:flex;align-items:flex-start;gap:10px;">
                 <span style="background:var(--primary-yellow);color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:800;">2</span>
-                <span style="font-size:13px;color:#333;">Click on the bot and send <strong>any message</strong> (e.g. "Hi") ? this registers your account</span>
+                <span style="font-size:13px;color:#333;">Click on the bot and send <strong>any message</strong> (e.g. "Hi") &#8211; this registers your account</span>
               </div>
               <div style="display:flex;align-items:flex-start;gap:10px;">
                 <span style="background:var(--primary-yellow);color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:800;">3</span>
-                <span style="font-size:13px;color:#333;">Click the <span class="material-icons-outlined" style="font-size:14px;vertical-align:middle;background:#eee;padding:1px;border-radius:3px;">tune</span> icon here (top right) ? set <strong>Notifications to ON</strong> ? Save</span>
+                <span style="font-size:13px;color:#333;">Click the <span class="material-icons-outlined" style="font-size:14px;vertical-align:middle;background:#eee;padding:1px;border-radius:3px;">tune</span> icon here (top right) &#8211; set <strong>Notifications to ON</strong> &#8211; Save</span>
               </div>
             </div>
           </div>
         </div>
 
         <div style="background:#fff3e0;border:1px solid #ffe0b2;padding:12px 15px;margin-bottom:20px;font-size:12px;color:#e65100;line-height:1.6;">
-          <strong>? When do I receive the first message?</strong><br>
+          <strong>&#8226; When do I receive the first message?</strong><br>
           After setting Notifications to ON, you will receive your first message <strong>automatically when you submit your first project</strong>. No further action needed.
         </div>
 
         <div style="background:#fffde7;border:1px solid #fff9c4;padding:10px 15px;margin-bottom:20px;font-size:12px;color:#f57f17;">
-          <strong>Note:</strong> The bot is read-only ? it only sends notifications. It cannot execute commands or answer questions.
+          <strong>Note:</strong> The bot is read-only &#8211; it only sends notifications. It cannot execute commands or answer questions.
         </div>
 
         <div style="display:flex;gap:10px;justify-content:center;">
@@ -519,7 +519,7 @@
         <div id="driveList" class="modal-body" style="padding:0;"></div>
         <div id="driveRecentsPanel" style="display:none;border-top:1px solid #eee;padding:15px 20px;flex-shrink:0;max-height:200px;overflow-y:auto;">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#888;margin-bottom:10px;letter-spacing:0.5px;">
-            ? Favorites / Recently selected
+            &#8226; Favorites / Recently selected
           </div>
           <div id="driveRecentsList"></div>
         </div>
@@ -568,7 +568,7 @@
             <input type="radio" name="saveToDriveFormat" value="google" style="margin-top:3px;">
             <span><strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)</span>
           </label>
-          <div style="font-size:11px;color:#888;margin-top:8px;">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is ? Google format conversion is only offered when saving into Drive.</div>
+          <div style="font-size:11px;color:#888;margin-top:8px;">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is &#8211; Google format conversion is only offered when saving into Drive.</div>
         </div>
 
         <div id="saveToDriveNotConfigured" style="display:none;font-size:13px;background:#fff3f3;border:1px solid #ffcdd2;color:#c62828;padding:12px;margin:15px 0;">
@@ -595,10 +595,10 @@
     <div id="logsModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:7000;align-items:center;justify-content:center;">
       <div style="background:#1a1a2e;width:90%;max-width:1100px;height:85vh;display:flex;flex-direction:column;border-top:5px solid var(--primary-yellow);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px;border-bottom:1px solid #333;flex-shrink:0;">
-          <span style="color:#fff;font-weight:800;text-transform:uppercase;font-size:14px;letter-spacing:1px;">? System Logs</span>
+          <span style="color:#fff;font-weight:800;text-transform:uppercase;font-size:14px;letter-spacing:1px;">&#8226; System Logs</span>
           <div style="display:flex;gap:10px;align-items:center;">
             <input type="text" id="logsSearchInput" placeholder="Filter logs..." onkeyup="filterLogs()" style="background:#0d0d1a;border:1px solid #333;color:#ccc;padding:6px 10px;width:220px;font-size:12px;border-radius:0;">
-            <button onclick="closeLogsModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">? CLOSE</button>
+            <button onclick="closeLogsModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">&#8226; CLOSE</button>
           </div>
         </div>
         <div id="logsModalBody" style="flex:1;overflow-y:auto;padding:15px 20px;font-family:monospace;font-size:12px;color:#a0e0a0;line-height:1.8;"></div>
@@ -639,7 +639,7 @@
           <button class="btn btn-secondary" style="height:40px;" onclick="closePreferences()">Cancel</button>
           <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" onclick="saveChatPreference()">Save</button>
         </div>
-        <div id="prefsSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">? Saved!</div>
+        <div id="prefsSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">&#10003; Saved!</div>
       </div>
     </div>
 
@@ -658,7 +658,7 @@
           <input type="date" id="dueDateInput" style="font-size:14px;">
         </div>
         <div style="font-size:12px;color:#888;margin-top:8px;margin-bottom:20px;">
-          ?? The date will be updated in Phrase TMS and all project participants will be notified via Google Chat.
+          &#9888; The date will be updated in Phrase TMS and all project participants will be notified via Google Chat.
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
           <button class="btn btn-secondary" style="height:40px;" onclick="closeDueDateModal()">Cancel</button>
@@ -666,7 +666,7 @@
             <span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save &amp; Notify
           </button>
         </div>
-        <div id="dueDateSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">? Due date updated!</div>
+        <div id="dueDateSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">&#10003; Due date updated!</div>
       </div>
     </div>
 
@@ -809,7 +809,7 @@
                     <div class="tmpl-dropdown-wrapper" id="tmplWrapper_docimport">
                       <div class="tmpl-dropdown-trigger" id="tmplTrigger_docimport" onclick="openTemplateDropdown_('_docimport')">
                         <span class="tmpl-dropdown-trigger-text" id="tmplTriggerText_docimport" style="color:#999;">Select Template Type</span>
-                        <span class="tmpl-dropdown-arrow">?</span>
+                        <span class="tmpl-dropdown-arrow">&#9662;</span>
                       </div>
                       <div class="tmpl-dropdown-panel" id="tmplPanel_docimport">
                         <input type="text" class="tmpl-search-input" id="tmplSearch_docimport" placeholder="🔍 Search template..." oninput="filterTemplateDropdown_('_docimport')" onclick="event.stopPropagation()">
@@ -881,7 +881,7 @@
                       <div class="tmpl-dropdown-wrapper" id="docImportFolderWrapper">
                         <div class="tmpl-dropdown-trigger" id="docImportFolderTrigger" onclick="openDocImportFolderDropdown_()">
                           <span class="tmpl-dropdown-trigger-text" id="docImportFolderTriggerText" style="color:#999;">Ordner auswählen...</span>
-                          <span class="tmpl-dropdown-arrow">?</span>
+                          <span class="tmpl-dropdown-arrow">&#9662;</span>
                         </div>
                         <div class="tmpl-dropdown-panel" id="docImportFolderPanel">
                           <input type="text" class="tmpl-search-input" id="docImportFolderSearch" placeholder="🔍 Ordner suchen..." oninput="onDocImportFolderSearchInput_()" onclick="event.stopPropagation()">
@@ -1018,11 +1018,11 @@
            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
              <button onclick="calPrev()" title="Previous month"
                      style="border:none;background:none;cursor:pointer;padding:8px 16px;color:#666;font-size:30px;line-height:1;border-radius:8px;"
-                    onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">?</button>
+                    onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">&#8249;</button>
               <strong id="calTitle" style="font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:#333;min-width:140px;text-align:center;display:inline-block;"></strong>
               <button onclick="calNext()" title="Next month"
                       style="border:none;background:none;cursor:pointer;padding:8px 16px;color:#666;font-size:30px;line-height:1;border-radius:8px;"
-                      onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">?</button>
+                      onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">&#8250;</button>
            </div>
            <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
          </div>
@@ -1088,17 +1088,17 @@
                   </div>
                   <button type="button" onclick="articulateValidateInputs()"
                           style="background:#fff; color:#1a73e8; border:1px solid #1a73e8; height:36px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">
-                    <span data-i18n="art_btn_check">? Eingaben prüfen</span>
+                    <span data-i18n="art_btn_check">&#9654; Eingaben prüfen</span>
                   </button>
                   <button type="button" onclick="articulateQuickGenerate()"
                           style="background:#1a73e8; color:#fff; border:none; height:40px; font-size:13px; font-weight:700; cursor:pointer; text-transform:uppercase; width:100%;">
-                    <span data-i18n="art_btn_generate">? Preview erzeugen</span>
+                    <span data-i18n="art_btn_generate">&#9654; Preview erzeugen</span>
                   </button>
                 </div>
                 <div id="artQuickPanel" style="display:none; margin-top:12px; padding:12px; border:1px solid #eee; background:#fff; font-size:12px; line-height:1.6; word-break:break-word;"></div>
                 <button type="button" onclick="openArticulateBatchPanel()"
                         style="background:#fff; color:#333; border:1px solid #ccc; height:36px; font-size:12px; font-weight:700; cursor:pointer; width:100%; margin-top:8px;">
-                  ? Alle Jobs im Projekt batch-patchen
+                  &#8226; Alle Jobs im Projekt batch-patchen
                 </button>
                 <div id="articulateBatchPanel" style="display:none; margin-top:10px; border:1px solid #eee; background:#fff; padding:10px; font-size:12px;"></div>
               </div>
@@ -1148,7 +1148,7 @@
                 <span data-i18n="art_btn_refresh">Aktualisieren</span>
               </button>
               <button onclick="closeArticulateTableModal()"
-                      style="background:none;border:1px solid #ccc;color:#666;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">?</button>
+                      style="background:none;border:1px solid #ccc;color:#666;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">&#215;</button>
             </div>
           </div>
           <div style="flex:1;overflow:auto;padding:0 25px 25px;">
@@ -1268,7 +1268,7 @@
                   <div class="tmpl-dropdown-trigger" id="tmplTrigger_{SUFFIX}"
                        onclick="openTemplateDropdown_('_{SUFFIX}')">
                     <span class="tmpl-dropdown-trigger-text" id="tmplTriggerText_{SUFFIX}" style="color:#999;">Select Template Type</span>
-                    <span class="tmpl-dropdown-arrow">?</span>
+                    <span class="tmpl-dropdown-arrow">&#9662;</span>
                   </div>
                   <div class="tmpl-dropdown-panel" id="tmplPanel_{SUFFIX}">
                     <input type="text" class="tmpl-search-input" id="tmplSearch_{SUFFIX}"
@@ -1372,7 +1372,7 @@
                 <div class="tmpl-dropdown-wrapper" id="tmplWrapper_{SUFFIX}">
                   <div class="tmpl-dropdown-trigger" id="tmplTrigger_{SUFFIX}" onclick="openTemplateDropdown_('_{SUFFIX}')">
                     <span class="tmpl-dropdown-trigger-text" id="tmplTriggerText_{SUFFIX}" style="color:#999;">Select Template Type</span>
-                    <span class="tmpl-dropdown-arrow">?</span>
+                    <span class="tmpl-dropdown-arrow">&#9662;</span>
                   </div>
                   <div class="tmpl-dropdown-panel" id="tmplPanel_{SUFFIX}">
                     <input type="text" class="tmpl-search-input" id="tmplSearch_{SUFFIX}" placeholder="🔍 Search template..." oninput="filterTemplateDropdown_('_{SUFFIX}')" onclick="event.stopPropagation()">
@@ -1484,7 +1484,7 @@
       </form>
     </div>
 
-    <!-- ? DEBUGGER SIDEBAR -->
+    <!-- DEBUGGER SIDEBAR -->
     <div id="kecDebugSidebar_{SUFFIX}" class="split-sidebar collapsed">
       <div class="sidebar-content">
         <div class="sidebar-header">
@@ -1505,7 +1505,7 @@
                  style="width:100%; height:40px; padding:0 12px; font-size:12px; border:1px solid #ccc; box-sizing:border-box;">
           <button type="button" onclick="runKecDebug('_{SUFFIX}')"
                   style="background:#ff9800; color:#fff; border:none; height:40px; font-size:13px; font-weight:700; cursor:pointer; text-transform:uppercase; width:100%;">
-            ? Prüfen
+            &#9654; Prüfen
           </button>
         </div>
         <div id="kecDebugPanel_{SUFFIX}" style="display:none; margin-top:12px; padding:12px; border:1px solid #eee; background:#fafafa; font-size:12px; line-height:1.6; word-break:break-word;"></div>
@@ -1517,7 +1517,7 @@
 
     <script>
 console.log('DocBoard Build: 2026-08-18-v5 (Click-Debug)');
-// ??? GLOBALS ??????????????????????????????????????????????????????????????????
+// --- GLOBALS ------------------------------------------------------------------
 let configData = {};
 let templateGroups = {};
 let selectedGroup = null;
@@ -1537,7 +1537,7 @@ let currentSort     = { column: 'timestamp', direction: 'desc' };
 let _uploadWatchdog_ = null; 
 let _adminLightSubtabs_ = []; 
 
-// ??? CUSTOM DIALOG LOGIC ??????????????????????????????????????????????????????
+// --- CUSTOM DIALOG LOGIC ------------------------------------------------------
 let customDialogCallback = null;
 
 function showCustomAlert(message, title = "Hinweis / Info") {
@@ -1660,7 +1660,7 @@ const i18n = {
     "art_col_lastdeploy": "Letzter Deploy",
     "art_col_status":     "Status",
     "art_col_actions":    "Aktionen",
-    "art_warn_notxliff":  "Die Job-Datei sieht nicht nach einer XLIFF aus ? die Preview funktioniert nur mit Rise-XLIFF-Jobs.",
+    "art_warn_notxliff":  "Die Job-Datei sieht nicht nach einer XLIFF aus \u2013 die Preview funktioniert nur mit Rise-XLIFF-Jobs.",
     "art_warn_langmismatch": "Deine Eingabe weicht von der Job-Sprache ab",
     "nav_history":        "Meine Projekte",
     "nav_dashboard":      "Dashboard",
@@ -1681,7 +1681,7 @@ const i18n = {
     "ph_search_language": "🔍 Sprache suchen...",
     "txt_select_source":  "Quellsprache auswählen",
     "txt_select_target":  "Zielsprache(n) auswählen",
-    "alert_multifile_name": "?? Mehrere Dateien ausgewählt. Bitte vergeben Sie den Projektnamen manuell.",
+    "alert_multifile_name": "\u26A0 Mehrere Dateien ausgewählt. Bitte vergeben Sie den Projektnamen manuell.",
     "alert_clone":        "? Projektdaten kopiert.\n\nBitte Template, Sprachen und Dateien neu auswählen.",
     "opt_all":            "Alle Projekte",
     "opt_own":            "Meine Projekte",
@@ -1758,7 +1758,7 @@ const i18n = {
     "art_col_lastdeploy": "Last deploy",
     "art_col_status":     "Status",
     "art_col_actions":    "Actions",
-    "art_warn_notxliff":  "The job file does not look like an XLIFF ? the preview only works with Rise XLIFF jobs.",
+    "art_warn_notxliff":  "The job file does not look like an XLIFF \u2013 the preview only works with Rise XLIFF jobs.",
     "art_warn_langmismatch": "Your input differs from the job's target language",
     "nav_history":        "My Projects",
     "nav_dashboard":      "Dashboard",
@@ -1779,7 +1779,7 @@ const i18n = {
     "ph_search_language": "🔍 Search language...",
     "txt_select_source":  "Select Source Language",
     "txt_select_target":  "Select Target Language(s)",
-    "alert_multifile_name": "?? Multiple files selected. Please enter the project name manually.",
+    "alert_multifile_name": "\u26A0 Multiple files selected. Please enter the project name manually.",
     "alert_clone":        "? Project data copied.\n\nPlease re-select template, languages and files.",
     "opt_all":            "All Projects",
     "opt_own":            "My Projects",
@@ -1965,7 +1965,7 @@ const PRETTY_LANG_MAP = {
   "vi":           "🇻🇳 Vietnamese", "vi_vn":        "🇻🇳 Vietnamese",
 };
 
-// ??? STARTUP ??????????????????????????????????????????????????????????????????
+// --- STARTUP ------------------------------------------------------------------
 function startStartupOverlay_() {
   const o = document.getElementById('overlay');
   if(o) {
@@ -2042,7 +2042,7 @@ function loadAppConfig() {
   }
 }
 
-// ??? CHAT WELCOME POPUP ???????????????????????????????????????????????????????
+// --- CHAT WELCOME POPUP -------------------------------------------------------
 function checkAndShowChatWelcome() {
   if (currentImpersonationEmail) return;
 
@@ -2075,7 +2075,7 @@ function openChatHelpManually() {
   document.getElementById('chatWelcomeModal').style.display = 'flex';
 }
 
-// ??? DYNAMIC RENDERING ????????????????????????????????????????????????????????
+// --- DYNAMIC RENDERING --------------------------------------------------------
 function initForm(config) {
   configData = config;
   templateGroups = groupTemplates(config.templates);
@@ -2093,6 +2093,8 @@ function initForm(config) {
   _adminLightSubtabs_ = config.adminLightSubtabs || [];
   if (config.isAdmin || _adminLightSubtabs_.length) {
     document.getElementById('btn-admin').style.display = 'block';
+    // Admin-Bereich still im Hintergrund holen, sobald die Maske steht.
+    setTimeout(function() { loadAdminContent_(true); }, 1500);
   }
   if (config.isAdmin) {
     document.getElementById('btn-dashboard').style.display = 'block';
@@ -2390,7 +2392,7 @@ function scanKeCProjects(suffix) {
     title.innerText = "Searching Phrase TMS for open projects...";
     overlay.style.display = 'flex';
     btn.disabled = true;
-    exSel.innerHTML = '<option value="">? Scanning live data...</option>';
+    exSel.innerHTML = '<option value="">\u231B Scanning live data...</option>';
     
     google.script.run
         .withSuccessHandler(res => {
@@ -2417,7 +2419,7 @@ function scanKeCProjects(suffix) {
                   "? Domain: Marketing Content\n" +
                   "? Business Unit: MMV-P\n\n" +
                   "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
-                  "Nutze den ? Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
+                  "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
                   "Scan-Ergebnis"
                 ); 
             }
@@ -2425,8 +2427,8 @@ function scanKeCProjects(suffix) {
         .withFailureHandler(err => {
             overlay.style.display = 'none';
             btn.disabled = false;
-            exSel.innerHTML = '<option value="">?? Scan Failed</option>';
-            showCustomAlert("<span style='color:#d93025;'>? Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
+            exSel.innerHTML = '<option value="">\u26A0 Scan Failed</option>';
+            showCustomAlert("<span style='color:#d93025;'>\u2717 Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
         })
         .apiGetEligibleKeCProjects();
 }
@@ -2490,9 +2492,9 @@ function executeKecLiveDebug() {
             log += `? **Gate 2 (Status):** Projekt-Status ist 'NEW'.\n`;
 
             // Gate 3, 4, 5: Metadaten
-            log += `   ? Gefundener Client: ${r.details.client}\n`;
-            log += `   ? Gefundene Domain: ${r.details.domain}\n`;
-            log += `   ? Gefundene Business Unit: ${r.details.bu}\n`;
+            log += `   \u2013 Gefundener Client: ${r.details.client}\n`;
+            log += `   \u2013 Gefundene Domain: ${r.details.domain}\n`;
+            log += `   \u2013 Gefundene Business Unit: ${r.details.bu}\n`;
 
             if (!r.clientOk || !r.domainOk || !r.buOk) {
                 resultEl.style.background = '#fff3f3';
@@ -2544,7 +2546,7 @@ function scanKeCProjects(suffix) {
     title.innerText = "Searching Phrase TMS for open projects...";
     overlay.style.display = 'flex';
     btn.disabled = true;
-    exSel.innerHTML = '<option value="">? Scanning live data...</option>';
+    exSel.innerHTML = '<option value="">\u231B Scanning live data...</option>';
     
     google.script.run
         .withSuccessHandler(res => {
@@ -2571,7 +2573,7 @@ function scanKeCProjects(suffix) {
                   "? Domain: Marketing Content\n" +
                   "? Business Unit: MMV-P\n\n" +
                   "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
-                  "Nutze den ? Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
+                  "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
                   "Scan-Ergebnis"
                 ); 
             }
@@ -2579,8 +2581,8 @@ function scanKeCProjects(suffix) {
         .withFailureHandler(err => {
             overlay.style.display = 'none';
             btn.disabled = false;
-            exSel.innerHTML = '<option value="">?? Scan Failed</option>';
-            showCustomAlert("<span style='color:#d93025;'>? Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
+            exSel.innerHTML = '<option value="">\u26A0 Scan Failed</option>';
+            showCustomAlert("<span style='color:#d93025;'>\u2717 Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
         })
         .apiGetEligibleKeCProjects();
 }
@@ -2943,7 +2945,7 @@ function updateTriggerText(suffix) {
     const container = triggerDiv.querySelector('.chip-container');
     checkboxes.forEach(cb => {
       const chip = document.createElement("div"); chip.className = "chip";
-      chip.innerHTML = `${getPrettyLangName(cb.value)} <span class="chip-remove" onclick="removeChip(event,'${suffix}','${cb.value}')">?</span>`;
+      chip.innerHTML = `${getPrettyLangName(cb.value)} <span class="chip-remove" onclick="removeChip(event,'${suffix}','${cb.value}')">\u00D7</span>`;
       container.appendChild(chip);
     });
   }
@@ -3046,50 +3048,50 @@ function openArticulateHelp() {
     '<div style="text-align:left;font-size:13px;line-height:1.65;color:#333;">' +
 
     '<p style="margin:0 0 14px;">Der Preview-Generator zeigt dir, wie ein Rise-Kurs mit den ' +
-    '<strong>aktuell in Phrase übersetzten Texten</strong> aussehen würde ? ohne dass du auf die ' +
+    '<strong>aktuell in Phrase übersetzten Texten</strong> aussehen würde \u2013 ohne dass du auf die ' +
     'fertige Übersetzung warten musst. Ideal, um schon während der Übersetzung mal reinzuschauen ' +
     'oder einem Reviewer den Zwischenstand zu zeigen.</p>' +
 
     '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Einen einzelnen Kurs erzeugen</h4>' +
     '<ol style="margin:0 0 14px;padding-left:18px;">' +
-      '<li style="margin-bottom:6px;"><strong>Projekt wählen</strong> ? das Phrase-Projekt, in dem der Übersetzungsjob liegt.</li>' +
-      '<li style="margin-bottom:6px;"><strong>Job wählen</strong> ? die konkrete Übersetzungsdatei (i. d. R. eine Sprache).</li>' +
-      '<li style="margin-bottom:6px;"><strong>Drive-Ordner</strong> einfügen ? das ist der Ordner mit dem <em>entpackten</em> ' +
-      'SCORM-Export des Rise-Kurses (muss einen Unterordner "scormcontent" enthalten ? als ZIP funktioniert es nicht).</li>' +
+      '<li style="margin-bottom:6px;"><strong>Projekt wählen</strong> \u2013 das Phrase-Projekt, in dem der Übersetzungsjob liegt.</li>' +
+      '<li style="margin-bottom:6px;"><strong>Job wählen</strong> \u2013 die konkrete Übersetzungsdatei (i. d. R. eine Sprache).</li>' +
+      '<li style="margin-bottom:6px;"><strong>Drive-Ordner</strong> einfügen \u2013 das ist der Ordner mit dem <em>entpackten</em> ' +
+      'SCORM-Export des Rise-Kurses (muss einen Unterordner "scormcontent" enthalten \u2013 als ZIP funktioniert es nicht).</li>' +
       '<li style="margin-bottom:6px;">Kursname und Zielsprache prüfen, dann auf <strong>"? Eingaben prüfen"</strong> klicken. ' +
       'Hier siehst du sofort, ob alles gefunden wurde und ob der Job wirklich zu diesem Kurs passt.</li>' +
-      '<li><strong>"? Preview erzeugen"</strong> klicken ? die Preview öffnet sich nach kurzer Wartezeit automatisch.</li>' +
+      '<li><strong>"? Preview erzeugen"</strong> klicken \u2013 die Preview öffnet sich nach kurzer Wartezeit automatisch.</li>' +
     '</ol>' +
 
     '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Mehrere Jobs auf einmal (Batch)</h4>' +
-    '<p style="margin:0 0 10px;">Hat ein Projekt mehrere Jobs ? etwa mehrere Zielsprachen oder mehrere ' +
-    'Kurse in einem Projekt ? musst du nicht jeden einzeln durchklicken:</p>' +
+    '<p style="margin:0 0 10px;">Hat ein Projekt mehrere Jobs \u2013 etwa mehrere Zielsprachen oder mehrere ' +
+    'Kurse in einem Projekt \u2013 musst du nicht jeden einzeln durchklicken:</p>' +
     '<ol style="margin:0 0 14px;padding-left:18px;">' +
       '<li style="margin-bottom:6px;">Projekt wählen, dann auf <strong>"? Alle Jobs im Projekt batch-patchen"</strong> klicken. ' +
       'Es erscheint eine Zeile pro Job, alle sind vorausgewählt.</li>' +
       '<li style="margin-bottom:6px;">Jedem Job den passenden Drive-Ordner zuordnen. Wenn alle Jobs zum ' +
-      '<em>selben</em> Kurs gehören (z. B. mehrere Sprachen), kannst du oben einmal den Ordner-Link eintragen ? ' +
+      '<em>selben</em> Kurs gehören (z. B. mehrere Sprachen), kannst du oben einmal den Ordner-Link eintragen \u2013 ' +
       'er wird automatisch für alle leeren, angehakten Zeilen übernommen.</li>' +
       '<li style="margin-bottom:6px;">Auf <strong>"? Alle prüfen"</strong> klicken, <em>bevor</em> du startest. ' +
       'Das prüft für jede Zeile, ob der Job wirklich zum zugeordneten Ordner passt, und zeigt dir das Ergebnis direkt ' +
-      'darunter an ? grün heißt "passt", rot heißt "hier stimmt vermutlich die Zuordnung nicht, bitte Ordner-Link ' +
+      'darunter an \u2013 grün heißt "passt", rot heißt "hier stimmt vermutlich die Zuordnung nicht, bitte Ordner-Link ' +
       'nochmal prüfen".</li>' +
       '<li style="margin-bottom:6px;">Nicht benötigte Jobs kannst du einfach abhaken.</li>' +
-      '<li><strong>"? Ausgewählte Kurse starten"</strong> ? die Kurse werden nacheinander erzeugt, jede Zeile zeigt ' +
-      'ihren eigenen Fortschritt (? angelegt ? ? wird erzeugt ? ? fertig).</li>' +
+      '<li><strong>"? Ausgewählte Kurse starten"</strong> \u2013 die Kurse werden nacheinander erzeugt, jede Zeile zeigt ' +
+      'ihren eigenen Fortschritt (? angelegt \u2013 \u2013 wird erzeugt \u2013 \u2013 fertig).</li>' +
     '</ol>' +
 
     '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Nach der Erzeugung</h4>' +
     '<p style="margin:0 0 10px;">Jeder erzeugte Kurs erscheint unter "Gespeicherte Kurse". Von dort kannst du:</p>' +
     '<ul style="margin:0 0 14px;padding-left:18px;">' +
       '<li style="margin-bottom:6px;">die Preview jederzeit erneut erzeugen (z. B. wenn die Übersetzung weiter fortgeschritten ist),</li>' +
-      '<li style="margin-bottom:6px;">über das Kopier-Symbol den Link direkt an einen Reviewer weitergeben ? der braucht dafür ' +
+      '<li style="margin-bottom:6px;">über das Kopier-Symbol den Link direkt an einen Reviewer weitergeben \u2013 der braucht dafür ' +
       'keinen Zugang zum Portal oder zu Phrase,</li>' +
       '<li>und bekommst bei jeder neuen Version automatisch eine Nachricht im ursprünglichen Google-Chat-Thread.</li>' +
     '</ul>' +
 
     '<div style="background:#fff3e0;border:1px solid #ffe0b2;padding:10px 12px;font-size:12px;color:#e65100;">' +
-    '? Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext ? du kannst die Preview also ' +
+    '? Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext \u2013 du kannst die Preview also ' +
     'auch mitten in der Übersetzung schon anschauen. Videos werden aus Geschwindigkeitsgründen weggelassen, ' +
     'das Vorschaubild bleibt aber sichtbar.' +
     '</div>' +
@@ -3123,7 +3125,7 @@ function loadArtPickerProjects() {
       sel.disabled = false;
     })
     .withFailureHandler(function (err) {
-      sel.innerHTML = '<option value="">?? ' + escapeHtmlJs(err.message) + '</option>';
+      sel.innerHTML = '<option value="">\u26A0 ' + escapeHtmlJs(err.message) + '</option>';
     })
     .apiArtPickerListProjects();
 }
@@ -3137,7 +3139,7 @@ function artPickerOnProjectChange() {
 
   jobSel.innerHTML = '<option value="">' + t_('art_sel_job', 'Zuerst Projekt wählen...') + '</option>';
   jobSel.disabled = true;
-  langSel.innerHTML = '<option value="">?</option>';
+  langSel.innerHTML = '<option value="">\u2013</option>';
   langSel.disabled = true;
 
   if (!uid) return;
@@ -3167,7 +3169,7 @@ function artPickerOnProjectChange() {
       jobSel.disabled = artPickerJobs.length === 0;
     })
     .withFailureHandler(function (err) {
-      jobSel.innerHTML = '<option value="">?? ' + escapeHtmlJs(err.message) + '</option>';
+      jobSel.innerHTML = '<option value="">\u26A0 ' + escapeHtmlJs(err.message) + '</option>';
     })
     .apiArtPickerListJobs(uid);
 }
@@ -3394,8 +3396,8 @@ function startArticulateBatch() {
   var etaLowSec = payloads.length * 30, etaHighSec = payloads.length * 90;
   var etaText = 'ca. ' +
     (etaHighSec >= 120
-      ? Math.round(etaLowSec / 60) + '?' + Math.round(etaHighSec / 60) + ' Min.'
-      : etaLowSec + '?' + etaHighSec + ' Sek.') +
+      ? Math.round(etaLowSec / 60) + '\u2013' + Math.round(etaHighSec / 60) + ' Min.'
+      : etaLowSec + '\u2013' + etaHighSec + ' Sek.') +
     ' für ' + payloads.length + ' Kurse';
 
   _renderBatchProgressList(payloads, etaText);
@@ -3487,12 +3489,12 @@ function _renderBatchProgressList(payloads, etaText) {
   var statusEl = document.getElementById('articulateBatchStatus');
   if (!statusEl) return;
   statusEl.innerHTML =
-    '<div id="articulateBatchSummary" style="font-size:11px;color:#555;margin-bottom:8px;">? Lege Kurse an ? ' + etaText + '</div>' +
+    '<div id="articulateBatchSummary" style="font-size:11px;color:#555;margin-bottom:8px;">\u2022 Lege Kurse an \u2013 ' + etaText + '</div>' +
     '<div style="border:1px solid #eee;">' +
       payloads.map(function (p, i) {
         return (
           '<div id="batchRow_' + i + '" style="display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;border-bottom:1px solid #f5f5f5;">' +
-            '<span id="batchRowIcon_' + i + '" style="width:16px;text-align:center;">?</span>' +
+            '<span id="batchRowIcon_' + i + '" style="width:16px;text-align:center;">\u00B7</span>' +
             '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtmlJs(p._fileLabel) + '</span>' +
             '<span id="batchRowMsg_' + i + '" style="color:#999;"></span>' +
           '</div>'
@@ -3505,10 +3507,10 @@ function _setBatchRowStatus(i, status, msg) {
   var icon = document.getElementById('batchRowIcon_' + i);
   var msgEl = document.getElementById('batchRowMsg_' + i);
   if (!icon) return;
-  if (status === 'created') icon.innerText = '?';
-  else if (status === 'generating') icon.innerText = '?';
-  else if (status === 'done') icon.innerText = '?';
-  else if (status === 'error') { icon.innerText = '?'; if (msgEl && msg) msgEl.innerText = msg; }
+  if (status === 'created') icon.innerText = '\u2713';
+  else if (status === 'generating') icon.innerText = '\u231B';
+  else if (status === 'done') icon.innerText = '\u2714';
+  else if (status === 'error') { icon.innerText = '\u2717'; if (msgEl && msg) msgEl.innerText = msg; }
 }
 
 function runArticulateBatchSequential(ok, pos, total) {
@@ -3533,7 +3535,7 @@ function copyArticulateLink(url) {
   navigator.clipboard.writeText(url).then(function () {
     showCustomAlert('? Link kopiert:\n' + url, 'Kopiert');
   }).catch(function () {
-    showCustomPrompt('Konnte nicht automatisch kopiert werden ? hier manuell kopieren:', url, function () {}, 'Link');
+    showCustomPrompt('Konnte nicht automatisch kopiert werden \u2013 hier manuell kopieren:', url, function () {}, 'Link');
   });
 }
 
@@ -3561,7 +3563,7 @@ function articulateQuickGenerate() {
     panel.style.display = 'block';
     panel.style.background = '#fff3f3';
     panel.style.border = '1px solid #ffcdd2';
-    panel.innerHTML = '?? ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
+    panel.innerHTML = '\u26A0 ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
     return;
   }
 
@@ -3606,10 +3608,10 @@ function _articulateStartElapsedTimer() {
   _articulateStopElapsedTimer();
   _articulateElapsedSeconds = 0;
   var etaEl = document.getElementById('articulateProgressEta');
-  if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden ? Verstrichen: 0s';
+  if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: 0s';
   _articulateElapsedTimer = setInterval(function () {
     _articulateElapsedSeconds++;
-    if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden ? Verstrichen: ' + _articulateElapsedSeconds + 's';
+    if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: ' + _articulateElapsedSeconds + 's';
   }, 1000);
 }
 function _articulateStopElapsedTimer() {
@@ -3639,7 +3641,7 @@ function runArticulatePreview(id, onDone, openTab) {
     .withSuccessHandler(function (res) {
       stopArticulateProgressPolling();
       bar.style.width = '100%';
-      text.innerText = t_('art_done', 'Fertig') + ' ? ' + res.applied + ' ' +
+      text.innerText = t_('art_done', 'Fertig') + ' \u2013 ' + res.applied + ' ' +
         t_('art_segments', 'Segmente übersetzt');
 
       resultBox.style.display = 'block';
@@ -3651,7 +3653,7 @@ function runArticulatePreview(id, onDone, openTab) {
         '<div style="font-size:11px;color:#888;margin-top:12px;">' +
           res.uploadedFileCount + ' / ' + res.totalFileCount + ' ' +
           t_('art_files', 'Dateien') +
-          (res.skippedFiles ? ' ? ' + res.skippedFiles + ' ' +
+          (res.skippedFiles ? ' \u2013 ' + res.skippedFiles + ' ' +
             t_('art_skipped', 'übersprungen (Videos)') : '') +
         '</div>' +
         '<button class="btn btn-secondary" onclick="closeArticulateProgress()" style="margin-top:12px;width:100%;box-sizing:border-box;">' +
@@ -3755,7 +3757,7 @@ function renderArticulateTable() {
     var phraseHtml = r.phraseUrl
       ? '<a href="' + escapeHtmlJs(r.phraseUrl) + '" target="_blank" style="color:#1a73e8;font-size:12px;">' +
         t_('art_link_project', 'Projekt') + ' ?</a>'
-      : '<span style="color:#999;">?</span>';
+      : '<span style="color:#999;">\u2013</span>';
 
     var pathHtml = r.liveUrl
       ? '<a href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank" ' +
@@ -3807,7 +3809,7 @@ function articulateValidateInputs() {
     panel.style.display = 'block';
     panel.style.background = '#fff3f3';
     panel.style.border = '1px solid #ffcdd2';
-    panel.innerHTML = '?? ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
+    panel.innerHTML = '\u26A0 ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
     return;
   }
 
@@ -3837,16 +3839,16 @@ function articulateValidateInputs() {
             escapeHtmlJs(info.firebasePath) + '</code>' +
         '</div>' +
         (!info.looksLikeXliff
-          ? '<div style="margin-top:8px;color:#e65100;">?? ' +
+          ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' +
             t_('art_warn_notxliff',
-               'Die Job-Datei sieht nicht nach einer XLIFF aus ? Preview funktioniert nur mit Rise-XLIFF-Jobs.') +
+               'Die Job-Datei sieht nicht nach einer XLIFF aus \u2013 Preview funktioniert nur mit Rise-XLIFF-Jobs.') +
             '</div>'
           : '') +
         (info.jobTargetLang &&
          payload.targetLang &&
          info.jobTargetLang.toLowerCase().replace(/[_-]/g, '') !==
            payload.targetLang.toLowerCase().replace(/[_-]/g, '')
-          ? '<div style="margin-top:8px;color:#e65100;">?? ' +
+          ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' +
             t_('art_warn_langmismatch', 'Deine Eingabe weicht von der Job-Sprache ab') +
             ': <strong>' + escapeHtmlJs(info.jobTargetLang) + '</strong></div>'
           : '') +
@@ -3854,7 +3856,7 @@ function articulateValidateInputs() {
           ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">? ' +
             escapeHtmlJs(info.scormMatchWarning) + '</div>'
           : (info.scormMatchRatio !== null
-              ? '<div style="margin-top:8px;color:#2e7d32;">? Kurs-Abgleich: <strong>' +
+              ? '<div style="margin-top:8px;color:#2e7d32;">\u2022 Kurs-Abgleich: <strong>' +
                 info.scormMatchRatio + '%</strong> der Textstellen (' +
                 info.scormMatchedSegments + '/' + info.scormTotalSegments +
                 ') passen zu diesem Kurs.</div>'
@@ -3868,7 +3870,7 @@ function articulateValidateInputs() {
     .apiValidateArticulateInputs(payload);
 }
 
-// ??? GUIDE / FAQ LAZY LOADING ?????????????????????????????????????????????????
+// --- GUIDE / FAQ LAZY LOADING -------------------------------------------------
 // Guide- und FAQ-Texte (6 Sprachen, ~144 KB) liegen in GuideContent.html und
 // werden erst beim ersten Oeffnen des jeweiligen Tabs nachgeladen. Solange sie
 // fest in Index.html standen, war das ausgelieferte Dokument zu gross und wurde
@@ -3906,20 +3908,25 @@ function loadGuideContent_() {
     .apiGetGuideContent();
 }
 
-// ??? ADMIN-BEREICH LAZY LOADING ???????????????????????????????????????????????
+// --- ADMIN-BEREICH LAZY LOADING -----------------------------------------------
 // Markup und JavaScript des Admin-Bereichs (~113 KB) liegen in AdminConsole.html
 // und AdminScript.html. Beides betrifft nur Admins, wurde aber jedem Nutzer
 // ausgeliefert und hat das Startdokument unnoetig aufgeblaeht.
 var _adminContentLoaded_  = false;
 var _adminContentLoading_ = false;
+var _adminWantsShow_      = false;
 
-function loadAdminContent_() {
-  if (_adminContentLoaded_)  { applyAdminAccessRestrictions_(); return; }
+// silent=true: Vorabladen im Hintergrund, ohne Spinner und ohne den Tab zu
+// initialisieren. Wird kurz nach dem Start fuer Admins angestossen, damit der
+// Klick auf "Admin" spaeter ohne Wartezeit auskommt.
+function loadAdminContent_(silent) {
+  if (_adminContentLoaded_)  { if (!silent) applyAdminAccessRestrictions_(); return; }
+  if (!silent) _adminWantsShow_ = true;
   if (_adminContentLoading_) return;
   _adminContentLoading_ = true;
 
   const host = document.getElementById('adminContentHost');
-  if (host) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+  if (host && !silent) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
 
   google.script.run
     .withSuccessHandler(function(res) {
@@ -3932,11 +3939,13 @@ function loadAdminContent_() {
       el.text = res.js;
       document.head.appendChild(el);
       _adminContentLoaded_ = true;
-      applyAdminAccessRestrictions_();
+      // Beim Vorabladen nicht initialisieren - applyAdminAccessRestrictions_()
+      // stoesst loadAdminDashboardData() mit rund einem Dutzend Serveraufrufen an.
+      if (_adminWantsShow_ || !silent) applyAdminAccessRestrictions_();
     })
     .withFailureHandler(function(err) {
       _adminContentLoading_ = false;
-      if (host) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Admin-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+      if (host && _adminWantsShow_) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Admin-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
     })
     .apiGetAdminContent();
 }
@@ -3957,7 +3966,7 @@ function switchTab(tabName) {
   if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
   if(tabName === 'documentation') { loadDocBoard('sidebar'); docImportPreloadFolders_(); }
   if(tabName === 'dashboard') renderDashboard();
-  if(tabName === 'admin')     loadAdminContent_();
+  if(tabName === 'admin')     loadAdminContent_(false);
   if(tabName === 'health')    loadHealthCheck();
 }
 
@@ -3987,7 +3996,7 @@ function switchDocSubtab(name) {
   if (isImport) docImportPreloadFolders_();
   if (!isImport && !(_docQueueData_['export'] && _docQueueData_['export'].length)) loadDocBoard('export');
 }
-// ??? DOCUMENTATION EXPORT ? dünne Wrapper auf die gemeinsame Queue-Engine ??
+// --- DOCUMENTATION EXPORT ? dünne Wrapper auf die gemeinsame Queue-Engine ??
 function docExportLoadEligibleProjects_() { loadDocBoard('export'); }
 function docExportRenderProjects_() { filterDocBoardCards('export'); }
 
@@ -4296,7 +4305,7 @@ function docImportRenderValidation_() {
   const langFolders = _docImportDriveTree_.langFolders || [];
   let rows = '';
   langFolders.forEach(lf => {
-    rows += `<tr><td>${escapeHtml(getPrettyLangName(lf.lang))}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">? wird importiert</td></tr>`;
+    rows += `<tr><td>${escapeHtml(getPrettyLangName(lf.lang))}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">\u231B wird importiert</td></tr>`;
   });
   container.innerHTML = langFolders.length
     ? `<table class="docimport-validation-table"><thead><tr><th>Sprache</th><th>Dateiname</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`
@@ -4464,7 +4473,7 @@ function checkTemplateSelected(suffix, type) {
   
   if (!finalSelectedUid) {
     const tmplSelect = document.getElementById('templateUid' + suffix);
-    if(tmplSelect && tmplSelect.value) showCustomAlert("?? Please select the Source Language first.");
+    if(tmplSelect && tmplSelect.value) showCustomAlert("\u26A0 Please select the Source Language first.");
     else showInstruction();
   }
 }
@@ -4952,7 +4961,7 @@ function submitStandard(suffix) {
             _uploadWatchdog_ = setTimeout(function() {
               _uploadWatchdog_ = null;
               document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
-              stopStatusAnimation("?? This is taking longer than usual. Your project is likely being created in Phrase TMS. Please wait or check My Projects.");
+              stopStatusAnimation("\u26A0 This is taking longer than usual. Your project is likely being created in Phrase TMS. Please wait or check My Projects.");
               document.getElementById('statusMsg').style.color = '#ff9800';
               document.getElementById('overlayActions').style.display = 'block';
               document.getElementById('overlayActions').innerHTML =
@@ -5097,7 +5106,7 @@ function submitKecExisting(suffix, existingProjectUid) {
             _uploadWatchdog_ = setTimeout(function() {
               _uploadWatchdog_ = null;
               document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
-              stopStatusAnimation("?? This is taking longer than usual. Please wait or check My Projects.");
+              stopStatusAnimation("\u26A0 This is taking longer than usual. Please wait or check My Projects.");
               document.getElementById('statusMsg').style.color = '#ff9800';
               document.getElementById('overlayActions').style.display = 'block';
               document.getElementById('overlayActions').innerHTML =
@@ -5116,7 +5125,7 @@ function onSuccess(res) {
   if(!res.success) return onFailure({message:res.error || res.message});
 
   if (res.timedOut) {
-    stopStatusAnimation("?? Upload took longer than expected...");
+    stopStatusAnimation("\u26A0 Upload took longer than expected...");
     document.getElementById('loadingSpinner').style.display='none';
     document.getElementById('successIcon').style.display='block';
     document.getElementById('statusTitle').innerText="CHECK MY PROJECTS";
@@ -5125,8 +5134,8 @@ function onSuccess(res) {
     document.getElementById('overlayActions').innerHTML=
       "<div style='max-width:500px;margin:0 auto;'>" +
       "<div style='background:#fff3e0;border:1px solid #ffe0b2;padding:12px 15px;font-size:13px;color:#e65100;margin-bottom:15px;line-height:1.6;'>" +
-      "?? The upload took longer than expected.<br>" +
-      "<strong>Your files were processed</strong> ? please check <em>My Projects</em> to confirm.<br>" +
+      "\u26A0 The upload took longer than expected.<br>" +
+      "<strong>Your files were processed</strong> \u2013 please check <em>My Projects</em> to confirm.<br>" +
       (res.errors && res.errors.length ? "<br>Note: " + escapeHtml(res.errors.join(", ")) : "") +
       "</div>" +
       "<button class='btn btn-secondary' style='min-width:250px;' onclick='resetAppAndCloseOverlay()'>GO TO MY PROJECTS</button>" +
@@ -5456,7 +5465,7 @@ function loadHealthCheck() {
   google.script.run
     .withSuccessHandler(res => {
       if (!res.authorized) {
-        content.innerHTML = '<div style="padding:20px;color:#d93025;">? Not authorized.</div>';
+        content.innerHTML = '<div style="padding:20px;color:#d93025;">\u2022 Not authorized.</div>';
         return;
       }
       const cards = res.checks.map(c => {
@@ -5542,7 +5551,7 @@ function smartDownloadFiles(projectUid) {
       }
     }
 
-// ??? Save to Google Drive (My Drive) ????????????????????????????????????????
+// --- Save to Google Drive (My Drive) ----------------------------------------
 // Der eigentliche Upload passiert bewusst client-seitig via Google Identity
 // Services + Drive REST API (nicht ?ber google.script.run) ? siehe Kommentar
 // in DriveSaveConfig.gs f?r den Hintergrund (Web-App l?uft als "Execute as: Me").
@@ -5933,7 +5942,7 @@ function openJobNoteModal(projectUid, jobUids) {
       if (p.projectName) document.getElementById('projectName' + suffix).value = p.projectName;
 
       if (!anyChecked) {
-        showCustomAlert("Preset loaded ? but target languages were not found in this template. Please re-select.", "Warning");
+        showCustomAlert("Preset loaded \u2013 but target languages were not found in this template. Please re-select.", "Warning");
       } else {
         showCustomAlert("? Preset loaded successfully.");
       }
@@ -5987,9 +5996,9 @@ function openJobNoteModal(projectUid, jobUids) {
 
 
 
-    // ??? ADMIN SUB-TABS ??????????????????????????????????????????????
+    // --- ADMIN SUB-TABS ----------------------------------------------
 
-    // ??? TEMPLATE MANAGER ????????????????????????????????????????????
+    // --- TEMPLATE MANAGER --------------------------------------------
     let _tmplMgrRows = [];
     let _tmplMgrSelected = {};   // uid -> true
 
@@ -5999,9 +6008,9 @@ function openJobNoteModal(projectUid, jobUids) {
     let _tmplMgrSort = { field: null, dir: 'asc' };
 
 
-    // ??? Batch-Auswahl ???????????????????????????????????????????????
+    // --- Batch-Auswahl -----------------------------------------------
 
-    // ??? USER MANAGER ????????????????????????????????????????????????
+    // --- USER MANAGER ------------------------------------------------
     let _userMgrRows = [];
     let _userMgrSort = { field: null, dir: 'asc' };
     let _userMgrExpanded = {};
@@ -6106,7 +6115,7 @@ function openJobNoteModal(projectUid, jobUids) {
         panelEl.style.display = 'block';
         panelEl.style.background = '#fff3f3';
         panelEl.style.border = '1px solid #ffcdd2';
-        panelEl.innerHTML = '?? Bitte eine Phrase-URL oder UID eingeben.';
+        panelEl.innerHTML = '\u26A0 Bitte eine Phrase-URL oder UID eingeben.';
         return;
       }
 
@@ -6127,12 +6136,12 @@ function openJobNoteModal(projectUid, jobUids) {
             return;
           }
           const r = res.report;
-          let log = '<strong>? Analysebericht für UID:</strong> ' + escapeHtml(r.uid) + '<br><br>';
+          let log = '<strong>\u2022 Analysebericht für UID:</strong> ' + escapeHtml(r.uid) + '<br><br>';
 
           if (!r.exists) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">? Projekt nicht in Phrase TMS gefunden.</span>';
+            log += '<span style="color:#d93025;">\u2022 Projekt nicht in Phrase TMS gefunden.</span>';
             panelEl.innerHTML = log;
             return;
           }
@@ -6141,22 +6150,22 @@ function openJobNoteModal(projectUid, jobUids) {
           if (!r.statusOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">? Gate 2: Status ist <strong>' + escapeHtml(r.details.actualStatus) + '</strong> ? erwartet: NEW</span>';
+            log += '<span style="color:#d93025;">\u2022 Gate 2: Status ist <strong>' + escapeHtml(r.details.actualStatus) + '</strong> \u2013 erwartet: NEW</span>';
             panelEl.innerHTML = log;
             return;
           }
           log += '? Gate 2: Status ist NEW<br>';
-          log += '<span style="color:#666;">? Client: ' + escapeHtml(r.details.client) + '</span><br>';
-          log += '<span style="color:#666;">? Domain: ' + escapeHtml(r.details.domain) + '</span><br>';
-          log += '<span style="color:#666;">? BU: ' + escapeHtml(r.details.bu) + '</span><br>';
+          log += '<span style="color:#666;">\u2022 Client: ' + escapeHtml(r.details.client) + '</span><br>';
+          log += '<span style="color:#666;">\u2022 Domain: ' + escapeHtml(r.details.domain) + '</span><br>';
+          log += '<span style="color:#666;">\u2022 BU: ' + escapeHtml(r.details.bu) + '</span><br>';
 
           if (!r.clientOk || !r.domainOk || !r.buOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<br><span style="color:#d93025;">? Metadaten stimmen nicht überein:<br>';
-            if (!r.clientOk) log += '? Client ? AKW<br>';
-            if (!r.domainOk) log += '? Domain ? Marketing Content<br>';
-            if (!r.buOk)     log += '? BU ? MMV-P<br>';
+            log += '<br><span style="color:#d93025;">\u2022 Metadaten stimmen nicht überein:<br>';
+            if (!r.clientOk) log += '? Client \u2013 AKW<br>';
+            if (!r.domainOk) log += '? Domain \u2013 Marketing Content<br>';
+            if (!r.buOk)     log += '? BU \u2013 MMV-P<br>';
             log += '</span>';
             panelEl.innerHTML = log;
             return;
@@ -6166,14 +6175,14 @@ function openJobNoteModal(projectUid, jobUids) {
           if (!r.workflowOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">? Gate 6: Workflow blockiert ? ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.</span>';
+            log += '<span style="color:#d93025;">\u2022 Gate 6: Workflow blockiert \u2013 ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.</span>';
             panelEl.innerHTML = log;
             return;
           }
 
           panelEl.style.background = '#e8f5e9';
           panelEl.style.border = '1px solid #c8e6c9';
-          log += '<span style="color:#2e7d32;">? Alle Gates bestanden! Klicke erneut auf SCAN PROJECTS.</span>';
+          log += '<span style="color:#2e7d32;">\u2022 Alle Gates bestanden! Klicke erneut auf SCAN PROJECTS.</span>';
           panelEl.innerHTML = log;
         })
         .withFailureHandler(err => {
@@ -6382,7 +6391,7 @@ function openJobNoteModal(projectUid, jobUids) {
       if (shm) shm.addEventListener('click', function(e) { if (e.target === shm) closeSheetModal(); });
     });
 
-      // ??? DOC QUEUE ? gemeinsame Kanban-Engine für Import-Board & Export ????
+      // --- DOC QUEUE ? gemeinsame Kanban-Engine für Import-Board & Export ----
     var DOC_QUEUE_STATUS_ORDER_ = ['NEW', 'UPLOADED', 'ASSIGNED', 'ACCEPTED', 'COMPLETED', 'DELIVERED', 'NOTIFIED', 'CANCELLED', 'ERROR'];
     var DOC_QUEUE_DISPLAY_COLUMNS_ = ['NEW', 'UPLOADED', 'ACCEPTED', 'COMPLETED', 'DELIVERED'];
     var DOC_QUEUE_STATUS_TO_COLUMN_ = {
@@ -6565,7 +6574,7 @@ function openJobNoteModal(projectUid, jobUids) {
                      '<span class="doc-board-mini-badge" style="background:' + c3 + '22;color:' + c3 + ';border:1px solid ' + c3 + '55;">' +
                      escapeHtml(j.status) + '</span></div>';
             }).join('') + '</div>';
-            html += '<div id="docBoardMeta_' + cardId + '" style="margin-top:10px;font-size:11px;color:#999;">?</div>';
+            html += '<div id="docBoardMeta_' + cardId + '" style="margin-top:10px;font-size:11px;color:#999;">\u2013</div>';
             html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px;">';
             html += p.phraseUrl ? '<a href="' + p.phraseUrl + '" target="_blank" style="font-size:11px;color:#1a73e8;">In Phrase TMS öffnen ?</a>' : '<span></span>';
             html += '<div style="display:flex;gap:8px;">';
@@ -6607,7 +6616,7 @@ function openJobNoteModal(projectUid, jobUids) {
 
     function renderDocBoardMetaHtml_(res, projectName) {
       var ambigNote = res.ambiguous
-        ? '<div style="color:#e65100;margin-bottom:6px;">?? ' + res.matchCount + ' Treffer in Phrase ? zeige neuestes Projekt.</div>'
+        ? '<div style="color:#e65100;margin-bottom:6px;">\u26A0 ' + res.matchCount + ' Treffer in Phrase \u2013 zeige neuestes Projekt.</div>'
         : '';
       var rows = [
         ['#', res.internalId],
@@ -6645,8 +6654,8 @@ function openJobNoteModal(projectUid, jobUids) {
               overlay.style.display = 'none';
               if (!res.success) { showCustomAlert('Fehler: ' + res.error, 'Fehler'); return; }
               var msg = res.archivedRows + ' Zeile(n) archiviert.' +
-                (res.notified ? '\n? Chat-Nachricht an Einreicher gesendet.' : '\n?? Keine Chat-Nachricht gesendet (keine E-Mail hinterlegt oder deaktiviert).') +
-                (res.notifyWarning ? '\n?? Chat-Fehler: ' + res.notifyWarning : '');
+                (res.notified ? '\n? Chat-Nachricht an Einreicher gesendet.' : '\n\u26A0 Keine Chat-Nachricht gesendet (keine E-Mail hinterlegt oder deaktiviert).') +
+                (res.notifyWarning ? '\n\u26A0 Chat-Fehler: ' + res.notifyWarning : '');
               showCustomAlert(msg, 'Archiviert');
               var target = cardId.split('_c')[0];
               delete _docBoardOpenCards_[cardId];
@@ -6669,7 +6678,7 @@ function openJobNoteModal(projectUid, jobUids) {
         metaEl.innerHTML = _docBoardMetaCache_[cardId];
         return;
       }
-      metaEl.innerHTML = '<span style="color:#999;">? Lade Phrase-Daten...</span>';
+      metaEl.innerHTML = '<span style="color:#999;">\u231B Lade Phrase-Daten...</span>';
       google.script.run
         .withSuccessHandler(function(res) {
           if (!res.success) {
@@ -6695,12 +6704,12 @@ function openJobNoteModal(projectUid, jobUids) {
     }     
     
 
-    // ??? DRIVE LINK UPLOAD ????????????????????????????????????????????????????????
+    // --- DRIVE LINK UPLOAD --------------------------------------------------------
 
   function handleDriveLinkClick(type, suffix) {
   if (!checkPreconditions(suffix)) return;
   showCustomPrompt(
-    "Google Drive Link einfügen:\n\n?? Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.",
+    "Google Drive Link einfügen:\n\n\u26A0 Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.",
     "",
     function(url) {
       if (!url || !url.trim()) return;
@@ -6749,7 +6758,7 @@ function extractDriveFileName_(url) {
   return "";
 }
 
-// ??? WATCHER CONFIG ????????????????????????????????????????????????????????????
+// --- WATCHER CONFIG ------------------------------------------------------------
 
 var _watcherConfig = [];
 
@@ -6771,7 +6780,7 @@ var _watcherConfig = [];
                style="color:#ccc;font-size:12px;text-decoration:none;border:1px solid #444;padding:4px 12px;border-radius:2px;display:flex;align-items:center;gap:5px;">
               <span class="material-icons-outlined" style="font-size:14px;">open_in_new</span> Open in Google Slides
             </a>
-            <button onclick="closeSlidesModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">? CLOSE</button>
+            <button onclick="closeSlidesModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">&#8226; CLOSE</button>
           </div>
         </div>
         <div style="flex:1;overflow:hidden;position:relative;">
@@ -6792,7 +6801,7 @@ var _watcherConfig = [];
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#111;flex-shrink:0;">
           <span style="color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;font-size:16px;color:var(--primary-yellow);">table_view</span>
-            Documentation Projects ? Board
+            Documentation Projects &#8211; Board
           </span>
           <div style="display:flex;gap:10px;align-items:center;">
             <button onclick="loadDocBoard('modal')" title="Aktualisieren"
@@ -6804,7 +6813,7 @@ var _watcherConfig = [];
                style="color:#ccc;font-size:12px;text-decoration:none;border:1px solid #444;padding:4px 12px;border-radius:2px;display:flex;align-items:center;gap:5px;">
               <span class="material-icons-outlined" style="font-size:14px;">open_in_new</span> Open in Google Sheets
             </a>
-            <button onclick="closeSheetModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">? CLOSE</button>
+            <button onclick="closeSheetModal()" style="background:none;border:1px solid #555;color:#aaa;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">&#8226; CLOSE</button>
           </div>
         </div>
         <div style="flex:1;overflow:hidden;position:relative;background:#f5f5f5;display:flex;flex-direction:column;">
