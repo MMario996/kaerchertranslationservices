@@ -1,0 +1,1153 @@
+<script>
+// Admin-Only JavaScript, ausgelagert aus Index.html. Wird von
+// loadAdminContent_() als Script-Element injiziert, nachdem das Admin-Markup
+// im DOM ist. Laeuft im globalen Scope und sieht damit die in Index.html
+// deklarierten Globals (configData, _tmplMgrRows, MSG_KEY_LABELS, ...).
+function loadDocDriveRootSettings() {
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) return;
+      document.getElementById('docDriveRootInput').value = res.folderId || '';
+      document.getElementById('docDriveRootCurrentName').innerText = res.folderName ? ('Aktuell: ' + res.folderName) : 'Noch nicht konfiguriert.';
+    })
+    .apiGetDocDriveRootSettings();
+}
+function toggleDocDriveRootLock() {
+  if (docDriveRootUnlocked) {
+    docDriveRootUnlocked = false;
+    document.getElementById('docDriveRootInput').disabled = true;
+    document.getElementById('docDriveRootSaveBtn').disabled = true;
+    document.getElementById('docDriveRootLockIcon').innerText = 'lock';
+    document.getElementById('docDriveRootLockText').innerText = 'Locked ? Click to unlock';
+    loadDocDriveRootSettings();
+    return;
+  }
+  showCustomConfirm(
+    "Dieser Ordner steuert, wo Documentation Import/Export nach Projektordnern suchen. Wirklich entsperren?",
+    function() {
+      docDriveRootUnlocked = true;
+      document.getElementById('docDriveRootInput').disabled = false;
+      document.getElementById('docDriveRootSaveBtn').disabled = false;
+      document.getElementById('docDriveRootLockIcon').innerText = 'lock_open';
+      document.getElementById('docDriveRootLockText').innerText = 'Unlocked ? Click to lock';
+    },
+    "Entsperren bestätigen"
+  );
+}
+function saveDocDriveRootSettings_() {
+  const val = document.getElementById('docDriveRootInput').value.trim();
+  if (!val) { showCustomAlert("Bitte Ordner-Link oder -ID eingeben.", "Fehlende Angabe"); return; }
+  const btn = document.getElementById('docDriveRootSaveBtn');
+  btn.disabled = true; btn.innerText = 'Speichere...';
+  google.script.run
+    .withSuccessHandler(res => {
+      btn.innerText = 'SPEICHERN';
+      if (!res.success) { btn.disabled = false; showCustomAlert("Fehler: " + res.error, "Error"); return; }
+      showCustomAlert("? Drive-Root gespeichert: " + res.folderName, "Gespeichert");
+      toggleDocDriveRootLock();
+    })
+    .withFailureHandler(e => {
+      btn.disabled = false;
+      btn.innerText = 'SPEICHERN';
+      showCustomAlert("Fehler: " + e.message, "Error");
+    })
+    .apiSaveDocDriveRootSettings(val);
+}
+function toggleAdminHelp(id) {
+  const panel = document.getElementById('help-' + id);
+  if (panel) panel.classList.toggle('open');
+}
+    function loadMessageTemplates() {
+      const container = document.getElementById('msgTemplatesContainer');
+      if (!container) return;
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;"><div class="loader" style="width:25px;height:25px;border-width:3px;margin:0 auto 10px;"></div>Loading...</div>';
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res.success || !res.templates) {
+            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error loading templates.</div>';
+            return;
+          }
+          let html = '';
+          res.templates.forEach(t => {
+            const label = MSG_KEY_LABELS[t.key] || t.key;
+            const customBadge = t.isCustomized
+              ? '<span style="background:#e8f5e9;color:#2e7d32;font-size:9px;padding:1px 6px;border-radius:2px;font-weight:700;margin-left:8px;">CUSTOM</span>'
+              : '<span style="background:#f5f5f5;color:#888;font-size:9px;padding:1px 6px;border-radius:2px;margin-left:8px;">DEFAULT</span>';
+            
+            html += `
+            <div style="border:1px solid #eee;margin-bottom:12px;background:#fafafa;">
+              <div style="padding:10px 14px;background:#f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:12px;text-transform:uppercase;">${escapeHtml(label)}</strong>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  ${customBadge}
+                  <button onclick="resetMessageTemplate('${escapeJs(t.key)}')"
+                          style="background:none;border:1px solid #ddd;cursor:pointer;padding:3px 10px;font-size:11px;color:#888;border-radius:2px;"
+                          title="Reset to default">? Reset</button>
+                  <button onclick="saveMessageTemplateFromUI('${escapeJs(t.key)}')"
+                          style="background:var(--primary-yellow);border:none;cursor:pointer;padding:3px 12px;font-size:11px;font-weight:700;border-radius:2px;">Save</button>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <div style="padding:10px;border-right:1px solid #eee;">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">DE</div>
+                  <textarea id="msgTpl_de_${escapeHtmlId(t.key)}" rows="6"
+                            style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;padding:8px;border:1px solid #ddd;resize:vertical;background:#fff;">${escapeHtml(t.de)}</textarea>
+                </div>
+                <div style="padding:10px;">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">EN</div>
+                  <textarea id="msgTpl_en_${escapeHtmlId(t.key)}" rows="6"
+                            style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;padding:8px;border:1px solid #ddd;resize:vertical;background:#fff;">${escapeHtml(t.en)}</textarea>
+                </div>
+              </div>
+            </div>`;
+          });
+          container.innerHTML = html || '<div style="padding:15px;color:#888;">No templates found.</div>';
+        })
+        .withFailureHandler(err => {
+          if (container) container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
+        })
+        .apiGetMessageTemplates();
+    }
+    function saveMessageTemplateFromUI(key) {
+      const deEl = document.getElementById('msgTpl_de_' + escapeHtmlId(key));
+      const enEl = document.getElementById('msgTpl_en_' + escapeHtmlId(key));
+      if (!deEl || !enEl) return;
+      google.script.run
+        .withSuccessHandler(r => {
+          if (r.success) showCustomAlert("? Template saved!", "Saved");
+          else showCustomAlert("? " + r.error, "Error");
+          loadMessageTemplates();
+        })
+        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+        .apiSaveMessageTemplate(key, deEl.value, enEl.value);
+    }
+    function resetMessageTemplate(key) {
+      showCustomConfirm('Reset "' + (MSG_KEY_LABELS[key] || key) + '" to default?', function() {
+        google.script.run
+          .withSuccessHandler(() => { showCustomAlert("? Reset to default.", "Reset"); loadMessageTemplates(); })
+          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .apiResetMessageTemplate(key);
+      }, "Reset Template");
+    }
+    function loadKecEligSettings() {
+      google.script.run
+        .withSuccessHandler(res => {
+          document.getElementById('kecClientIdInput').value = res.clientId || '';
+          document.getElementById('kecDomainIdInput').value = res.domainId || '';
+          document.getElementById('kecBuIdInput').value      = res.businessUnitId || '';
+        })
+        .withFailureHandler(e => {
+          console.warn('KeC Eligibility Settings laden fehlgeschlagen:', e.message);
+        })
+        .apiGetKecEligibilitySettings();
+    }
+    function toggleKecEligLock() {
+      if (kecEligUnlocked) {
+        // Wieder sperren
+        kecEligUnlocked = false;
+        document.getElementById('kecClientIdInput').disabled = true;
+        document.getElementById('kecDomainIdInput').disabled = true;
+        document.getElementById('kecBuIdInput').disabled = true;
+        document.getElementById('kecEligSaveBtn').disabled = true;
+        document.getElementById('kecEligLockIcon').innerText = 'lock';
+        document.getElementById('kecEligLockText').innerText = 'Locked ? Click to unlock';
+        loadKecEligSettings(); // Änderungen ohne Speichern verwerfen
+        return;
+      }
+
+      showCustomConfirm(
+        "Diese Werte steuern, welche Phrase-Projekte im KeC-Portal erscheinen. Falsche IDs können dazu führen, dass keine Projekte mehr gefunden werden.\n\nWirklich entsperren?",
+        function() {
+          kecEligUnlocked = true;
+          document.getElementById('kecClientIdInput').disabled = false;
+          document.getElementById('kecDomainIdInput').disabled = false;
+          document.getElementById('kecBuIdInput').disabled = false;
+          document.getElementById('kecEligSaveBtn').disabled = false;
+          document.getElementById('kecEligLockIcon').innerText = 'lock_open';
+          document.getElementById('kecEligLockText').innerText = 'Unlocked ? Click to lock';
+        },
+        "Entsperren bestätigen"
+      );
+    }
+    function saveKecEligSettings() {
+      const clientId = document.getElementById('kecClientIdInput').value.trim();
+      const domainId = document.getElementById('kecDomainIdInput').value.trim();
+      const buId     = document.getElementById('kecBuIdInput').value.trim();
+
+      if (!clientId || !domainId || !buId) {
+        showCustomAlert("Bitte alle drei Felder ausfüllen.", "Fehlende Angaben");
+        return;
+      }
+
+      const btn = document.getElementById('kecEligSaveBtn');
+      btn.disabled = true;
+      btn.innerText = 'Speichere...';
+
+      google.script.run
+        .withSuccessHandler(() => {
+          btn.innerText = 'SPEICHERN';
+          showCustomAlert("? KeC Eligibility Settings gespeichert.", "Gespeichert");
+          toggleKecEligLock(); // wieder sperren
+        })
+        .withFailureHandler(e => {
+          btn.disabled = false;
+          btn.innerText = 'SPEICHERN';
+          showCustomAlert("Fehler: " + e.message, "Error");
+        })
+        .apiSaveKecEligibilitySettings(clientId, domainId, buId);
+    }
+    function applyAdminAccessRestrictions_() {
+      const isFullAdmin = !!(configData && configData.isAdmin);
+      const allowed = isFullAdmin ? ['console', 'users', 'templates'] : (_adminLightSubtabs_ || []);
+      const btnConsole = document.getElementById('subtab-btn-console');
+      const btnUsers = document.getElementById('subtab-btn-users');
+      const btnTemplates = document.getElementById('subtab-btn-templates');
+      if (btnConsole) btnConsole.style.display = allowed.includes('console') ? 'inline-flex' : 'none';
+      if (btnUsers) btnUsers.style.display = allowed.includes('users') ? 'inline-flex' : 'none';
+      if (btnTemplates) btnTemplates.style.display = allowed.includes('templates') ? 'inline-flex' : 'none';
+      const first = allowed[0];
+      if (!first) return;
+      switchAdminSubtab(first);
+      if (first === 'console' && isFullAdmin) loadAdminDashboardData();
+    }
+    function switchAdminSubtab(name) {
+      const isFullAdmin = !!(configData && configData.isAdmin);
+      const allowed = isFullAdmin ? ['console','users','templates'] : (_adminLightSubtabs_ || []);
+      if (!allowed.includes(name)) return;
+      ['console','users','templates'].forEach(n => {
+        const pane = document.getElementById('admin-subtab-' + n);
+        const btn  = document.getElementById('subtab-btn-' + n);
+        const on = (n === name);
+        if (pane) pane.style.display = on ? 'block' : 'none';
+        if (btn) {
+          btn.style.color = on ? '#d93025' : '#999';
+          btn.style.borderBottomColor = on ? '#d93025' : 'transparent';
+        }
+      });
+      if (name === 'templates') loadTemplateManager();
+      if (name === 'users') loadUserManager();
+    }
+    function loadTemplateManager() {
+      document.getElementById('tmplMgrLoading').style.display = 'block';
+      document.getElementById('tmplMgrTable').style.display = 'none';
+      document.getElementById('tmplMgrEmpty').style.display = 'none';
+      google.script.run
+        .withSuccessHandler(res => {
+          document.getElementById('tmplMgrLoading').style.display = 'none';
+          _tmplMgrRows = (res && res.rows) || [];
+          _tmplMgrSelected = {};
+          renderTemplateManager();
+        })
+        .withFailureHandler(e => {
+          document.getElementById('tmplMgrLoading').style.display = 'none';
+          showCustomAlert('Error: ' + e.message, 'Error');
+        })
+        .apiGetTemplatesForManager();
+    }
+    function tmplMgrSyncFromPhrase() {
+      const overlay = document.getElementById('downloadOverlay');
+      document.getElementById('downloadOverlayTitle').innerText = 'Hole Templates aus Phrase...';
+      overlay.style.display = 'flex';
+      google.script.run
+        .withSuccessHandler(r => {
+          overlay.style.display = 'none';
+          showCustomAlert(r.msg || 'Sync fertig.', 'Sync');
+          loadTemplateManager();
+        })
+        .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
+        .apiTriggerManualSync('templates', 'add_only');
+    }
+    function _tmplMgrFiltered() {
+      const q = (document.getElementById('tmplMgrSearch').value || '').toLowerCase();
+      const activeSel = document.getElementById('tf_active') ? document.getElementById('tf_active').value : '';
+      const segQ = (document.getElementById('tf_segmentation') ? document.getElementById('tf_segmentation').value : '').toLowerCase().trim();
+      const colFilters = {};
+      document.querySelectorAll('.tf-col').forEach(el => {
+        const v = (el.value || '').toLowerCase().trim();
+        if (v) colFilters[el.dataset.field] = v;
+      });
+      return _tmplMgrRows.filter(r => {
+        if (q && !(r.displayName+' '+r.phraseName+' '+r.client+' '+r.domain+' '+r.subDomain+' '+r.businessUnit+' '+r.targetLangs+' '+r.sourceLang).toLowerCase().includes(q)) return false;
+        if (activeSel === 'yes' && !r.active) return false;
+        if (activeSel === 'no' && r.active) return false;
+        if (segQ && !(r.client+' '+r.domain+' '+r.subDomain+' '+r.businessUnit).toLowerCase().includes(segQ)) return false;
+        for (const f in colFilters) {
+          if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
+        }
+        return true;
+      });
+    }
+    function tmplMgrSortBy(field) {
+      _tmplMgrSort.dir = (_tmplMgrSort.field === field && _tmplMgrSort.dir === 'asc') ? 'desc' : 'asc';
+      _tmplMgrSort.field = field;
+      renderTemplateManager();
+    }
+    function tmplMgrTruncateTargets_(targetLangs) {
+      const parts = String(targetLangs || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length <= 5) return escapeHtml(parts.join(', '));
+      const shown = parts.slice(0, 5).join(', ');
+      const rest = parts.slice(5);
+      return escapeHtml(shown) + ' <span class="doc-board-badge-more" style="margin-left:4px;" title="' + escapeHtml(rest.join(', ')) + '">+' + rest.length + '</span>';
+    }
+    function renderTemplateManager() {
+      let rows = _tmplMgrFiltered();
+      if (_tmplMgrSort.field) {
+        const f = _tmplMgrSort.field, dir = _tmplMgrSort.dir === 'asc' ? 1 : -1;
+        rows = rows.slice().sort((a, b) => String(a[f] || '').localeCompare(String(b[f] || '')) * dir);
+      }
+      const tbody = document.querySelector('#tmplMgrTable tbody');
+      const table = document.getElementById('tmplMgrTable');
+      const empty = document.getElementById('tmplMgrEmpty');
+      if (!rows.length) { table.style.display='none'; empty.style.display='block'; _tmplMgrUpdateBatchBar(); return; }
+      table.style.display='table'; empty.style.display='none';
+      tbody.innerHTML = rows.map(r => {
+        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' ? ') || '?';
+        return `
+        <tr data-uid="${escapeHtml(r.uid)}" style="${_tmplMgrSelected[r.uid] ? 'background:#fffde7;' : ''}">
+          <td style="text-align:center;">
+            <input type="checkbox" ${_tmplMgrSelected[r.uid]?'checked':''} onchange="tmplMgrToggleOne('${escapeJs(r.uid)}', this.checked)">
+          </td>
+          <td style="text-align:center;">
+            <label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
+              <input type="checkbox" ${r.active ? 'checked' : ''} onchange="toggleTemplateActive('${escapeJs(r.uid)}', this)" style="opacity:0;width:0;height:0;">
+              <span style="position:absolute;inset:0;background:${r.active?'#4CAF50':'#ccc'};border-radius:22px;transition:.2s;"></span>
+              <span style="position:absolute;height:16px;width:16px;left:${r.active?'21px':'3px'};top:3px;background:#fff;border-radius:50%;transition:.2s;"></span>
+            </label>
+          </td>
+          <td style="white-space:normal;word-break:break-word;"><strong>${escapeHtml(r.displayName)}</strong></td>
+          <td style="font-size:12px;color:#666;white-space:normal;word-break:break-word;">${escapeHtml(r.phraseName)}</td>
+          <td style="font-size:11px;">${escapeHtml(r.sourceLang)}</td>
+          <td style="font-size:11px;line-height:1.6;">${tmplMgrTruncateTargets_(r.targetLangs)}</td>
+          <td><span class="truncate-cell" style="font-size:11px;" title="${escapeHtml(segSummary)}">${escapeHtml(segSummary)}</span></td>
+        </tr>`;
+      }).join('');
+      _tmplMgrUpdateBatchBar();
+    }
+    function toggleTemplateActive(uid, checkboxEl) {
+      const newState = checkboxEl.checked;
+      checkboxEl.disabled = true;
+      google.script.run
+        .withSuccessHandler(() => {
+          checkboxEl.disabled = false;
+          const row = _tmplMgrRows.find(r => r.uid === uid);
+          if (row) row.active = newState;
+          renderTemplateManager();
+        })
+        .withFailureHandler(e => {
+          checkboxEl.disabled = false;
+          checkboxEl.checked = !newState;
+          showCustomAlert('Error: ' + e.message, 'Error');
+        })
+        .apiSetTemplateActive(uid, newState);
+    }
+    function tmplMgrToggleOne(uid, checked) {
+      if (checked) _tmplMgrSelected[uid] = true; else delete _tmplMgrSelected[uid];
+      const row = document.querySelector('#tmplMgrTable tbody tr[data-uid="' + CSS.escape(uid) + '"]');
+      if (row) row.style.background = checked ? '#fffde7' : '';
+      _tmplMgrUpdateBatchBar();
+    }
+    function tmplMgrToggleAll(masterCb) {
+      const rows = _tmplMgrFiltered();
+      if (masterCb.checked) rows.forEach(r => { _tmplMgrSelected[r.uid] = true; });
+      else rows.forEach(r => { delete _tmplMgrSelected[r.uid]; });
+      renderTemplateManager();
+    }
+    function tmplMgrClearSelection() {
+      _tmplMgrSelected = {};
+      const master = document.getElementById('tmplMgrSelectAll');
+      if (master) master.checked = false;
+      renderTemplateManager();
+    }
+    function _tmplMgrUpdateBatchBar() {
+      const count = Object.keys(_tmplMgrSelected).length;
+      const bar = document.getElementById('tmplMgrBatchBar');
+      document.getElementById('tmplMgrSelCount').innerText = count;
+      bar.style.display = count > 0 ? 'flex' : 'none';
+    }
+    function batchSetTemplateActive(newState) {
+      const uids = Object.keys(_tmplMgrSelected);
+      if (!uids.length) return;
+      showCustomConfirm(uids.length + ' Template(s) auf ' + (newState?'AKTIV':'INAKTIV') + ' setzen?', function() {
+        const overlay = document.getElementById('downloadOverlay');
+        document.getElementById('downloadOverlayTitle').innerText = 'Aktualisiere ' + uids.length + ' Templates...';
+        overlay.style.display = 'flex';
+        google.script.run
+          .withSuccessHandler(() => {
+            overlay.style.display = 'none';
+            uids.forEach(uid => { const r = _tmplMgrRows.find(x => x.uid === uid); if (r) r.active = newState; });
+            _tmplMgrSelected = {};
+            const master = document.getElementById('tmplMgrSelectAll');
+            if (master) master.checked = false;
+            renderTemplateManager();
+          })
+          .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
+          .apiBatchSetTemplateActive(uids, newState);
+      }, 'Batch-Änderung');
+    }
+    function userMgrToggleExpand(username, group) {
+      const key = username + '_' + group;
+      if (_userMgrExpanded[key]) delete _userMgrExpanded[key];
+      else _userMgrExpanded[key] = true;
+      renderUserManager();
+    }
+    function userMgrDetailField(uid, field, value, label) {
+      return '<div class="detail-field"><label>' + label + '</label>' +
+        '<input type="text" value="' + escapeHtml(value || '') + '" ' +
+        'onblur="userMgrSaveField(\'' + uid + '\',\'' + field + '\',this.value,this)"></div>';
+    }
+    function loadUserManager() {
+      document.getElementById('userMgrLoading').style.display = 'block';
+      document.getElementById('userMgrTable').style.display = 'none';
+      document.getElementById('userMgrEmpty').style.display = 'none';
+      google.script.run
+        .withSuccessHandler(res => {
+          document.getElementById('userMgrLoading').style.display = 'none';
+          _userMgrRows = (res && res.rows) || [];
+          renderUserManager();
+        })
+        .withFailureHandler(e => {
+          document.getElementById('userMgrLoading').style.display = 'none';
+          showCustomAlert('Error: ' + e.message, 'Error');
+        })
+        .apiGetUsersForManager();
+    }
+    function userMgrSortBy(field) {
+      _userMgrSort.dir = (_userMgrSort.field === field && _userMgrSort.dir === 'asc') ? 'desc' : 'asc';
+      _userMgrSort.field = field;
+      renderUserManager();
+    }
+    function _userMgrFiltered() {
+      const searchEl = document.getElementById('userMgrSearch');
+      const q = (searchEl ? searchEl.value : '').toLowerCase();
+      const roleSel = document.getElementById('um_role_filter') ? document.getElementById('um_role_filter').value : '';
+      const colFilters = {};
+      document.querySelectorAll('.um-col').forEach(el => {
+        const v = (el.value || '').toLowerCase().trim();
+        if (v) colFilters[el.dataset.field] = v;
+      });
+      let rows = _userMgrRows.filter(r => {
+        if (q && !Object.values(r).join(' ').toLowerCase().includes(q)) return false;
+        if (roleSel && r.role !== roleSel) return false;
+        for (const f in colFilters) {
+          if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
+        }
+        return true;
+      });
+      if (_userMgrSort.field) {
+        const f = _userMgrSort.field, dir = _userMgrSort.dir === 'asc' ? 1 : -1;
+        rows = rows.slice().sort((a, b) => String(a[f] || '').localeCompare(String(b[f] || '')) * dir);
+      }
+      return rows;
+    }
+    function renderUserManager() {
+      const rows = _userMgrFiltered();
+      const tbody = document.querySelector('#userMgrTable tbody');
+      const table = document.getElementById('userMgrTable');
+      const empty = document.getElementById('userMgrEmpty');
+      if (!tbody) return;
+      if (!rows.length) { table.style.display = 'none'; empty.style.display = 'block'; return; }
+      table.style.display = 'table'; empty.style.display = 'none';
+      let html = '';
+      rows.forEach(r => {
+        const uid = escapeJs(r.username);
+        const roleOptions = USER_MGR_ROLES.map(role =>
+          '<option value="' + role + '"' + (r.role === role ? ' selected' : '') + '>' + role + '</option>'
+        ).join('');
+        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' ? ') || '? keine Angaben ?';
+        const langSummary = [
+          r.sourceLangs ? ('Quelle: ' + r.sourceLangs) : '',
+          r.targetLangs ? ('Ziel: ' + r.targetLangs) : '',
+          r.workflowSteps ? ('Workflow: ' + r.workflowSteps) : ''
+        ].filter(Boolean).join(' ? ') || '? keine Angaben ?';
+        const segKey = r.username + '_seg';
+        const langKey = r.username + '_lang';
+        const segOpen = !!_userMgrExpanded[segKey];
+        const langOpen = !!_userMgrExpanded[langKey];
+
+        html += '<tr data-username="' + escapeHtml(r.username) + '">' +
+          '<td style="font-size:11px;font-weight:700;">' + escapeHtml(r.username) + '</td>' +
+          '<td><input type="text" value="' + escapeHtml(r.firstName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'firstName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
+          '<td><input type="text" value="' + escapeHtml(r.lastName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'lastName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
+          '<td style="font-size:11px;color:#888;">' + escapeHtml(r.email || '') + '</td>' +
+          '<td><select onchange="userMgrSaveField(\'' + uid + '\',\'role\',this.value,this)" style="width:100%;font-size:11px;height:28px;border:1px solid #ddd;">' + roleOptions + '</select></td>' +
+          '<td style="text-align:center;">' +
+            '<label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">' +
+              '<input type="checkbox" ' + (r.status === 'ACTIVE' ? 'checked' : '') + ' onchange="userMgrSaveField(\'' + uid + '\',\'status\',this.checked?\'ACTIVE\':\'INACTIVE\',this)" style="opacity:0;width:0;height:0;">' +
+              '<span style="position:absolute;inset:0;background:' + (r.status === 'ACTIVE' ? '#4CAF50' : '#ccc') + ';border-radius:20px;transition:.2s;"></span>' +
+              '<span style="position:absolute;height:14px;width:14px;left:' + (r.status === 'ACTIVE' ? '19px' : '3px') + ';top:3px;background:#fff;border-radius:50%;transition:.2s;"></span>' +
+            '</label>' +
+          '</td>' +
+          '<td><button type="button" class="expand-btn' + (segOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'seg\')" title="' + escapeHtml(segSummary) + '">' + (segOpen ? '?' : '?') + ' ' + escapeHtml(segSummary) + '</button></td>' +
+          '<td><button type="button" class="expand-btn' + (langOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'lang\')" title="' + escapeHtml(langSummary) + '">' + (langOpen ? '?' : '?') + ' ' + escapeHtml(langSummary) + '</button></td>' +
+        '</tr>';
+
+        if (segOpen) {
+          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
+            userMgrDetailField(uid, 'clients', r.clients, 'Clients') +
+            userMgrDetailField(uid, 'domains', r.domains, 'Domains') +
+            userMgrDetailField(uid, 'subdomains', r.subdomains, 'Subdomains') +
+            userMgrDetailField(uid, 'businessUnit', r.businessUnit, 'Business Unit') +
+            '</div></td></tr>';
+        }
+        if (langOpen) {
+          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
+            userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, 'Source Langs') +
+            userMgrDetailField(uid, 'targetLangs', r.targetLangs, 'Target Langs') +
+            userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, 'Workflow Steps') +
+            '</div></td></tr>';
+        }
+      });
+      tbody.innerHTML = html;
+    }
+    function userMgrSaveField(username, field, value, el) {
+      const row = _userMgrRows.find(r => r.username === username);
+      if (row && row[field] === value) return;
+      if (el) el.style.opacity = '0.5';
+      const syncToPhrase = !!USER_MGR_PHRASE_SYNC_FIELDS[field];
+      google.script.run
+        .withSuccessHandler(res => {
+          if (el) el.style.opacity = '1';
+          if (row) row[field] = value;
+          if (res && res.phraseWarning) {
+            showCustomAlert('?? Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:\n' + res.phraseWarning, 'Teilweise gespeichert');
+          }
+        })
+        .withFailureHandler(e => {
+          if (el) el.style.opacity = '1';
+          showCustomAlert('Error: ' + e.message, 'Error');
+        })
+        .apiUpdateUserField(username, field, value, syncToPhrase);
+    }
+    function loadAdminDashboardData() {
+        loadWhitelist();
+        loadMarketingWhitelist();
+        loadWomaWhitelist();
+        loadCcWhitelist();
+        loadKecWhitelist();
+        loadDocWhitelist();
+        loadArticulateWhitelist();
+        loadAdmins();
+        loadErrorLogs();
+        loadKecEligSettings();
+        loadDocDriveRootSettings();
+        
+        document.getElementById('adminFileSize').value = configData.sizeLimitMb || 100;
+
+        google.script.run.withSuccessHandler(r => {
+            document.getElementById('adminDriveClientId').value = (r && r.clientId) || '';
+            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
+        }).apiGetDriveSaveConfig();
+        
+        const m = configData.maintenance || { active: false };
+        if (m.active && m.start && m.end) {
+            document.getElementById('adminMaintStart').value = m.start.substring(0, 16);
+            document.getElementById('adminMaintEnd').value = m.end.substring(0, 16);
+            document.getElementById('adminMaintMsg').value = m.message || "";
+        } else {
+            document.getElementById('adminMaintStart').value = "";
+            document.getElementById('adminMaintEnd').value = "";
+        }
+
+        google.script.run.withSuccessHandler(r => {
+            document.getElementById('autoSyncToggle').checked = r.enabled;
+            document.getElementById('autoSyncStatusText').innerText = r.enabled ? 'ON' : 'OFF';
+            if (r.lastRun) {
+                document.getElementById('autoSyncLastRun').innerText = `Last run: ${new Date(r.lastRun).toLocaleString()} (${r.lastUpdated} updated)`;
+            } else {
+                document.getElementById('autoSyncLastRun').innerText = "Never run";
+            }
+        }).apiGetAutoSyncStatus();
+
+// Lazy load ? nur via Reload-Button
+        // loadScriptProperties();
+        // loadMessageTemplates();
+        // loadAuditLog();
+    }
+    function toggleImpersonation() {
+      const email = document.getElementById('impersonateEmailInput').value.trim();
+      if (!email) { showCustomAlert("Please enter an email address.", "Error"); return; }
+      currentImpersonationEmail = email;
+      startStartupOverlay_();
+      google.script.run
+        .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab(activeTabId); })
+        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
+        .apiGetConfig(currentImpersonationEmail, currentLang);
+    }
+    function saveMaintenanceSettings(btn) {
+        const start = document.getElementById('adminMaintStart').value;
+        const end = document.getElementById('adminMaintEnd').value;
+        const msg = document.getElementById('adminMaintMsg').value;
+        
+        if (!start || !end) { showCustomAlert("Start and End time required.", "Error"); return; }
+        
+        btn.disabled = true; btn.innerText = "Saving...";
+        google.script.run.withSuccessHandler(r => {
+            btn.disabled = false; btn.innerText = "ACTIVATE / UPDATE";
+            if(r.success) showCustomAlert("Maintenance window set.", "Success");
+            else showCustomAlert("Error: " + r.error, "Error");
+        }).apiSetMaintenance(start + ":00Z", end + ":00Z", msg);
+    }
+    function clearMaintenanceSettings() {
+        google.script.run.withSuccessHandler(r => {
+            if(r.success) {
+                document.getElementById('adminMaintStart').value = "";
+                document.getElementById('adminMaintEnd').value = "";
+                showCustomAlert("Maintenance cleared.", "Success");
+            }
+        }).apiClearMaintenance();
+    }
+    function saveAdminFileSize() {
+        const size = parseInt(document.getElementById('adminFileSize').value);
+        if(isNaN(size) || size < 1) { showCustomAlert("Invalid size.", "Error"); return; }
+        google.script.run.withSuccessHandler(r => {
+            if(r.success) showCustomAlert("Size limit saved.", "Success");
+        }).apiSetFileSizeLimit(size);
+    }
+    function saveAdminDriveClientId() {
+        const clientId = document.getElementById('adminDriveClientId').value.trim();
+        google.script.run.withSuccessHandler(r => {
+            if (r.success) {
+                driveSaveConfigCache_ = null; // Force reload on next "Save to Drive" click
+                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
+                showCustomAlert("Saved.", "Success");
+            } else {
+                showCustomAlert("Error: " + r.error, "Error");
+            }
+        }).apiSaveDriveSaveClientId(clientId);
+    }
+    function loadWhitelist() {
+        const c = document.getElementById('whitelistContainer');
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run.withSuccessHandler(r => {
+            c.innerHTML = r.emails.map(e => `
+                <div class="list-row">
+                    <span>${e}</span>
+                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'whitelist')">delete</span>
+                </div>
+            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+        }).apiGetWhitelist();
+    }
+    function addWhitelistUser() {
+        const email = document.getElementById('newWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run.withSuccessHandler(() => {
+            document.getElementById('newWhitelistEmail').value = "";
+            loadWhitelist();
+        }).apiAddWhitelist(email);
+    }
+    function loadMarketingWhitelist() {
+        const c = document.getElementById('marketingWhitelistContainer');
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run.withSuccessHandler(r => {
+            c.innerHTML = r.emails.map(e => `
+                <div class="list-row">
+                    <span>${e}</span>
+                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'marketing')">delete</span>
+                </div>
+            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+        }).apiGetMarketingWhitelist();
+    }
+    function addMarketingWhitelistUser() {
+        const email = document.getElementById('newMarketingWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run.withSuccessHandler(() => {
+            document.getElementById('newMarketingWhitelistEmail').value = "";
+            loadMarketingWhitelist();
+        }).apiAddMarketingWhitelist(email);
+    }
+    function loadCcWhitelist() {
+        const c = document.getElementById('ccWhitelistContainer');
+        if(!c) return;
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run
+          .withSuccessHandler(r => {
+              c.innerHTML = r.emails.map(e => `
+                  <div class="list-row">
+                      <span>${e}</span>
+                      <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'cc')">delete</span>
+                  </div>
+              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+          })
+          .withFailureHandler(e => {
+              c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
+          })
+          .apiGetCcWhitelist();
+    }
+    function addCcWhitelistUser() {
+        const email = document.getElementById('newCcWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run
+          .withSuccessHandler(() => {
+              document.getElementById('newCcWhitelistEmail').value = "";
+              loadCcWhitelist();
+          })
+          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+          .apiAddCcWhitelist(email);
+    }
+    function loadWomaWhitelist() {
+        const c = document.getElementById('womaWhitelistContainer');
+        if(!c) return;
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run
+          .withSuccessHandler(r => {
+              c.innerHTML = r.emails.map(e => `
+                  <div class="list-row">
+                      <span>${e}</span>
+                      <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'woma')">delete</span>
+                  </div>
+              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+          })
+          .withFailureHandler(e => {
+              c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
+          })
+          .apiGetWomaWhitelist();
+    }
+    function addWomaWhitelistUser() {
+        const email = document.getElementById('newWomaWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run
+          .withSuccessHandler(() => {
+              document.getElementById('newWomaWhitelistEmail').value = "";
+              loadWomaWhitelist();
+          })
+          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+          .apiAddWomaWhitelist(email);
+    }
+    function loadKecWhitelist() {
+        const c = document.getElementById('kecWhitelistContainer');
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run.withSuccessHandler(r => {
+            c.innerHTML = r.emails.map(e => `
+                <div class="list-row">
+                    <span>${e}</span>
+                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'kec')">delete</span>
+                </div>
+            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+        }).apiGetKecWhitelist();
+    }
+    function addKecWhitelistUser() {
+        const email = document.getElementById('newKecWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run.withSuccessHandler(() => {
+            document.getElementById('newKecWhitelistEmail').value = "";
+            loadKecWhitelist();
+        }).apiAddKecWhitelist(email);
+    }
+    function loadDocWhitelist() {
+      const c = document.getElementById('docWhitelistContainer');
+      if(!c) return;
+      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+      google.script.run.withSuccessHandler(r => {
+        c.innerHTML = r.emails.map(e => `
+          <div class="list-row">
+            <span>${e}</span>
+            <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'doc')">delete</span>
+          </div>
+        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+      }).apiGetDocWhitelist();
+      }
+    function loadArticulateWhitelist() {
+      const c = document.getElementById('articulateWhitelistContainer');
+      if(!c) return;
+      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+      google.script.run.withSuccessHandler(r => {
+        c.innerHTML = r.emails.map(e => `
+          <div class="list-row">
+            <span>${e}</span>
+            <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'articulate')">delete</span>
+          </div>
+        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+      }).apiGetArticulateWhitelist();
+    }
+    function addArticulateWhitelistUser() {
+      const email = document.getElementById('newArticulateWhitelistEmail').value.trim();
+      if(!email) return;
+      google.script.run.withSuccessHandler(() => {
+        document.getElementById('newArticulateWhitelistEmail').value = "";
+        loadArticulateWhitelist();
+      }).apiAddArticulateWhitelist(email);
+    }
+    function loadAdmins() {
+        const c = document.getElementById('adminListContainer');
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run.withSuccessHandler(r => {
+            c.innerHTML = r.admins.map(e => `
+                <div class="list-row">
+                    <span><strong>${e}</strong></span>
+                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'admin')">delete</span>
+                </div>
+            `).join('');
+        }).apiGetAdmins();
+    }
+    function loadAdminLightUsers() {
+        const c = document.getElementById('adminLightListContainer');
+        if (!c) return;
+        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        google.script.run
+          .withSuccessHandler(r => {
+            if (!r.success) { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(r.error) + '</div>'; return; }
+            c.innerHTML = r.users.map(u => `
+                <div class="list-row">
+                    <span><strong>${escapeHtml(u.email)}</strong> <span style="color:#888;font-size:11px;">(${u.subtabs.map(s => ADMIN_LIGHT_LABELS_[s] || s).join(', ')})</span></span>
+                    <span class="material-icons-outlined icon-btn-danger" onclick="removeAdminLightUser('${escapeJs(u.email)}')">delete</span>
+                </div>
+            `).join('') || '<div style="padding:15px;color:#888;text-align:center;">Keine Admin-Light-User.</div>';
+          })
+          .withFailureHandler(e => { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(e.message) + '</div>'; })
+          .apiGetAdminLightUsers();
+    }
+    function addAdminLightUser() {
+        const email = document.getElementById('newAdminLightEmail').value.trim();
+        if (!email) return;
+        const subtabs = [];
+        if (document.getElementById('adminLightSubtabUsers').checked) subtabs.push('users');
+        if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
+        if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
+        google.script.run
+          .withSuccessHandler(r => {
+            if (!r.success) { showCustomAlert('Fehler: ' + r.error, 'Error'); return; }
+            document.getElementById('newAdminLightEmail').value = '';
+            document.getElementById('adminLightSubtabUsers').checked = false;
+            document.getElementById('adminLightSubtabTemplates').checked = false;
+            loadAdminLightUsers();
+          })
+          .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
+          .apiAddAdminLightUser(email, subtabs);
+    }
+    function removeAdminLightUser(email) {
+        showCustomConfirm('Admin-Light-Zugriff für ' + email + ' entfernen?', function() {
+            google.script.run
+              .withSuccessHandler(loadAdminLightUsers)
+              .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
+              .apiRemoveAdminLightUser(email);
+        });
+    }
+    function addAdminUser() {
+        const email = document.getElementById('newAdminEmail').value.trim();
+        if(!email) return;
+        google.script.run.withSuccessHandler(() => {
+            document.getElementById('newAdminEmail').value = "";
+            loadAdmins();
+        }).apiAddAdmin(email);
+    }
+    function removeUserFromList(email, type) {
+        showCustomConfirm(`Remove ${email} from ${type}?`, function() {
+            if(type === 'whitelist') {
+                google.script.run.withSuccessHandler(loadWhitelist).apiRemoveWhitelist(email);
+            } else if(type === 'marketing') {
+                google.script.run.withSuccessHandler(loadMarketingWhitelist).apiRemoveMarketingWhitelist(email);
+            } else if(type === 'kec') {
+                google.script.run.withSuccessHandler(loadKecWhitelist).apiRemoveKecWhitelist(email);
+            } else if(type === 'doc') {
+                google.script.run.withSuccessHandler(loadDocWhitelist).apiRemoveDocWhitelist(email);  
+            } else if(type === 'articulate') {
+                google.script.run.withSuccessHandler(loadArticulateWhitelist).apiRemoveArticulateWhitelist(email);
+            } else if(type === 'woma') {
+                google.script.run.withSuccessHandler(loadWomaWhitelist).apiRemoveWomaWhitelist(email);
+            } else if(type === 'cc') {
+                google.script.run.withSuccessHandler(loadCcWhitelist).apiRemoveCcWhitelist(email);
+            } else if(type === 'admin') {
+                google.script.run.withSuccessHandler(loadAdmins).apiRemoveAdmin(email);
+            }
+        });
+    }
+    function runUserTemplatesDebug() {
+        const email = document.getElementById('debugEmail').value.trim();
+        if(!email) { showCustomAlert("Please enter an email.", "Error"); return; }
+        const c = document.getElementById('debugResultContainer');
+        c.style.display = 'block'; c.innerHTML = 'Analyzing...';
+        google.script.run.withSuccessHandler(r => {
+            c.innerHTML = `<strong>Analyse für:</strong> ${r.email}\n\n` +
+                          `<strong>User Data (FetchTMS_USERS-Prod):</strong>\n` +
+                          `Client: ${r.userData.client}\nDomain: ${r.userData.domain}\nSubdomain: ${r.userData.subdomain}\nBU: ${r.userData.bu}\n\n` +
+                          `<strong>Erlaubte Templates (${r.allowed.length}):</strong>\n` + 
+                          r.allowed.map(x => `? ${x.name}`).join('\n') + `\n\n` +
+                          `<strong>Blockierte Templates (${r.denied.length}):</strong>\n` +
+                          r.denied.map(x => `? ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
+        }).apiDebugUserTemplates(email);
+    }
+    function testChatBot(btn) {
+        const email = document.getElementById('chatTestEmail').value.trim();
+        if(!email) { showCustomAlert("E-Mail fehlt.", "Error"); return; }
+        btn.disabled = true; btn.innerText = "Sende...";
+        google.script.run.withSuccessHandler(r => {
+            btn.disabled = false; btn.innerText = "SENDEN";
+            if(r.success) showCustomAlert("Test-Nachricht erfolgreich gesendet!", "Success");
+            else showCustomAlert("Fehler: " + r.error, "Error");
+        }).apiTestChatBot(email);
+    }
+    function triggerSync(type, btn) {
+      if (type === 'templates' || type === 'users') {
+        showSyncModeDialog(type, btn);
+        return;
+      }
+      runSync(type, 'full', btn);
+    }
+    function showSyncModeDialog(type, btn) {
+      const label = type === 'templates' ? 'Templates' : 'User';
+      const html = `
+        <div style="font-size:13px;line-height:1.6;margin-bottom:16px;">
+          Wie soll der ${label}-Sync ausgeführt werden?
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;"
+                onclick="closeCustomDialog(); runSync('${type}','add_only', document.getElementById('syncBtn_${type}'))">
+          ? Nur neue ${label} ergänzen (bestehende Zeilen bleiben unverändert)
+        </button>
+        <button class="btn btn-primary" style="width:100%;"
+                onclick="closeCustomDialog(); runSync('${type}','full', document.getElementById('syncBtn_${type}'))">
+          ? Neue ergänzen + bestehende mit Phrase-Daten aktualisieren
+        </button>`;
+      btn.id = 'syncBtn_' + type;
+      document.getElementById('customDialogTitle').innerText = label + ' synchronisieren';
+      document.getElementById('customDialogMessage').innerHTML = html;
+      document.getElementById('customDialogInput').style.display = 'none';
+      document.getElementById('customDialogCancelBtn').style.display = 'inline-flex';
+      document.getElementById('customDialogConfirmBtn').style.display = 'none';
+      document.getElementById('customDialogOverlay').style.display = 'flex';
+    }
+    function runSync(type, mode, btn) {
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="material-icons-outlined" style="animation:spin 1s linear infinite;">sync</i> Syncing...';
+      google.script.run.withSuccessHandler(r => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        if (r.success) showCustomAlert(r.msg || "Sync successful.", "Success");
+        else showCustomAlert("Error: " + r.error, "Error");
+      }).withFailureHandler(e => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        showCustomAlert("Error: " + e.message, "Error");
+      }).apiTriggerManualSync(type, mode);
+    }
+    function toggleAutoSync(enable) {
+        const txt = document.getElementById('autoSyncStatusText');
+        txt.innerText = 'Updating...';
+        google.script.run.withSuccessHandler(() => {
+            txt.innerText = enable ? 'ON' : 'OFF';
+            showCustomAlert(`Auto-Sync is now ${enable ? 'ENABLED' : 'DISABLED'}.`, "Success");
+        }).apiToggleAutoSync(enable);
+    }
+    function loadScriptProperties() {
+      const container = document.getElementById('scriptPropsContainer');
+      if (!container) return;
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
+      google.script.run
+        .withSuccessHandler(res => {
+          let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #eee;">';
+          html += '<thead><tr style="background:#f5f5f5;text-align:left;">' +
+                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:30%;">Key</th>' +
+                  '<th style="padding:10px;border-bottom:2px solid #ddd;">Value</th>' +
+                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:120px;text-align:center;">Actions</th>' +
+                  '</tr></thead><tbody>';
+          res.properties.forEach(p => {
+            const isProt = p.protected;
+            const isSens = p.sensitive;
+            html += `<tr style="border-bottom:1px solid #eee;">
+              <td style="padding:10px;font-family:monospace;font-weight:bold;color:${isProt?'#d93025':'#333'};">
+                ${escapeHtml(p.key)} ${isProt?'<span title="Protected" style="cursor:help;">?</span>':''}
+              </td>
+              <td style="padding:10px;font-family:monospace;color:#555;word-break:break-all;" id="prop_val_${escapeHtmlId(p.key)}">
+                ${escapeHtml(p.value)}
+              </td>
+              <td style="padding:10px;text-align:center;">
+                <div style="display:flex;gap:5px;justify-content:center;">
+                  ${isSens ? `<button onclick="revealScriptProperty('${escapeJs(p.key)}')" title="Reveal" style="background:none;border:1px solid #ccc;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#555;">visibility</i></button>` : ''}
+                  <button onclick="updateScriptProperty('${escapeJs(p.key)}')" title="Edit" style="background:none;border:1px solid #1565c0;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#1565c0;">edit</i></button>
+                  ${!isProt ? `<button onclick="deleteScriptProperty('${escapeJs(p.key)}')" title="Delete" style="background:none;border:1px solid #d93025;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#d93025;">delete</i></button>` : ''}
+                </div>
+              </td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        })
+        .withFailureHandler(err => {
+          container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
+        })
+        .apiGetAllScriptProperties();
+    }
+    function addNewScriptProperty() {
+      const key = document.getElementById('newPropKey').value.trim();
+      const val = document.getElementById('newPropValue').value.trim();
+      if (!key) { showCustomAlert("Key required."); return; }
+      google.script.run
+        .withSuccessHandler(r => {
+          document.getElementById('newPropKey').value = "";
+          document.getElementById('newPropValue').value = "";
+          showCustomAlert("Property added.");
+          loadScriptProperties();
+        })
+        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+        .apiAddScriptProperty(key, val);
+    }
+    function updateScriptProperty(key) {
+      showCustomPrompt("Enter new value for " + key + ":", "", function(newVal) {
+        if (newVal === null) return; 
+        google.script.run
+          .withSuccessHandler(r => {
+            showCustomAlert("Property updated.");
+            loadScriptProperties();
+          })
+          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .apiUpdateScriptProperty(key, newVal);
+      }, "Edit Property");
+    }
+    function deleteScriptProperty(key) {
+      showCustomConfirm("Delete property '" + key + "'?", function() {
+        google.script.run
+          .withSuccessHandler(r => { loadScriptProperties(); })
+          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .apiDeleteScriptProperty(key);
+      });
+    }
+    function revealScriptProperty(key) {
+      google.script.run
+        .withSuccessHandler(r => {
+          if (r.blocked) {
+            showCustomAlert(r.message, "Protected Value");
+          } else {
+            const el = document.getElementById('prop_val_' + escapeHtmlId(key));
+            if (el) {
+                el.innerText = r.value;
+                el.style.background = "#fff9c4";
+                setTimeout(() => { el.style.background = "none"; el.innerText = "????????"; }, 10000); 
+            }
+          }
+        })
+        .apiRevealScriptProperty(key);
+    }
+    function loadAuditLog() {
+      const container = document.getElementById('auditLogContainer');
+      if (!container) return;
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
+      google.script.run
+        .withSuccessHandler(res => {
+          let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;">';
+          html += '<thead style="position:sticky;top:0;background:#f0f0f0;"><tr style="text-align:left;">' +
+                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:130px;">Time</th>' +
+                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:150px;">User</th>' +
+                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">Action</th>' +
+                  '<th style="padding:8px;border-bottom:1px solid #ddd;">Details</th>' +
+                  '</tr></thead><tbody>';
+          if (res.error) {
+            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(res.error) + '</div>';
+            return;
+          }
+          (res.entries || []).forEach(row => {
+            html += `<tr style="border-bottom:1px solid #eee;">
+              <td style="padding:8px;color:#666;">${escapeHtml(row.timestamp)}</td>
+              <td style="padding:8px;color:#1565c0;">${escapeHtml(row.user)}</td>
+              <td style="padding:8px;font-weight:bold;">${escapeHtml(row.action)}</td>
+              <td style="padding:8px;color:#444;">${escapeHtml(row.details)}</td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        })
+        .withFailureHandler(err => {
+          container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
+        })
+        .apiGetAuditLog(100);
+    }
+    function loadErrorLogs() {
+      const container = document.getElementById('errorLogContainer');
+      if(!container) return;
+      google.script.run.withSuccessHandler(logs => {
+        container.innerHTML = logs.map(l => {
+          const isErr = l.status && l.status.toUpperCase().includes('ERROR');
+          return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #333;">
+            <span style="color:#888;">[${l.date}]</span> 
+            <strong style="color:${isErr?'#ff5252':'#4CAF50'};">${l.status}</strong> 
+            <span style="color:#fff;">${l.project}</span> 
+            <span style="color:#aaa;">(${l.user})</span>
+          </div>`;
+        }).join('') || '<div style="color:#666;">No recent logs.</div>';
+      }).apiGetRecentLogs();
+    }
+    function openLogsModal() {
+      document.getElementById('logsModal').style.display = 'flex';
+      const body = document.getElementById('logsModalBody');
+      body.innerHTML = document.getElementById('errorLogContainer').innerHTML;
+    }
+    function escapeHtmlId(unsafe) {
+      if (!unsafe) return "id";
+      return String(unsafe).replace(/[^a-zA-Z0-9_-]/g, "_");
+    }
+function loadWatcherConfig() {
+  const container = document.getElementById('watcherConfigContainer');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:15px;text-align:center;color:#888;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto 8px;"></div>Loading...</div>';
+
+  google.script.run
+    .withSuccessHandler(res => {
+      _watcherConfig = res.config || [];
+      renderWatcherConfig();
+    })
+    .withFailureHandler(err => {
+      if (container) container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetWatcherConfig();
+}
+function renderWatcherConfig() {
+  const container = document.getElementById('watcherConfigContainer');
+  if (!container) return;
+
+  if (!_watcherConfig.length) {
+    container.innerHTML = '<div style="padding:15px;color:#888;font-style:italic;">No watchers configured yet.</div>';
+    return;
+  }
+
+  let html = '';
+  _watcherConfig.forEach((entry, idx) => {
+    html += `
+    <div style="border:1px solid #eee;padding:10px 14px;margin-bottom:8px;background:#fafafa;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;color:#333;">${escapeHtml(entry.email)}</div>
+        <div style="font-size:11px;color:#888;margin-top:3px;">Templates: ${(entry.templates || []).map(t => escapeHtml(t)).join(', ')}</div>
+      </div>
+      <span class="material-icons-outlined icon-btn-danger" onclick="removeWatcher(${idx})" title="Remove">delete</span>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+function addWatcher() {
+  const email = document.getElementById('newWatcherEmail').value.trim();
+  const templatesRaw = document.getElementById('newWatcherTemplates').value.trim();
+
+  if (!email || !email.includes('@')) { showCustomAlert('Bitte eine gültige E-Mail eingeben.'); return; }
+  if (!templatesRaw) { showCustomAlert('Bitte mindestens ein Template angeben.'); return; }
+
+  const templates = templatesRaw.split(',').map(t => t.trim()).filter(Boolean);
+
+  // FIX: Aktuelle Config vom Server laden, dann ergänzen und speichern
+  google.script.run
+    .withSuccessHandler(res => {
+      const currentConfig = res.config || [];
+      currentConfig.push({ email, templates });
+
+      google.script.run
+        .withSuccessHandler(() => {
+          _watcherConfig = currentConfig;
+          document.getElementById('newWatcherEmail').value = '';
+          document.getElementById('newWatcherTemplates').value = '';
+          showCustomAlert('? Watcher hinzugefügt.', 'Gespeichert');
+          renderWatcherConfig();
+        })
+        .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+        .apiSaveWatcherConfig(currentConfig);
+    })
+    .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+    .apiGetWatcherConfig();
+}
+function removeWatcher(idx) {
+  showCustomConfirm('Watcher "' + _watcherConfig[idx].email + '" entfernen?', function() {
+    _watcherConfig.splice(idx, 1);
+    google.script.run
+      .withSuccessHandler(() => { showCustomAlert('? Watcher entfernt.'); renderWatcherConfig(); })
+      .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+      .apiSaveWatcherConfig(_watcherConfig);
+  });
+}
+</script>

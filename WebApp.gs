@@ -17,8 +17,29 @@ function apiGetGuideContent() {
   return HtmlService.createHtmlOutputFromFile("GuideContent").getContent();
 }
 
-function apiGetConfig(impersonateEmail) {
-  return getConfig_(impersonateEmail);
+function apiGetConfig(impersonateEmail, uiLang) {
+  const cfg = getConfig_(impersonateEmail);
+  // Das Woerterbuch der aktiven UI-Sprache reist mit der ohnehin noetigen
+  // Config-Antwort mit - so kostet das Auslagern von fr/es/pt/zh keinen
+  // zusaetzlichen Roundtrip und es gibt beim Start kein Sprach-Flackern.
+  if (uiLang && typeof I18N_DICTS_ !== "undefined" && I18N_DICTS_[uiLang]) {
+    cfg.i18nLang = uiLang;
+    cfg.i18nDict = I18N_DICTS_[uiLang];
+  }
+  return cfg;
+}
+
+/**
+ * Liefert den Admin-Bereich (Markup + zugehoeriges JavaScript) auf Anfrage.
+ * Beides steckt nicht mehr in Index.html, weil es nur Admins betrifft, aber
+ * jedem Nutzer ausgeliefert wurde.
+ */
+function apiGetAdminContent() {
+  return {
+    html: HtmlService.createHtmlOutputFromFile("AdminConsole").getContent(),
+    js:   HtmlService.createHtmlOutputFromFile("AdminScript").getContent()
+           .replace(/^\s*<script>/, "").replace(/<\/script>\s*$/, "")
+  };
 }
 
 function apiHandleUpload(payload) {
