@@ -1209,649 +1209,7 @@
       </div>
 
       <div id="tab-admin" class="tab-content" style="display:none">
-        <div class="container" style="max-width:2200; margin:0 auto;">
-            <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #eee;">
-                <button class="admin-subtab-btn active" id="subtab-btn-console" onclick="switchAdminSubtab('console')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#d93025;cursor:pointer;border-bottom:3px solid #d93025;text-transform:uppercase;">Console</button>
-                <button class="admin-subtab-btn" id="subtab-btn-users" onclick="switchAdminSubtab('users')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">User Manager</button>
-                <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Template Manager</button>
-            </div>
-
-            <div id="admin-subtab-console">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px;">
-                <div class="section-title" style="margin:0; border:none; font-size:20px;">Admin Console</div>
-                <button class="btn-refresh" onclick="loadAdminDashboardData()"><i class="material-icons-outlined">refresh</i> Refresh Data</button>
-            </div>
-
-            <div class="admin-grid" id="adminGridContainer">
-                <div class="card" style="border-top-color:#9c27b0;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#9c27b0;">User View Simulator</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('simulator')" title="Help">?</button>
-                    </div>
-                    <div id="help-simulator" class="admin-help-panel">
-                        <span class="help-impact impact-low">Read-only ? No impact</span>
-                        <p>Preview the app exactly as a specific user would see it.</p>
-                        <ul>
-                            <li>Admin controls remain visible; a purple banner indicates simulation mode.</li>
-                            <li>Click <strong>EXIT SIMULATION</strong> to return to your own view.</li>
-                        </ul>
-                    </div>
-                    <div style="font-size:13px; color:#666; margin-bottom:12px;">See the app exactly as another user sees it.</div>
-                    <div style="display:flex; gap:10px;">
-                        <input type="email" id="impersonateEmailInput" placeholder="user@karcher.com">
-                        <button class="btn" style="width:auto; padding:0 20px; background-color:#9c27b0; color:#fff;" onclick="toggleImpersonation()">SIMULATE</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">Maintenance Mode</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('maintenance')" title="Help">?</button>
-                    </div>
-                    <div id="help-maintenance" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? All users locked out</span>
-                        <p>Blocks access for <strong>all non-admin users</strong> during the configured window.</p>
-                        <ul>
-                            <li>Admins can bypass the lock via the "ADMIN UNLOCK" button.</li>
-                        </ul>
-                    </div>
-                    <div class="form-row">
-                      <label>Start Time</label>
-                      <input type="datetime-local" id="adminMaintStart">
-                    </div>
-                    <div class="form-row">
-                      <label>End Time</label>
-                      <input type="datetime-local" id="adminMaintEnd">
-                    </div>
-                    <div class="form-row">
-                        <label>Notification Message</label>
-                        <textarea id="adminMaintMsg" rows="2" style="resize:vertical;">Maintenance work is scheduled. File upload is currently unavailable.</textarea>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-top:5px;">
-                        <button class="btn btn-primary" style="height:40px;" onclick="saveMaintenanceSettings(this)">ACTIVATE / UPDATE</button>
-                        <button class="btn btn-red" style="height:40px; width:auto;" onclick="clearMaintenanceSettings()">STOP</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">System Configuration</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('sysconfig')" title="Help">?</button>
-                    </div>
-                    <div id="help-sysconfig" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact</span>
-                        <ul>
-                            <li><strong>Max File Size:</strong> Limits the upload size per file. Default is 100 MB. Setting too low may block large documents.</li>
-                            <li><strong>Sync Templates:</strong> Fetches all active templates from Phrase TMS and updates the FetchTemplate-Prod sheet.</li>
-                        </ul>
-                    </div>
-                    <div class="form-row">
-                        <label>Max File Size (MB)</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="number" id="adminFileSize" style="width:100px;">
-                            <button class="btn btn-black" style="width:auto; padding:0 20px; height:48px;" onclick="saveAdminFileSize()">Save</button>
-                        </div>
-                    </div>
-                    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-                    <label>Database Links</label>
-                    <div style="display:flex; gap:10px; margin-bottom:20px;">
-                        <a href="https://docs.google.com/spreadsheets/d/1xi0ZtFxxurNu25URrhpHmfSLy8nld_SXm0KmkXxRCpQ/edit" target="_blank" class="btn btn-secondary" style="font-size:12px; padding:0 15px;">
-                            <i class="material-icons-outlined">table_view</i> Uploads DB
-                        </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1mU8zWhR-E8_fmBcLtMh1qIwST9FibKT5UfH7oaivs0Q/edit" target="_blank" class="btn btn-secondary" style="font-size:12px; padding:0 15px;">
-                             <i class="material-icons-outlined">sync_alt</i> Sync DB
-                        </a>
-                    </div>
-                    <label>Manual Synchronization</label>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
-                        <button class="btn btn-secondary" onclick="triggerSync('users', this)"><i class="material-icons-outlined">people</i> Sync Users</button>
-                        <button class="btn btn-secondary" onclick="triggerSync('templates', this)"><i class="material-icons-outlined">fact_check</i> Sync Templates</button>
-                        <button class="btn btn-secondary" onclick="triggerSync('notifications', this)" title="Syncs PROJECT_MANAGER / ADMIN users into Notifications sheet (OFF)"><i class="material-icons-outlined">notifications</i> Sync Notifications</button>
-                        <button class="btn btn-secondary" onclick="triggerSync('chatmappings', this)" title="Resolves Chat User IDs for all users in Notifications sheet"><i class="material-icons-outlined">chat</i> Sync Chat Mappings</button>
-                    </div>
-
-                    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-                    <label>Automatic Status Sync</label>
-                    <div style="display:flex;align-items:center;gap:15px;margin-top:8px;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;margin:0;">
-                                <input type="checkbox" id="autoSyncToggle" style="opacity:0;width:0;height:0;"
-                                       onchange="toggleAutoSync(this.checked)">
-                                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s;cursor:pointer;"></span>
-                                <span id="autoSyncSlider" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;"></span>
-                            </label>
-                            <span id="autoSyncStatusText" style="font-size:12px;font-weight:700;color:#888;">OFF</span>
-                        </div>
-                        <span id="autoSyncLastRun" style="font-size:11px;color:#999;"></span>
-                    </div>
-                    <div style="font-size:11px;color:#888;margin-top:6px;">
-                        When enabled, project statuses are automatically synced from Phrase every 15 minutes.
-                        Chat notifications are sent when translations complete.
-                    </div>
-                </div>
-
-                <div class="card" style="border-top-color:#1a73e8;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#1a73e8;">Google Drive Export ("Save to Drive")</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('drivesave')" title="Help">?</button>
-                    </div>
-                    <div id="help-drivesave" class="admin-help-panel">
-                        <span class="help-impact impact-low">Low impact ? opt-in feature per user</span>
-                        <p>Lets users save translated files directly into their own Google "My Drive" (with the option to convert Word/Excel/PowerPoint files to Google Docs/Sheets/Slides), instead of only downloading to their computer.</p>
-                        <p>This requires a one-time <strong>OAuth Client ID</strong> (type "Web application") created in the Google Cloud Console project linked to this script, with this portal's URL added under "Authorized JavaScript origins". Paste that Client ID below.</p>
-                    </div>
-                    <div class="form-row">
-                        <label>OAuth Client ID</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="adminDriveClientId" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
-                            <button class="btn btn-black" style="width:auto; padding:0 20px; height:48px;" onclick="saveAdminDriveClientId()">Save</button>
-                        </div>
-                        <div id="adminDriveClientIdStatus" style="font-size:11px;color:#888;margin-top:6px;"></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">General Projects Whitelist</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('stdwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-stdwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact</span>
-                        <p>Controls who can access the app and see the <strong>"General Projects"</strong> tab.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="whitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-
-                <div class="card" style="border-top-color:#d93025;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#d93025;">Manage Administrators</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('admins')" title="Help">?</button>
-                    </div>
-                    <div id="help-admins" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Full access granted</span>
-                        <p>Administrators have <strong>complete access</strong> to all features including this Admin Console.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newAdminEmail" placeholder="admin@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#333; color:#fff;" onclick="addAdminUser()">ADD ADMIN</button>
-                    </div>
-                    <div id="adminListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-                <div class="card" style="border-top-color:#795548;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#795548;">Admin-Light Access</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('adminlight')" title="Help">?</button>
-                    </div>
-                    <div id="help-adminlight" class="admin-help-panel">
-                        <span class="help-impact impact-high">High Impact ? Eingeschränkter Admin-Zugriff</span>
-                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager und/oder Template Manager ? ohne Console (Whitelists, Maintenance, Script Properties etc.).</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:10px;">
-                        <input type="email" id="newAdminLightEmail" placeholder="user@karcher.com">
-                    </div>
-                    <div style="display:flex; gap:15px; margin-bottom:15px; align-items:center;">
-                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
-                            <input type="checkbox" id="adminLightSubtabUsers" style="width:auto;"> User Manager
-                        </label>
-                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
-                            <input type="checkbox" id="adminLightSubtabTemplates" style="width:auto;"> Template Manager
-                        </label>
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#795548; color:#fff;" onclick="addAdminLightUser()">ADD</button>
-                    </div>
-                    <div id="adminLightListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-                
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">Marketing Projects Whitelist</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('mktgwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-mktgwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "Marketing Projects"</strong> tab ? the standard "General Projects" tab is hidden for them.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newMarketingWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addMarketingWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="marketingWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">WOMA Whitelist</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('womawl')" title="Help">?</button>
-                    </div>
-                    <div id="help-womawl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "WOMA"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newWomaWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addWomaWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="womaWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-
-                <div class="card" style="border-top-color:#00838f;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#00838f;">Competence Center Projects Whitelist</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('ccwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-ccwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see <strong>only the "Competence Center Projects"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newCcWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addCcWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="ccWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-                <div class="card" style="border-top-color:#9c27b0;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#9c27b0;">KeC Projects Whitelist</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('kecwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-kecwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                        <p>Users listed here see the <strong>"KeC Projects"</strong> tab.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newKecWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addKecWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="kecWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-
-                <div class="card" style="border-top-color:#0288d1;">
-                    <div class="admin-card-header">
-                      <div class="section-title" style="color:#0288d1;">Documentation Projects Whitelist</div>
-                      <button class="help-toggle-btn" onclick="toggleAdminHelp('docwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-docwl" class="admin-help-panel">
-                      <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
-                      <p>Users listed here see the <strong>"Documentation Projects"</strong> tab.</p>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                      <input type="email" id="newDocWhitelistEmail" placeholder="colleague@karcher.com">
-                      <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addDocWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="docWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                  </div>
-
-                <div class="card" style="border-top-color:#1a73e8;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#1a73e8;">
-                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">play_circle</span>
-                            Campus Projects Whitelist
-                        </div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('artwl')" title="Help">?</button>
-                    </div>
-                    <div id="help-artwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Zusatz-Tab</span>
-                        <p>Users listed here see the <strong>"Campus Projects"</strong> tab und können Rise-Kurs-Previews erzeugen.</p>
-                        <ul>
-                            <li>Anders als bei Marketing/KeC/Documentation ist dieser Tab <strong>nicht exklusiv</strong> ? die Nutzer behalten "General Projects".</li>
-                            <li>Admins sehen den Tab automatisch, ohne Eintrag hier.</li>
-                        </ul>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="email" id="newArticulateWhitelistEmail" placeholder="colleague@karcher.com">
-                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addArticulateWhitelistUser()">ADD</button>
-                    </div>
-                    <div id="articulateWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
-                </div>
-
-                <div class="card" style="border-top-color:#9c27b0;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#9c27b0;">KeC Eligibility Settings</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('kecelig')" title="Help">?</button>
-                    </div>
-                    <div id="help-kecelig" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Steuert KeC-Projekt-Filter</span>
-                        <p>Diese IDs bestimmen, welche Phrase-Projekte im "KeC Projects" Dropdown erscheinen (Client, Domain, Business Unit).</p>
-                        <ul>
-                            <li>Standardmäßig <strong>gesperrt</strong> ? Klick auf das Schloss zum Entsperren.</li>
-                            <li>Falsche Werte können dazu führen, dass gar keine Projekte mehr gefunden werden.</li>
-                        </ul>
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                        <button id="kecEligLockBtn" onclick="toggleKecEligLock()" 
-                                style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
-                            <span class="material-icons-outlined" id="kecEligLockIcon" style="font-size:16px;">lock</span>
-                            <span id="kecEligLockText">Locked ? Click to unlock</span>
-                        </button>
-                    </div>
-                    <div class="form-row">
-                        <label>Client ID <small style="color:#888;font-weight:normal;">(z.B. AKW)</small></label>
-                        <input type="text" id="kecClientIdInput" disabled placeholder="620249">
-                    </div>
-                    <div class="form-row">
-                        <label>Domain ID <small style="color:#888;font-weight:normal;">(z.B. Marketing Content)</small></label>
-                        <input type="text" id="kecDomainIdInput" disabled placeholder="23997">
-                    </div>
-                    <div class="form-row">
-                        <label>Business Unit ID <small style="color:#888;font-weight:normal;">(z.B. MMV-P)</small></label>
-                        <input type="text" id="kecBuIdInput" disabled placeholder="56182">
-                    </div>
-                                        <button id="kecEligSaveBtn" class="btn btn-primary" style="margin-top:5px;" disabled onclick="saveKecEligSettings()">
-                        SPEICHERN
-                    </button>
-                </div>
-                <div class="card" style="border-top-color:#0288d1;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#0288d1;">Documentation Drive Root</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('docdriveroot')" title="Help">?</button>
-                    </div>
-                    <div id="help-docdriveroot" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? Steuert Import/Export-Ordner</span>
-                        <p>Dieser Drive-Ordner ist der Root für Documentation Import/Export. Unterordner müssen exakt so heißen wie das jeweilige Phrase-Projekt.</p>
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                        <button id="docDriveRootLockBtn" onclick="toggleDocDriveRootLock()"
-                                style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
-                            <span class="material-icons-outlined" id="docDriveRootLockIcon" style="font-size:16px;">lock</span>
-                            <span id="docDriveRootLockText">Locked ? Click to unlock</span>
-                        </button>
-                    </div>
-                    <div class="form-row">
-                        <label>Ordner-Link oder -ID</label>
-                        <input type="text" id="docDriveRootInput" disabled placeholder="https://drive.google.com/drive/folders/...">
-                    </div>
-                    <div id="docDriveRootCurrentName" style="font-size:11px;color:#888;margin-bottom:10px;"></div>
-                    <button id="docDriveRootSaveBtn" class="btn btn-primary" style="margin-top:5px;" disabled onclick="saveDocDriveRootSettings_()">
-                        SPEICHERN
-                    </button>
-                </div>
-                <div class="card">
-                    <div class="admin-card-header">
-                        <div class="section-title">System Logs (Last 20)</div>
-                        <div style="display:flex;gap:6px;align-items:center;">
-                            <button class="help-toggle-btn" onclick="openLogsModal()" title="Full screen" style="width:auto;padding:0 8px;border-radius:2px;font-size:11px;letter-spacing:0;">? Expand</button>
-                        </div>
-                    </div>
-                    <div id="errorLogContainer" style="max-height:280px; overflow-y:auto; background:#1a1a2e; color:#a0e0a0; font-family:monospace; padding:12px; font-size:11px; line-height:1.6; border-radius:2px;">
-                        <div style="color:#666;">Loading logs...</div>
-                    </div>
-                </div>
-
-                <div class="card" style="border-top-color:#ff9800;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#ff9800;">User Template Debugger</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('debug')" title="Help">?</button>
-                    </div>
-                    <div id="help-debug" class="admin-help-panel">
-                        <span class="help-impact impact-low">Read-only</span>
-                        <p>Gebe eine E-Mail-Adresse ein, um sofort zu sehen, welche Templates dieser Nutzer sehen darf und welche blockiert werden (inklusive Grund).</p>
-                    </div>
-                    <div class="form-row">
-                        <label>User Email</label>
-                        <input type="email" id="debugEmail" placeholder="user@karcher.com">
-                    </div>
-                    <button class="btn btn-primary" style="width:100%; background-color:#ff9800; color:#fff; margin-top:10px;" onclick="runUserTemplatesDebug()">ZEIGE TEMPLATES</button>
-                    <div id="debugResultContainer" style="margin-top:15px; padding:15px; background:#fff3e0; border:1px solid #ffe0b2; font-size:12px; display:none; white-space:pre-wrap; font-family:monospace; line-height:1.6; max-height:400px; overflow-y:auto;"></div>
-                </div>
-
-                <div class="card" style="border-top-color:#4CAF50;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#4CAF50;">Chat Bot Tester</div>
-                        <button class="help-toggle-btn" onclick="toggleAdminHelp('chattest')" title="Help">?</button>
-                    </div>
-                    <div id="help-chattest" class="admin-help-panel">
-                        <span class="help-impact impact-low">Test-Tool</span>
-                        <p>Prüft die Google Chat Bot Verbindung (OAuth2) und sendet eine Test-Direktnachricht.</p>
-                    </div>
-                    <div class="form-row">
-                        <label>Empfänger E-Mail (zum Testen)</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="email" id="chatTestEmail" placeholder="deine.mail@karcher.com">
-                            <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#4CAF50; color:#fff;" onclick="testChatBot(this)">SENDEN</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card" style="border-top-color:#009688;">
-                  <div class="admin-card-header">
-                      <div class="section-title" style="color:#009688;">
-                          <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">visibility</span>
-                          Project Watchers
-                      </div>
-                      <div style="display:flex;gap:8px;">
-                          <button class="help-toggle-btn" onclick="toggleAdminHelp('watchers')" title="Help">?</button>
-                          <button class="btn-refresh" onclick="loadWatcherConfig()" style="height:28px;font-size:11px;padding:0 12px;">
-                              <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
-                          </button>
-                      </div>
-                  </div>
-                  <div id="help-watchers" class="admin-help-panel">
-                      <span class="help-impact impact-low">Info-only ? Notifications</span>
-                      <p>Bestimmte Personen werden automatisch benachrichtigt wenn ein Projekt aus einem konfigurierten Template eingereicht wird.</p>
-                      <ul>
-                          <li>Template-Namen müssen exakt mit dem Anzeigenamen im Dropdown übereinstimmen (oder als Teilstring enthalten sein).</li>
-                          <li>Der Einreicher selbst erhält keine Watcher-Notification.</li>
-                      </ul>
-                  </div>
-                  <div id="watcherConfigContainer" style="margin-top:10px;">
-                      <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load watcher configuration.</div>
-                  </div>
-                  <div style="margin-top:15px;border-top:1px solid #eee;padding-top:15px;">
-                      <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Add Watcher</div>
-                      <div style="display:flex;gap:10px;margin-bottom:8px;">
-                          <input type="email" id="newWatcherEmail" placeholder="watcher@karcher.com" style="flex:1;">
-                      </div>
-                      <div style="display:flex;gap:10px;margin-bottom:8px;">
-                          <input type="text" id="newWatcherTemplates" placeholder="Template Name 1, Template Name 2, ..." style="flex:1;">
-                      </div>
-                      <button class="btn btn-primary" style="width:100%;background:#009688;height:40px;" onclick="addWatcher()">ADD WATCHER</button>
-                  </div>
-              </div>
-
-                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#1565c0;">
-                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">message</span>
-                            Chat Message Templates
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button class="help-toggle-btn" onclick="toggleAdminHelp('msgtemplates')" title="Help">?</button>
-                            <button class="btn-refresh" onclick="loadMessageTemplates()" style="height:28px;font-size:11px;padding:0 12px;">
-                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
-                            </button>
-                        </div>
-                    </div>
-                    <div id="help-msgtemplates" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact ? Chat Messages</span>
-                        <p>Customize the text of all automated Chat notifications sent by Translation-Services.</p>
-                        <ul>
-                            <li>Use <strong>{{PLACEHOLDER}}</strong> syntax ? these are replaced dynamically with real values.</li>
-                            <li>Click <strong>Reset</strong> to restore the built-in default for a template.</li>
-                            <li>Available placeholders: <code>{{PROJECT_NAME}}</code> <code>{{PHRASE_ID}}</code> <code>{{SOURCE_LANG}}</code> <code>{{TARGET_LANGS}}</code> <code>{{DEADLINE}}</code> <code>{{TEMPLATE_NAME}}</code> <code>{{STATUS}}</code> <code>{{PHRASE_URL}}</code> <code>{{PORTAL_URL}}</code> <code>{{SHARED_BY}}</code> <code>{{UPDATED_BY}}</code> <code>{{NEW_DATE}}</code> <code>{{NOTE_LINE}}</code> <code>{{FILES}}</code></li>
-                        </ul>
-                    </div>
-                    <div id="msgTemplatesContainer" style="margin-top:10px;">
-                        <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load message templates.</div>
-                    </div>
-                </div>
-                
-                <div class="card" style="border-top-color:#607d8b; grid-column: 1 / -1;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#607d8b;">
-                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">settings_applications</span>
-                            Advanced Settings (Script Properties)
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button class="help-toggle-btn" onclick="toggleAdminHelp('advprops')" title="Help">?</button>
-                            <button class="btn-refresh" onclick="loadScriptProperties()" style="height:28px;font-size:11px;padding:0 12px;">
-                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
-                            </button>
-                        </div>
-                    </div>
-                    <div id="help-advprops" class="admin-help-panel">
-                        <span class="help-impact impact-critical">Critical ? System Configuration</span>
-                        <p>These are the raw system variables that control how the application works. <strong>Only edit if you know what you're doing.</strong></p>
-                        <ul>
-                            <li><strong>ACCESS_SHEET_ID / OPS_SHEET_ID:</strong> Google Sheet IDs for the config and uploads databases.</li>
-                            <li><strong>ADMIN_EMAILS:</strong> Comma-separated admin email addresses.</li>
-                            <li><strong>PHRASE_API_TOKEN:</strong> API token for Phrase TMS (masked for security).</li>
-                            <li>? Protected keys cannot be deleted, only edited.</li>
-                            <li>?? Click the eye icon to temporarily reveal masked values.</li>
-                        </ul>
-                    </div>
-
-                    <div style="display:flex;gap:10px;margin-bottom:15px;align-items:flex-end;">
-                        <div style="flex:1;">
-                            <label style="font-size:12px;">New Key</label>
-                            <input type="text" id="newPropKey" placeholder="MY_NEW_SETTING" style="height:38px;font-size:13px;font-family:monospace;">
-                        </div>
-                        <div style="flex:2;">
-                            <label style="font-size:12px;">Value</label>
-                            <input type="text" id="newPropValue" placeholder="value..." style="height:38px;font-size:13px;">
-                        </div>
-                        <button class="btn btn-primary" style="width:auto;padding:0 20px;height:38px;font-size:12px;flex-shrink:0;" onclick="addNewScriptProperty()">
-                            <i class="material-icons-outlined" style="font-size:16px;margin-right:4px;">add</i> ADD
-                        </button>
-                    </div>
-
-                    <div id="scriptPropsContainer" style="max-height:400px;overflow-y:auto;border:1px solid #eee;background:#fafafa;">
-                        <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load properties.</div>
-                    </div>
-                </div>
-                
-                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#1565c0;">
-                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">history</span>
-                            Activity Log
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button class="btn-refresh" onclick="loadAuditLog()" style="height:28px;font-size:11px;padding:0 12px;">
-                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
-                            </button>
-                        </div>
-                    </div>
-                    <div id="auditLogContainer" style="max-height:350px;overflow-y:auto;border:1px solid #eee;">
-                        <div style="padding:15px;text-align:center;color:#888;">Click "Reload" to load activity log.</div>
-                    </div>
-                </div>
-            </div>
-            </div>
-<!-- /admin-subtab-console -->
-            <div id="admin-subtab-users" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
-                <div class="section-title" style="margin:0;border:none;font-size:18px;">User Manager</div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <input type="text" id="userMgrSearch" placeholder="🔍 Global suchen..." oninput="renderUserManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
-                  <button class="btn-refresh" onclick="loadUserManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
-                </div>
-              </div>
-              <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-                Aus dem Sheet <strong>FetchTMS_USERS-Prod</strong> geladen. <strong>First Name, Last Name, Role</strong> werden live nach Phrase TMS geschrieben. <strong>Clients, Domains, Subdomains, Business Unit, Source Langs, Target Langs, Workflow Steps</strong> sind eure eigenen Filterkriterien und werden nur im Sheet gespeichert. <strong>Username</strong> und <strong>Email</strong> sind nur lesbar. <strong>Status</strong> wird aktuell nur im Sheet gepflegt.
-              </div>
-              <div id="userMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
-              <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
-                <table class="modern-table" id="userMgrTable" style="table-layout:fixed;width:100%;min-width:1100px;">
-                  <colgroup>
-                    <col style="width:10%;"><col style="width:11%;"><col style="width:11%;"><col style="width:17%;">
-                    <col style="width:11%;"><col style="width:7%;"><col style="width:16%;"><col style="width:17%;">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('username')">Username</th>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('firstName')">First Name</th>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('lastName')">Last Name</th>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('email')">Email</th>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('role')">Role</th>
-                      <th style="cursor:pointer;" onclick="userMgrSortBy('status')">Status</th>
-                      <th>Segmentierung</th>
-                      <th>Sprachen &amp; Workflow</th>
-                    </tr>
-                    <tr class="filter-row">
-                      <th><input type="text" class="um-col" data-field="username" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="um-col" data-field="firstName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="um-col" data-field="lastName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="um-col" data-field="email" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th>
-                        <select id="um_role_filter" onchange="renderUserManager()" style="width:100%;height:28px;font-size:10px;padding:0 4px;border:1px solid #ddd;">
-                          <option value="">Alle</option>
-                          <option value="ADMIN">ADMIN</option>
-                          <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
-                          <option value="LINGUIST">LINGUIST</option>
-                          <option value="SUBMITTER">SUBMITTER</option>
-                          <option value="GUEST">GUEST</option>
-                        </select>
-                      </th>
-                      <th></th>
-                      <th style="font-size:10px;color:#999;font-weight:400;">Klicke zum Bearbeiten</th>
-                      <th style="font-size:10px;color:#999;font-weight:400;">Klicke zum Bearbeiten</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-              <div id="userMgrEmpty" style="text-align:center;padding:40px;color:#888;display:none;">Keine User gefunden.</div>
-            </div>
-      <div id="admin-subtab-templates" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
-                <div class="section-title" style="margin:0;border:none;font-size:18px;">Template Manager</div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <input type="text" id="tmplMgrSearch" placeholder="🔍 Global suchen..." oninput="renderTemplateManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
-                  <button class="btn-refresh" onclick="loadTemplateManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
-                  <button class="btn-refresh" onclick="tmplMgrSyncFromPhrase()" title="Neue Templates aus Phrase ins Sheet holen"><i class="material-icons-outlined">cloud_sync</i> Sync aus Phrase</button>
-                </div>
-              </div>
-              <div style="font-size:12px;color:#888;margin-bottom:12px;">Live aus Phrase gezogen. Der <strong>Active</strong>-Schalter steuert, ob das Template im Upload-Dropdown erscheint (wird ins Sheet geschrieben).</div>
-              <div id="tmplMgrBatchBar" style="display:none;align-items:center;gap:12px;background:#fff9c4;border:1px solid #fff59d;padding:8px 14px;margin-bottom:12px;font-size:13px;">
-                <strong id="tmplMgrSelCount">0</strong> ausgewählt
-                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#4CAF50;color:#fff;" onclick="batchSetTemplateActive(true)">? Aktivieren</button>
-                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#d93025;color:#fff;" onclick="batchSetTemplateActive(false)">? Deaktivieren</button>
-                <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;text-decoration:underline;" onclick="tmplMgrClearSelection()">Auswahl aufheben</button>
-              </div>
-              <div id="tmplMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
-              <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
-                <table class="modern-table" id="tmplMgrTable" style="table-layout:fixed;width:100%;min-width:1000px;">
-                  <colgroup>
-                    <col style="width:40px;">
-                    <col style="width:60px;">
-                    <col style="width:22%;">
-                    <col style="width:18%;">
-                    <col style="width:70px;">
-                    <col style="width:22%;">
-                    <col style="width:22%;">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th style="text-align:center;"><input type="checkbox" id="tmplMgrSelectAll" onchange="tmplMgrToggleAll(this)" title="Alle sichtbaren auswählen"></th>
-                      <th style="text-align:center;">Active</th>
-                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('displayName')">Display Name</th>
-                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('phraseName')">Phrase Name</th>
-                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('sourceLang')">Source</th>
-                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('targetLangs')">Targets</th>
-                      <th>Segmentierung</th>
-                    </tr>
-                    <tr class="filter-row">
-                      <th></th>
-                      <th>
-                        <select id="tf_active" onchange="renderTemplateManager()" style="width:100%;height:28px;font-size:10px;padding:0 4px;border:1px solid #ddd;">
-                          <option value="">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option>
-                        </select>
-                      </th>
-                      <th><input type="text" class="tf-col" data-field="displayName" oninput="renderTemplateManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="tf-col" data-field="phraseName" oninput="renderTemplateManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="tf-col" data-field="sourceLang" oninput="renderTemplateManager()" placeholder="?" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" class="tf-col" data-field="targetLangs" oninput="renderTemplateManager()" placeholder="z.B. de_de" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                      <th><input type="text" id="tf_segmentation" oninput="renderTemplateManager()" placeholder="Client/Domain/Subdom./BU..." style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-              <div id="tmplMgrEmpty" style="text-align:center;padding:40px;color:#888;display:none;">Keine Templates gefunden.</div>
-    </div>
-<!-- /admin-subtab-templates -->
-  </div> <!-- /container -->
+            <div id="adminContentHost"></div>
 </div> <!-- /tab-admin -->  
   <div id="tab-health" class="tab-content" style="display:none">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -2439,398 +1797,6 @@ const i18n = {
     "btn_drive":          "Drive",
     "opt_select_template":"Select Template Type"
   },
-  fr: {
-    "nav_request":        "Projets Généraux",
-    "nav_marketing":      "Projets Marketing",
-    "nav_kec":            "Projets KeC",
-    "nav_documentation": "Projets Documentation",
-    "nav_articulate":     "Projets Campus",
-    "art_show_generator": "Afficher le générateur d'aperçu",
-    "art_generator_title":"Générateur d'aperçu",
-    "art_generator_hint": "Crée un aperçu en direct du cours Rise avec l'état de traduction actuel de Phrase.",
-    "art_ph_project":     "URL ou UID du projet Phrase",
-    "art_ph_job":         "URL ou UID du job Phrase",
-    "art_ph_folder":      "Dossier Drive (export SCORM décompressé)",
-    "art_ph_name":        "Nom du cours",
-    "art_ph_lang":        "fr-FR",
-    "art_sel_project_loading":"Chargement des projets...",
-    "art_sel_project":    "Sélectionner un projet...",
-    "art_sel_job":         "Sélectionnez d'abord un projet...",
-    "art_sel_job_pick":    "Sélectionner un job...",
-    "art_sel_lang":        "Sélectionner une langue...",
-    "art_btn_generate":   "? Générer l'aperçu",
-    "art_saved_title":    "Cours enregistrés",
-    "art_loading":        "Chargement des cours...",
-    "art_empty":          "Aucun cours enregistré pour le moment.",
-    "art_never_generated":"Pas encore généré",
-    "art_btn_play":       "Aperçu",
-    "art_btn_open_last":  "Ouvrir le dernier",
-    "art_btn_delete":     "Supprimer",
-    "art_err_fields":     "Veuillez remplir tous les champs.",
-    "art_saving":         "Enregistrement du cours...",
-    "art_saved":          "Enregistré.",
-    "art_starting":       "Génération de l'aperçu...",
-    "art_confirm_delete": "Vraiment supprimer ce cours ?",
-    "art_progress_title": "Création de l'aperçu",
-    "art_preparing":      "Préparation...",
-    "art_done":           "Terminé",
-    "art_segments":       "segments traduits",
-    "art_files":          "fichiers téléchargés",
-    "art_skipped":        "ignorés (vidéos)",
-    "art_btn_open_preview":"Ouvrir l'aperçu",
-    "art_btn_close":      "Fermer",
-    "art_error":          "Erreur",
-    "art_btn_check":      "? Vérifier les données",
-    "art_checking":       "Vérification des données avec Phrase et Drive...",
-    "art_check_ok":       "Tout a été trouvé",
-    "art_check_project":  "Projet",
-    "art_check_job":      "Job",
-    "art_check_folder":   "Dossier",
-    "art_check_files":    "fichiers",
-    "art_check_path":     "Chemin",
-    "art_ph_search":      "🔍 Rechercher...",
-    "art_btn_refresh":    "Actualiser",
-    "art_link_project":   "Projet",
-    "art_col_course":     "Cours",
-    "art_col_lang":       "Langue",
-    "art_col_phrase":     "Phrase",
-    "art_col_path":       "Chemin de l'aperçu",
-    "art_col_lastdeploy": "Dernier déploiement",
-    "art_col_status":     "Statut",
-    "art_col_actions":    "Actions",
-    "art_warn_notxliff":  "Le fichier du job ne ressemble pas à un XLIFF ? l'aperçu ne fonctionne qu'avec les jobs Rise XLIFF.",
-    "art_warn_langmismatch": "Votre saisie diffère de la langue cible du job",
-    "nav_history":        "Mes Projets",
-    "nav_dashboard":      "Tableau de bord",
-    "nav_guide":          "Guide d'utilisation",
-    "nav_help":           "Aide & Support",
-    "btn_submit":         'CRÉER LE PROJET <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
-    "lbl_template":       'Type de modèle <span class="required">*</span>',
-    "lbl_projectname":    'Nom du projet <span class="required">*</span>',
-    "lbl_source":         'Langue source <span class="required">*</span>',
-    "lbl_target":         'Langue(s) cible(s) <span class="required">*</span>',
-    "lbl_duedate":        'Date souhaitée <small style="color:#666; font-weight:normal;">(par défaut 12h00)</small>',
-    "lbl_note":           'Note',
-    "title_mainfiles":    'Fichiers principaux (à traduire) <span class="required">*</span>',
-    "title_reffiles":     'Fichiers de référence (optionnel)',
-    "ph_projectname":     "Rempli automatiquement à partir du nom du fichier...",
-    "alert_pdf_block":    "⚠️ ATTENTION : les PDF ne peuvent pas être utilisés comme fichiers principaux à traduire.\n\nVeuillez téléverser le format modifiable d'origine (Word, Excel, InDesign, etc.).",
-    "ph_search_template": "🔍 Rechercher un modèle...",
-    "ph_search_language": "🔍 Rechercher une langue...",
-    "txt_select_source":  "Sélectionner la langue source",
-    "txt_select_target":  "Sélectionner la ou les langues cibles",
-    "alert_multifile_name": "?? Plusieurs fichiers sélectionnés. Veuillez saisir le nom du projet manuellement.",
-    "alert_clone":        "? Données du projet copiées.\n\nVeuillez sélectionner à nouveau le modèle, les langues et les fichiers.",
-    "opt_all":            "Tous les projets",
-    "opt_own":            "Mes projets",
-    "opt_shared":         "Partagés avec moi",
-    "lbl_presets":        "Modèles enregistrés",
-    "btn_save_preset":    "Enregistrer",
-    "btn_del_preset":     "Suppr.",
-    "lbl_project_info":   "Infos projet",
-    "lbl_settings":       "Paramètres",
-    "lbl_mainfiles_title":"Fichiers principaux (à traduire)",
-    "lbl_reffiles_title": "Fichiers de référence (optionnel)",
-    "ph_note_standard":   "...",
-    "ph_note_marketing":  "Merci d'envoyer le devis à prenom.nom@karcher.com",
-    "btn_pc_upload":      "Depuis l'ordinateur",
-    "btn_drive":          "Drive",
-    "opt_select_template":"Sélectionner un type de modèle"
-  },
-  es: {
-    "nav_request":        "Proyectos Generales",
-    "nav_marketing":      "Proyectos de Marketing",
-    "nav_kec":            "Proyectos KeC",
-    "nav_documentation": "Proyectos de Documentación",
-    "nav_articulate":     "Proyectos Campus",
-    "art_show_generator": "Mostrar generador de vista previa",
-    "art_generator_title":"Generador de vista previa",
-    "art_generator_hint": "Crea una vista previa en vivo del curso de Rise con el estado de traducción actual de Phrase.",
-    "art_ph_project":     "URL o UID del proyecto de Phrase",
-    "art_ph_job":         "URL o UID del job de Phrase",
-    "art_ph_folder":      "Carpeta de Drive (exportación SCORM descomprimida)",
-    "art_ph_name":        "Nombre del curso",
-    "art_ph_lang":        "es-ES",
-    "art_sel_project_loading":"Cargando proyectos...",
-    "art_sel_project":    "Seleccionar proyecto...",
-    "art_sel_job":         "Seleccione primero un proyecto...",
-    "art_sel_job_pick":    "Seleccionar job...",
-    "art_sel_lang":        "Seleccionar idioma...",
-    "art_btn_generate":   "? Generar vista previa",
-    "art_saved_title":    "Cursos guardados",
-    "art_loading":        "Cargando cursos...",
-    "art_empty":          "Aún no hay cursos guardados.",
-    "art_never_generated":"Aún no generado",
-    "art_btn_play":       "Vista previa",
-    "art_btn_open_last":  "Abrir el último",
-    "art_btn_delete":     "Eliminar",
-    "art_err_fields":     "Por favor, complete todos los campos.",
-    "art_saving":         "Guardando curso...",
-    "art_saved":          "Guardado.",
-    "art_starting":       "Generando vista previa...",
-    "art_confirm_delete": "¿Eliminar este curso definitivamente?",
-    "art_progress_title": "Creando vista previa",
-    "art_preparing":      "Preparando...",
-    "art_done":           "Listo",
-    "art_segments":       "segmentos traducidos",
-    "art_files":          "archivos subidos",
-    "art_skipped":        "omitidos (vídeos)",
-    "art_btn_open_preview":"Abrir vista previa",
-    "art_btn_close":      "Cerrar",
-    "art_error":          "Error",
-    "art_btn_check":      "? Comprobar datos",
-    "art_checking":       "Comprobando datos con Phrase y Drive...",
-    "art_check_ok":       "Todo encontrado",
-    "art_check_project":  "Proyecto",
-    "art_check_job":      "Job",
-    "art_check_folder":   "Carpeta",
-    "art_check_files":    "archivos",
-    "art_check_path":     "Ruta",
-    "art_ph_search":      "🔍 Buscar...",
-    "art_btn_refresh":    "Actualizar",
-    "art_link_project":   "Proyecto",
-    "art_col_course":     "Curso",
-    "art_col_lang":       "Idioma",
-    "art_col_phrase":     "Phrase",
-    "art_col_path":       "Ruta de vista previa",
-    "art_col_lastdeploy": "Última publicación",
-    "art_col_status":     "Estado",
-    "art_col_actions":    "Acciones",
-    "art_warn_notxliff":  "El archivo del job no parece ser un XLIFF ? la vista previa solo funciona con jobs Rise XLIFF.",
-    "art_warn_langmismatch": "Su entrada difiere del idioma de destino del job",
-    "nav_history":        "Mis Proyectos",
-    "nav_dashboard":      "Panel",
-    "nav_guide":          "Guía del Usuario",
-    "nav_help":           "Ayuda y Soporte",
-    "btn_submit":         'CREAR PROYECTO <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
-    "lbl_template":       'Tipo de plantilla <span class="required">*</span>',
-    "lbl_projectname":    'Nombre del proyecto <span class="required">*</span>',
-    "lbl_source":         'Idioma de origen <span class="required">*</span>',
-    "lbl_target":         'Idioma(s) de destino <span class="required">*</span>',
-    "lbl_duedate":        'Fecha deseada <small style="color:#666; font-weight:normal;">(por defecto 12:00)</small>',
-    "lbl_note":           'Nota',
-    "title_mainfiles":    'Archivos principales (a traducir) <span class="required">*</span>',
-    "title_reffiles":     'Archivos de referencia (opcional)',
-    "ph_projectname":     "Se completa automáticamente con el nombre del archivo...",
-    "alert_pdf_block":    "⚠️ ATENCIÓN: los PDF no se pueden usar como archivos principales para traducir.\n\nSuba el formato editable original (Word, Excel, InDesign, etc.).",
-    "ph_search_template": "🔍 Buscar plantilla...",
-    "ph_search_language": "🔍 Buscar idioma...",
-    "txt_select_source":  "Seleccionar idioma de origen",
-    "txt_select_target":  "Seleccionar idioma(s) de destino",
-    "alert_multifile_name": "?? Se seleccionaron varios archivos. Introduzca el nombre del proyecto manualmente.",
-    "alert_clone":        "? Datos del proyecto copiados.\n\nVuelva a seleccionar plantilla, idiomas y archivos.",
-    "opt_all":            "Todos los proyectos",
-    "opt_own":            "Mis proyectos",
-    "opt_shared":         "Compartidos conmigo",
-    "lbl_presets":        "Plantillas guardadas",
-    "btn_save_preset":    "Guardar",
-    "btn_del_preset":     "Borrar",
-    "lbl_project_info":   "Info del proyecto",
-    "lbl_settings":       "Ajustes",
-    "lbl_mainfiles_title":"Archivos principales (a traducir)",
-    "lbl_reffiles_title": "Archivos de referencia (opcional)",
-    "ph_note_standard":   "...",
-    "ph_note_marketing":  "Envíe el presupuesto a nombre.apellido@karcher.com",
-    "btn_pc_upload":      "Subir desde PC",
-    "btn_drive":          "Drive",
-    "opt_select_template":"Seleccionar tipo de plantilla"
-  },
-  pt: {
-    "nav_request":        "Projetos Gerais",
-    "nav_marketing":      "Projetos de Marketing",
-    "nav_kec":            "Projetos KeC",
-    "nav_documentation": "Projetos de Documentação",
-    "nav_articulate":     "Projetos Campus",
-    "art_show_generator": "Mostrar gerador de pré-visualização",
-    "art_generator_title":"Gerador de pré-visualização",
-    "art_generator_hint": "Cria uma pré-visualização em tempo real do curso Rise com o estado de tradução atual do Phrase.",
-    "art_ph_project":     "URL ou UID do projeto Phrase",
-    "art_ph_job":         "URL ou UID do job Phrase",
-    "art_ph_folder":      "Pasta do Drive (exportação SCORM descompactada)",
-    "art_ph_name":        "Nome do curso",
-    "art_ph_lang":        "pt-PT",
-    "art_sel_project_loading":"A carregar projetos...",
-    "art_sel_project":    "Selecionar projeto...",
-    "art_sel_job":         "Selecione primeiro um projeto...",
-    "art_sel_job_pick":    "Selecionar job...",
-    "art_sel_lang":        "Selecionar idioma...",
-    "art_btn_generate":   "? Gerar pré-visualização",
-    "art_saved_title":    "Cursos guardados",
-    "art_loading":        "A carregar cursos...",
-    "art_empty":          "Ainda não há cursos guardados.",
-    "art_never_generated":"Ainda não gerado",
-    "art_btn_play":       "Pré-visualizar",
-    "art_btn_open_last":  "Abrir o último",
-    "art_btn_delete":     "Eliminar",
-    "art_err_fields":     "Por favor, preencha todos os campos.",
-    "art_saving":         "A guardar curso...",
-    "art_saved":          "Guardado.",
-    "art_starting":       "A gerar pré-visualização...",
-    "art_confirm_delete": "Eliminar mesmo este curso?",
-    "art_progress_title": "A criar pré-visualização",
-    "art_preparing":      "A preparar...",
-    "art_done":           "Concluído",
-    "art_segments":       "segmentos traduzidos",
-    "art_files":          "ficheiros enviados",
-    "art_skipped":        "ignorados (vídeos)",
-    "art_btn_open_preview":"Abrir pré-visualização",
-    "art_btn_close":      "Fechar",
-    "art_error":          "Erro",
-    "art_btn_check":      "? Validar dados",
-    "art_checking":       "A validar dados com o Phrase e o Drive...",
-    "art_check_ok":       "Tudo encontrado",
-    "art_check_project":  "Projeto",
-    "art_check_job":      "Job",
-    "art_check_folder":   "Pasta",
-    "art_check_files":    "ficheiros",
-    "art_check_path":     "Caminho",
-    "art_ph_search":      "🔍 Pesquisar...",
-    "art_btn_refresh":    "Atualizar",
-    "art_link_project":   "Projeto",
-    "art_col_course":     "Curso",
-    "art_col_lang":       "Idioma",
-    "art_col_phrase":     "Phrase",
-    "art_col_path":       "Caminho da pré-visualização",
-    "art_col_lastdeploy": "Última publicação",
-    "art_col_status":     "Estado",
-    "art_col_actions":    "Ações",
-    "art_warn_notxliff":  "O ficheiro do job não parece ser um XLIFF ? a pré-visualização só funciona com jobs Rise XLIFF.",
-    "art_warn_langmismatch": "A sua entrada difere do idioma de destino do job",
-    "nav_history":        "Os Meus Projetos",
-    "nav_dashboard":      "Painel",
-    "nav_guide":          "Guia do Utilizador",
-    "nav_help":           "Ajuda e Suporte",
-    "btn_submit":         'CRIAR PROJETO <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
-    "lbl_template":       'Tipo de modelo <span class="required">*</span>',
-    "lbl_projectname":    'Nome do projeto <span class="required">*</span>',
-    "lbl_source":         'Idioma de origem <span class="required">*</span>',
-    "lbl_target":         'Idioma(s) de destino <span class="required">*</span>',
-    "lbl_duedate":        'Data pretendida <small style="color:#666; font-weight:normal;">(predefinição 12:00)</small>',
-    "lbl_note":           'Nota',
-    "title_mainfiles":    'Ficheiros principais (a traduzir) <span class="required">*</span>',
-    "title_reffiles":     'Ficheiros de referência (opcional)',
-    "ph_projectname":     "Preenchido automaticamente a partir do nome do ficheiro...",
-    "alert_pdf_block":    "⚠️ ATENÇÃO: ficheiros PDF não podem ser usados como ficheiros principais para tradução.\n\nPor favor, carregue o formato editável original (Word, Excel, InDesign, etc.).",
-    "ph_search_template": "🔍 Pesquisar modelo...",
-    "ph_search_language": "🔍 Pesquisar idioma...",
-    "txt_select_source":  "Selecionar idioma de origem",
-    "txt_select_target":  "Selecionar idioma(s) de destino",
-    "alert_multifile_name": "?? Vários ficheiros selecionados. Introduza o nome do projeto manualmente.",
-    "alert_clone":        "? Dados do projeto copiados.\n\nSelecione novamente o modelo, os idiomas e os ficheiros.",
-    "opt_all":            "Todos os projetos",
-    "opt_own":            "Os meus projetos",
-    "opt_shared":         "Partilhados comigo",
-    "lbl_presets":        "Modelos guardados",
-    "btn_save_preset":    "Guardar",
-    "btn_del_preset":     "Elim.",
-    "lbl_project_info":   "Info do projeto",
-    "lbl_settings":       "Definições",
-    "lbl_mainfiles_title":"Ficheiros principais (a traduzir)",
-    "lbl_reffiles_title": "Ficheiros de referência (opcional)",
-    "ph_note_standard":   "...",
-    "ph_note_marketing":  "Envie o orçamento para nome.apelido@karcher.com",
-    "btn_pc_upload":      "Carregar do PC",
-    "btn_drive":          "Drive",
-    "opt_select_template":"Selecionar tipo de modelo"
-  },
-  zh: {
-    "nav_request":        "常规项目",
-    "nav_marketing":      "市场营销项目",
-    "nav_kec":            "KeC 项目",
-    "nav_documentation": "文档项目",
-    "nav_articulate":     "Campus 项目",
-    "art_show_generator": "显示预览生成器",
-    "art_generator_title":"预览生成器",
-    "art_generator_hint": "根据 Phrase 中当前的翻译状态,生成 Rise 课程的实时预览。",
-    "art_ph_project":     "Phrase 项目 URL 或 UID",
-    "art_ph_job":         "Phrase 任务 URL 或 UID",
-    "art_ph_folder":      "Drive 文件夹(解压后的 SCORM 导出)",
-    "art_ph_name":        "课程名称",
-    "art_ph_lang":        "zh-CN",
-    "art_sel_project_loading":"正在加载项目...",
-    "art_sel_project":    "选择项目...",
-    "art_sel_job":         "请先选择项目...",
-    "art_sel_job_pick":    "选择任务...",
-    "art_sel_lang":        "选择语言...",
-    "art_btn_generate":   "? 生成预览",
-    "art_saved_title":    "已保存的课程",
-    "art_loading":        "正在加载课程...",
-    "art_empty":          "尚未保存任何课程。",
-    "art_never_generated":"尚未生成",
-    "art_btn_play":       "预览",
-    "art_btn_open_last":  "打开最新版本",
-    "art_btn_delete":     "删除",
-    "art_err_fields":     "请填写所有字段。",
-    "art_saving":         "正在保存课程...",
-    "art_saved":          "已保存。",
-    "art_starting":       "正在生成预览...",
-    "art_confirm_delete": "确定要删除此课程吗?",
-    "art_progress_title": "正在创建预览",
-    "art_preparing":      "正在准备...",
-    "art_done":           "完成",
-    "art_segments":       "已翻译的语段",
-    "art_files":          "已上传的文件",
-    "art_skipped":        "已跳过(视频)",
-    "art_btn_open_preview":"打开预览",
-    "art_btn_close":      "关闭",
-    "art_error":          "错误",
-    "art_btn_check":      "? 检查输入",
-    "art_checking":       "正在通过 Phrase 和 Drive 检查输入...",
-    "art_check_ok":       "均已找到",
-    "art_check_project":  "项目",
-    "art_check_job":      "任务",
-    "art_check_folder":   "文件夹",
-    "art_check_files":    "个文件",
-    "art_check_path":     "路径",
-    "art_ph_search":      "🔍 搜索...",
-    "art_btn_refresh":    "刷新",
-    "art_link_project":   "项目",
-    "art_col_course":     "课程",
-    "art_col_lang":       "语言",
-    "art_col_phrase":     "Phrase",
-    "art_col_path":       "预览路径",
-    "art_col_lastdeploy": "上次发布",
-    "art_col_status":     "状态",
-    "art_col_actions":    "操作",
-    "art_warn_notxliff":  "该任务文件看起来不是 XLIFF 格式 ? 预览功能仅支持 Rise XLIFF 任务。",
-    "art_warn_langmismatch": "您输入的语言与任务的目标语言不一致",
-    "nav_history":        "我的项目",
-    "nav_dashboard":      "仪表盘",
-    "nav_guide":          "使用指南",
-    "nav_help":           "帮助与支持",
-    "btn_submit":         '创建项目 <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
-    "lbl_template":       '模板类型 <span class="required">*</span>',
-    "lbl_projectname":    '项目名称 <span class="required">*</span>',
-    "lbl_source":         '源语言 <span class="required">*</span>',
-    "lbl_target":         '目标语言 <span class="required">*</span>',
-    "lbl_duedate":        '期望完成日期 <small style="color:#666; font-weight:normal;">(默认时间为中午 12:00)</small>',
-    "lbl_note":           '备注',
-    "title_mainfiles":    '主文件(待翻译) <span class="required">*</span>',
-    "title_reffiles":     '参考文件(可选)',
-    "ph_projectname":     "将根据文件名自动填写...",
-    "alert_pdf_block":    "⚠️ 注意:PDF 文件不能作为待翻译的主文件。\n\n请上传可编辑的原始格式(Word、Excel、InDesign 等)。",
-    "ph_search_template": "🔍 搜索模板...",
-    "ph_search_language": "🔍 搜索语言...",
-    "txt_select_source":  "选择源语言",
-    "txt_select_target":  "选择目标语言",
-    "alert_multifile_name": "?? 已选择多个文件。请手动输入项目名称。",
-    "alert_clone":        "? 项目数据已复制。\n\n请重新选择模板、语言和文件。",
-    "opt_all":            "所有项目",
-    "opt_own":            "我的项目",
-    "opt_shared":         "与我共享的项目",
-    "lbl_presets":        "预设",
-    "btn_save_preset":    "保存",
-    "btn_del_preset":     "删除",
-    "lbl_project_info":   "项目信息",
-    "lbl_settings":       "设置",
-    "lbl_mainfiles_title":"主文件(待翻译)",
-    "lbl_reffiles_title": "参考文件(可选)",
-    "ph_note_standard":   "...",
-    "ph_note_marketing":  "请将报价发送至 firstname.lastname@karcher.com",
-    "btn_pc_upload":      "从电脑上传",
-    "btn_drive":          "Drive",
-    "opt_select_template":"选择模板类型"
-  }
 };
 
 let currentLang = localStorage.getItem('appLang') || 'en';
@@ -2860,8 +1826,38 @@ function _showLangBlock_(prefix, lang) {
   });
 }
 
+var _i18nPending_ = {};
+var _i18nFailed_  = {};
+
+// Laedt ein ausgelagertes Woerterbuch (fr/es/pt/zh) nach und ruft danach cb().
+// Mehrfachanfragen fuer dieselbe Sprache werden zusammengefasst.
+function loadI18nDict_(lang, cb) {
+  if (i18n[lang]) { cb(); return; }
+  if (_i18nPending_[lang]) { _i18nPending_[lang].push(cb); return; }
+  _i18nPending_[lang] = [cb];
+  function done() {
+    var cbs = _i18nPending_[lang] || [];
+    delete _i18nPending_[lang];
+    cbs.forEach(function(f) { f(); });
+  }
+  google.script.run
+    .withSuccessHandler(function(dict) {
+      if (dict) i18n[lang] = dict; else _i18nFailed_[lang] = true;
+      done();
+    })
+    .withFailureHandler(function() { _i18nFailed_[lang] = true; done(); })
+    .apiGetI18nDict(lang);
+}
+
 function setGlobalLang(lang) {
   if (SUPPORTED_LANGS_.indexOf(lang) === -1) lang = 'en';
+  if (!i18n[lang]) {
+    // Noch nicht geladen -> nachholen und danach erneut anlaufen. Ist das
+    // Nachladen bereits gescheitert, bleibt es bei Englisch statt einer
+    // Endlosschleife.
+    if (_i18nFailed_[lang]) lang = 'en';
+    else { loadI18nDict_(lang, function() { setGlobalLang(lang); }); return; }
+  }
   currentLang = lang;
   localStorage.setItem('appLang', lang);
 
@@ -2993,7 +1989,14 @@ function loadAppConfig() {
     google.script.run
       .withSuccessHandler((config) => {
         stopStartupOverlay_();
-        
+
+        // fr/es/pt/zh liegen serverseitig und kommen mit der Config mit.
+        // Schlaegt das fehl, faellt die Oberflaeche geschlossen auf Englisch
+        // zurueck - sonst wuerden die direkten i18n[currentLang][...]-Zugriffe
+        // weiter unten auf undefined laufen.
+        if (config && config.i18nLang && config.i18nDict) i18n[config.i18nLang] = config.i18nDict;
+        if (!i18n[currentLang]) currentLang = 'en';
+
         if (config && (config.authorized === false || config.unauthorized)) {
             document.getElementById('accessDeniedLock').style.display = 'flex';
             return;
@@ -3032,7 +2035,7 @@ function loadAppConfig() {
             showCustomAlert("Initialization Error: " + (err && err.message ? err.message : err), "Error");
         }
       })
-      .apiGetConfig(currentImpersonationEmail);
+      .apiGetConfig(currentImpersonationEmail, currentLang);
   } catch(e) {
     stopStartupOverlay_();
     showCustomAlert("Startup Error: " + e.message, "Error");
@@ -4903,6 +3906,41 @@ function loadGuideContent_() {
     .apiGetGuideContent();
 }
 
+// ??? ADMIN-BEREICH LAZY LOADING ???????????????????????????????????????????????
+// Markup und JavaScript des Admin-Bereichs (~113 KB) liegen in AdminConsole.html
+// und AdminScript.html. Beides betrifft nur Admins, wurde aber jedem Nutzer
+// ausgeliefert und hat das Startdokument unnoetig aufgeblaeht.
+var _adminContentLoaded_  = false;
+var _adminContentLoading_ = false;
+
+function loadAdminContent_() {
+  if (_adminContentLoaded_)  { applyAdminAccessRestrictions_(); return; }
+  if (_adminContentLoading_) return;
+  _adminContentLoading_ = true;
+
+  const host = document.getElementById('adminContentHost');
+  if (host) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      _adminContentLoading_ = false;
+      if (host) host.innerHTML = res.html;
+      // Per innerHTML eingefuegte <script>-Bloecke werden nicht ausgefuehrt,
+      // daher das JS als eigenes Element anhaengen. Es laeuft im globalen
+      // Scope und sieht damit die Globals aus Index.html.
+      const el = document.createElement('script');
+      el.text = res.js;
+      document.head.appendChild(el);
+      _adminContentLoaded_ = true;
+      applyAdminAccessRestrictions_();
+    })
+    .withFailureHandler(function(err) {
+      _adminContentLoading_ = false;
+      if (host) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Admin-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetAdminContent();
+}
+
 function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(el => { el.style.display='none'; el.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -4919,7 +3957,7 @@ function switchTab(tabName) {
   if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
   if(tabName === 'documentation') { loadDocBoard('sidebar'); docImportPreloadFolders_(); }
   if(tabName === 'dashboard') renderDashboard();
-  if(tabName === 'admin')     applyAdminAccessRestrictions_();
+  if(tabName === 'admin')     loadAdminContent_();
   if(tabName === 'health')    loadHealthCheck();
 }
 
@@ -5403,57 +4441,7 @@ function docImportSubmit_() {
 }
 
 let docDriveRootUnlocked = false;
-function loadDocDriveRootSettings() {
-  google.script.run
-    .withSuccessHandler(res => {
-      if (!res.success) return;
-      document.getElementById('docDriveRootInput').value = res.folderId || '';
-      document.getElementById('docDriveRootCurrentName').innerText = res.folderName ? ('Aktuell: ' + res.folderName) : 'Noch nicht konfiguriert.';
-    })
-    .apiGetDocDriveRootSettings();
-}
-function toggleDocDriveRootLock() {
-  if (docDriveRootUnlocked) {
-    docDriveRootUnlocked = false;
-    document.getElementById('docDriveRootInput').disabled = true;
-    document.getElementById('docDriveRootSaveBtn').disabled = true;
-    document.getElementById('docDriveRootLockIcon').innerText = 'lock';
-    document.getElementById('docDriveRootLockText').innerText = 'Locked ? Click to unlock';
-    loadDocDriveRootSettings();
-    return;
-  }
-  showCustomConfirm(
-    "Dieser Ordner steuert, wo Documentation Import/Export nach Projektordnern suchen. Wirklich entsperren?",
-    function() {
-      docDriveRootUnlocked = true;
-      document.getElementById('docDriveRootInput').disabled = false;
-      document.getElementById('docDriveRootSaveBtn').disabled = false;
-      document.getElementById('docDriveRootLockIcon').innerText = 'lock_open';
-      document.getElementById('docDriveRootLockText').innerText = 'Unlocked ? Click to lock';
-    },
-    "Entsperren bestätigen"
-  );
-}
 
-function saveDocDriveRootSettings_() {
-  const val = document.getElementById('docDriveRootInput').value.trim();
-  if (!val) { showCustomAlert("Bitte Ordner-Link oder -ID eingeben.", "Fehlende Angabe"); return; }
-  const btn = document.getElementById('docDriveRootSaveBtn');
-  btn.disabled = true; btn.innerText = 'Speichere...';
-  google.script.run
-    .withSuccessHandler(res => {
-      btn.innerText = 'SPEICHERN';
-      if (!res.success) { btn.disabled = false; showCustomAlert("Fehler: " + res.error, "Error"); return; }
-      showCustomAlert("? Drive-Root gespeichert: " + res.folderName, "Gespeichert");
-      toggleDocDriveRootLock();
-    })
-    .withFailureHandler(e => {
-      btn.disabled = false;
-      btn.innerText = 'SPEICHERN';
-      showCustomAlert("Fehler: " + e.message, "Error");
-    })
-    .apiSaveDocDriveRootSettings(val);
-}
 
 
 function toggleKecSidebar(suffix) {
@@ -5469,10 +4457,6 @@ function toggleKecSidebar(suffix) {
   }
 }
 
-function toggleAdminHelp(id) {
-  const panel = document.getElementById('help-' + id);
-  if (panel) panel.classList.toggle('open');
-}
 
 function checkTemplateSelected(suffix, type) {
   const exUid = document.getElementById('existingProjectUid' + suffix);
@@ -6986,355 +5970,27 @@ function openJobNoteModal(projectUid, jobUids) {
       MSG_ARTICULATE_COMPLETED: "Campus: Übersetzung fertig (automatisch)"
     };
 
-    function loadMessageTemplates() {
-      const container = document.getElementById('msgTemplatesContainer');
-      if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;"><div class="loader" style="width:25px;height:25px;border-width:3px;margin:0 auto 10px;"></div>Loading...</div>';
-      
-      google.script.run
-        .withSuccessHandler(res => {
-          if (!res.success || !res.templates) {
-            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error loading templates.</div>';
-            return;
-          }
-          let html = '';
-          res.templates.forEach(t => {
-            const label = MSG_KEY_LABELS[t.key] || t.key;
-            const customBadge = t.isCustomized
-              ? '<span style="background:#e8f5e9;color:#2e7d32;font-size:9px;padding:1px 6px;border-radius:2px;font-weight:700;margin-left:8px;">CUSTOM</span>'
-              : '<span style="background:#f5f5f5;color:#888;font-size:9px;padding:1px 6px;border-radius:2px;margin-left:8px;">DEFAULT</span>';
-            
-            html += `
-            <div style="border:1px solid #eee;margin-bottom:12px;background:#fafafa;">
-              <div style="padding:10px 14px;background:#f0f0f0;display:flex;justify-content:space-between;align-items:center;">
-                <strong style="font-size:12px;text-transform:uppercase;">${escapeHtml(label)}</strong>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  ${customBadge}
-                  <button onclick="resetMessageTemplate('${escapeJs(t.key)}')"
-                          style="background:none;border:1px solid #ddd;cursor:pointer;padding:3px 10px;font-size:11px;color:#888;border-radius:2px;"
-                          title="Reset to default">? Reset</button>
-                  <button onclick="saveMessageTemplateFromUI('${escapeJs(t.key)}')"
-                          style="background:var(--primary-yellow);border:none;cursor:pointer;padding:3px 12px;font-size:11px;font-weight:700;border-radius:2px;">Save</button>
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
-                <div style="padding:10px;border-right:1px solid #eee;">
-                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">DE</div>
-                  <textarea id="msgTpl_de_${escapeHtmlId(t.key)}" rows="6"
-                            style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;padding:8px;border:1px solid #ddd;resize:vertical;background:#fff;">${escapeHtml(t.de)}</textarea>
-                </div>
-                <div style="padding:10px;">
-                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">EN</div>
-                  <textarea id="msgTpl_en_${escapeHtmlId(t.key)}" rows="6"
-                            style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;padding:8px;border:1px solid #ddd;resize:vertical;background:#fff;">${escapeHtml(t.en)}</textarea>
-                </div>
-              </div>
-            </div>`;
-          });
-          container.innerHTML = html || '<div style="padding:15px;color:#888;">No templates found.</div>';
-        })
-        .withFailureHandler(err => {
-          if (container) container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-        })
-        .apiGetMessageTemplates();
-    }
 
-    function saveMessageTemplateFromUI(key) {
-      const deEl = document.getElementById('msgTpl_de_' + escapeHtmlId(key));
-      const enEl = document.getElementById('msgTpl_en_' + escapeHtmlId(key));
-      if (!deEl || !enEl) return;
-      google.script.run
-        .withSuccessHandler(r => {
-          if (r.success) showCustomAlert("? Template saved!", "Saved");
-          else showCustomAlert("? " + r.error, "Error");
-          loadMessageTemplates();
-        })
-        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
-        .apiSaveMessageTemplate(key, deEl.value, enEl.value);
-    }
 
-    function resetMessageTemplate(key) {
-      showCustomConfirm('Reset "' + (MSG_KEY_LABELS[key] || key) + '" to default?', function() {
-        google.script.run
-          .withSuccessHandler(() => { showCustomAlert("? Reset to default.", "Reset"); loadMessageTemplates(); })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
-          .apiResetMessageTemplate(key);
-      }, "Reset Template");
-    }
 
     let kecEligUnlocked = false;
 
-    function loadKecEligSettings() {
-      google.script.run
-        .withSuccessHandler(res => {
-          document.getElementById('kecClientIdInput').value = res.clientId || '';
-          document.getElementById('kecDomainIdInput').value = res.domainId || '';
-          document.getElementById('kecBuIdInput').value      = res.businessUnitId || '';
-        })
-        .withFailureHandler(e => {
-          console.warn('KeC Eligibility Settings laden fehlgeschlagen:', e.message);
-        })
-        .apiGetKecEligibilitySettings();
-    }
 
-    function toggleKecEligLock() {
-      if (kecEligUnlocked) {
-        // Wieder sperren
-        kecEligUnlocked = false;
-        document.getElementById('kecClientIdInput').disabled = true;
-        document.getElementById('kecDomainIdInput').disabled = true;
-        document.getElementById('kecBuIdInput').disabled = true;
-        document.getElementById('kecEligSaveBtn').disabled = true;
-        document.getElementById('kecEligLockIcon').innerText = 'lock';
-        document.getElementById('kecEligLockText').innerText = 'Locked ? Click to unlock';
-        loadKecEligSettings(); // Änderungen ohne Speichern verwerfen
-        return;
-      }
 
-      showCustomConfirm(
-        "Diese Werte steuern, welche Phrase-Projekte im KeC-Portal erscheinen. Falsche IDs können dazu führen, dass keine Projekte mehr gefunden werden.\n\nWirklich entsperren?",
-        function() {
-          kecEligUnlocked = true;
-          document.getElementById('kecClientIdInput').disabled = false;
-          document.getElementById('kecDomainIdInput').disabled = false;
-          document.getElementById('kecBuIdInput').disabled = false;
-          document.getElementById('kecEligSaveBtn').disabled = false;
-          document.getElementById('kecEligLockIcon').innerText = 'lock_open';
-          document.getElementById('kecEligLockText').innerText = 'Unlocked ? Click to lock';
-        },
-        "Entsperren bestätigen"
-      );
-    }
-
-    function saveKecEligSettings() {
-      const clientId = document.getElementById('kecClientIdInput').value.trim();
-      const domainId = document.getElementById('kecDomainIdInput').value.trim();
-      const buId     = document.getElementById('kecBuIdInput').value.trim();
-
-      if (!clientId || !domainId || !buId) {
-        showCustomAlert("Bitte alle drei Felder ausfüllen.", "Fehlende Angaben");
-        return;
-      }
-
-      const btn = document.getElementById('kecEligSaveBtn');
-      btn.disabled = true;
-      btn.innerText = 'Speichere...';
-
-      google.script.run
-        .withSuccessHandler(() => {
-          btn.innerText = 'SPEICHERN';
-          showCustomAlert("? KeC Eligibility Settings gespeichert.", "Gespeichert");
-          toggleKecEligLock(); // wieder sperren
-        })
-        .withFailureHandler(e => {
-          btn.disabled = false;
-          btn.innerText = 'SPEICHERN';
-          showCustomAlert("Fehler: " + e.message, "Error");
-        })
-        .apiSaveKecEligibilitySettings(clientId, domainId, buId);
-    }
 
     // ??? ADMIN SUB-TABS ??????????????????????????????????????????????
-    function applyAdminAccessRestrictions_() {
-      const isFullAdmin = !!(configData && configData.isAdmin);
-      const allowed = isFullAdmin ? ['console', 'users', 'templates'] : (_adminLightSubtabs_ || []);
-      const btnConsole = document.getElementById('subtab-btn-console');
-      const btnUsers = document.getElementById('subtab-btn-users');
-      const btnTemplates = document.getElementById('subtab-btn-templates');
-      if (btnConsole) btnConsole.style.display = allowed.includes('console') ? 'inline-flex' : 'none';
-      if (btnUsers) btnUsers.style.display = allowed.includes('users') ? 'inline-flex' : 'none';
-      if (btnTemplates) btnTemplates.style.display = allowed.includes('templates') ? 'inline-flex' : 'none';
-      const first = allowed[0];
-      if (!first) return;
-      switchAdminSubtab(first);
-      if (first === 'console' && isFullAdmin) loadAdminDashboardData();
-    }
-    function switchAdminSubtab(name) {
-      const isFullAdmin = !!(configData && configData.isAdmin);
-      const allowed = isFullAdmin ? ['console','users','templates'] : (_adminLightSubtabs_ || []);
-      if (!allowed.includes(name)) return;
-      ['console','users','templates'].forEach(n => {
-        const pane = document.getElementById('admin-subtab-' + n);
-        const btn  = document.getElementById('subtab-btn-' + n);
-        const on = (n === name);
-        if (pane) pane.style.display = on ? 'block' : 'none';
-        if (btn) {
-          btn.style.color = on ? '#d93025' : '#999';
-          btn.style.borderBottomColor = on ? '#d93025' : 'transparent';
-        }
-      });
-      if (name === 'templates') loadTemplateManager();
-      if (name === 'users') loadUserManager();
-    }
 
     // ??? TEMPLATE MANAGER ????????????????????????????????????????????
     let _tmplMgrRows = [];
     let _tmplMgrSelected = {};   // uid -> true
 
-    function loadTemplateManager() {
-      document.getElementById('tmplMgrLoading').style.display = 'block';
-      document.getElementById('tmplMgrTable').style.display = 'none';
-      document.getElementById('tmplMgrEmpty').style.display = 'none';
-      google.script.run
-        .withSuccessHandler(res => {
-          document.getElementById('tmplMgrLoading').style.display = 'none';
-          _tmplMgrRows = (res && res.rows) || [];
-          _tmplMgrSelected = {};
-          renderTemplateManager();
-        })
-        .withFailureHandler(e => {
-          document.getElementById('tmplMgrLoading').style.display = 'none';
-          showCustomAlert('Error: ' + e.message, 'Error');
-        })
-        .apiGetTemplatesForManager();
-    }
 
-    function tmplMgrSyncFromPhrase() {
-      const overlay = document.getElementById('downloadOverlay');
-      document.getElementById('downloadOverlayTitle').innerText = 'Hole Templates aus Phrase...';
-      overlay.style.display = 'flex';
-      google.script.run
-        .withSuccessHandler(r => {
-          overlay.style.display = 'none';
-          showCustomAlert(r.msg || 'Sync fertig.', 'Sync');
-          loadTemplateManager();
-        })
-        .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
-        .apiTriggerManualSync('templates', 'add_only');
-    }
 
-    function _tmplMgrFiltered() {
-      const q = (document.getElementById('tmplMgrSearch').value || '').toLowerCase();
-      const activeSel = document.getElementById('tf_active') ? document.getElementById('tf_active').value : '';
-      const segQ = (document.getElementById('tf_segmentation') ? document.getElementById('tf_segmentation').value : '').toLowerCase().trim();
-      const colFilters = {};
-      document.querySelectorAll('.tf-col').forEach(el => {
-        const v = (el.value || '').toLowerCase().trim();
-        if (v) colFilters[el.dataset.field] = v;
-      });
-      return _tmplMgrRows.filter(r => {
-        if (q && !(r.displayName+' '+r.phraseName+' '+r.client+' '+r.domain+' '+r.subDomain+' '+r.businessUnit+' '+r.targetLangs+' '+r.sourceLang).toLowerCase().includes(q)) return false;
-        if (activeSel === 'yes' && !r.active) return false;
-        if (activeSel === 'no' && r.active) return false;
-        if (segQ && !(r.client+' '+r.domain+' '+r.subDomain+' '+r.businessUnit).toLowerCase().includes(segQ)) return false;
-        for (const f in colFilters) {
-          if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
-        }
-        return true;
-      });
-    }
 
     let _tmplMgrSort = { field: null, dir: 'asc' };
-    function tmplMgrSortBy(field) {
-      _tmplMgrSort.dir = (_tmplMgrSort.field === field && _tmplMgrSort.dir === 'asc') ? 'desc' : 'asc';
-      _tmplMgrSort.field = field;
-      renderTemplateManager();
-    }
-    function tmplMgrTruncateTargets_(targetLangs) {
-      const parts = String(targetLangs || '').split(',').map(s => s.trim()).filter(Boolean);
-      if (parts.length <= 5) return escapeHtml(parts.join(', '));
-      const shown = parts.slice(0, 5).join(', ');
-      const rest = parts.slice(5);
-      return escapeHtml(shown) + ' <span class="doc-board-badge-more" style="margin-left:4px;" title="' + escapeHtml(rest.join(', ')) + '">+' + rest.length + '</span>';
-    }
-    function renderTemplateManager() {
-      let rows = _tmplMgrFiltered();
-      if (_tmplMgrSort.field) {
-        const f = _tmplMgrSort.field, dir = _tmplMgrSort.dir === 'asc' ? 1 : -1;
-        rows = rows.slice().sort((a, b) => String(a[f] || '').localeCompare(String(b[f] || '')) * dir);
-      }
-      const tbody = document.querySelector('#tmplMgrTable tbody');
-      const table = document.getElementById('tmplMgrTable');
-      const empty = document.getElementById('tmplMgrEmpty');
-      if (!rows.length) { table.style.display='none'; empty.style.display='block'; _tmplMgrUpdateBatchBar(); return; }
-      table.style.display='table'; empty.style.display='none';
-      tbody.innerHTML = rows.map(r => {
-        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' ? ') || '?';
-        return `
-        <tr data-uid="${escapeHtml(r.uid)}" style="${_tmplMgrSelected[r.uid] ? 'background:#fffde7;' : ''}">
-          <td style="text-align:center;">
-            <input type="checkbox" ${_tmplMgrSelected[r.uid]?'checked':''} onchange="tmplMgrToggleOne('${escapeJs(r.uid)}', this.checked)">
-          </td>
-          <td style="text-align:center;">
-            <label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
-              <input type="checkbox" ${r.active ? 'checked' : ''} onchange="toggleTemplateActive('${escapeJs(r.uid)}', this)" style="opacity:0;width:0;height:0;">
-              <span style="position:absolute;inset:0;background:${r.active?'#4CAF50':'#ccc'};border-radius:22px;transition:.2s;"></span>
-              <span style="position:absolute;height:16px;width:16px;left:${r.active?'21px':'3px'};top:3px;background:#fff;border-radius:50%;transition:.2s;"></span>
-            </label>
-          </td>
-          <td style="white-space:normal;word-break:break-word;"><strong>${escapeHtml(r.displayName)}</strong></td>
-          <td style="font-size:12px;color:#666;white-space:normal;word-break:break-word;">${escapeHtml(r.phraseName)}</td>
-          <td style="font-size:11px;">${escapeHtml(r.sourceLang)}</td>
-          <td style="font-size:11px;line-height:1.6;">${tmplMgrTruncateTargets_(r.targetLangs)}</td>
-          <td><span class="truncate-cell" style="font-size:11px;" title="${escapeHtml(segSummary)}">${escapeHtml(segSummary)}</span></td>
-        </tr>`;
-      }).join('');
-      _tmplMgrUpdateBatchBar();
-    }
 
-    function toggleTemplateActive(uid, checkboxEl) {
-      const newState = checkboxEl.checked;
-      checkboxEl.disabled = true;
-      google.script.run
-        .withSuccessHandler(() => {
-          checkboxEl.disabled = false;
-          const row = _tmplMgrRows.find(r => r.uid === uid);
-          if (row) row.active = newState;
-          renderTemplateManager();
-        })
-        .withFailureHandler(e => {
-          checkboxEl.disabled = false;
-          checkboxEl.checked = !newState;
-          showCustomAlert('Error: ' + e.message, 'Error');
-        })
-        .apiSetTemplateActive(uid, newState);
-    }
 
     // ??? Batch-Auswahl ???????????????????????????????????????????????
-    function tmplMgrToggleOne(uid, checked) {
-      if (checked) _tmplMgrSelected[uid] = true; else delete _tmplMgrSelected[uid];
-      const row = document.querySelector('#tmplMgrTable tbody tr[data-uid="' + CSS.escape(uid) + '"]');
-      if (row) row.style.background = checked ? '#fffde7' : '';
-      _tmplMgrUpdateBatchBar();
-    }
-    function tmplMgrToggleAll(masterCb) {
-      const rows = _tmplMgrFiltered();
-      if (masterCb.checked) rows.forEach(r => { _tmplMgrSelected[r.uid] = true; });
-      else rows.forEach(r => { delete _tmplMgrSelected[r.uid]; });
-      renderTemplateManager();
-    }
-    function tmplMgrClearSelection() {
-      _tmplMgrSelected = {};
-      const master = document.getElementById('tmplMgrSelectAll');
-      if (master) master.checked = false;
-      renderTemplateManager();
-    }
-    function _tmplMgrUpdateBatchBar() {
-      const count = Object.keys(_tmplMgrSelected).length;
-      const bar = document.getElementById('tmplMgrBatchBar');
-      document.getElementById('tmplMgrSelCount').innerText = count;
-      bar.style.display = count > 0 ? 'flex' : 'none';
-    }
-    function batchSetTemplateActive(newState) {
-      const uids = Object.keys(_tmplMgrSelected);
-      if (!uids.length) return;
-      showCustomConfirm(uids.length + ' Template(s) auf ' + (newState?'AKTIV':'INAKTIV') + ' setzen?', function() {
-        const overlay = document.getElementById('downloadOverlay');
-        document.getElementById('downloadOverlayTitle').innerText = 'Aktualisiere ' + uids.length + ' Templates...';
-        overlay.style.display = 'flex';
-        google.script.run
-          .withSuccessHandler(() => {
-            overlay.style.display = 'none';
-            uids.forEach(uid => { const r = _tmplMgrRows.find(x => x.uid === uid); if (r) r.active = newState; });
-            _tmplMgrSelected = {};
-            const master = document.getElementById('tmplMgrSelectAll');
-            if (master) master.checked = false;
-            renderTemplateManager();
-          })
-          .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
-          .apiBatchSetTemplateActive(uids, newState);
-      }, 'Batch-Änderung');
-    }
 
     // ??? USER MANAGER ????????????????????????????????????????????????
     let _userMgrRows = [];
@@ -7343,202 +5999,13 @@ function openJobNoteModal(projectUid, jobUids) {
     const USER_MGR_PHRASE_SYNC_FIELDS = { firstName: true, lastName: true, role: true };
     const USER_MGR_MULTI_FIELDS = ['clients','domains','subdomains','businessUnit','sourceLangs','targetLangs','workflowSteps'];
     const USER_MGR_ROLES = ['ADMIN','PROJECT_MANAGER','LINGUIST','SUBMITTER','GUEST'];
-    function userMgrToggleExpand(username, group) {
-      const key = username + '_' + group;
-      if (_userMgrExpanded[key]) delete _userMgrExpanded[key];
-      else _userMgrExpanded[key] = true;
-      renderUserManager();
-    }
-    function userMgrDetailField(uid, field, value, label) {
-      return '<div class="detail-field"><label>' + label + '</label>' +
-        '<input type="text" value="' + escapeHtml(value || '') + '" ' +
-        'onblur="userMgrSaveField(\'' + uid + '\',\'' + field + '\',this.value,this)"></div>';
-    }
 
-    function loadUserManager() {
-      document.getElementById('userMgrLoading').style.display = 'block';
-      document.getElementById('userMgrTable').style.display = 'none';
-      document.getElementById('userMgrEmpty').style.display = 'none';
-      google.script.run
-        .withSuccessHandler(res => {
-          document.getElementById('userMgrLoading').style.display = 'none';
-          _userMgrRows = (res && res.rows) || [];
-          renderUserManager();
-        })
-        .withFailureHandler(e => {
-          document.getElementById('userMgrLoading').style.display = 'none';
-          showCustomAlert('Error: ' + e.message, 'Error');
-        })
-        .apiGetUsersForManager();
-    }
 
-    function userMgrSortBy(field) {
-      _userMgrSort.dir = (_userMgrSort.field === field && _userMgrSort.dir === 'asc') ? 'desc' : 'asc';
-      _userMgrSort.field = field;
-      renderUserManager();
-    }
 
-    function _userMgrFiltered() {
-      const searchEl = document.getElementById('userMgrSearch');
-      const q = (searchEl ? searchEl.value : '').toLowerCase();
-      const roleSel = document.getElementById('um_role_filter') ? document.getElementById('um_role_filter').value : '';
-      const colFilters = {};
-      document.querySelectorAll('.um-col').forEach(el => {
-        const v = (el.value || '').toLowerCase().trim();
-        if (v) colFilters[el.dataset.field] = v;
-      });
-      let rows = _userMgrRows.filter(r => {
-        if (q && !Object.values(r).join(' ').toLowerCase().includes(q)) return false;
-        if (roleSel && r.role !== roleSel) return false;
-        for (const f in colFilters) {
-          if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
-        }
-        return true;
-      });
-      if (_userMgrSort.field) {
-        const f = _userMgrSort.field, dir = _userMgrSort.dir === 'asc' ? 1 : -1;
-        rows = rows.slice().sort((a, b) => String(a[f] || '').localeCompare(String(b[f] || '')) * dir);
-      }
-      return rows;
-    }
 
-    function renderUserManager() {
-      const rows = _userMgrFiltered();
-      const tbody = document.querySelector('#userMgrTable tbody');
-      const table = document.getElementById('userMgrTable');
-      const empty = document.getElementById('userMgrEmpty');
-      if (!tbody) return;
-      if (!rows.length) { table.style.display = 'none'; empty.style.display = 'block'; return; }
-      table.style.display = 'table'; empty.style.display = 'none';
-      let html = '';
-      rows.forEach(r => {
-        const uid = escapeJs(r.username);
-        const roleOptions = USER_MGR_ROLES.map(role =>
-          '<option value="' + role + '"' + (r.role === role ? ' selected' : '') + '>' + role + '</option>'
-        ).join('');
-        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' ? ') || '? keine Angaben ?';
-        const langSummary = [
-          r.sourceLangs ? ('Quelle: ' + r.sourceLangs) : '',
-          r.targetLangs ? ('Ziel: ' + r.targetLangs) : '',
-          r.workflowSteps ? ('Workflow: ' + r.workflowSteps) : ''
-        ].filter(Boolean).join(' ? ') || '? keine Angaben ?';
-        const segKey = r.username + '_seg';
-        const langKey = r.username + '_lang';
-        const segOpen = !!_userMgrExpanded[segKey];
-        const langOpen = !!_userMgrExpanded[langKey];
 
-        html += '<tr data-username="' + escapeHtml(r.username) + '">' +
-          '<td style="font-size:11px;font-weight:700;">' + escapeHtml(r.username) + '</td>' +
-          '<td><input type="text" value="' + escapeHtml(r.firstName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'firstName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
-          '<td><input type="text" value="' + escapeHtml(r.lastName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'lastName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
-          '<td style="font-size:11px;color:#888;">' + escapeHtml(r.email || '') + '</td>' +
-          '<td><select onchange="userMgrSaveField(\'' + uid + '\',\'role\',this.value,this)" style="width:100%;font-size:11px;height:28px;border:1px solid #ddd;">' + roleOptions + '</select></td>' +
-          '<td style="text-align:center;">' +
-            '<label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">' +
-              '<input type="checkbox" ' + (r.status === 'ACTIVE' ? 'checked' : '') + ' onchange="userMgrSaveField(\'' + uid + '\',\'status\',this.checked?\'ACTIVE\':\'INACTIVE\',this)" style="opacity:0;width:0;height:0;">' +
-              '<span style="position:absolute;inset:0;background:' + (r.status === 'ACTIVE' ? '#4CAF50' : '#ccc') + ';border-radius:20px;transition:.2s;"></span>' +
-              '<span style="position:absolute;height:14px;width:14px;left:' + (r.status === 'ACTIVE' ? '19px' : '3px') + ';top:3px;background:#fff;border-radius:50%;transition:.2s;"></span>' +
-            '</label>' +
-          '</td>' +
-          '<td><button type="button" class="expand-btn' + (segOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'seg\')" title="' + escapeHtml(segSummary) + '">' + (segOpen ? '?' : '?') + ' ' + escapeHtml(segSummary) + '</button></td>' +
-          '<td><button type="button" class="expand-btn' + (langOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'lang\')" title="' + escapeHtml(langSummary) + '">' + (langOpen ? '?' : '?') + ' ' + escapeHtml(langSummary) + '</button></td>' +
-        '</tr>';
 
-        if (segOpen) {
-          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'clients', r.clients, 'Clients') +
-            userMgrDetailField(uid, 'domains', r.domains, 'Domains') +
-            userMgrDetailField(uid, 'subdomains', r.subdomains, 'Subdomains') +
-            userMgrDetailField(uid, 'businessUnit', r.businessUnit, 'Business Unit') +
-            '</div></td></tr>';
-        }
-        if (langOpen) {
-          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, 'Source Langs') +
-            userMgrDetailField(uid, 'targetLangs', r.targetLangs, 'Target Langs') +
-            userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, 'Workflow Steps') +
-            '</div></td></tr>';
-        }
-      });
-      tbody.innerHTML = html;
-    }
 
-    function userMgrSaveField(username, field, value, el) {
-      const row = _userMgrRows.find(r => r.username === username);
-      if (row && row[field] === value) return;
-      if (el) el.style.opacity = '0.5';
-      const syncToPhrase = !!USER_MGR_PHRASE_SYNC_FIELDS[field];
-      google.script.run
-        .withSuccessHandler(res => {
-          if (el) el.style.opacity = '1';
-          if (row) row[field] = value;
-          if (res && res.phraseWarning) {
-            showCustomAlert('?? Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:\n' + res.phraseWarning, 'Teilweise gespeichert');
-          }
-        })
-        .withFailureHandler(e => {
-          if (el) el.style.opacity = '1';
-          showCustomAlert('Error: ' + e.message, 'Error');
-        })
-        .apiUpdateUserField(username, field, value, syncToPhrase);
-    }
-
-    function loadAdminDashboardData() {
-        loadWhitelist();
-        loadMarketingWhitelist();
-        loadWomaWhitelist();
-        loadCcWhitelist();
-        loadKecWhitelist();
-        loadDocWhitelist();
-        loadArticulateWhitelist();
-        loadAdmins();
-        loadErrorLogs();
-        loadKecEligSettings();
-        loadDocDriveRootSettings();
-        
-        document.getElementById('adminFileSize').value = configData.sizeLimitMb || 100;
-
-        google.script.run.withSuccessHandler(r => {
-            document.getElementById('adminDriveClientId').value = (r && r.clientId) || '';
-            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
-        }).apiGetDriveSaveConfig();
-        
-        const m = configData.maintenance || { active: false };
-        if (m.active && m.start && m.end) {
-            document.getElementById('adminMaintStart').value = m.start.substring(0, 16);
-            document.getElementById('adminMaintEnd').value = m.end.substring(0, 16);
-            document.getElementById('adminMaintMsg').value = m.message || "";
-        } else {
-            document.getElementById('adminMaintStart').value = "";
-            document.getElementById('adminMaintEnd').value = "";
-        }
-
-        google.script.run.withSuccessHandler(r => {
-            document.getElementById('autoSyncToggle').checked = r.enabled;
-            document.getElementById('autoSyncStatusText').innerText = r.enabled ? 'ON' : 'OFF';
-            if (r.lastRun) {
-                document.getElementById('autoSyncLastRun').innerText = `Last run: ${new Date(r.lastRun).toLocaleString()} (${r.lastUpdated} updated)`;
-            } else {
-                document.getElementById('autoSyncLastRun').innerText = "Never run";
-            }
-        }).apiGetAutoSyncStatus();
-
-// Lazy load ? nur via Reload-Button
-        // loadScriptProperties();
-        // loadMessageTemplates();
-        // loadAuditLog();
-    }
-
-    function toggleImpersonation() {
-      const email = document.getElementById('impersonateEmailInput').value.trim();
-      if (!email) { showCustomAlert("Please enter an email address.", "Error"); return; }
-      currentImpersonationEmail = email;
-      startStartupOverlay_();
-      google.script.run
-        .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab(activeTabId); })
-        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
-        .apiGetConfig(currentImpersonationEmail);
-    }
 
     function stopImpersonation() {
       currentImpersonationEmail = "";
@@ -7546,7 +6013,7 @@ function openJobNoteModal(projectUid, jobUids) {
       google.script.run
         .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab('admin'); })
         .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
-        .apiGetConfig();
+        .apiGetConfig(currentImpersonationEmail, currentLang);
     }
 
     function checkMaintenanceStatus(m, isAdmin) {
@@ -7571,189 +6038,16 @@ function openJobNoteModal(projectUid, jobUids) {
         document.getElementById('mainTabNav').style.pointerEvents = 'auto';
     }
 
-    function saveMaintenanceSettings(btn) {
-        const start = document.getElementById('adminMaintStart').value;
-        const end = document.getElementById('adminMaintEnd').value;
-        const msg = document.getElementById('adminMaintMsg').value;
-        
-        if (!start || !end) { showCustomAlert("Start and End time required.", "Error"); return; }
-        
-        btn.disabled = true; btn.innerText = "Saving...";
-        google.script.run.withSuccessHandler(r => {
-            btn.disabled = false; btn.innerText = "ACTIVATE / UPDATE";
-            if(r.success) showCustomAlert("Maintenance window set.", "Success");
-            else showCustomAlert("Error: " + r.error, "Error");
-        }).apiSetMaintenance(start + ":00Z", end + ":00Z", msg);
-    }
 
-    function clearMaintenanceSettings() {
-        google.script.run.withSuccessHandler(r => {
-            if(r.success) {
-                document.getElementById('adminMaintStart').value = "";
-                document.getElementById('adminMaintEnd').value = "";
-                showCustomAlert("Maintenance cleared.", "Success");
-            }
-        }).apiClearMaintenance();
-    }
 
-    function saveAdminFileSize() {
-        const size = parseInt(document.getElementById('adminFileSize').value);
-        if(isNaN(size) || size < 1) { showCustomAlert("Invalid size.", "Error"); return; }
-        google.script.run.withSuccessHandler(r => {
-            if(r.success) showCustomAlert("Size limit saved.", "Success");
-        }).apiSetFileSizeLimit(size);
-    }
 
-    function saveAdminDriveClientId() {
-        const clientId = document.getElementById('adminDriveClientId').value.trim();
-        google.script.run.withSuccessHandler(r => {
-            if (r.success) {
-                driveSaveConfigCache_ = null; // Force reload on next "Save to Drive" click
-                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
-                showCustomAlert("Saved.", "Success");
-            } else {
-                showCustomAlert("Error: " + r.error, "Error");
-            }
-        }).apiSaveDriveSaveClientId(clientId);
-    }
 
-    function loadWhitelist() {
-        const c = document.getElementById('whitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run.withSuccessHandler(r => {
-            c.innerHTML = r.emails.map(e => `
-                <div class="list-row">
-                    <span>${e}</span>
-                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'whitelist')">delete</span>
-                </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-        }).apiGetWhitelist();
-    }
 
-    function addWhitelistUser() {
-        const email = document.getElementById('newWhitelistEmail').value.trim();
-        if(!email) return;
-        google.script.run.withSuccessHandler(() => {
-            document.getElementById('newWhitelistEmail').value = "";
-            loadWhitelist();
-        }).apiAddWhitelist(email);
-    }
 
-    function loadMarketingWhitelist() {
-        const c = document.getElementById('marketingWhitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run.withSuccessHandler(r => {
-            c.innerHTML = r.emails.map(e => `
-                <div class="list-row">
-                    <span>${e}</span>
-                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'marketing')">delete</span>
-                </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-        }).apiGetMarketingWhitelist();
-    }
 
-    function addMarketingWhitelistUser() {
-        const email = document.getElementById('newMarketingWhitelistEmail').value.trim();
-        if(!email) return;
-        google.script.run.withSuccessHandler(() => {
-            document.getElementById('newMarketingWhitelistEmail').value = "";
-            loadMarketingWhitelist();
-        }).apiAddMarketingWhitelist(email);
-    }
-    function loadCcWhitelist() {
-        const c = document.getElementById('ccWhitelistContainer');
-        if(!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run
-          .withSuccessHandler(r => {
-              c.innerHTML = r.emails.map(e => `
-                  <div class="list-row">
-                      <span>${e}</span>
-                      <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'cc')">delete</span>
-                  </div>
-              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-          })
-          .withFailureHandler(e => {
-              c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
-          })
-          .apiGetCcWhitelist();
-    }
-    function addCcWhitelistUser() {
-        const email = document.getElementById('newCcWhitelistEmail').value.trim();
-        if(!email) return;
-        google.script.run
-          .withSuccessHandler(() => {
-              document.getElementById('newCcWhitelistEmail').value = "";
-              loadCcWhitelist();
-          })
-          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
-          .apiAddCcWhitelist(email);
-    }
-    function loadWomaWhitelist() {
-        const c = document.getElementById('womaWhitelistContainer');
-        if(!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run
-          .withSuccessHandler(r => {
-              c.innerHTML = r.emails.map(e => `
-                  <div class="list-row">
-                      <span>${e}</span>
-                      <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'woma')">delete</span>
-                  </div>
-              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-          })
-          .withFailureHandler(e => {
-              c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
-          })
-          .apiGetWomaWhitelist();
-    }
-    function addWomaWhitelistUser() {
-        const email = document.getElementById('newWomaWhitelistEmail').value.trim();
-        if(!email) return;
-        google.script.run
-          .withSuccessHandler(() => {
-              document.getElementById('newWomaWhitelistEmail').value = "";
-              loadWomaWhitelist();
-          })
-          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
-          .apiAddWomaWhitelist(email);
-    }
 
-    function loadKecWhitelist() {
-        const c = document.getElementById('kecWhitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run.withSuccessHandler(r => {
-            c.innerHTML = r.emails.map(e => `
-                <div class="list-row">
-                    <span>${e}</span>
-                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'kec')">delete</span>
-                </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-        }).apiGetKecWhitelist();
-    }
 
-    function addKecWhitelistUser() {
-        const email = document.getElementById('newKecWhitelistEmail').value.trim();
-        if(!email) return;
-        google.script.run.withSuccessHandler(() => {
-            document.getElementById('newKecWhitelistEmail').value = "";
-            loadKecWhitelist();
-        }).apiAddKecWhitelist(email);
-    }
 
-    function loadDocWhitelist() {
-      const c = document.getElementById('docWhitelistContainer');
-      if(!c) return;
-      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-      google.script.run.withSuccessHandler(r => {
-        c.innerHTML = r.emails.map(e => `
-          <div class="list-row">
-            <span>${e}</span>
-            <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'doc')">delete</span>
-          </div>
-        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-      }).apiGetDocWhitelist();
-      }
 
       function addDocWhitelistUser() {
       const email = document.getElementById('newDocWhitelistEmail').value.trim();
@@ -7764,350 +6058,26 @@ function openJobNoteModal(projectUid, jobUids) {
       }).apiAddDocWhitelist(email);
       }
 
-    function loadArticulateWhitelist() {
-      const c = document.getElementById('articulateWhitelistContainer');
-      if(!c) return;
-      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-      google.script.run.withSuccessHandler(r => {
-        c.innerHTML = r.emails.map(e => `
-          <div class="list-row">
-            <span>${e}</span>
-            <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'articulate')">delete</span>
-          </div>
-        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-      }).apiGetArticulateWhitelist();
-    }
 
-    function addArticulateWhitelistUser() {
-      const email = document.getElementById('newArticulateWhitelistEmail').value.trim();
-      if(!email) return;
-      google.script.run.withSuccessHandler(() => {
-        document.getElementById('newArticulateWhitelistEmail').value = "";
-        loadArticulateWhitelist();
-      }).apiAddArticulateWhitelist(email);
-    }
 
-    function loadAdmins() {
-        const c = document.getElementById('adminListContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run.withSuccessHandler(r => {
-            c.innerHTML = r.admins.map(e => `
-                <div class="list-row">
-                    <span><strong>${e}</strong></span>
-                    <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'admin')">delete</span>
-                </div>
-            `).join('');
-        }).apiGetAdmins();
-    }
     const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager' };
-    function loadAdminLightUsers() {
-        const c = document.getElementById('adminLightListContainer');
-        if (!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
-        google.script.run
-          .withSuccessHandler(r => {
-            if (!r.success) { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(r.error) + '</div>'; return; }
-            c.innerHTML = r.users.map(u => `
-                <div class="list-row">
-                    <span><strong>${escapeHtml(u.email)}</strong> <span style="color:#888;font-size:11px;">(${u.subtabs.map(s => ADMIN_LIGHT_LABELS_[s] || s).join(', ')})</span></span>
-                    <span class="material-icons-outlined icon-btn-danger" onclick="removeAdminLightUser('${escapeJs(u.email)}')">delete</span>
-                </div>
-            `).join('') || '<div style="padding:15px;color:#888;text-align:center;">Keine Admin-Light-User.</div>';
-          })
-          .withFailureHandler(e => { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(e.message) + '</div>'; })
-          .apiGetAdminLightUsers();
-    }
-    function addAdminLightUser() {
-        const email = document.getElementById('newAdminLightEmail').value.trim();
-        if (!email) return;
-        const subtabs = [];
-        if (document.getElementById('adminLightSubtabUsers').checked) subtabs.push('users');
-        if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
-        if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
-        google.script.run
-          .withSuccessHandler(r => {
-            if (!r.success) { showCustomAlert('Fehler: ' + r.error, 'Error'); return; }
-            document.getElementById('newAdminLightEmail').value = '';
-            document.getElementById('adminLightSubtabUsers').checked = false;
-            document.getElementById('adminLightSubtabTemplates').checked = false;
-            loadAdminLightUsers();
-          })
-          .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
-          .apiAddAdminLightUser(email, subtabs);
-    }
-    function removeAdminLightUser(email) {
-        showCustomConfirm('Admin-Light-Zugriff für ' + email + ' entfernen?', function() {
-            google.script.run
-              .withSuccessHandler(loadAdminLightUsers)
-              .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
-              .apiRemoveAdminLightUser(email);
-        });
-    }
 
-    function addAdminUser() {
-        const email = document.getElementById('newAdminEmail').value.trim();
-        if(!email) return;
-        google.script.run.withSuccessHandler(() => {
-            document.getElementById('newAdminEmail').value = "";
-            loadAdmins();
-        }).apiAddAdmin(email);
-    }
 
-    function removeUserFromList(email, type) {
-        showCustomConfirm(`Remove ${email} from ${type}?`, function() {
-            if(type === 'whitelist') {
-                google.script.run.withSuccessHandler(loadWhitelist).apiRemoveWhitelist(email);
-            } else if(type === 'marketing') {
-                google.script.run.withSuccessHandler(loadMarketingWhitelist).apiRemoveMarketingWhitelist(email);
-            } else if(type === 'kec') {
-                google.script.run.withSuccessHandler(loadKecWhitelist).apiRemoveKecWhitelist(email);
-            } else if(type === 'doc') {
-                google.script.run.withSuccessHandler(loadDocWhitelist).apiRemoveDocWhitelist(email);  
-            } else if(type === 'articulate') {
-                google.script.run.withSuccessHandler(loadArticulateWhitelist).apiRemoveArticulateWhitelist(email);
-            } else if(type === 'woma') {
-                google.script.run.withSuccessHandler(loadWomaWhitelist).apiRemoveWomaWhitelist(email);
-            } else if(type === 'cc') {
-                google.script.run.withSuccessHandler(loadCcWhitelist).apiRemoveCcWhitelist(email);
-            } else if(type === 'admin') {
-                google.script.run.withSuccessHandler(loadAdmins).apiRemoveAdmin(email);
-            }
-        });
-    }
 
-    function runUserTemplatesDebug() {
-        const email = document.getElementById('debugEmail').value.trim();
-        if(!email) { showCustomAlert("Please enter an email.", "Error"); return; }
-        const c = document.getElementById('debugResultContainer');
-        c.style.display = 'block'; c.innerHTML = 'Analyzing...';
-        google.script.run.withSuccessHandler(r => {
-            c.innerHTML = `<strong>Analyse für:</strong> ${r.email}\n\n` +
-                          `<strong>User Data (FetchTMS_USERS-Prod):</strong>\n` +
-                          `Client: ${r.userData.client}\nDomain: ${r.userData.domain}\nSubdomain: ${r.userData.subdomain}\nBU: ${r.userData.bu}\n\n` +
-                          `<strong>Erlaubte Templates (${r.allowed.length}):</strong>\n` + 
-                          r.allowed.map(x => `? ${x.name}`).join('\n') + `\n\n` +
-                          `<strong>Blockierte Templates (${r.denied.length}):</strong>\n` +
-                          r.denied.map(x => `? ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
-        }).apiDebugUserTemplates(email);
-    }
 
-    function testChatBot(btn) {
-        const email = document.getElementById('chatTestEmail').value.trim();
-        if(!email) { showCustomAlert("E-Mail fehlt.", "Error"); return; }
-        btn.disabled = true; btn.innerText = "Sende...";
-        google.script.run.withSuccessHandler(r => {
-            btn.disabled = false; btn.innerText = "SENDEN";
-            if(r.success) showCustomAlert("Test-Nachricht erfolgreich gesendet!", "Success");
-            else showCustomAlert("Fehler: " + r.error, "Error");
-        }).apiTestChatBot(email);
-    }
 
-    function triggerSync(type, btn) {
-      if (type === 'templates' || type === 'users') {
-        showSyncModeDialog(type, btn);
-        return;
-      }
-      runSync(type, 'full', btn);
-    }
 
-    function showSyncModeDialog(type, btn) {
-      const label = type === 'templates' ? 'Templates' : 'User';
-      const html = `
-        <div style="font-size:13px;line-height:1.6;margin-bottom:16px;">
-          Wie soll der ${label}-Sync ausgeführt werden?
-        </div>
-        <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;"
-                onclick="closeCustomDialog(); runSync('${type}','add_only', document.getElementById('syncBtn_${type}'))">
-          ? Nur neue ${label} ergänzen (bestehende Zeilen bleiben unverändert)
-        </button>
-        <button class="btn btn-primary" style="width:100%;"
-                onclick="closeCustomDialog(); runSync('${type}','full', document.getElementById('syncBtn_${type}'))">
-          ? Neue ergänzen + bestehende mit Phrase-Daten aktualisieren
-        </button>`;
-      btn.id = 'syncBtn_' + type;
-      document.getElementById('customDialogTitle').innerText = label + ' synchronisieren';
-      document.getElementById('customDialogMessage').innerHTML = html;
-      document.getElementById('customDialogInput').style.display = 'none';
-      document.getElementById('customDialogCancelBtn').style.display = 'inline-flex';
-      document.getElementById('customDialogConfirmBtn').style.display = 'none';
-      document.getElementById('customDialogOverlay').style.display = 'flex';
-    }
 
-    function runSync(type, mode, btn) {
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="material-icons-outlined" style="animation:spin 1s linear infinite;">sync</i> Syncing...';
-      google.script.run.withSuccessHandler(r => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        if (r.success) showCustomAlert(r.msg || "Sync successful.", "Success");
-        else showCustomAlert("Error: " + r.error, "Error");
-      }).withFailureHandler(e => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        showCustomAlert("Error: " + e.message, "Error");
-      }).apiTriggerManualSync(type, mode);
-    }
 
-    function toggleAutoSync(enable) {
-        const txt = document.getElementById('autoSyncStatusText');
-        txt.innerText = 'Updating...';
-        google.script.run.withSuccessHandler(() => {
-            txt.innerText = enable ? 'ON' : 'OFF';
-            showCustomAlert(`Auto-Sync is now ${enable ? 'ENABLED' : 'DISABLED'}.`, "Success");
-        }).apiToggleAutoSync(enable);
-    }
 
-    function loadScriptProperties() {
-      const container = document.getElementById('scriptPropsContainer');
-      if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
-      google.script.run
-        .withSuccessHandler(res => {
-          let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #eee;">';
-          html += '<thead><tr style="background:#f5f5f5;text-align:left;">' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:30%;">Key</th>' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;">Value</th>' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:120px;text-align:center;">Actions</th>' +
-                  '</tr></thead><tbody>';
-          res.properties.forEach(p => {
-            const isProt = p.protected;
-            const isSens = p.sensitive;
-            html += `<tr style="border-bottom:1px solid #eee;">
-              <td style="padding:10px;font-family:monospace;font-weight:bold;color:${isProt?'#d93025':'#333'};">
-                ${escapeHtml(p.key)} ${isProt?'<span title="Protected" style="cursor:help;">?</span>':''}
-              </td>
-              <td style="padding:10px;font-family:monospace;color:#555;word-break:break-all;" id="prop_val_${escapeHtmlId(p.key)}">
-                ${escapeHtml(p.value)}
-              </td>
-              <td style="padding:10px;text-align:center;">
-                <div style="display:flex;gap:5px;justify-content:center;">
-                  ${isSens ? `<button onclick="revealScriptProperty('${escapeJs(p.key)}')" title="Reveal" style="background:none;border:1px solid #ccc;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#555;">visibility</i></button>` : ''}
-                  <button onclick="updateScriptProperty('${escapeJs(p.key)}')" title="Edit" style="background:none;border:1px solid #1565c0;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#1565c0;">edit</i></button>
-                  ${!isProt ? `<button onclick="deleteScriptProperty('${escapeJs(p.key)}')" title="Delete" style="background:none;border:1px solid #d93025;cursor:pointer;padding:4px;border-radius:2px;"><i class="material-icons-outlined" style="font-size:14px;color:#d93025;">delete</i></button>` : ''}
-                </div>
-              </td>
-            </tr>`;
-          });
-          html += '</tbody></table>';
-          container.innerHTML = html;
-        })
-        .withFailureHandler(err => {
-          container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-        })
-        .apiGetAllScriptProperties();
-    }
 
-    function addNewScriptProperty() {
-      const key = document.getElementById('newPropKey').value.trim();
-      const val = document.getElementById('newPropValue').value.trim();
-      if (!key) { showCustomAlert("Key required."); return; }
-      google.script.run
-        .withSuccessHandler(r => {
-          document.getElementById('newPropKey').value = "";
-          document.getElementById('newPropValue').value = "";
-          showCustomAlert("Property added.");
-          loadScriptProperties();
-        })
-        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
-        .apiAddScriptProperty(key, val);
-    }
 
-    function updateScriptProperty(key) {
-      showCustomPrompt("Enter new value for " + key + ":", "", function(newVal) {
-        if (newVal === null) return; 
-        google.script.run
-          .withSuccessHandler(r => {
-            showCustomAlert("Property updated.");
-            loadScriptProperties();
-          })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
-          .apiUpdateScriptProperty(key, newVal);
-      }, "Edit Property");
-    }
 
-    function deleteScriptProperty(key) {
-      showCustomConfirm("Delete property '" + key + "'?", function() {
-        google.script.run
-          .withSuccessHandler(r => { loadScriptProperties(); })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
-          .apiDeleteScriptProperty(key);
-      });
-    }
 
     // Advanced token encryption boundary bypass guard
-    function revealScriptProperty(key) {
-      google.script.run
-        .withSuccessHandler(r => {
-          if (r.blocked) {
-            showCustomAlert(r.message, "Protected Value");
-          } else {
-            const el = document.getElementById('prop_val_' + escapeHtmlId(key));
-            if (el) {
-                el.innerText = r.value;
-                el.style.background = "#fff9c4";
-                setTimeout(() => { el.style.background = "none"; el.innerText = "????????"; }, 10000); 
-            }
-          }
-        })
-        .apiRevealScriptProperty(key);
-    }
 
-    function loadAuditLog() {
-      const container = document.getElementById('auditLogContainer');
-      if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
-      google.script.run
-        .withSuccessHandler(res => {
-          let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;">';
-          html += '<thead style="position:sticky;top:0;background:#f0f0f0;"><tr style="text-align:left;">' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:130px;">Time</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:150px;">User</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">Action</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;">Details</th>' +
-                  '</tr></thead><tbody>';
-          if (res.error) {
-            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(res.error) + '</div>';
-            return;
-          }
-          (res.entries || []).forEach(row => {
-            html += `<tr style="border-bottom:1px solid #eee;">
-              <td style="padding:8px;color:#666;">${escapeHtml(row.timestamp)}</td>
-              <td style="padding:8px;color:#1565c0;">${escapeHtml(row.user)}</td>
-              <td style="padding:8px;font-weight:bold;">${escapeHtml(row.action)}</td>
-              <td style="padding:8px;color:#444;">${escapeHtml(row.details)}</td>
-            </tr>`;
-          });
-          html += '</tbody></table>';
-          container.innerHTML = html;
-        })
-        .withFailureHandler(err => {
-          container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-        })
-        .apiGetAuditLog(100);
-    }
 
-    function loadErrorLogs() {
-      const container = document.getElementById('errorLogContainer');
-      if(!container) return;
-      google.script.run.withSuccessHandler(logs => {
-        container.innerHTML = logs.map(l => {
-          const isErr = l.status && l.status.toUpperCase().includes('ERROR');
-          return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #333;">
-            <span style="color:#888;">[${l.date}]</span> 
-            <strong style="color:${isErr?'#ff5252':'#4CAF50'};">${l.status}</strong> 
-            <span style="color:#fff;">${l.project}</span> 
-            <span style="color:#aaa;">(${l.user})</span>
-          </div>`;
-        }).join('') || '<div style="color:#666;">No recent logs.</div>';
-      }).apiGetRecentLogs();
-    }
 
-    function openLogsModal() {
-      document.getElementById('logsModal').style.display = 'flex';
-      const body = document.getElementById('logsModalBody');
-      body.innerHTML = document.getElementById('errorLogContainer').innerHTML;
-    }
     function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
     function filterLogs() {
       const q = document.getElementById('logsSearchInput').value.toLowerCase();
@@ -8213,10 +6183,6 @@ function openJobNoteModal(projectUid, jobUids) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-    }
-    function escapeHtmlId(unsafe) {
-      if (!unsafe) return "id";
-      return String(unsafe).replace(/[^a-zA-Z0-9_-]/g, "_");
     }
     function escapeJs(unsafe) {
       if (!unsafe) return "";
@@ -8778,84 +6744,9 @@ function extractDriveFileName_(url) {
 
 var _watcherConfig = [];
 
-function loadWatcherConfig() {
-  const container = document.getElementById('watcherConfigContainer');
-  if (!container) return;
-  container.innerHTML = '<div style="padding:15px;text-align:center;color:#888;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto 8px;"></div>Loading...</div>';
 
-  google.script.run
-    .withSuccessHandler(res => {
-      _watcherConfig = res.config || [];
-      renderWatcherConfig();
-    })
-    .withFailureHandler(err => {
-      if (container) container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-    })
-    .apiGetWatcherConfig();
-}
 
-function renderWatcherConfig() {
-  const container = document.getElementById('watcherConfigContainer');
-  if (!container) return;
 
-  if (!_watcherConfig.length) {
-    container.innerHTML = '<div style="padding:15px;color:#888;font-style:italic;">No watchers configured yet.</div>';
-    return;
-  }
-
-  let html = '';
-  _watcherConfig.forEach((entry, idx) => {
-    html += `
-    <div style="border:1px solid #eee;padding:10px 14px;margin-bottom:8px;background:#fafafa;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-      <div style="flex:1;">
-        <div style="font-weight:700;font-size:13px;color:#333;">${escapeHtml(entry.email)}</div>
-        <div style="font-size:11px;color:#888;margin-top:3px;">Templates: ${(entry.templates || []).map(t => escapeHtml(t)).join(', ')}</div>
-      </div>
-      <span class="material-icons-outlined icon-btn-danger" onclick="removeWatcher(${idx})" title="Remove">delete</span>
-    </div>`;
-  });
-  container.innerHTML = html;
-}
-
-function addWatcher() {
-  const email = document.getElementById('newWatcherEmail').value.trim();
-  const templatesRaw = document.getElementById('newWatcherTemplates').value.trim();
-
-  if (!email || !email.includes('@')) { showCustomAlert('Bitte eine gültige E-Mail eingeben.'); return; }
-  if (!templatesRaw) { showCustomAlert('Bitte mindestens ein Template angeben.'); return; }
-
-  const templates = templatesRaw.split(',').map(t => t.trim()).filter(Boolean);
-
-  // FIX: Aktuelle Config vom Server laden, dann ergänzen und speichern
-  google.script.run
-    .withSuccessHandler(res => {
-      const currentConfig = res.config || [];
-      currentConfig.push({ email, templates });
-
-      google.script.run
-        .withSuccessHandler(() => {
-          _watcherConfig = currentConfig;
-          document.getElementById('newWatcherEmail').value = '';
-          document.getElementById('newWatcherTemplates').value = '';
-          showCustomAlert('? Watcher hinzugefügt.', 'Gespeichert');
-          renderWatcherConfig();
-        })
-        .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
-        .apiSaveWatcherConfig(currentConfig);
-    })
-    .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
-    .apiGetWatcherConfig();
-}
-
-function removeWatcher(idx) {
-  showCustomConfirm('Watcher "' + _watcherConfig[idx].email + '" entfernen?', function() {
-    _watcherConfig.splice(idx, 1);
-    google.script.run
-      .withSuccessHandler(() => { showCustomAlert('? Watcher entfernt.'); renderWatcherConfig(); })
-      .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
-      .apiSaveWatcherConfig(_watcherConfig);
-  });
-}
 
     </script>
     <div id="slidesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:6500;align-items:center;justify-content:center;backdrop-filter:blur(4px);">

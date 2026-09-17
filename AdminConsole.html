@@ -1,0 +1,646 @@
+<!-- Admin-Bereich (Console / User Manager / Template Manager), ausgelagert aus
+     Index.html. Wird zusammen mit AdminScript.html per apiGetAdminContent()
+     nachgeladen, sobald ein Admin den Tab "Admin" oeffnet. -->
+        <div class="container" style="max-width:2200; margin:0 auto;">
+            <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #eee;">
+                <button class="admin-subtab-btn active" id="subtab-btn-console" onclick="switchAdminSubtab('console')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#d93025;cursor:pointer;border-bottom:3px solid #d93025;text-transform:uppercase;">Console</button>
+                <button class="admin-subtab-btn" id="subtab-btn-users" onclick="switchAdminSubtab('users')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">User Manager</button>
+                <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Template Manager</button>
+            </div>
+
+            <div id="admin-subtab-console">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px;">
+                <div class="section-title" style="margin:0; border:none; font-size:20px;">Admin Console</div>
+                <button class="btn-refresh" onclick="loadAdminDashboardData()"><i class="material-icons-outlined">refresh</i> Refresh Data</button>
+            </div>
+
+            <div class="admin-grid" id="adminGridContainer">
+                <div class="card" style="border-top-color:#9c27b0;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#9c27b0;">User View Simulator</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('simulator')" title="Help">?</button>
+                    </div>
+                    <div id="help-simulator" class="admin-help-panel">
+                        <span class="help-impact impact-low">Read-only ? No impact</span>
+                        <p>Preview the app exactly as a specific user would see it.</p>
+                        <ul>
+                            <li>Admin controls remain visible; a purple banner indicates simulation mode.</li>
+                            <li>Click <strong>EXIT SIMULATION</strong> to return to your own view.</li>
+                        </ul>
+                    </div>
+                    <div style="font-size:13px; color:#666; margin-bottom:12px;">See the app exactly as another user sees it.</div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="email" id="impersonateEmailInput" placeholder="user@karcher.com">
+                        <button class="btn" style="width:auto; padding:0 20px; background-color:#9c27b0; color:#fff;" onclick="toggleImpersonation()">SIMULATE</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">Maintenance Mode</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('maintenance')" title="Help">?</button>
+                    </div>
+                    <div id="help-maintenance" class="admin-help-panel">
+                        <span class="help-impact impact-critical">Critical ? All users locked out</span>
+                        <p>Blocks access for <strong>all non-admin users</strong> during the configured window.</p>
+                        <ul>
+                            <li>Admins can bypass the lock via the "ADMIN UNLOCK" button.</li>
+                        </ul>
+                    </div>
+                    <div class="form-row">
+                      <label>Start Time</label>
+                      <input type="datetime-local" id="adminMaintStart">
+                    </div>
+                    <div class="form-row">
+                      <label>End Time</label>
+                      <input type="datetime-local" id="adminMaintEnd">
+                    </div>
+                    <div class="form-row">
+                        <label>Notification Message</label>
+                        <textarea id="adminMaintMsg" rows="2" style="resize:vertical;">Maintenance work is scheduled. File upload is currently unavailable.</textarea>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button class="btn btn-primary" style="height:40px;" onclick="saveMaintenanceSettings(this)">ACTIVATE / UPDATE</button>
+                        <button class="btn btn-red" style="height:40px; width:auto;" onclick="clearMaintenanceSettings()">STOP</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">System Configuration</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('sysconfig')" title="Help">?</button>
+                    </div>
+                    <div id="help-sysconfig" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact</span>
+                        <ul>
+                            <li><strong>Max File Size:</strong> Limits the upload size per file. Default is 100 MB. Setting too low may block large documents.</li>
+                            <li><strong>Sync Templates:</strong> Fetches all active templates from Phrase TMS and updates the FetchTemplate-Prod sheet.</li>
+                        </ul>
+                    </div>
+                    <div class="form-row">
+                        <label>Max File Size (MB)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="adminFileSize" style="width:100px;">
+                            <button class="btn btn-black" style="width:auto; padding:0 20px; height:48px;" onclick="saveAdminFileSize()">Save</button>
+                        </div>
+                    </div>
+                    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+                    <label>Database Links</label>
+                    <div style="display:flex; gap:10px; margin-bottom:20px;">
+                        <a href="https://docs.google.com/spreadsheets/d/1xi0ZtFxxurNu25URrhpHmfSLy8nld_SXm0KmkXxRCpQ/edit" target="_blank" class="btn btn-secondary" style="font-size:12px; padding:0 15px;">
+                            <i class="material-icons-outlined">table_view</i> Uploads DB
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1mU8zWhR-E8_fmBcLtMh1qIwST9FibKT5UfH7oaivs0Q/edit" target="_blank" class="btn btn-secondary" style="font-size:12px; padding:0 15px;">
+                             <i class="material-icons-outlined">sync_alt</i> Sync DB
+                        </a>
+                    </div>
+                    <label>Manual Synchronization</label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
+                        <button class="btn btn-secondary" onclick="triggerSync('users', this)"><i class="material-icons-outlined">people</i> Sync Users</button>
+                        <button class="btn btn-secondary" onclick="triggerSync('templates', this)"><i class="material-icons-outlined">fact_check</i> Sync Templates</button>
+                        <button class="btn btn-secondary" onclick="triggerSync('notifications', this)" title="Syncs PROJECT_MANAGER / ADMIN users into Notifications sheet (OFF)"><i class="material-icons-outlined">notifications</i> Sync Notifications</button>
+                        <button class="btn btn-secondary" onclick="triggerSync('chatmappings', this)" title="Resolves Chat User IDs for all users in Notifications sheet"><i class="material-icons-outlined">chat</i> Sync Chat Mappings</button>
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+                    <label>Automatic Status Sync</label>
+                    <div style="display:flex;align-items:center;gap:15px;margin-top:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;margin:0;">
+                                <input type="checkbox" id="autoSyncToggle" style="opacity:0;width:0;height:0;"
+                                       onchange="toggleAutoSync(this.checked)">
+                                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s;cursor:pointer;"></span>
+                                <span id="autoSyncSlider" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;"></span>
+                            </label>
+                            <span id="autoSyncStatusText" style="font-size:12px;font-weight:700;color:#888;">OFF</span>
+                        </div>
+                        <span id="autoSyncLastRun" style="font-size:11px;color:#999;"></span>
+                    </div>
+                    <div style="font-size:11px;color:#888;margin-top:6px;">
+                        When enabled, project statuses are automatically synced from Phrase every 15 minutes.
+                        Chat notifications are sent when translations complete.
+                    </div>
+                </div>
+
+                <div class="card" style="border-top-color:#1a73e8;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#1a73e8;">Google Drive Export ("Save to Drive")</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('drivesave')" title="Help">?</button>
+                    </div>
+                    <div id="help-drivesave" class="admin-help-panel">
+                        <span class="help-impact impact-low">Low impact ? opt-in feature per user</span>
+                        <p>Lets users save translated files directly into their own Google "My Drive" (with the option to convert Word/Excel/PowerPoint files to Google Docs/Sheets/Slides), instead of only downloading to their computer.</p>
+                        <p>This requires a one-time <strong>OAuth Client ID</strong> (type "Web application") created in the Google Cloud Console project linked to this script, with this portal's URL added under "Authorized JavaScript origins". Paste that Client ID below.</p>
+                    </div>
+                    <div class="form-row">
+                        <label>OAuth Client ID</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="adminDriveClientId" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+                            <button class="btn btn-black" style="width:auto; padding:0 20px; height:48px;" onclick="saveAdminDriveClientId()">Save</button>
+                        </div>
+                        <div id="adminDriveClientIdStatus" style="font-size:11px;color:#888;margin-top:6px;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">General Projects Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('stdwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-stdwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact</span>
+                        <p>Controls who can access the app and see the <strong>"General Projects"</strong> tab.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="whitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+
+                <div class="card" style="border-top-color:#d93025;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#d93025;">Manage Administrators</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('admins')" title="Help">?</button>
+                    </div>
+                    <div id="help-admins" class="admin-help-panel">
+                        <span class="help-impact impact-critical">Critical ? Full access granted</span>
+                        <p>Administrators have <strong>complete access</strong> to all features including this Admin Console.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newAdminEmail" placeholder="admin@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#333; color:#fff;" onclick="addAdminUser()">ADD ADMIN</button>
+                    </div>
+                    <div id="adminListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+                <div class="card" style="border-top-color:#795548;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#795548;">Admin-Light Access</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('adminlight')" title="Help">?</button>
+                    </div>
+                    <div id="help-adminlight" class="admin-help-panel">
+                        <span class="help-impact impact-high">High Impact ? Eingeschränkter Admin-Zugriff</span>
+                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager und/oder Template Manager ? ohne Console (Whitelists, Maintenance, Script Properties etc.).</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="email" id="newAdminLightEmail" placeholder="user@karcher.com">
+                    </div>
+                    <div style="display:flex; gap:15px; margin-bottom:15px; align-items:center;">
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
+                            <input type="checkbox" id="adminLightSubtabUsers" style="width:auto;"> User Manager
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
+                            <input type="checkbox" id="adminLightSubtabTemplates" style="width:auto;"> Template Manager
+                        </label>
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#795548; color:#fff;" onclick="addAdminLightUser()">ADD</button>
+                    </div>
+                    <div id="adminLightListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+                
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">Marketing Projects Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('mktgwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-mktgwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "Marketing Projects"</strong> tab ? the standard "General Projects" tab is hidden for them.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newMarketingWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addMarketingWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="marketingWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">WOMA Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('womawl')" title="Help">?</button>
+                    </div>
+                    <div id="help-womawl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "WOMA"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newWomaWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addWomaWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="womaWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+
+                <div class="card" style="border-top-color:#00838f;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#00838f;">Competence Center Projects Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('ccwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-ccwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "Competence Center Projects"</strong> tab (funktional identisch zu "General Projects") ? der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newCcWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addCcWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="ccWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+                <div class="card" style="border-top-color:#9c27b0;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#9c27b0;">KeC Projects Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('kecwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-kecwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                        <p>Users listed here see the <strong>"KeC Projects"</strong> tab.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newKecWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addKecWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="kecWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+
+                <div class="card" style="border-top-color:#0288d1;">
+                    <div class="admin-card-header">
+                      <div class="section-title" style="color:#0288d1;">Documentation Projects Whitelist</div>
+                      <button class="help-toggle-btn" onclick="toggleAdminHelp('docwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-docwl" class="admin-help-panel">
+                      <span class="help-impact impact-medium">Medium Impact ? Exclusive tab</span>
+                      <p>Users listed here see the <strong>"Documentation Projects"</strong> tab.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                      <input type="email" id="newDocWhitelistEmail" placeholder="colleague@karcher.com">
+                      <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addDocWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="docWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                  </div>
+
+                <div class="card" style="border-top-color:#1a73e8;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#1a73e8;">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">play_circle</span>
+                            Campus Projects Whitelist
+                        </div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('artwl')" title="Help">?</button>
+                    </div>
+                    <div id="help-artwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Zusatz-Tab</span>
+                        <p>Users listed here see the <strong>"Campus Projects"</strong> tab und können Rise-Kurs-Previews erzeugen.</p>
+                        <ul>
+                            <li>Anders als bei Marketing/KeC/Documentation ist dieser Tab <strong>nicht exklusiv</strong> ? die Nutzer behalten "General Projects".</li>
+                            <li>Admins sehen den Tab automatisch, ohne Eintrag hier.</li>
+                        </ul>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newArticulateWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addArticulateWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="articulateWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+
+                <div class="card" style="border-top-color:#9c27b0;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#9c27b0;">KeC Eligibility Settings</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('kecelig')" title="Help">?</button>
+                    </div>
+                    <div id="help-kecelig" class="admin-help-panel">
+                        <span class="help-impact impact-critical">Critical ? Steuert KeC-Projekt-Filter</span>
+                        <p>Diese IDs bestimmen, welche Phrase-Projekte im "KeC Projects" Dropdown erscheinen (Client, Domain, Business Unit).</p>
+                        <ul>
+                            <li>Standardmäßig <strong>gesperrt</strong> ? Klick auf das Schloss zum Entsperren.</li>
+                            <li>Falsche Werte können dazu führen, dass gar keine Projekte mehr gefunden werden.</li>
+                        </ul>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                        <button id="kecEligLockBtn" onclick="toggleKecEligLock()" 
+                                style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
+                            <span class="material-icons-outlined" id="kecEligLockIcon" style="font-size:16px;">lock</span>
+                            <span id="kecEligLockText">Locked ? Click to unlock</span>
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <label>Client ID <small style="color:#888;font-weight:normal;">(z.B. AKW)</small></label>
+                        <input type="text" id="kecClientIdInput" disabled placeholder="620249">
+                    </div>
+                    <div class="form-row">
+                        <label>Domain ID <small style="color:#888;font-weight:normal;">(z.B. Marketing Content)</small></label>
+                        <input type="text" id="kecDomainIdInput" disabled placeholder="23997">
+                    </div>
+                    <div class="form-row">
+                        <label>Business Unit ID <small style="color:#888;font-weight:normal;">(z.B. MMV-P)</small></label>
+                        <input type="text" id="kecBuIdInput" disabled placeholder="56182">
+                    </div>
+                                        <button id="kecEligSaveBtn" class="btn btn-primary" style="margin-top:5px;" disabled onclick="saveKecEligSettings()">
+                        SPEICHERN
+                    </button>
+                </div>
+                <div class="card" style="border-top-color:#0288d1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#0288d1;">Documentation Drive Root</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('docdriveroot')" title="Help">?</button>
+                    </div>
+                    <div id="help-docdriveroot" class="admin-help-panel">
+                        <span class="help-impact impact-critical">Critical ? Steuert Import/Export-Ordner</span>
+                        <p>Dieser Drive-Ordner ist der Root für Documentation Import/Export. Unterordner müssen exakt so heißen wie das jeweilige Phrase-Projekt.</p>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                        <button id="docDriveRootLockBtn" onclick="toggleDocDriveRootLock()"
+                                style="background:#f5f5f5;border:1px solid #ddd;cursor:pointer;padding:6px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;border-radius:2px;">
+                            <span class="material-icons-outlined" id="docDriveRootLockIcon" style="font-size:16px;">lock</span>
+                            <span id="docDriveRootLockText">Locked ? Click to unlock</span>
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <label>Ordner-Link oder -ID</label>
+                        <input type="text" id="docDriveRootInput" disabled placeholder="https://drive.google.com/drive/folders/...">
+                    </div>
+                    <div id="docDriveRootCurrentName" style="font-size:11px;color:#888;margin-bottom:10px;"></div>
+                    <button id="docDriveRootSaveBtn" class="btn btn-primary" style="margin-top:5px;" disabled onclick="saveDocDriveRootSettings_()">
+                        SPEICHERN
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="admin-card-header">
+                        <div class="section-title">System Logs (Last 20)</div>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <button class="help-toggle-btn" onclick="openLogsModal()" title="Full screen" style="width:auto;padding:0 8px;border-radius:2px;font-size:11px;letter-spacing:0;">? Expand</button>
+                        </div>
+                    </div>
+                    <div id="errorLogContainer" style="max-height:280px; overflow-y:auto; background:#1a1a2e; color:#a0e0a0; font-family:monospace; padding:12px; font-size:11px; line-height:1.6; border-radius:2px;">
+                        <div style="color:#666;">Loading logs...</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top-color:#ff9800;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#ff9800;">User Template Debugger</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('debug')" title="Help">?</button>
+                    </div>
+                    <div id="help-debug" class="admin-help-panel">
+                        <span class="help-impact impact-low">Read-only</span>
+                        <p>Gebe eine E-Mail-Adresse ein, um sofort zu sehen, welche Templates dieser Nutzer sehen darf und welche blockiert werden (inklusive Grund).</p>
+                    </div>
+                    <div class="form-row">
+                        <label>User Email</label>
+                        <input type="email" id="debugEmail" placeholder="user@karcher.com">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; background-color:#ff9800; color:#fff; margin-top:10px;" onclick="runUserTemplatesDebug()">ZEIGE TEMPLATES</button>
+                    <div id="debugResultContainer" style="margin-top:15px; padding:15px; background:#fff3e0; border:1px solid #ffe0b2; font-size:12px; display:none; white-space:pre-wrap; font-family:monospace; line-height:1.6; max-height:400px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="card" style="border-top-color:#4CAF50;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#4CAF50;">Chat Bot Tester</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('chattest')" title="Help">?</button>
+                    </div>
+                    <div id="help-chattest" class="admin-help-panel">
+                        <span class="help-impact impact-low">Test-Tool</span>
+                        <p>Prüft die Google Chat Bot Verbindung (OAuth2) und sendet eine Test-Direktnachricht.</p>
+                    </div>
+                    <div class="form-row">
+                        <label>Empfänger E-Mail (zum Testen)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="email" id="chatTestEmail" placeholder="deine.mail@karcher.com">
+                            <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#4CAF50; color:#fff;" onclick="testChatBot(this)">SENDEN</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top-color:#009688;">
+                  <div class="admin-card-header">
+                      <div class="section-title" style="color:#009688;">
+                          <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">visibility</span>
+                          Project Watchers
+                      </div>
+                      <div style="display:flex;gap:8px;">
+                          <button class="help-toggle-btn" onclick="toggleAdminHelp('watchers')" title="Help">?</button>
+                          <button class="btn-refresh" onclick="loadWatcherConfig()" style="height:28px;font-size:11px;padding:0 12px;">
+                              <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
+                          </button>
+                      </div>
+                  </div>
+                  <div id="help-watchers" class="admin-help-panel">
+                      <span class="help-impact impact-low">Info-only ? Notifications</span>
+                      <p>Bestimmte Personen werden automatisch benachrichtigt wenn ein Projekt aus einem konfigurierten Template eingereicht wird.</p>
+                      <ul>
+                          <li>Template-Namen müssen exakt mit dem Anzeigenamen im Dropdown übereinstimmen (oder als Teilstring enthalten sein).</li>
+                          <li>Der Einreicher selbst erhält keine Watcher-Notification.</li>
+                      </ul>
+                  </div>
+                  <div id="watcherConfigContainer" style="margin-top:10px;">
+                      <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load watcher configuration.</div>
+                  </div>
+                  <div style="margin-top:15px;border-top:1px solid #eee;padding-top:15px;">
+                      <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Add Watcher</div>
+                      <div style="display:flex;gap:10px;margin-bottom:8px;">
+                          <input type="email" id="newWatcherEmail" placeholder="watcher@karcher.com" style="flex:1;">
+                      </div>
+                      <div style="display:flex;gap:10px;margin-bottom:8px;">
+                          <input type="text" id="newWatcherTemplates" placeholder="Template Name 1, Template Name 2, ..." style="flex:1;">
+                      </div>
+                      <button class="btn btn-primary" style="width:100%;background:#009688;height:40px;" onclick="addWatcher()">ADD WATCHER</button>
+                  </div>
+              </div>
+
+                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#1565c0;">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">message</span>
+                            Chat Message Templates
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="help-toggle-btn" onclick="toggleAdminHelp('msgtemplates')" title="Help">?</button>
+                            <button class="btn-refresh" onclick="loadMessageTemplates()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
+                            </button>
+                        </div>
+                    </div>
+                    <div id="help-msgtemplates" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact ? Chat Messages</span>
+                        <p>Customize the text of all automated Chat notifications sent by Translation-Services.</p>
+                        <ul>
+                            <li>Use <strong>{{PLACEHOLDER}}</strong> syntax ? these are replaced dynamically with real values.</li>
+                            <li>Click <strong>Reset</strong> to restore the built-in default for a template.</li>
+                            <li>Available placeholders: <code>{{PROJECT_NAME}}</code> <code>{{PHRASE_ID}}</code> <code>{{SOURCE_LANG}}</code> <code>{{TARGET_LANGS}}</code> <code>{{DEADLINE}}</code> <code>{{TEMPLATE_NAME}}</code> <code>{{STATUS}}</code> <code>{{PHRASE_URL}}</code> <code>{{PORTAL_URL}}</code> <code>{{SHARED_BY}}</code> <code>{{UPDATED_BY}}</code> <code>{{NEW_DATE}}</code> <code>{{NOTE_LINE}}</code> <code>{{FILES}}</code></li>
+                        </ul>
+                    </div>
+                    <div id="msgTemplatesContainer" style="margin-top:10px;">
+                        <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load message templates.</div>
+                    </div>
+                </div>
+                
+                <div class="card" style="border-top-color:#607d8b; grid-column: 1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#607d8b;">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">settings_applications</span>
+                            Advanced Settings (Script Properties)
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="help-toggle-btn" onclick="toggleAdminHelp('advprops')" title="Help">?</button>
+                            <button class="btn-refresh" onclick="loadScriptProperties()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
+                            </button>
+                        </div>
+                    </div>
+                    <div id="help-advprops" class="admin-help-panel">
+                        <span class="help-impact impact-critical">Critical ? System Configuration</span>
+                        <p>These are the raw system variables that control how the application works. <strong>Only edit if you know what you're doing.</strong></p>
+                        <ul>
+                            <li><strong>ACCESS_SHEET_ID / OPS_SHEET_ID:</strong> Google Sheet IDs for the config and uploads databases.</li>
+                            <li><strong>ADMIN_EMAILS:</strong> Comma-separated admin email addresses.</li>
+                            <li><strong>PHRASE_API_TOKEN:</strong> API token for Phrase TMS (masked for security).</li>
+                            <li>? Protected keys cannot be deleted, only edited.</li>
+                            <li>?? Click the eye icon to temporarily reveal masked values.</li>
+                        </ul>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-bottom:15px;align-items:flex-end;">
+                        <div style="flex:1;">
+                            <label style="font-size:12px;">New Key</label>
+                            <input type="text" id="newPropKey" placeholder="MY_NEW_SETTING" style="height:38px;font-size:13px;font-family:monospace;">
+                        </div>
+                        <div style="flex:2;">
+                            <label style="font-size:12px;">Value</label>
+                            <input type="text" id="newPropValue" placeholder="value..." style="height:38px;font-size:13px;">
+                        </div>
+                        <button class="btn btn-primary" style="width:auto;padding:0 20px;height:38px;font-size:12px;flex-shrink:0;" onclick="addNewScriptProperty()">
+                            <i class="material-icons-outlined" style="font-size:16px;margin-right:4px;">add</i> ADD
+                        </button>
+                    </div>
+
+                    <div id="scriptPropsContainer" style="max-height:400px;overflow-y:auto;border:1px solid #eee;background:#fafafa;">
+                        <div style="padding:20px;text-align:center;color:#888;">Click "Reload" to load properties.</div>
+                    </div>
+                </div>
+                
+                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#1565c0;">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">history</span>
+                            Activity Log
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn-refresh" onclick="loadAuditLog()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> Reload
+                            </button>
+                        </div>
+                    </div>
+                    <div id="auditLogContainer" style="max-height:350px;overflow-y:auto;border:1px solid #eee;">
+                        <div style="padding:15px;text-align:center;color:#888;">Click "Reload" to load activity log.</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+<!-- /admin-subtab-console -->
+            <div id="admin-subtab-users" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                <div class="section-title" style="margin:0;border:none;font-size:18px;">User Manager</div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <input type="text" id="userMgrSearch" placeholder="🔍 Global suchen..." oninput="renderUserManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
+                  <button class="btn-refresh" onclick="loadUserManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+                Aus dem Sheet <strong>FetchTMS_USERS-Prod</strong> geladen. <strong>First Name, Last Name, Role</strong> werden live nach Phrase TMS geschrieben. <strong>Clients, Domains, Subdomains, Business Unit, Source Langs, Target Langs, Workflow Steps</strong> sind eure eigenen Filterkriterien und werden nur im Sheet gespeichert. <strong>Username</strong> und <strong>Email</strong> sind nur lesbar. <strong>Status</strong> wird aktuell nur im Sheet gepflegt.
+              </div>
+              <div id="userMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
+              <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
+                <table class="modern-table" id="userMgrTable" style="table-layout:fixed;width:100%;min-width:1100px;">
+                  <colgroup>
+                    <col style="width:10%;"><col style="width:11%;"><col style="width:11%;"><col style="width:17%;">
+                    <col style="width:11%;"><col style="width:7%;"><col style="width:16%;"><col style="width:17%;">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('username')">Username</th>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('firstName')">First Name</th>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('lastName')">Last Name</th>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('email')">Email</th>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('role')">Role</th>
+                      <th style="cursor:pointer;" onclick="userMgrSortBy('status')">Status</th>
+                      <th>Segmentierung</th>
+                      <th>Sprachen &amp; Workflow</th>
+                    </tr>
+                    <tr class="filter-row">
+                      <th><input type="text" class="um-col" data-field="username" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="um-col" data-field="firstName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="um-col" data-field="lastName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="um-col" data-field="email" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th>
+                        <select id="um_role_filter" onchange="renderUserManager()" style="width:100%;height:28px;font-size:10px;padding:0 4px;border:1px solid #ddd;">
+                          <option value="">Alle</option>
+                          <option value="ADMIN">ADMIN</option>
+                          <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
+                          <option value="LINGUIST">LINGUIST</option>
+                          <option value="SUBMITTER">SUBMITTER</option>
+                          <option value="GUEST">GUEST</option>
+                        </select>
+                      </th>
+                      <th></th>
+                      <th style="font-size:10px;color:#999;font-weight:400;">Klicke zum Bearbeiten</th>
+                      <th style="font-size:10px;color:#999;font-weight:400;">Klicke zum Bearbeiten</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div id="userMgrEmpty" style="text-align:center;padding:40px;color:#888;display:none;">Keine User gefunden.</div>
+            </div>
+      <div id="admin-subtab-templates" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                <div class="section-title" style="margin:0;border:none;font-size:18px;">Template Manager</div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <input type="text" id="tmplMgrSearch" placeholder="🔍 Global suchen..." oninput="renderTemplateManager()" style="width:200px;height:38px;padding:0 12px;font-size:13px;border:1px solid #ccc;">
+                  <button class="btn-refresh" onclick="loadTemplateManager()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
+                  <button class="btn-refresh" onclick="tmplMgrSyncFromPhrase()" title="Neue Templates aus Phrase ins Sheet holen"><i class="material-icons-outlined">cloud_sync</i> Sync aus Phrase</button>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#888;margin-bottom:12px;">Live aus Phrase gezogen. Der <strong>Active</strong>-Schalter steuert, ob das Template im Upload-Dropdown erscheint (wird ins Sheet geschrieben).</div>
+              <div id="tmplMgrBatchBar" style="display:none;align-items:center;gap:12px;background:#fff9c4;border:1px solid #fff59d;padding:8px 14px;margin-bottom:12px;font-size:13px;">
+                <strong id="tmplMgrSelCount">0</strong> ausgewählt
+                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#4CAF50;color:#fff;" onclick="batchSetTemplateActive(true)">? Aktivieren</button>
+                <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#d93025;color:#fff;" onclick="batchSetTemplateActive(false)">? Deaktivieren</button>
+                <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;text-decoration:underline;" onclick="tmplMgrClearSelection()">Auswahl aufheben</button>
+              </div>
+              <div id="tmplMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
+              <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
+                <table class="modern-table" id="tmplMgrTable" style="table-layout:fixed;width:100%;min-width:1000px;">
+                  <colgroup>
+                    <col style="width:40px;">
+                    <col style="width:60px;">
+                    <col style="width:22%;">
+                    <col style="width:18%;">
+                    <col style="width:70px;">
+                    <col style="width:22%;">
+                    <col style="width:22%;">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th style="text-align:center;"><input type="checkbox" id="tmplMgrSelectAll" onchange="tmplMgrToggleAll(this)" title="Alle sichtbaren auswählen"></th>
+                      <th style="text-align:center;">Active</th>
+                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('displayName')">Display Name</th>
+                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('phraseName')">Phrase Name</th>
+                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('sourceLang')">Source</th>
+                      <th style="cursor:pointer;" onclick="tmplMgrSortBy('targetLangs')">Targets</th>
+                      <th>Segmentierung</th>
+                    </tr>
+                    <tr class="filter-row">
+                      <th></th>
+                      <th>
+                        <select id="tf_active" onchange="renderTemplateManager()" style="width:100%;height:28px;font-size:10px;padding:0 4px;border:1px solid #ddd;">
+                          <option value="">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option>
+                        </select>
+                      </th>
+                      <th><input type="text" class="tf-col" data-field="displayName" oninput="renderTemplateManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="tf-col" data-field="phraseName" oninput="renderTemplateManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="tf-col" data-field="sourceLang" oninput="renderTemplateManager()" placeholder="?" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" class="tf-col" data-field="targetLangs" oninput="renderTemplateManager()" placeholder="z.B. de_de" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                      <th><input type="text" id="tf_segmentation" oninput="renderTemplateManager()" placeholder="Client/Domain/Subdom./BU..." style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;"></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div id="tmplMgrEmpty" style="text-align:center;padding:40px;color:#888;display:none;">Keine Templates gefunden.</div>
+    </div>
+<!-- /admin-subtab-templates -->
+  </div> <!-- /container -->
