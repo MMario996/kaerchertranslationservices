@@ -1,6 +1,6 @@
 /**
  * Sheets.gs
- * Sheet-Zugriffe f?r Templates und Projekte.
+ * Sheet-Zugriffe für Templates und Projekte.
  *
  * HINWEIS: openOpsSS_(), openAccessSS_(), getQueueSheet_() sind kanonisch
  * in WebApp.js / AutoSync.js definiert. Duplikate hier entfernt.
@@ -123,7 +123,7 @@ function _phraseProjectUrl_(projectUid) {
 
 /**
  * Liefert alle Templates aus dem Sheet FetchTemplate-Prod (schnell).
- * KEIN Live-Phrase-Abruf ? das Sheet ist durch den Sync bereits bef?llt.
+ * KEIN Live-Phrase-Abruf ? das Sheet ist durch den Sync bereits befüllt.
  */
 function apiGetTemplatesForManager() {
   const caller = getUserEmail_();
@@ -172,7 +172,7 @@ function apiGetTemplatesForManager() {
 }
 
 /**
- * Setzt Active yes/no f?r ein einzelnes Template im Sheet.
+ * Setzt Active yes/no für ein einzelnes Template im Sheet.
  * Legt die Zeile an, falls das Template noch nicht im Sheet steht.
  */
 function apiSetTemplateActive(templateUid, active) {
@@ -229,8 +229,8 @@ function DEBUG_tmplMgr() {
    ========================================================================== */
 
 /**
- * ?ffnet das Spreadsheet, in dem FetchTMS_USERS-Prod liegt.
- * TODO: Falls ihr daf?r bereits eine Script-Property analog ACCESS_SHEET_ID/
+ * öffnet das Spreadsheet, in dem FetchTMS_USERS-Prod liegt.
+ * TODO: Falls ihr dafür bereits eine Script-Property analog ACCESS_SHEET_ID/
  * OPS_SHEET_ID habt, hier ersetzen durch:
  * PropertiesService.getScriptProperties().getProperty('USER_SHEET_ID')
  */
@@ -275,10 +275,10 @@ function apiGetUsersForManager() {
 }
 
 /**
- * Schreibt ein Feld f?r einen User ins Sheet und optional (live) nach Phrase.
- * Sheet-Write passiert IMMER zuerst und unabh?ngig vom Phrase-Ergebnis ?
+ * Schreibt ein Feld für einen User ins Sheet und optional (live) nach Phrase.
+ * Sheet-Write passiert IMMER zuerst und unabhängig vom Phrase-Ergebnis ?
  * geht der Phrase-Call schief, bleibt das Sheet trotzdem korrekt und die
- * Funktion gibt eine Warnung statt eines Fehlers zur?ck.
+ * Funktion gibt eine Warnung statt eines Fehlers zurück.
  */
 function apiUpdateUserField(username, field, value, syncToPhrase) {
   const caller = getUserEmail_();
@@ -327,12 +327,12 @@ function apiUpdateUserField(username, field, value, syncToPhrase) {
  * Schreibt firstName/lastName/role live in Phrase TMS.
  * Sucht zuerst die interne Phrase-userUid per userName-Lookup.
  *
- * ANNAHME (nicht live getestet ? vor Rollout mit einem Test-User pr?fen):
- * - Auth-Header: "Bearer " + PHRASE_API_TOKEN (wie in eurem ?brigen Code verwendet)
+ * ANNAHME (nicht live getestet ? vor Rollout mit einem Test-User prüfen):
+ * - Auth-Header: "Bearer " + PHRASE_API_TOKEN (wie in eurem übrigen Code verwendet)
  * - GET  /web/api2/v1/users?userName=... liefert { content: [ {id, userName, ...} ] }
  * - PUT  /web/api2/v1/users/{uid}  nimmt { firstName / lastName / role } entgegen
  *
- * Falls ihr schon einen zentralen Helper f?r Phrase-Header habt (z.B. eine
+ * Falls ihr schon einen zentralen Helper für Phrase-Header habt (z.B. eine
  * Funktion wie getPhraseHeaders_()), den hier statt der Inline-Konstruktion nutzen.
  */
 function _syncUserFieldToPhrase_(username, field, value) {
@@ -355,7 +355,7 @@ function _syncUserFieldToPhrase_(username, field, value) {
   // 2) Feld-Mapping App ? Phrase-API
   const fieldMap = { firstName: 'firstName', lastName: 'lastName', role: 'role' };
   const phraseField = fieldMap[field];
-  if (!phraseField) throw new Error("Feld '" + field + "' ist nicht f?r Phrase-Sync vorgesehen.");
+  if (!phraseField) throw new Error("Feld '" + field + "' ist nicht für Phrase-Sync vorgesehen.");
 
   const body = {};
   body[phraseField] = value;

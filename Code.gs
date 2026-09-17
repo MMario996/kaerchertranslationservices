@@ -1,7 +1,7 @@
 /**
  * Code.gs
  *
- * Entry point f?r die Web App.
+ * Entry point für die Web App.
  *
  * HINWEIS: getUserEmail_(), isAdmin_(), openAccessSS_(), openOpsSS_()
  * sind kanonisch in Config.js und WebApp.js definiert.
@@ -128,24 +128,24 @@ function apiCheckAccess() {
 }
 function DEBUG_checkChatKeyFormat() {
   var raw = PropertiesService.getScriptProperties().getProperty("CHAT_PRIVATE_KEY");
-  if (!raw) { console.log("? CHAT_PRIVATE_KEY ist leer/nicht gesetzt."); return; }
-  console.log("L?nge gesamt:", raw.length);
-  console.log("Beginnt mit (erste 30 Zeichen, ungef?hrlich):", raw.substring(0, 30));
+  if (!raw) { console.log("\u2022 CHAT_PRIVATE_KEY ist leer/nicht gesetzt."); return; }
+  console.log("Länge gesamt:", raw.length);
+  console.log("Beginnt mit (erste 30 Zeichen, ungefährlich):", raw.substring(0, 30));
   console.log("Endet mit (letzte 30 Zeichen):", raw.substring(raw.length - 30));
-  console.log("Enth?lt literales '\\\\n' (Backslash-n als Text):", raw.indexOf("\\n") !== -1);
-  console.log("Enth?lt echte Zeilenumbr?che (\\n):", raw.indexOf("\n") !== -1);
-  console.log("Anzahl Zeilenumbr?che gesamt:", (raw.match(/\n/g) || []).length);
+  console.log("Enthält literales '\\\\n' (Backslash-n als Text):", raw.indexOf("\\n") !== -1);
+  console.log("Enthält echte Zeilenumbrüche (\\n):", raw.indexOf("\n") !== -1);
+  console.log("Anzahl Zeilenumbrüche gesamt:", (raw.match(/\n/g) || []).length);
   console.log("Korrekter BEGIN-Header (5 Striche)?:", raw.indexOf("-----BEGIN PRIVATE KEY-----") === 0);
-  console.log("Enth?lt korrekten END-Header (5 Striche)?:", raw.indexOf("-----END PRIVATE KEY-----") !== -1);
+  console.log("Enthält korrekten END-Header (5 Striche)?:", raw.indexOf("-----END PRIVATE KEY-----") !== -1);
 }
 function DEBUG_repairChatPrivateKeyFormat() {
   var props = PropertiesService.getScriptProperties();
   var raw = props.getProperty("CHAT_PRIVATE_KEY");
-  if (!raw) { console.log("? Kein CHAT_PRIVATE_KEY vorhanden."); return; }
+  if (!raw) { console.log("\u2022 Kein CHAT_PRIVATE_KEY vorhanden."); return; }
   var beginMarker = "-----BEGIN PRIVATE KEY-----";
   var endMarker = "-----END PRIVATE KEY-----";
   if (raw.indexOf(beginMarker) !== 0 || raw.indexOf(endMarker) === -1) {
-    console.log("? BEGIN/END Marker nicht wie erwartet gefunden. Abbruch ? bitte nicht weiter automatisch reparieren.");
+    console.log("\u2022 BEGIN/END Marker nicht wie erwartet gefunden. Abbruch ? bitte nicht weiter automatisch reparieren.");
     return;
   }
   var body = raw.substring(beginMarker.length, raw.indexOf(endMarker)).trim();
@@ -155,17 +155,17 @@ function DEBUG_repairChatPrivateKeyFormat() {
     lines.push(body.substring(i, i + 64));
   }
   var repaired = beginMarker + "\n" + lines.join("\n") + "\n" + endMarker + "\n";
-  console.log("Neue Gesamtl?nge:", repaired.length);
-  console.log("Neue Anzahl Zeilenumbr?che:", (repaired.match(/\n/g) || []).length);
+  console.log("Neue Gesamtlänge:", repaired.length);
+  console.log("Neue Anzahl Zeilenumbrüche:", (repaired.match(/\n/g) || []).length);
   props.setProperty("CHAT_PRIVATE_KEY", repaired);
-  console.log("? CHAT_PRIVATE_KEY neu formatiert und gespeichert.");
+  console.log("\u2713 CHAT_PRIVATE_KEY neu formatiert und gespeichert.");
 }
 function fixCorruptChatToken() {
      const props = PropertiesService.getScriptProperties();
      props.deleteProperty("oauth2.TranslationChatBot_v3");
      props.deleteProperty("oauth2.GoogleChatBot");
      const service = getChatBotService_();
-     if (!service) { console.log("? Service null ? Keys fehlen"); return; }
+     if (!service) { console.log("\u2022 Service null ? Keys fehlen"); return; }
      console.log("Has Access:", service.hasAccess());
-     if (service.hasAccess()) console.log("? Neuer Token erfolgreich generiert!");
+     if (service.hasAccess()) console.log("\u2713 Neuer Token erfolgreich generiert!");
    }

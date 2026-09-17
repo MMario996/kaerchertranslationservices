@@ -1,7 +1,7 @@
 /**
  * DocBoard.gs
  * Liest die "Board"-Kanban-Ansicht live aus dem externen Documentation-Sheet
- * und liefert sie strukturiert ans Frontend. Google Sheets l?sst sich nicht
+ * und liefert sie strukturiert ans Frontend. Google Sheets lässt sich nicht
  * per iframe einbetten (CSP), daher bauen wir die Kanban-Ansicht selbst nach.
  */
 var DOC_BOARD_SHEET_ID_   = "1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs";

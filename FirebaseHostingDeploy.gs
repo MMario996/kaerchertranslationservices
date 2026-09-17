@@ -43,7 +43,7 @@ function deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix) {
       "Deploy abgebrochen: Es wurde kein 'scormcontent/index.html' auf der " +
       "erwarteten Pfad-Ebene gefunden. Der Drive-Ordner ist vermutlich eine " +
       "Ebene zu tief verschachtelt.\n\n" +
-      "Erwartet: der ausgew?hlte Ordner enth?lt DIREKT 'scormcontent/'.\n\n" +
+      "Erwartet: der ausgewählte Ordner enthält DIREKT 'scormcontent/'.\n\n" +
       "Gefundene Pfade (Auszug):\n  " + samplePaths
     );
   }
@@ -170,7 +170,7 @@ function deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix) {
 
 function normalizeFirebasePath_(relativePath, pathPrefix) {
   var path = relativePath.replace(/^\/+/, "");
-  // 404.html geh?rt immer in den Site-Root, nie unter den pathPrefix.
+  // 404.html gehört immer in den Site-Root, nie unter den pathPrefix.
   if (path === "404.html") return "/404.html";
   if (pathPrefix) {
     var prefix = pathPrefix.replace(/^\/|\/$/g, "");

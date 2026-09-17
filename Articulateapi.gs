@@ -114,7 +114,7 @@ function apiListArticulateProjectsForUi() {
 function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePath, ignoreId) {
   var info = {};
 
-  // ?? 1) Projekt ??????????????????????????????????????????????????????????
+  // ?? 1) Projekt ----------------------------------------------------------
   var project;
   try {
     project = phraseFetchJson_(
@@ -133,7 +133,7 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
   info.projectName = project.name || "";
   info.sourceLang = project.sourceLang || "";
 
-  // ?? 2) Job ? muss zu genau diesem Projekt gehoeren ??????????????????????
+  // ?? 2) Job ? muss zu genau diesem Projekt gehoeren ----------------------
   var job;
   try {
     job = phraseFetchJson_(
@@ -159,7 +159,7 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
   // Warnung (kein harter Fehler): XLIFF erwartet
   info.looksLikeXliff = /\.(xlf|xliff)$/i.test(info.jobFileName);
 
-  // ?? 3) Drive-Ordner ?????????????????????????????????????????????????????
+  // ?? 3) Drive-Ordner -----------------------------------------------------
   var folder;
   try {
     folder = DriveApp.getFolderById(driveFolderId);
@@ -195,7 +195,7 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
     );
   }
 
-  // ?? 3b) TEST: Passt der Job inhaltlich zu DIESEM Kurs? ??????????????????
+  // ?? 3b) TEST: Passt der Job inhaltlich zu DIESEM Kurs? ------------------
   // Baut denselben Index wie beim echten Patchen auf (buildIndex_ aus
   // RisePatcher.gs) und prueft, wie viele Textstellen der XLIFF im Kurs
   // ueberhaupt vorkommen. Faengt genau den Fehler ab, dass im Batch
@@ -233,15 +233,15 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
     if (total > 0 && matched / total < 0.3) {
       info.scormMatchWarning =
         "Nur " + matched + " von " + total + " Textstellen (" + info.scormMatchRatio +
-        "%) aus dem Job passen zum Kurs in diesem Drive-Ordner. Der Job geh?rt " +
-        "vermutlich zu einem ANDEREN Rise-Kurs ? bitte Job/Ordner-Zuordnung pr?fen, " +
-        "bevor du fortf?hrst.";
+        "%) aus dem Job passen zum Kurs in diesem Drive-Ordner. Der Job gehört " +
+        "vermutlich zu einem ANDEREN Rise-Kurs ? bitte Job/Ordner-Zuordnung prüfen, " +
+        "bevor du fortführst.";
     }
   } catch (e) {
     console.warn("SCORM-Kompatibilitaets-Check uebersprungen: " + e.message);
   }
 
-  // ?? 4) Doppelter Firebase-Pfad? ?????????????????????????????????????????
+  // ?? 4) Doppelter Firebase-Pfad? -----------------------------------------
   var existing = apiListArticulateProjects().rows;
   for (var j = 0; j < existing.length; j++) {
     if (existing[j].id === ignoreId) continue;
@@ -332,7 +332,7 @@ function apiCreateArticulateProjectFromUi(payload) {
 }
 
 /**
- * Legt mehrere Articulate-Kurse (Registry-Eintr?ge) auf einmal an ?
+ * Legt mehrere Articulate-Kurse (Registry-Einträge) auf einmal an ?
  * ein Aufruf pro Job im Projekt. Ruft intern die bestehende Einzel-
  * Anlegefunktion (inkl. Validierung + Chat-Nachricht) auf, damit keine
  * Logik doppelt gepflegt werden muss.
@@ -450,7 +450,7 @@ var ART_PICKER_BUSINESS_UNIT_ID_ = 56159;   // FTC-D
 
 /**
  * Liefert alle Phrase-Projekte, die zu Domain "General Content",
- * Client "AKW" und Business Unit "FTC-D" geh?ren.
+ * Client "AKW" und Business Unit "FTC-D" gehören.
  * @return {Array<{uid:string,name:string,targetLangs:string[]}>}
  */
 function apiArtPickerListProjects() {

@@ -2,18 +2,18 @@
  * KeCProjects.gs
  * - Liefert offene Projekte live aus Phrase (Status NEW, Client AKW, Domain Marketing Content, BU MMV-P)
  * - FIX: Phrase v1 /projects ignoriert clientId/domainId/businessUnitId Query-Params still.
- *        L?sung: Alle NEW-Projekte paginiert laden, dann clientseitig filtern.
+ *        Lösung: Alle NEW-Projekte paginiert laden, dann clientseitig filtern.
  * - FIX: Paginierung implementiert (war vorher pageSize=100 ohne Loop ? Projekte > Seite 1 fehlten)
- * - Pr?ft Workflow Steps PRO LEVEL (/jobs?workflowLevel=N, da /jobs sonst nur Level 1 liefert):
+ * - Prüft Workflow Steps PRO LEVEL (/jobs?workflowLevel=N, da /jobs sonst nur Level 1 liefert):
  *   Level 1 ("Translation" / MT) EGAL, ab Level 2 blockt jeder Job, der NICHT "NEW" oder "EMAILED" ist.
  * - Upload neuer Dateien in bestehendes Phrase-Projekt
- * - Einzelprojekt-Debugger f?r das Frontend
+ * - Einzelprojekt-Debugger für das Frontend
  *
  * FIX (Admin-Konfiguration): Client/Domain/Business-Unit IDs sind jetzt in Script
  * Properties gespeichert (KEC_CLIENT_ID, KEC_DOMAIN_ID, KEC_BUSINESS_UNIT_ID) statt
  * hartkodiert. Getter-Funktionen liefern Fallback auf die bisherigen Default-Werte,
  * damit nichts bricht solange die Properties noch nicht gesetzt sind.
- * Admin kann die Werte ?ber den "KeC Eligibility Settings" Admin-Card ?ndern
+ * Admin kann die Werte über den "KeC Eligibility Settings" Admin-Card ändern
  * (gesperrt per Schloss-Icon, muss erst entsperrt werden).
  */
 
@@ -24,7 +24,7 @@ var KEC_CLIENT_ID_DEFAULT_        = "620249"; // AKW
 var KEC_DOMAIN_ID_DEFAULT_        = "23997";  // Marketing Content
 var KEC_BUSINESS_UNIT_ID_DEFAULT_ = "56182";  // MMV-P
 
-// ??? Getter: Client/Domain/BU IDs (Script Properties mit Fallback) ????????????
+// --- Getter: Client/Domain/BU IDs (Script Properties mit Fallback) ------------
 
 function getKecClientId_() {
   return String(PropertiesService.getScriptProperties().getProperty("KEC_CLIENT_ID") || KEC_CLIENT_ID_DEFAULT_).trim();
@@ -36,7 +36,7 @@ function getKecBusinessUnitId_() {
   return String(PropertiesService.getScriptProperties().getProperty("KEC_BUSINESS_UNIT_ID") || KEC_BUSINESS_UNIT_ID_DEFAULT_).trim();
 }
 
-// ??? Admin API: Aktuelle Werte lesen ??????????????????????????????????????????
+// --- Admin API: Aktuelle Werte lesen ------------------------------------------
 
 function apiGetKecEligibilitySettings() {
   const caller = getUserEmail_();
@@ -48,7 +48,7 @@ function apiGetKecEligibilitySettings() {
   };
 }
 
-// ??? Admin API: Neue Werte speichern ??????????????????????????????????????????
+// --- Admin API: Neue Werte speichern ------------------------------------------
 
 function apiSaveKecEligibilitySettings(clientId, domainId, businessUnitId) {
   const caller = getUserEmail_();
@@ -59,10 +59,10 @@ function apiSaveKecEligibilitySettings(clientId, domainId, businessUnitId) {
   businessUnitId = String(businessUnitId || "").trim();
 
   if (!clientId || !domainId || !businessUnitId) {
-    throw new Error("Client-ID, Domain-ID und Business-Unit-ID d?rfen nicht leer sein.");
+    throw new Error("Client-ID, Domain-ID und Business-Unit-ID dürfen nicht leer sein.");
   }
   if (!/^\d+$/.test(clientId) || !/^\d+$/.test(domainId) || !/^\d+$/.test(businessUnitId)) {
-    throw new Error("IDs m?ssen numerisch sein (z.B. 620249).");
+    throw new Error("IDs müssen numerisch sein (z.B. 620249).");
   }
 
   const props = PropertiesService.getScriptProperties();
@@ -73,14 +73,14 @@ function apiSaveKecEligibilitySettings(clientId, domainId, businessUnitId) {
   logAuditEvent_(
     caller,
     "KEC_CONFIG_EDIT",
-    "KeC Eligibility IDs ge?ndert ? Client: " + clientId + ", Domain: " + domainId + ", BU: " + businessUnitId
+    "KeC Eligibility IDs geändert ? Client: " + clientId + ", Domain: " + domainId + ", BU: " + businessUnitId
   );
 
   return { success: true };
 }
 
 // ============================================================================
-// API: Liste offener Projekte f?r das KeC-Dropdown
+// API: Liste offener Projekte für das KeC-Dropdown
 // ============================================================================
 
 function apiGetEligibleKeCProjects() {
@@ -105,7 +105,7 @@ function apiGetEligibleKeCProjects() {
       );
       const res = phraseFetchJson_(url, { method: "get", headers: authHeader });
 
-      // v1 gibt Array direkt zur?ck (kein .content)
+      // v1 gibt Array direkt zurück (kein .content)
       const page = Array.isArray(res) ? res : (res && res.content ? res.content : []);
 
       if (!page.length) break;
@@ -145,13 +145,13 @@ function apiGetEligibleKeCProjects() {
       return clientOk && domainOk && buOk;
     });
 
-    console.log("KeC: " + matching.length + " Projekte nach Metadaten-Filter. Pr?fe Workflow-Zust?nde...");
+    console.log("KeC: " + matching.length + " Projekte nach Metadaten-Filter. Prüfe Workflow-Zustände...");
 
     if (!matching.length) {
       return { success: true, projects: [] };
     }
 
-    // Workflow-Eligibility pr?fen
+    // Workflow-Eligibility prüfen
     const eligible = [];
 
     for (const p of matching) {
@@ -178,12 +178,12 @@ function apiGetEligibleKeCProjects() {
         console.log("KeC Match: " + p.name);
 
       } catch (innerErr) {
-        console.warn("KeC: Workflow-Check ?bersprungen f?r " + p.uid + ": " + innerErr.message);
+        console.warn("KeC: Workflow-Check übersprungen für " + p.uid + ": " + innerErr.message);
       }
     }
 
     eligible.sort((a, b) => a.projectName.localeCompare(b.projectName));
-    console.log("KeC: " + eligible.length + " finale Projekte an Frontend ?bergeben.");
+    console.log("KeC: " + eligible.length + " finale Projekte an Frontend übergeben.");
     return { success: true, projects: eligible };
 
   } catch (e) {
@@ -200,7 +200,7 @@ function apiGetEligibleKeCProjects() {
  * REGEL:
  * - Level 1 ("Translation" / MT): EGAL ob offen, COMPLETED oder DELIVERED -> kein Blocker!
  * - Level 2+ ("Review AKW" etc.): Solange KEIN Job dort in aktiver Bearbeitung oder 
- *   abgeschlossen ist, bleibt das Projekt offen f?r neue Uploads.
+ *   abgeschlossen ist, bleibt das Projekt offen für neue Uploads.
  */
 function _kecCheckProjectEligibility_(projectUid) {
   const authHeader = { Authorization: getPhraseAuthHeader_() };
@@ -236,7 +236,7 @@ function _kecCheckProjectEligibility_(projectUid) {
 
     highestLevelSeen = level;
 
-    // Zielsprachen ?ber ALLE Levels sammeln
+    // Zielsprachen über ALLE Levels sammeln
     for (const j of jobs) {
       const tl = String(j.targetLang || "").trim();
       if (tl) targetLangsSet[tl] = true;
@@ -359,7 +359,7 @@ function apiDebugSingleKeCProject(projectUid) {
     report.domainOk = actualDomainId === kecDomainId  || actualDomainName === "Marketing Content";
     report.buOk     = actualBuId === kecBuId || actualBuName === "MMV-P";
 
-    // GATE 6: Workflow (exakter Abgleich zur zentralen Pr?flogik)
+    // GATE 6: Workflow (exakter Abgleich zur zentralen Prüflogik)
     const eligibility = _kecCheckProjectEligibility_(projectUid);
     if (eligibility.eligible) {
       report.workflowOk = true;
@@ -423,12 +423,12 @@ function apiUploadToExistingProject(payload) {
   }
 
   try {
-    // Eligibility nochmal pr?fen
+    // Eligibility nochmal prüfen
     const eligibility = _kecCheckProjectEligibility_(projectUid);
     if (!eligibility.eligible) {
       return {
         success: false,
-        error: "Projekt ist nicht mehr f?r zus?tzliche Uploads geeignet.\n\nGrund: " + eligibility.reason
+        error: "Projekt ist nicht mehr für zusätzliche Uploads geeignet.\n\nGrund: " + eligibility.reason
       };
     }
 
@@ -460,7 +460,7 @@ function apiUploadToExistingProject(payload) {
     const refResults = [];
     for (const f of refFiles) {
       if (Date.now() - _startTime > KEC_UPLOAD_DEADLINE_MS_) {
-        console.warn("?? KeC Deadline guard: skipping remaining reference files");
+        console.warn("\u26A0 KeC Deadline guard: skipping remaining reference files");
         break;
       }
       try {
@@ -481,7 +481,7 @@ function apiUploadToExistingProject(payload) {
 
     for (let i = 0; i < mainFiles.length; i++) {
       if (Date.now() - _startTime > KEC_UPLOAD_DEADLINE_MS_) {
-        overallErrors.push("?? Some files were not uploaded due to time limit.");
+        overallErrors.push("\u26A0 Some files were not uploaded due to time limit.");
         break;
       }
       try {
@@ -493,7 +493,7 @@ function apiUploadToExistingProject(payload) {
 
         if (up.unsupportedFiles && up.unsupportedFiles.length > 0) {
           mainResults.push({ name: mainFileName, jobUids: [], unsupported: true });
-          overallErrors.push(`"${mainFileName}" wurde von Phrase TMS abgelehnt ? Format nicht unterst?tzt.`);
+          overallErrors.push(`"${mainFileName}" wurde von Phrase TMS abgelehnt ? Format nicht unterstützt.`);
           continue;
         }
 
@@ -504,7 +504,7 @@ function apiUploadToExistingProject(payload) {
         });
 
       } catch (e) {
-        overallErrors.push(`Upload fehlgeschlagen f?r Datei ${i + 1}: ${e.message}`);
+        overallErrors.push(`Upload fehlgeschlagen für Datei ${i + 1}: ${e.message}`);
       }
     }
 
@@ -518,13 +518,13 @@ function apiUploadToExistingProject(payload) {
       const phraseUrl    = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);
       const filesBlock   = mainResults.map(f =>
         f.unsupported
-          ? `? *${f.name}* ?? (Format nicht unterst?tzt)`
+          ? `? *${f.name}* ?? (Format nicht unterstützt)`
           : `? *${f.name}*\n` + (f.jobUids || []).map((jUid, idx) =>
               `   ? ${(f.targetLangs && f.targetLangs[idx]) || "Target"}: https://cloud.memsource.com/web/job/${encodeURIComponent(jUid)}/translate`
             ).join("\n")
       ).join("\n");
 
-      const noteLine   = payload.note ? "? *Notiz:* " + payload.note + "\n" : "";
+      const noteLine   = payload.note ? "\u2022 *Notiz:* " + payload.note + "\n" : "";
       const projectMsg = fillTemplate_(getMessageTemplate_("MSG_PROJECT_SUBMITTED", "en"), {
         PROJECT_NAME:  queueProjectName + " (additional jobs)",
         TEMPLATE_NAME: "Existing KeC Project",

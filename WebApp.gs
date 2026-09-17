@@ -610,7 +610,7 @@ function apiHealthCheck() {
 
   try {
     const token = String(PropertiesService.getScriptProperties().getProperty("PHRASE_API_TOKEN") || "").trim();
-    checks.push({ name: "Phrase API Token", status: token.length > 10 ? "ok" : "error", message: token ? `Set (${token.length} chars)` : "? PHRASE_API_TOKEN not set!" });
+    checks.push({ name: "Phrase API Token", status: token.length > 10 ? "ok" : "error", message: token ? `Set (${token.length} chars)` : "\u2717 PHRASE_API_TOKEN not set!" });
   } catch(e) { checks.push({ name: "Phrase API Token", status: "error", message: e.message }); }
 
   try {
@@ -626,7 +626,7 @@ function apiHealthCheck() {
     const ss = SpreadsheetApp.openById(id);
     const sh = ss.getSheetByName("FetchTemplate-Prod");
     const count = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
-    checks.push({ name: "Access Sheet", status: sh ? "ok" : "error", message: sh ? `FetchTemplate-Prod: ${count} templates` : "? FetchTemplate-Prod not found!" });
+    checks.push({ name: "Access Sheet", status: sh ? "ok" : "error", message: sh ? `FetchTemplate-Prod: ${count} templates` : "\u2717 FetchTemplate-Prod not found!" });
   } catch(e) { checks.push({ name: "Access Sheet", status: "error", message: e.message }); }
 
   try {
@@ -635,7 +635,7 @@ function apiHealthCheck() {
     const ss = SpreadsheetApp.openById(id);
     const sh = ss.getSheetByName("Queue");
     const count = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
-    checks.push({ name: "OPS Sheet", status: sh ? "ok" : "error", message: sh ? `Queue: ${count} entries` : "? Queue sheet not found!" });
+    checks.push({ name: "OPS Sheet", status: sh ? "ok" : "error", message: sh ? `Queue: ${count} entries` : "\u2717 Queue sheet not found!" });
   } catch(e) { checks.push({ name: "OPS Sheet", status: "error", message: e.message }); }
 
   const admins = (PropertiesService.getScriptProperties().getProperty("ADMIN_EMAILS") || "").split(",").map(s => s.trim()).filter(Boolean);

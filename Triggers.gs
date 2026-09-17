@@ -1,82 +1,82 @@
 /**
  * SetupTriggers.gs
- * Einmalig ausf?hren im Apps Script Editor ? Funktion "setupAllTriggers" ? Run
- * Setzt alle n?tigen Trigger f?r das Translation Hub Projekt.
+ * Einmalig ausführen im Apps Script Editor ? Funktion "setupAllTriggers" ? Run
+ * Setzt alle nötigen Trigger für das Translation Hub Projekt.
  */
 
 function setupAllTriggers() {
-  console.log("? Starte Trigger-Setup...");
+  console.log("\u2022 Starte Trigger-Setup...");
 
-  // Alle bestehenden Trigger l?schen (sauberer Start)
+  // Alle bestehenden Trigger löschen (sauberer Start)
   const existing = ScriptApp.getProjectTriggers();
   existing.forEach(t => {
     ScriptApp.deleteTrigger(t);
-    console.log("?? Gel?scht: " + t.getHandlerFunction());
+    console.log("\u26A0 Gelöscht: " + t.getHandlerFunction());
   });
 
-  // ?? 1. AutoSync ? alle 15 Minuten ????????????????????????????????????????
+  // ?? 1. AutoSync ? alle 15 Minuten ----------------------------------------
   ScriptApp.newTrigger("autoSyncProjectStatuses_")
     .timeBased()
     .everyMinutes(15)
     .create();
-  console.log("? AutoSync: alle 15 Minuten");
+  console.log("\u2022 AutoSync: alle 15 Minuten");
 
-  // ?? 2. Chat-Property-Cleanup ? t?glich 03:00 ?????????????????????????????
+  // ?? 2. Chat-Property-Cleanup ? täglich 03:00 -----------------------------
   ScriptApp.newTrigger("cleanupChatDedupProperties_")
     .timeBased()
     .atHour(3)
     .everyDays(1)
     .create();
-  console.log("? Chat-Cleanup: t?glich 03:00");
+  console.log("\u2022 Chat-Cleanup: täglich 03:00");
 
   // Script Property setzen damit der Toggle in der UI korrekt angezeigt wird
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "true");
 
-  // ?? ?bersicht aller gesetzten Trigger ????????????????????????????????????
-  console.log("????????????????????????????????");
-  console.log("? Trigger-Setup abgeschlossen!");
-  console.log("????????????????????????????????");
+  // ?? Übersicht aller gesetzten Trigger ------------------------------------
+  console.log("--------------------------------");
+  console.log("\u2713 Trigger-Setup abgeschlossen!");
+  console.log("--------------------------------");
   ScriptApp.getProjectTriggers().forEach(t => {
-    console.log("? " + t.getHandlerFunction() + " (" + t.getTriggerSource() + ")");
+    console.log("\u2022 " + t.getHandlerFunction() + " (" + t.getTriggerSource() + ")");
   });
 
-  return "? Alle Trigger gesetzt.";
+  return "\u2022 Alle Trigger gesetzt.";
 }
 
 /**
- * Zeigt alle aktuell gesetzten Trigger ? zum ?berpr?fen.
- * Ausf?hren: Funktion "listAllTriggers" ? Run
+ * Zeigt alle aktuell gesetzten Trigger ? zum überprüfen.
+ * Ausführen: Funktion "listAllTriggers" ? Run
  */
 function listAllTriggers() {
   const triggers = ScriptApp.getProjectTriggers();
   if (!triggers.length) {
-    console.log("?? Keine Trigger gesetzt.");
+    console.log("\u26A0 Keine Trigger gesetzt.");
     return;
   }
-  console.log("????????????????????????????????");
+  console.log("--------------------------------");
   console.log("Aktuelle Trigger (" + triggers.length + "):");
   triggers.forEach(t => {
-    console.log("? " + t.getHandlerFunction()
+    console.log("\u2022 " + t.getHandlerFunction()
       + " | Source: " + t.getTriggerSource()
       + " | Type: " + t.getEventType());
   });
-  console.log("????????????????????????????????");
+  console.log("--------------------------------");
 }
 
 /**
- * L?scht alle Trigger ? zum Zur?cksetzen.
- * Ausf?hren: Funktion "removeAllTriggers" ? Run
+ * Löscht alle Trigger ? zum Zurücksetzen.
+ * Ausführen: Funktion "removeAllTriggers" ? Run
  */
 function removeAllTriggers() {
   ScriptApp.getProjectTriggers().forEach(t => {
     ScriptApp.deleteTrigger(t);
-    console.log("?? Gel?scht: " + t.getHandlerFunction());
+    console.log("\u26A0 Gelöscht: " + t.getHandlerFunction());
   });
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "false");
-  console.log("? Alle Trigger entfernt.");
+  console.log("\u2022 Alle Trigger entfernt.");
 }
 /**
- * L?scht CHAT_NOTIFIED__-Properties von Projekten, die terminal sind
+ * Löscht CHAT_NOTIFIED__-Properties von Projekten, die terminal sind
  * (COMPLETED/DELIVERED/CANCELLED/etc.) oder nicht mehr in der Queue stehen.
  * CHAT_FIRST_SUBMIT__ und CHAT_PREF_ON__ bleiben unangetastet.
  */
@@ -104,20 +104,20 @@ function cleanupChatDedupProperties_() {
     if (key.indexOf("CHAT_NOTIFIED__") !== 0) return;
     var uid = key.substring("CHAT_NOTIFIED__".length);
     var status = statusByUid[uid];
-    // L?schen wenn: nicht mehr in Queue ODER terminal
+    // Löschen wenn: nicht mehr in Queue ODER terminal
     if (status === undefined || terminal.indexOf(status) !== -1) {
       props.deleteProperty(key);
       deleted++;
     }
   });
 
-  console.log("cleanupChatDedupProperties_: " + deleted + " CHAT_NOTIFIED__ Keys gel?scht.");
+  console.log("cleanupChatDedupProperties_: " + deleted + " CHAT_NOTIFIED__ Keys gelöscht.");
   return { deleted: deleted };
 }
 
 /**
- * T?glicher Trigger (03:00) f?r die Property-Bereinigung.
- * Einmal im Editor ausf?hren.
+ * Täglicher Trigger (03:00) für die Property-Bereinigung.
+ * Einmal im Editor ausführen.
  */
 function setupChatCleanupTrigger_() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -125,6 +125,6 @@ function setupChatCleanupTrigger_() {
   });
   ScriptApp.newTrigger("cleanupChatDedupProperties_")
     .timeBased().atHour(3).everyDays(1).create();
-  console.log("? Cleanup-Trigger gesetzt (t?glich 03:00).");
+  console.log("\u2022 Cleanup-Trigger gesetzt (täglich 03:00).");
   return "OK";
 }

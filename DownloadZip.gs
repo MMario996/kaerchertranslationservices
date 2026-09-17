@@ -5,20 +5,20 @@
  * FIX 2: Multi-file download uses jobMapping for correct filenames
  * FIX 3: Blob-Namen werden auf reinen Dateinamen reduziert (kein Pfad)
  * FIX 4: Records download timestamp for archiving
- * FIX 5: Extension aus jobMapping.fileName als harte Priorit?t
+ * FIX 5: Extension aus jobMapping.fileName als harte Priorität
  * FIX 6: Deduplizierung von Blob-Namen vor Utilities.zip()
  * FIX 7: Echtes Max-Level via Projekt-Metadaten ermitteln (V1 API)
  * FIX 8: Echter Dateiname aus Phrase Jobs API holen wenn jobMapping.fileName generisch ist
- * FIX 9: Vollst?ndige Paginierung (while-Schleife) f?r Jobs (verhindert Abschneiden bei >50 Jobs)
+ * FIX 9: Vollständige Paginierung (while-Schleife) für Jobs (verhindert Abschneiden bei >50 Jobs)
  * FIX 10: Doppelte Funktionsdeklaration bereinigt
  */
 
-// ??? Phrase Download ??????????????????????????????????????????????????????????
+// --- Phrase Download ----------------------------------------------------------
 
 function phraseDownloadTargetFile_(projectUid, jobUid) {
   const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) +
     "/jobs/" + encodeURIComponent(jobUid) + "/targetFile");
-  console.log("? Downloading target file for job:", jobUid);
+  console.log("\u231B Downloading target file for job:", jobUid);
   const res = UrlFetchApp.fetch(url, {
     method: "get", muteHttpExceptions: true,
     headers: { Authorization: getPhraseAuthHeader_() }
@@ -33,8 +33,8 @@ function phraseDownloadTargetFile_(projectUid, jobUid) {
 }
 
 /**
- * Ermittelt das h?chste Workflow-Level ?ber die Projekt-API (serverseitig),
- * und l?dt dann ALLE Jobs dieses exakten Levels ?ber Paginierung herunter.
+ * Ermittelt das höchste Workflow-Level über die Projekt-API (serverseitig),
+ * und lädt dann ALLE Jobs dieses exakten Levels über Paginierung herunter.
  *
  * @param {string}   projectUid  Phrase Projekt-UID
  * @param {string[]} jobUids     Gespeicherte Job-UIDs aus Queue-Sheet (Level-1-UIDs)
@@ -44,7 +44,7 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
   try {
     const authHeader = { Authorization: getPhraseAuthHeader_() };
 
-    // 1. H?chstes Workflow-Level aus den Projekt-Metadaten ermitteln
+    // 1. Höchstes Workflow-Level aus den Projekt-Metadaten ermitteln
     let maxLevel = 1;
     const projUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
     const projRes = phraseFetchJson_(projUrl, { method: "get", headers: authHeader });
@@ -55,7 +55,7 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
         maxLevel = Math.max(...levels);
       }
     }
-    console.log("? H?chstes Workflow-Level im Projekt ermittelt:", maxLevel);
+    console.log("\u2022 Höchstes Workflow-Level im Projekt ermittelt:", maxLevel);
 
     // 2. Alle Jobs dieses Levels via API V2 holen (mit Paginierung!)
     let allJobs = [];
@@ -84,7 +84,7 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
     }
 
     if (!allJobs.length) {
-      console.warn("?? Keine Jobs auf Level " + maxLevel + " gefunden. Verwende ?bergebene UIDs direkt (Fallback).");
+      console.warn("\u26A0 Keine Jobs auf Level " + maxLevel + " gefunden. Verwende übergebene UIDs direkt (Fallback).");
       return {
         maxLevel: 1,
         jobsForDownload: jobUids.map(uid => ({ uid, fileName: "", targetLang: "", workflowLevel: 1 }))
@@ -100,7 +100,7 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
       workflowLevel: maxLevel
     }));
 
-    console.log("? " + jobsForDownload.length + " Jobs auf Level " + maxLevel + " f?r Download verifiziert.");
+    console.log("\u2022 " + jobsForDownload.length + " Jobs auf Level " + maxLevel + " für Download verifiziert.");
     return { maxLevel, jobsForDownload };
 
   } catch (e) {
@@ -113,7 +113,7 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
   }
 }
 
-// ??? Helpers ??????????????????????????????????????????????????????????????????
+// --- Helpers ------------------------------------------------------------------
 
 function _normalizeToBlob_(maybeBlob) {
   if (maybeBlob && typeof maybeBlob.getBytes === "function") return maybeBlob;
@@ -140,7 +140,7 @@ function _flattenBlobName_(name) {
 }
 
 /**
- * Pr?ft ob ein Dateiname generisch/unbekannt ist.
+ * Prüft ob ein Dateiname generisch/unbekannt ist.
  * "Drive-Datei (14-ypgP1..." oder leer ? generisch
  */
 function _isGenericFileName_(name) {
@@ -175,7 +175,7 @@ function _fallbackExtFromMime_(mimeType) {
 
 /**
  * Baut den finalen Ausgabe-Dateinamen.
- * Priorit?t: sourceExt > getExt(orig) > fallbackExt > getExt(blobName)
+ * Priorität: sourceExt > getExt(orig) > fallbackExt > getExt(blobName)
  */
 function _buildTargetFileName_(originalFileName, lang, fallbackExt, blobName, sourceExt) {
   const flatBlob = _flattenBlobName_(String(blobName || ""));
@@ -237,7 +237,7 @@ function _deduplicateBlobNames_(blobs) {
   }
 }
 
-// ??? Smart Download (entry point from frontend) ???????????????????????????????
+// --- Smart Download (entry point from frontend) -------------------------------
 
 function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileName, targetLang, mimeType, jobMapping) {
   if (!Array.isArray(jobUids)) jobUids = [jobUids];
@@ -248,7 +248,7 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
     try { jobMapping = JSON.parse(jobMapping); } catch(e) { jobMapping = null; }
   }
 
-  console.log("? Ermittle h?chstes Workflow-Level f?r Projekt: " + projectUid);
+  console.log("\u2022 Ermittle höchstes Workflow-Level für Projekt: " + projectUid);
   const { maxLevel, jobsForDownload } = phraseGetJobsForMaxLevel_(projectUid, jobUids);
 
   const filteredJobUids = jobsForDownload.map(j => j.uid).filter(Boolean);
@@ -267,7 +267,7 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
     let mappingFileName = "";
     let mappingLang = "";
     if (Array.isArray(jobMapping)) {
-      // Wenn wir nur Level 1 UIDs im Mapping haben, aber die API Level 4 UIDs zur?ckgibt,
+      // Wenn wir nur Level 1 UIDs im Mapping haben, aber die API Level 4 UIDs zurückgibt,
       // mappen wir anhand des Index, da die Reihenfolge der Files meist identisch ist.
       const m = jobMapping.find(m => m.jobUid === uid) || jobMapping[index];
       if (m) {
@@ -276,7 +276,7 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
       }
     }
 
-    // Priorit?t: gespeichertes Mapping (wenn nicht generisch) > API-Dateiname
+    // Priorität: gespeichertes Mapping (wenn nicht generisch) > API-Dateiname
     const bestFileName = (!_isGenericFileName_(mappingFileName) ? mappingFileName : null)
                       || (!_isGenericFileName_(apiFileName)     ? apiFileName     : null)
                       || projectName || "translation";
@@ -295,7 +295,7 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
   return apiDownloadAllJobsAsZip(projectUid, filteredJobUids, projectName, null, null, mimeType, enrichedMapping);
 }
 
-// ??? Single job download ??????????????????????????????????????????????????????
+// --- Single job download ------------------------------------------------------
 
 function apiUserDownloadFromPhrase(projectUid, jobUid, fileName, targetLang, mimeType) {
   const access = apiCheckAccess();
@@ -320,16 +320,16 @@ function apiUserDownloadFromPhrase(projectUid, jobUid, fileName, targetLang, mim
     const mime  = sourceExt ? _mimeFromExt_(sourceExt) : (blobContentType || _mimeFromExt_(ext));
 
     recordDownloadTimestamp_(projectUid);
-    console.log("? Download successful:", outName, "| mime:", mime);
+    console.log("\u2713 Download successful:", outName, "| mime:", mime);
     return { success: true, fileName: outName, mimeType: mime, base64: b64, isZip: false, downloadedCount: 1, totalJobs: 1, errors: [] };
 
   } catch (e) {
-    console.error("? Download failed:", e);
+    console.error("\u2717 Download failed:", e);
     return { success: false, error: e.message || String(e) };
   }
 }
 
-// ??? Multi-job ZIP download ???????????????????????????????????????????????????
+// --- Multi-job ZIP download ---------------------------------------------------
 
 function apiDownloadAllJobsAsZip(projectUid, jobUids, projectName, targetLangs, originalFileName, mimeType, jobMapping) {
   const access = apiCheckAccess();
@@ -358,7 +358,7 @@ function apiDownloadAllJobsAsZip(projectUid, jobUids, projectName, targetLangs, 
         }
       }
 
-      console.log("? Job " + (i+1) + "/" + jobUids.length + ": " + jobUid + " (" + jobLang + ") ? " + jobFileName);
+      console.log("\u2022 Job " + (i+1) + "/" + jobUids.length + ": " + jobUid + " (" + jobLang + ") ? " + jobFileName);
 
       try {
         const raw  = phraseDownloadTargetFile_(String(projectUid).trim(), jobUid);
@@ -407,15 +407,15 @@ function apiDownloadAllJobsAsZip(projectUid, jobUids, projectName, targetLangs, 
     return { success: true, fileName: zipName, mimeType: "application/zip", base64: zipB64, isZip: true, downloadedCount: blobs.length, totalJobs: jobUids.length, errors };
 
   } catch (e) {
-    console.error("? Multi-download failed:", e);
+    console.error("\u2717 Multi-download failed:", e);
     return { success: false, error: e.message || String(e) };
   }
 }
 
-// ??? Save to Google Drive (My Drive) ??????????????????????????????????????????
-// Liefert jede ?bersetzte Datei EINZELN (kein ZIP) inkl. Info, ob eine Umwandlung
-// in Google Docs/Sheets/Slides m?glich ist. Der tats?chliche Upload ins Drive des
-// Nutzers passiert client-seitig (siehe DriveSaveConfig.gs f?r den Hintergrund).
+// --- Save to Google Drive (My Drive) ------------------------------------------
+// Liefert jede übersetzte Datei EINZELN (kein ZIP) inkl. Info, ob eine Umwandlung
+// in Google Docs/Sheets/Slides möglich ist. Der tatsächliche Upload ins Drive des
+// Nutzers passiert client-seitig (siehe DriveSaveConfig.gs für den Hintergrund).
 
 var DRIVE_CONVERTIBLE_EXT_ = [".docx", ".xlsx", ".pptx"];
 

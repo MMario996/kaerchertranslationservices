@@ -16,7 +16,7 @@ function isSensitiveKey_(key) {
   return SENSITIVE_PATTERNS_.some(function(p) { return k.indexOf(p) !== -1; });
 }
 
-// ??? API: List all Script Properties (sensitive values always masked) ??????????
+// --- API: List all Script Properties (sensitive values always masked) ----------
 
 function apiGetAllScriptProperties() {
   var caller = getUserEmail_();
@@ -38,7 +38,7 @@ function apiGetAllScriptProperties() {
 
     result.push({
       key:        key,
-      value:      sensitive ? "????????" : props[key],
+      value:      sensitive ? "--------" : props[key],
       sensitive:  sensitive,
       protected:  isProtected,
       length:     props[key] ? props[key].length : 0
@@ -48,7 +48,7 @@ function apiGetAllScriptProperties() {
   return { properties: result };
 }
 
-// ??? API: Set / Update a single property ??????????????????????????????????????
+// --- API: Set / Update a single property --------------------------------------
 
 function apiSetScriptProperty(key, value) {
   var caller = getUserEmail_();
@@ -66,7 +66,7 @@ function apiSetScriptProperty(key, value) {
   return { success: true, key: key };
 }
 
-// ??? API: Delete a property ???????????????????????????????????????????????????
+// --- API: Delete a property ---------------------------------------------------
 
 function apiDeleteScriptProperty(key) {
   var caller = getUserEmail_();
@@ -84,7 +84,7 @@ function apiDeleteScriptProperty(key) {
   return { success: true, key: key };
 }
 
-// ??? API: Reveal ? BLOCKED for sensitive keys ?????????????????????????????????
+// --- API: Reveal ? BLOCKED for sensitive keys ---------------------------------
 
 function apiRevealScriptProperty(key) {
   var caller = getUserEmail_();
@@ -96,7 +96,7 @@ function apiRevealScriptProperty(key) {
   if (isSensitiveKey_(key)) {
     return { 
       key: key, 
-      value: "????????",
+      value: "--------",
       blocked: true,
       message: "Sensitive values cannot be revealed. Use 'Edit' to overwrite with a new value, or view in Apps Script Editor ? Project Settings ? Script Properties."
     };
@@ -106,7 +106,7 @@ function apiRevealScriptProperty(key) {
   return { key: key, value: value || "", blocked: false };
 }
 
-// ??? API: Add a brand-new property ????????????????????????????????????????????
+// --- API: Add a brand-new property --------------------------------------------
 
 function apiAddScriptProperty(key, value) {
   var caller = getUserEmail_();

@@ -1,12 +1,12 @@
 /**
  * GermanHolidays.gs
  * Bundesweite gesetzliche Feiertage in Deutschland (KEINE Bundesland-spezifischen
- * wie Fronleichnam, Reformationstag, Allerheiligen etc.). Wird aktuell f?r die
+ * wie Fronleichnam, Reformationstag, Allerheiligen etc.). Wird aktuell für die
  * Due-Date-Validierung im Documentation Import (DocImport.gs) genutzt.
  */
 
 function ghComputeEasterSunday_(year) {
-  // Gau?sche Osterformel
+  // Gaußsche Osterformel
   var a = year % 19;
   var b = Math.floor(year / 100);
   var c = year % 100;
@@ -39,7 +39,7 @@ function ghDateKey_(date) {
 }
 
 /**
- * Liefert die bundesweiten gesetzlichen Feiertage f?r ein Jahr als Array von
+ * Liefert die bundesweiten gesetzlichen Feiertage für ein Jahr als Array von
  * { date: "YYYY-MM-DD", name: "..." }.
  */
 function getGermanHolidays_(year) {
@@ -61,9 +61,9 @@ function getGermanHolidays_(year) {
 }
 
 /**
- * Pr?ft, ob ein Date-Objekt (Server-Zeitzone Europe/Berlin, siehe appsscript.json)
- * auf ein Wochenende oder einen bundesweiten Feiertag f?llt.
- * Gibt { blocked: bool, reason: string } zur?ck.
+ * Prüft, ob ein Date-Objekt (Server-Zeitzone Europe/Berlin, siehe appsscript.json)
+ * auf ein Wochenende oder einen bundesweiten Feiertag fällt.
+ * Gibt { blocked: bool, reason: string } zurück.
  */
 function checkGermanNonWorkingDay_(date) {
   var day = date.getDay(); // 0 = Sonntag, 6 = Samstag
@@ -81,7 +81,7 @@ function checkGermanNonWorkingDay_(date) {
 }
 
 /**
- * API: liefert Feiertage f?r ein oder mehrere Jahre ans Frontend, damit dort
+ * API: liefert Feiertage für ein oder mehrere Jahre ans Frontend, damit dort
  * ohne Server-Roundtrip pro Datumsauswahl validiert werden kann.
  */
 function apiGetGermanHolidays(years) {

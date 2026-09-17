@@ -1,15 +1,15 @@
 /**
  * DocImport.gs
- * Google-Drive-basierter XML-Batch-Import f?r Documentation Projects.
+ * Google-Drive-basierter XML-Batch-Import für Documentation Projects.
  * Quelldateien liegen in Drive unter dem Admin-konfigurierten Root-Ordner
  * (DocDriveConfig.gs); der Unterordner-Name muss exakt dem Projektnamen
  * entsprechen (DocDriveTree.gs). Erstellt EIN Phrase-Projekt aus dem
- * gew?hlten Template und l?dt pro erkannter Zielsprache eine eigene XML-Datei
+ * gewählten Template und lädt pro erkannter Zielsprache eine eigene XML-Datei
  * als separaten Job hoch. 
  * Schreibt das Projekt in das externe MAT-D Kanban-Sheet (aufgeteilt pro Sprache)
  * UND in das interne Standard-OPS-Queue-Sheet (als EINE zusammengefasste Projekt-Zeile),
  * damit es in "My Projects" korrekt als ein Projekt sichtbar ist und
- * automatisiert vom Chatbot/AutoSync ?berwacht wird.
+ * automatisiert vom Chatbot/AutoSync überwacht wird.
  */
 var DOC_IMPORT_SHEET_ID_   = "1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs";
 var DOC_IMPORT_SHEET_NAME_ = "Queue";
@@ -63,7 +63,7 @@ function docImportGetHeaderMap_(sh) {
 
 /**
  * Legt die Spalte "Drive Folder ID" im Queue-Sheet an, falls sie noch nicht
- * existiert. Notwendig f?r die Duplikat-Erkennung beim Doc Import - ohne
+ * existiert. Notwendig für die Duplikat-Erkennung beim Doc Import - ohne
  * manuellen Eingriff im Sheet.
  */
 function docImportEnsureFolderIdColumn_(sh) {
@@ -86,7 +86,7 @@ function docImportAppendQueueRow_(rowValuesByHeader) {
 }
 
 /**
- * Liefert alle bisherigen Import-Zeilen f?r eine Drive-Ordner-ID (dedupliziert
+ * Liefert alle bisherigen Import-Zeilen für eine Drive-Ordner-ID (dedupliziert
  * nach Timestamp+Projektname), damit das Frontend vor einem erneuten Import
  * warnen kann.
  */
@@ -118,7 +118,7 @@ function docImportGetFolderImportHistory_(folderId) {
 }
 
 /**
- * API: Import-Historie f?r einen Drive-Ordner abfragen (f?r die proaktive
+ * API: Import-Historie für einen Drive-Ordner abfragen (für die proaktive
  * Warnung direkt nach Ordnerauswahl im Frontend).
  */
 function apiGetDocImportFolderHistory(folderId) {
@@ -132,7 +132,7 @@ function apiGetDocImportFolderHistory(folderId) {
 }
 
 /**
- * Baut eine kompakte Datei-Zusammenfassung f?r die Chat-Notification:
+ * Baut eine kompakte Datei-Zusammenfassung für die Chat-Notification:
  * einmal der Dateiname als generisches Muster ({LANG} statt konkretem
  * Sprachcode) + eine Liste aller Zielsprachen ? statt jede Datei einzeln.
  */
@@ -148,7 +148,7 @@ function docImportBuildFilesSummary_(results) {
     if (re.test(pattern)) pattern = pattern.replace(re, "{LANG}");
   }
   var langs = successList.map(function(r) { return r.targetLang; }).join(", ");
-  return "? " + pattern + "\n? " + langs;
+  return "\u2022 " + pattern + "\n? " + langs;
 }
 
 /**
@@ -163,7 +163,7 @@ function apiUploadDocXmlBatch(payload) {
   if (!access.allowed) return { success: false, error: "Not authorized." };
 
   try {
-    if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgew?hlt." };
+    if (!payload || !payload.templateUid) return { success: false, error: "Kein Template ausgewählt." };
     if (!payload.projectName || !payload.projectName.trim()) return { success: false, error: "Projektname fehlt." };
     if (!payload.iaNumber || !/^[0-9]+$/.test(String(payload.iaNumber).trim())) {
       return { success: false, error: "IA Number ist Pflicht und muss numerisch sein." };
@@ -178,30 +178,30 @@ function apiUploadDocXmlBatch(payload) {
     }
     var dueDateObj_ = new Date(payload.dueDate);
     if (isNaN(dueDateObj_.getTime())) {
-      return { success: false, error: "Due Date ist ung?ltig." };
+      return { success: false, error: "Due Date ist ungültig." };
     }
 
     // -- Wochenende / bundesweiter deutscher Feiertag -------------------------
     var nonWorking_ = checkGermanNonWorkingDay_(dueDateObj_);
     if (nonWorking_.blocked) {
-      return { success: false, error: "Due Date f?llt auf " + nonWorking_.reason + ". Bitte ein anderes Datum w?hlen." };
+      return { success: false, error: "Due Date fällt auf " + nonWorking_.reason + ". Bitte ein anderes Datum wählen." };
     }
 
-    // -- Express-Vorlage: Due Date max. 72h in der Zukunft + Aufschlag best?tigt --
+    // -- Express-Vorlage: Due Date max. 72h in der Zukunft + Aufschlag bestätigt --
     var isExpress_ = /express/i.test(String(payload.templateName || ""));
     if (isExpress_) {
       var hoursUntilDue_ = (dueDateObj_.getTime() - Date.now()) / (1000 * 60 * 60);
       if (hoursUntilDue_ < 0 || hoursUntilDue_ > 72) {
-        return { success: false, error: "Bei Express-Vorlagen muss das Due Date innerhalb der n?chsten 72 Stunden liegen." };
+        return { success: false, error: "Bei Express-Vorlagen muss das Due Date innerhalb der nächsten 72 Stunden liegen." };
       }
       if (!payload.expressSurchargeConfirmed) {
-        return { success: false, error: "Bitte best?tigen Sie den 15%-Express-Aufschlag.", needsExpressConfirmation: true };
+        return { success: false, error: "Bitte bestätigen Sie den 15%-Express-Aufschlag.", needsExpressConfirmation: true };
       }
     }
 
     // -- Duplikat-Check: wurde dieser Drive-Ordner schon einmal importiert? ---
     if (!payload.driveFolderId) {
-      return { success: false, error: "Kein Drive-Ordner ausgew?hlt." };
+      return { success: false, error: "Kein Drive-Ordner ausgewählt." };
     }
     if (!payload.confirmDuplicate) {
       var history_ = docImportGetFolderImportHistory_(payload.driveFolderId);
@@ -215,7 +215,7 @@ function apiUploadDocXmlBatch(payload) {
       }
     }
 
-    // -- Referenzdatei-Pflichtpr?fung (PDF, XLSX, JPG, JPEG) ----------------------
+    // -- Referenzdatei-Pflichtprüfung (PDF, XLSX, JPG, JPEG) ----------------------
     var refFiles = Array.isArray(payload.refFiles) ? payload.refFiles : [];
     var refDriveIds = Array.isArray(payload.refDriveIds) ? payload.refDriveIds : [];
     if (!refFiles.length && !refDriveIds.length) {
@@ -227,7 +227,7 @@ function apiUploadDocXmlBatch(payload) {
       var rName = String(refFiles[rIdx].name || refFiles[rIdx].fileName || "").toLowerCase();
       var isAllowed = allowedRefExtensions.some(function(ext) { return rName.endsWith(ext); });
       if (rName && !isAllowed) {
-        return { success: false, error: "Ung?ltiges Format bei Referenzdatei '" + refFiles[rIdx].name + "'. Erlaubte Formate: PDF, XLSX, JPG, JPEG." };
+        return { success: false, error: "Ungültiges Format bei Referenzdatei '" + refFiles[rIdx].name + "'. Erlaubte Formate: PDF, XLSX, JPG, JPEG." };
       }
     }
 
@@ -287,7 +287,7 @@ function apiUploadDocXmlBatch(payload) {
         var jobUid = (jobRes && Array.isArray(jobRes.jobs) && jobRes.jobs[0] && jobRes.jobs[0].uid) || "";
         var asyncId = (jobRes && jobRes.asyncRequest && jobRes.asyncRequest.id) || "";
 
-        // 1. In das Kanban-Sheet eintragen (Einzeleintr?ge pro Sprache/Datei)
+        // 1. In das Kanban-Sheet eintragen (Einzeleinträäge pro Sprache/Datei)
         docImportAppendQueueRow_({
           "Timestamp": timestamp,
           "User ID": userIdForSheet,
@@ -316,7 +316,7 @@ function apiUploadDocXmlBatch(payload) {
       }
     });
 
-    // 2. Dual-Write: EXACTLY ONE ROW into standard OPS-Queue-Sheet f?r AutoSync & Chat
+    // 2. Dual-Write: EXACTLY ONE ROW into standard OPS-Queue-Sheet für AutoSync & Chat
     var successfulJobs = results.filter(function(r) { return r.success; });
     if (successfulJobs.length > 0) {
       try {
@@ -331,7 +331,7 @@ function apiUploadDocXmlBatch(payload) {
           timestamp,                    // A: Timestamp
           callerEmail,                  // B: User Email
           projectUid,                   // C: Project UID
-          "",                           // D: File ID (F?r Download im Standard-Tab nicht mehr relevant, da DriveDoc Export genutzt wird)
+          "",                           // D: File ID (Für Download im Standard-Tab nicht mehr relevant, da DriveDoc Export genutzt wird)
           allFileNames,                 // E: File Name
           "xml",                        // F: Mime Type
           allTargetLangs,               // G: Target Lang
@@ -413,7 +413,7 @@ function apiUploadDocXmlBatch(payload) {
 
 /**
  * Schreibt den aktuellen Phrase Projekt-Status in alle passenden Zeilen
- * des externen MAT-D Kanban-Sheets zur?ck (Spalte "Phrase Project Status").
+ * des externen MAT-D Kanban-Sheets zurück (Spalte "Phrase Project Status").
  * Wird von autoSyncProjectStatuses_ nach jedem Statuswechsel aufgerufen.
  * Non-blocking: Fehler werden nur geloggt, nie geworfen.
  */

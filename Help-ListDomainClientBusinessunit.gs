@@ -1,5 +1,5 @@
 /**
- * Ermittlung der Phrase-IDs und UIDs f?r Client AKW, Domain General Content und BU FTC-D.
+ * Ermittlung der Phrase-IDs und UIDs für Client AKW, Domain General Content und BU FTC-D.
  * Kann direkt im Script Editor getestet werden, um die IDs im Log zu sehen.
  */
 function apiFindCourseMetadataIds() {

@@ -1,9 +1,9 @@
 /**
  * Debug.gs
  *
- * V4: Alle ?ffentlich aufrufbaren Debug-Funktionen erfordern Admin-Rechte.
- *     Ohne Admin-Check waren diese Funktionen ?ber google.script.run
- *     f?r jeden authentifizierten User aufrufbar.
+ * V4: Alle öffentlich aufrufbaren Debug-Funktionen erfordern Admin-Rechte.
+ *     Ohne Admin-Check waren diese Funktionen über google.script.run
+ *     für jeden authentifizierten User aufrufbar.
  */
 
 function debugEnvironment() {
@@ -29,7 +29,7 @@ function debugEnvironment() {
   const scriptProps = scriptPropsSvc ? scriptPropsSvc.getProperties() : {};
   result.scriptPropertiesKeys = Object.keys(scriptProps);
 
-  // Token check (ohne Token-Wert zu loggen, nur L?nge/Status)
+  // Token check (ohne Token-Wert zu loggen, nur Länge/Status)
   const token = (scriptProps.PHRASE_API_TOKEN || "").trim();
   result.tokenFound = !!token;
   result.tokenLength = token.length;
@@ -41,11 +41,11 @@ function debugEnvironment() {
   result.apiBaseUrl = (scriptProps.PHRASE_API_BASE_URL || "").trim();
   result.webAppUrlProp = (scriptProps.WEB_APP_URL || "").trim();
 
-  // User Properties (immer verf?gbar)
+  // User Properties (immer verfügbar)
   try {
     const userProps = PropertiesService.getUserProperties().getProperties();
     result.userPropertiesKeys = Object.keys(userProps);
-    // Token mal aus UserProps pr?fen (falls versehentlich dort abgelegt)
+    // Token mal aus UserProps prüfen (falls versehentlich dort abgelegt)
     const userToken = (userProps.PHRASE_API_TOKEN || "").trim();
     result.userTokenFound = !!userToken;
     result.userTokenLength = userToken.length;
@@ -74,11 +74,11 @@ function debugEnvironment() {
 
   // Final status
   if (!result.tokenFound) {
-    result.tokenStatus = "? PHRASE_API_TOKEN not found in Script Properties";
+    result.tokenStatus = "\u2022 PHRASE_API_TOKEN not found in Script Properties";
   } else if (result.tokenLength < 10) {
-    result.tokenStatus = "?? PHRASE_API_TOKEN found but very short";
+    result.tokenStatus = "\u26A0 PHRASE_API_TOKEN found but very short";
   } else {
-    result.tokenStatus = "? PHRASE_API_TOKEN found in Script Properties";
+    result.tokenStatus = "\u2022 PHRASE_API_TOKEN found in Script Properties";
   }
 
   console.log("===== DEBUG ENVIRONMENT =====");
@@ -88,8 +88,8 @@ function debugEnvironment() {
 }
 
 /**
- * Gibt die Token-L?nge zur?ck (ohne den Token selbst zu loggen)
- * ? sicher f?r Logs/Compliance.
+ * Gibt die Token-Länge zurück (ohne den Token selbst zu loggen)
+ * ? sicher für Logs/Compliance.
  */
 function debugTokenLengthOnly() {
   var caller = getUserEmail_();
@@ -115,7 +115,7 @@ function debugListScriptPropertyKeys() {
 }
 
 /**
- * Zeigt, ob h?ufige Vertipper existieren (z.B. PHRASE_API_TOKN).
+ * Zeigt, ob häufige Vertipper existieren (z.B. PHRASE_API_TOKN).
  */
 function debugCheckCommonTypos() {
   var caller = getUserEmail_();
@@ -154,7 +154,7 @@ function DEBUG_testDeadlineReminder() {
   const userEmail = "mario.magliano@karcher.com";
   
   // Deinen aktuellen Thread-ID aus dem Queue Sheet holen
-  // ?ffne OPS Sheet ? Queue ? Spalte T (Index 19) bei deinem Testprojekt
+  // öffne OPS Sheet ? Queue ? Spalte T (Index 19) bei deinem Testprojekt
   const threadId  = "spaces/g7I02SAAAAE/messages/iqi8SArMLW4.iqi8SArMLW4"; // ? anpassen
   const projectUid = "fc7uwq2HFtpOb50CIyqqC5";              // ? anpassen
   
@@ -164,40 +164,40 @@ function DEBUG_testDeadlineReminder() {
   const phraseUrl   = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);
 
   const reminderText = [
-    "?? *Deadline Reminder ? Action Required*",
+    "\u26A0 *Deadline Reminder ? Action Required*",
     "",
     "Your project is due *tomorrow* and is still in progress.",
     "",
-    "? *Project:* " + projectName,
-    "? *Phrase ID:* " + projectUid,
-    "? *Status:* UPLOADED",
-    "? *Due:* " + formattedDue,
+    "\u2022 *Project:* " + projectName,
+    "\u2022 *Phrase ID:* " + projectUid,
+    "\u2713 *Status:* UPLOADED",
+    "\u2022 *Due:* " + formattedDue,
     "",
-    "? *Would you like to extend the deadline?*",
+    "\u2022 *Would you like to extend the deadline?*",
     "Here is how:",
     "1?? Open the *Translation Hub* (link below)",
     "2?? Go to *My Projects*",
     "3?? Click the ? calendar icon next to your project",
     "4?? Select a new due date ? it will update automatically in Phrase TMS",
     "",
-    "? *Open in Phrase TMS:* " + phraseUrl,
-    "? *Open in Translation Hub:* https://sites.google.com/karcher.com/phrase"
+    "\u2022 *Open in Phrase TMS:* " + phraseUrl,
+    "\u2022 *Open in Translation Hub:* https://sites.google.com/karcher.com/phrase"
   ].join("\n");
 
   try {
     sendThreadReply_(userEmail, threadId, reminderText);
-    console.log("? Reminder sent!");
+    console.log("\u2022 Reminder sent!");
   } catch(e) {
-    console.log("? Error:", e.message);
+    console.log("\u2717 Error:", e.message);
   }
 }
 /**
- * DEBUG: Sendet manuell die Completion-Notification f?r ein bestehendes Projekt.
- * Einmal ausf?hren im Apps Script Editor ? Funktion "DEBUG_sendCompletionNotification" ? Run
- * Danach diese Funktion wieder l?schen.
+ * DEBUG: Sendet manuell die Completion-Notification für ein bestehendes Projekt.
+ * Einmal ausführen im Apps Script Editor ? Funktion "DEBUG_sendCompletionNotification" ? Run
+ * Danach diese Funktion wieder löschen.
  */
 function DEBUG_sendCompletionNotification() {
-  // ? Anpassen falls n?tig
+  // ? Anpassen falls nötig
   const projectUid  = "7rwVmqjodCUPaNkguKWkV2";
   const userEmail   = "mario.magliano@karcher.com";
   const threadId    = "spaces/g7I02SAAAAE/messages/lnlCumVYBIg.lnlCumVYBIg";
@@ -212,20 +212,20 @@ function DEBUG_sendCompletionNotification() {
     PHRASE_URL:   phraseUrl
   });
 
-  console.log("? Sending to thread:", threadId);
-  console.log("? Message:", msg);
+  console.log("\u2022 Sending to thread:", threadId);
+  console.log("\u2022 Message:", msg);
 
   try {
     const result = sendThreadReply_(userEmail, threadId, msg);
-    console.log("? Sent! Result:", JSON.stringify(result));
+    console.log("\u2022 Sent! Result:", JSON.stringify(result));
   } catch(e) {
-    console.log("? Thread reply failed:", e.message);
-    console.log("? Trying DM fallback...");
+    console.log("\u2717 Thread reply failed:", e.message);
+    console.log("\u2022 Trying DM fallback...");
     try {
       const result2 = sendPrivateMessage_(userEmail, msg);
-      console.log("? DM sent! Result:", JSON.stringify(result2));
+      console.log("\u2022 DM sent! Result:", JSON.stringify(result2));
     } catch(e2) {
-      console.log("? DM also failed:", e2.message);
+      console.log("\u2717 DM also failed:", e2.message);
     }
   }
 }
@@ -235,7 +235,7 @@ function forceAuth() {
 
 function DEBUG_testSetProjectOwner() {
   var caller = getUserEmail_();
-  if (!isAdmin_(caller)) { console.log("? Nur Admin darf das testen."); return; }
+  if (!isAdmin_(caller)) { console.log("\u2022 Nur Admin darf das testen."); return; }
 
   var projectUid = "rXYa7rzz9mGz9pco6xTH43";
   var targetUsername = "AW19869";
@@ -247,7 +247,7 @@ function DEBUG_testSetProjectOwner() {
   );
   console.log("VORHER ? Owner:", JSON.stringify(before.owner || {}));
 
-  // 2) Phrase-User-UID f?r AW19869 per Username-Lookup holen
+  // 2) Phrase-User-UID für AW19869 per Username-Lookup holen
   var lookupUrl = phraseApiUrlV1_("/users?userName=" + encodeURIComponent(targetUsername) + "&pageSize=10");
   var lookupRes = phraseFetchJson_(lookupUrl, {
     method: "get",
@@ -257,16 +257,16 @@ function DEBUG_testSetProjectOwner() {
   var match = users.find(function(u) { return u.userName === targetUsername; });
 
   if (!match) {
-    console.log("? User '" + targetUsername + "' nicht gefunden. Gefundene Kandidaten:", JSON.stringify(users.map(function(u){return u.userName;})));
+    console.log("\u2022 User '" + targetUsername + "' nicht gefunden. Gefundene Kandidaten:", JSON.stringify(users.map(function(u){return u.userName;})));
     return;
   }
-  console.log("? User gefunden. uid:", match.uid, "| id:", match.id, "| userName:", match.userName);
+  console.log("\u2022 User gefunden. uid:", match.uid, "| id:", match.id, "| userName:", match.userName);
 
   // 3) PATCH versuchen ? owner als {uid: ...}
   var patchUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
   var patchPayload = { owner: { uid: match.uid } };
 
-  console.log("? PATCH Payload:", JSON.stringify(patchPayload));
+  console.log("\u2022 PATCH Payload:", JSON.stringify(patchPayload));
 
   var patchRes = UrlFetchApp.fetch(patchUrl, {
     method: "patch",
@@ -282,7 +282,7 @@ function DEBUG_testSetProjectOwner() {
   console.log("PATCH Response:", body.substring(0, 500));
 
   if (code >= 400) {
-    console.log("? PATCH fehlgeschlagen. Versuche Fallback-Payload mit 'id' statt 'uid'...");
+    console.log("\u2717 PATCH fehlgeschlagen. Versuche Fallback-Payload mit 'id' statt 'uid'...");
     var patchPayload2 = { owner: { id: match.id } };
     var patchRes2 = UrlFetchApp.fetch(patchUrl, {
       method: "patch",

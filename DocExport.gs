@@ -1,8 +1,8 @@
 /**
  * DocExport.gs
  * Liest den Live-Status eines Phrase-Projekts (per exaktem Namens-Match) und
- * schreibt fertige (COMPLETED) ?bersetzungen direkt in den passenden
- * Drive-Projektordner zur?ck ? Dateiname 1:1 identisch zum Import (per
+ * schreibt fertige (COMPLETED) Übersetzungen direkt in den passenden
+ * Drive-Projektordner zurück ? Dateiname 1:1 identisch zum Import (per
  * externem Queue-Sheet nachgeschlagen, nicht aus Phrase).
  */
 function apiGetDocExportStatus(projectName) {
@@ -10,7 +10,7 @@ function apiGetDocExportStatus(projectName) {
   if (!access.allowed) return { success: false, error: "Not authorized." };
 
   var name = String(projectName || "").trim();
-  if (!name) return { success: false, error: "Kein Projektname ?bergeben." };
+  if (!name) return { success: false, error: "Kein Projektname übergeben." };
 
   try {
     var url = phraseApiUrlV1_("/projects?name=" + encodeURIComponent(name) + "&pageSize=50");
@@ -53,8 +53,8 @@ function apiGetDocExportStatus(projectName) {
 }
 
 /**
- * Sucht im externen Queue-Sheet die Original-Dateinamen f?r ein Projekt,
- * gemappt nach Zielsprache. Quelle der Wahrheit f?r den Export-Dateinamen
+ * Sucht im externen Queue-Sheet die Original-Dateinamen für ein Projekt,
+ * gemappt nach Zielsprache. Quelle der Wahrheit für den Export-Dateinamen
  * (NICHT der Phrase-Jobname, der kann technisch abweichen).
  */
 function docExportGetQueueFileNames_(projectUid) {
@@ -101,8 +101,8 @@ function docExportWriteFile_(langFolder, fileName, blob) {
 function apiExportDocProjectToDrive(projectUid, projectName, jobs) {
   var access = apiCheckAccess();
   if (!access.allowed) return { success: false, error: "Not authorized." };
-  if (!projectUid) return { success: false, error: "Keine Projekt-UID ?bergeben." };
-  if (!Array.isArray(jobs) || !jobs.length) return { success: false, error: "Keine Jobs ?bergeben." };
+  if (!projectUid) return { success: false, error: "Keine Projekt-UID übergeben." };
+  if (!Array.isArray(jobs) || !jobs.length) return { success: false, error: "Keine Jobs übergeben." };
 
   try {
     var projectFolder = docDriveFindProjectFolder_(projectName);
@@ -147,15 +147,15 @@ function apiExportDocProjectToDrive(projectUid, projectName, jobs) {
 }
 
 /**
- * Exportiert exakt EINEN Job nach Drive (f?r sauberes Live-Logging im Frontend).
- * F?ngt Phrase 404 und BATCH-Fehler ab und ?bersetzt sie in verst?ndlichen Text.
+ * Exportiert exakt EINEN Job nach Drive (für sauberes Live-Logging im Frontend).
+ * Fängt Phrase 404 und BATCH-Fehler ab und übersetzt sie in verständlichen Text.
  */
 function apiExportSingleJobToDrive(projectUid, projectName, job) {
   var access = apiCheckAccess();
   if (!access.allowed) return { success: false, error: "Not authorized." };
   
   if (String(projectUid).startsWith("BATCH-")) {
-    return { success: false, error: "Projekt in Phrase nicht gefunden (Ung?ltige BATCH-UID). Bitte warte, bis der Import abgeschlossen ist." };
+    return { success: false, error: "Projekt in Phrase nicht gefunden (Ungültige BATCH-UID). Bitte warte, bis der Import abgeschlossen ist." };
   }
 
   try {
@@ -182,7 +182,7 @@ function apiExportSingleJobToDrive(projectUid, projectName, job) {
   } catch (e) {
     var msg = e.message;
     if (msg.includes("404") && msg.includes("not imported correctly")) {
-      msg = "Job ist in Phrase noch nicht vollst?ndig importiert/bereit. Bitte sp?ter nochmal versuchen.";
+      msg = "Job ist in Phrase noch nicht vollständig importiert/bereit. Bitte später nochmal versuchen.";
     } else if (msg.includes("404")) {
       msg = "Job in Phrase nicht gefunden (404).";
     }
@@ -190,7 +190,7 @@ function apiExportSingleJobToDrive(projectUid, projectName, job) {
   }
 }
 
-// ??? EXPORT ELIGIBILITY (Client/Domain/Subdomain/Business Unit) ?????????????
+// --- EXPORT ELIGIBILITY (Client/Domain/Subdomain/Business Unit) -------------
 var DOC_EXPORT_ELIG_PROP_CLIENT_    = 'DOC_EXPORT_ELIG_CLIENT_ID';
 var DOC_EXPORT_ELIG_PROP_DOMAIN_    = 'DOC_EXPORT_ELIG_DOMAIN_ID';
 var DOC_EXPORT_ELIG_PROP_SUBDOMAIN_ = 'DOC_EXPORT_ELIG_SUBDOMAIN_ID';
@@ -238,12 +238,12 @@ function apiGetDocExportEligibleProjects() {
   try {
     var s = docExportGetEligibilitySettings_();
     if (!s.clientId || !s.domainId || !s.subDomainId || !s.businessUnitId) {
-      return { success: false, error: "Documentation Export Eligibility Settings sind nicht vollst?ndig konfiguriert (Admin-Bereich)." };
+      return { success: false, error: "Documentation Export Eligibility Settings sind nicht vollständig konfiguriert (Admin-Bereich)." };
     }
 
     var authHeader = { Authorization: getPhraseAuthHeader_() };
 
-    // 1. Aufl?sung der UIDs in Klarnamen ?ber die jeweiligen Einzel-Endpunkte
+    // 1. Auflösung der UIDs in Klarnamen über die jeweiligen Einzel-Endpunkte
     var clientName = phraseFetchJson_(phraseApiUrlV1_("/clients/" + encodeURIComponent(s.clientId)), { method: "get", headers: authHeader }).name;
     var domainName = phraseFetchJson_(phraseApiUrlV1_("/domains/" + encodeURIComponent(s.domainId)), { method: "get", headers: authHeader }).name;
     var subDomainName = phraseFetchJson_(phraseApiUrlV1_("/subDomains/" + encodeURIComponent(s.subDomainId)), { method: "get", headers: authHeader }).name;

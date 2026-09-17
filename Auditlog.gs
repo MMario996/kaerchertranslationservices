@@ -14,7 +14,7 @@
  *  - SYNC_TEMPLATES, SYNC_USERS
  *  - AUTO_SYNC_ON, AUTO_SYNC_OFF
  *  - LOGIN (first visit per session)
- *  - AUDIT_PURGE (wenn alte Eintr?ge gel?scht werden)
+ *  - AUDIT_PURGE (wenn alte Einträge gelöscht werden)
  *
  * Admin API:
  *  - apiGetAuditLog(limit)        ? returns last N entries
@@ -23,7 +23,7 @@
 
 var AUDIT_SHEET_NAME_ = "AuditLog";
 
-// ??? Core logging function ????????????????????????????????????????????????????
+// --- Core logging function ----------------------------------------------------
 
 function logAuditEvent_(userEmail, action, details) {
   try {
@@ -50,7 +50,7 @@ function logAuditEvent_(userEmail, action, details) {
   }
 }
 
-// ??? Admin API: Read audit log ????????????????????????????????????????????????
+// --- Admin API: Read audit log ------------------------------------------------
 
 function apiGetAuditLog(limit) {
   var caller = getUserEmail_();
@@ -86,15 +86,15 @@ function apiGetAuditLog(limit) {
   }
 }
 
-// ??? Admin API: Purge old audit log entries ???????????????????????????????????
+// --- Admin API: Purge old audit log entries -----------------------------------
 
 /**
- * L?scht alle AuditLog-Eintr?ge, die ?lter als `days` Tage sind.
+ * Löscht alle AuditLog-Einträge, die älter als `days` Tage sind.
  *
- * Vorgehen: Alle Zeilen lesen, alte Zeilen identifizieren, r?ckw?rts l?schen
- * (r?ckw?rts, damit sich die Zeilennummern beim L?schen nicht verschieben).
+ * Vorgehen: Alle Zeilen lesen, alte Zeilen identifizieren, rückwärts löschen
+ * (rückwärts, damit sich die Zeilennummern beim Löschen nicht verschieben).
  *
- * @param {number} days  Eintr?ge ?lter als diese Anzahl Tage werden gel?scht.
+ * @param {number} days  Einträge älter als diese Anzahl Tage werden gelöscht.
  *                       Minimum: 30 Tage (Sicherheitsgrenze).
  * @returns {{ success: boolean, deleted: number, remaining: number, msg: string }}
  */
@@ -119,21 +119,21 @@ function apiPurgeOldAuditEntries(days) {
     var cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
 
-    // R?ckw?rts iterieren, um Zeilennummern beim L?schen stabil zu halten
+    // Rückwärts iterieren, um Zeilennummern beim Löschen stabil zu halten
     var deletedCount = 0;
     for (var i = data.length - 1; i >= 0; i--) {
       var rawTs = data[i][0];
       var entryDate = (rawTs instanceof Date) ? rawTs : new Date(rawTs);
 
       if (!isNaN(entryDate.getTime()) && entryDate < cutoff) {
-        sh.deleteRow(i + 2); // +2: 1 f?r Header, 1 f?r 0-Indexed
+        sh.deleteRow(i + 2); // +2: 1 für Header, 1 für 0-Indexed
         deletedCount++;
       }
     }
 
     var remaining = Math.max(0, sh.getLastRow() - 1);
-    var msg = "AuditLog bereinigt: " + deletedCount + " Eintr?ge ?lter als " + days + " Tage gel?scht. " +
-              remaining + " Eintr?ge verbleiben.";
+    var msg = "AuditLog bereinigt: " + deletedCount + " Einträge älter als " + days + " Tage gelöscht. " +
+              remaining + " Einträge verbleiben.";
 
     // Den Purge selbst auch loggen
     logAuditEvent_(caller, "AUDIT_PURGE", msg);

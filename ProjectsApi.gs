@@ -6,12 +6,12 @@
  * - Utility: phraseFetchJson_ (with 429 retry + exponential backoff)
  *
  * REMOVED: phraseSetProjectOwner_ ? Funktionsuser bleibt Owner (keine Phrase-Mails an Einreicher)
- * NEW:     phraseSetProjectCreator_ ? ?berschreibt CF "Project Creator" (Default "SET VALUE")
+ * NEW:     phraseSetProjectCreator_ ? überschreibt CF "Project Creator" (Default "SET VALUE")
  *          via GET (Instanz-UID holen) + PUT updateInstances (Wert setzen)
  *          Custom Field UID: rP6yDs6jzepIbpoxiknpN1 (STRING, allowedEntities: PROJECT)
  */
 
-// ??? Custom Field UID ? Project Creator (Feld-Definition-UID, nicht Instanz-UID) ??
+// --- Custom Field UID ? Project Creator (Feld-Definition-UID, nicht Instanz-UID) ??
 var CF_PROJECT_CREATOR_UID_ = "rP6yDs6jzepIbpoxiknpN1";
 
 function getPhraseWebBaseUrl_() {
@@ -71,7 +71,7 @@ function phraseFetchJson_(url, options) {
       } else {
         waitMs = BASE_DELAY_MS * Math.pow(2, attempt);
       }
-      console.warn("?? Phrase 429 Rate Limit ? Warte " + (waitMs / 1000) + "s (Versuch " + (attempt + 1) + "/" + MAX_RETRIES + ")");
+      console.warn("\u26A0 Phrase 429 Rate Limit ? Warte " + (waitMs / 1000) + "s (Versuch " + (attempt + 1) + "/" + MAX_RETRIES + ")");
       Utilities.sleep(waitMs);
       continue;
     }
@@ -112,20 +112,20 @@ function phraseGetUserByEmail_(email) {
     const users = (result && result.content) ? result.content : (Array.isArray(result) ? result : []);
     for (const u of users) {
       if (u.email && u.email.toLowerCase().trim() === email.toLowerCase().trim()) {
-        console.log("? Phrase User gefunden: " + email + " ? userName: " + u.userName);
+        console.log("\u2022 Phrase User gefunden: " + email + " ? userName: " + u.userName);
         return { id: u.id, uid: u.uid, userName: u.userName };
       }
     }
-    console.warn("?? Phrase User nicht gefunden f?r E-Mail: " + email);
+    console.warn("\u26A0 Phrase User nicht gefunden für E-Mail: " + email);
     return null;
   } catch (e) {
-    console.warn("?? phraseGetUserByEmail_ fehlgeschlagen f?r " + email + ": " + e.message);
+    console.warn("\u26A0 phraseGetUserByEmail_ fehlgeschlagen für " + email + ": " + e.message);
     return null;
   }
 }
 
 /**
- * Legacy-Alias f?r Abw?rtskompatibilit?t.
+ * Legacy-Alias für Abwärtskompatibilität.
  */
 function phraseGetUserIdByEmail_(email) {
   const u = phraseGetUserByEmail_(email);
@@ -154,7 +154,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
   if (!projectUid || !userEmail) return;
 
   try {
-    // 1. Phrase-Username aufl?sen (Fallback: E-Mail)
+    // 1. Phrase-Username auflösen (Fallback: E-Mail)
     const phraseUser = phraseGetUserByEmail_(userEmail);
     const creatorValue = (phraseUser && phraseUser.userName)
       ? phraseUser.userName
@@ -178,7 +178,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
       const fieldUid = inst.customField && (inst.customField.uid || "");
       if (fieldUid === CF_PROJECT_CREATOR_UID_) {
         instanceUid = inst.uid;
-        console.log("? Project Creator Instanz gefunden: " + instanceUid + " (Wert: '" + inst.value + "')");
+        console.log("\u2022 Project Creator Instanz gefunden: " + instanceUid + " (Wert: '" + inst.value + "')");
         break;
       }
     }
@@ -190,7 +190,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
 
     let putPayload;
     if (instanceUid) {
-      // Vorhandene Instanz ?berschreiben (z.B. "SET VALUE" ? Username)
+      // Vorhandene Instanz überschreiben (z.B. "SET VALUE" ? Username)
       putPayload = {
         updateInstances: [
           {
@@ -222,19 +222,19 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
 
     const putCode = putRes.getResponseCode();
     if (putCode >= 400) {
-      console.warn("?? phraseSetProjectCreator_ PUT HTTP " + putCode + ": " + putRes.getContentText().substring(0, 200));
+      console.warn("\u26A0 phraseSetProjectCreator_ PUT HTTP " + putCode + ": " + putRes.getContentText().substring(0, 200));
     } else {
-      console.log("? Project Creator gesetzt: " + projectUid + " ? '" + creatorValue + "'");
+      console.log("\u2022 Project Creator gesetzt: " + projectUid + " ? '" + creatorValue + "'");
     }
 
   } catch (e) {
-    console.warn("?? phraseSetProjectCreator_ fehlgeschlagen f?r " + projectUid + ": " + e.message);
+    console.warn("\u26A0 phraseSetProjectCreator_ fehlgeschlagen für " + projectUid + ": " + e.message);
   }
 }
 
 /**
  * Setzt den ECHTEN Phrase-Owner des Projekts auf den Einreicher.
- * NUR f?r WOMA und Competence Center genutzt (siehe apiCreateProjectAndUpload).
+ * NUR für WOMA und Competence Center genutzt (siehe apiCreateProjectAndUpload).
  * Bei allen anderen Templates bleibt der Funktionsuser (DE10E20592) Owner,
  * damit keine ungewollten Phrase-Systemmails an Einreicher gehen.
  *
@@ -253,7 +253,7 @@ function phraseSetProjectOwner_(projectUid, userEmail) {
   try {
     const phraseUser = phraseGetUserByEmail_(userEmail);
     if (!phraseUser || !phraseUser.id) {
-      console.warn("?? phraseSetProjectOwner_: Kein Phrase-User f?r " + userEmail + " gefunden ? Owner bleibt unver?ndert.");
+      console.warn("\u26A0 phraseSetProjectOwner_: Kein Phrase-User für " + userEmail + " gefunden ? Owner bleibt unverändert.");
       return;
     }
 
@@ -268,12 +268,12 @@ function phraseSetProjectOwner_(projectUid, userEmail) {
 
     const code = res.getResponseCode();
     if (code >= 400) {
-      console.warn("?? phraseSetProjectOwner_ PUT HTTP " + code + ": " + res.getContentText().substring(0, 200));
+      console.warn("\u26A0 phraseSetProjectOwner_ PUT HTTP " + code + ": " + res.getContentText().substring(0, 200));
     } else {
-      console.log("? Project Owner gesetzt: " + projectUid + " ? " + userEmail + " (Phrase id: " + phraseUser.id + ")");
+      console.log("\u2022 Project Owner gesetzt: " + projectUid + " ? " + userEmail + " (Phrase id: " + phraseUser.id + ")");
     }
   } catch (e) {
-    console.warn("?? phraseSetProjectOwner_ fehlgeschlagen f?r " + projectUid + ": " + e.message);
+    console.warn("\u26A0 phraseSetProjectOwner_ fehlgeschlagen für " + projectUid + ": " + e.message);
   }
 }
 
@@ -428,7 +428,7 @@ function phraseCreateProjectFromTemplate_(templateUid, options) {
 
   const url = phraseApiUrlV2_("/projects/applyTemplate/" + encodeURIComponent(templateUid));
 
-  console.log("? Phrase: Create project from template");
+  console.log("\u2022 Phrase: Create project from template");
   console.log("   URL:", url);
   console.log("   Payload:", JSON.stringify(payload));
 
@@ -457,7 +457,7 @@ function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptiona
 
   const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/jobs");
 
-  console.log("? Phrase: Upload job");
+  console.log("\u2022 Phrase: Upload job");
   console.log("   URL:", url);
   console.log("   targetLangs:", mem.targetLangs.join(", "));
   console.log("   fileName:", fileName);
@@ -529,7 +529,7 @@ function phraseUploadReference_(projectUid, blob, fileName) {
 
   const url = phraseApiUrlV2_("/projects/" + encodeURIComponent(projectUid) + "/references");
 
-  console.log("? Phrase: Upload reference (v2)");
+  console.log("\u2022 Phrase: Upload reference (v2)");
   console.log("   URL:", url);
   console.log("   fileName:", name, "| mimeType:", mimeType);
 
