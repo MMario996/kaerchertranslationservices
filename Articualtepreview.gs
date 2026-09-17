@@ -70,7 +70,7 @@ function apiGenerateArticulatePreviewById(articulateProjectId, sessionId, overri
       project.projectUid, jobUidToUse, "SCORM File-URL", result.liveUrl
     );
 
-    var statusText = "OK (" + result.applied + " Segmente übersetzt, Job " + jobUidToUse + ")";
+    var statusText = "OK (" + result.applied + " Segmente ?bersetzt, Job " + jobUidToUse + ")";
     if (!cfResult.ok) statusText += " - CF FEHLER: " + cfResult.error;
 
     updateArticulateDeployResult_(project.rowIndex, result.liveUrl, statusText);
@@ -126,12 +126,12 @@ function checkArticulateJobCompletions_() {
         try {
           apiGenerateArticulatePreviewById(row.id, null, j.uid);
         } catch (e) {
-          console.warn("Auto-Preview für abgeschlossenen Job " + j.uid + " fehlgeschlagen: " + e.message);
+          console.warn("Auto-Preview f?r abgeschlossenen Job " + j.uid + " fehlgeschlagen: " + e.message);
         }
         props.setProperty(notifiedKey, "true");
       });
     } catch (e) {
-      console.warn("checkArticulateJobCompletions_ fehlgeschlagen für Kurs " + row.id + ": " + e.message);
+      console.warn("checkArticulateJobCompletions_ fehlgeschlagen f?r Kurs " + row.id + ": " + e.message);
     }
   });
 }
@@ -157,13 +157,13 @@ function apiGenerateArticulatePreview(params) {
   params = params || {};
   var sessionId = params.sessionId || String(Date.now());
 
-  setPreviewProgress_(sessionId, 5, "Hole aktuelle Übersetzung aus Phrase...");
+  setPreviewProgress_(sessionId, 5, "Hole aktuelle ?bersetzung aus Phrase...");
 
   // 1) Uebersetzte XLIFF aus Phrase holen (bestehende Kaercher-Funktion)
   var xliffBlob = phraseDownloadTargetFile_(params.projectUid, params.jobUid);
   var xliffText = xliffBlob.getDataAsString("UTF-8");
 
-  setPreviewProgress_(sessionId, 20, "Übersetzung wird ausgewertet...");
+  setPreviewProgress_(sessionId, 20, "?bersetzung wird ausgewertet...");
 
   // 2) XLIFF -> Patches. Im echten Betrieb useSourceIfNoTarget:false, damit
   // noch nicht uebersetzte Segmente ihren Originaltext im Kurs behalten.
@@ -174,7 +174,7 @@ function apiGenerateArticulatePreview(params) {
   setPreviewProgress_(
     sessionId,
     30,
-    patches.length + " übersetzte Segmente gefunden. Kurs wird zusammengebaut..."
+    patches.length + " ?bersetzte Segmente gefunden. Kurs wird zusammengebaut..."
   );
 
   // 3) Patchen + zu Firebase deployen. Wir rufen die bestehende
@@ -217,7 +217,7 @@ function patchAndDeployScormFolderToFirebase_withProgress_(
   var found = findRuntimeDataEntry_(fileEntries);
   var jsText = found.entry.blob.getDataAsString("UTF-8");
 
-  setPreviewProgress_(sessionId, 55, "übersetzungen werden eingesetzt...");
+  setPreviewProgress_(sessionId, 55, "?bersetzungen werden eingesetzt...");
   var patchResult = patchRuntimeDataJs_(jsText, patches);
 
   var patchedBlob = Utilities.newBlob(
