@@ -5651,9 +5651,18 @@ function base64ToBlob_(base64, mimeType) {
 }
 
 function findOrCreateDriveFolder_(token, name, parentId, cb) {
-  const safeName = String(name).replace(/'/g, "\\'");
-  const q = "name='" + safeName + "' and mimeType='application/vnd.google-apps.folder' and trashed=false" +
-    (parentId ? " and '" + parentId + "' in parents" : " and 'root' in parents");
+  // Diese Funktion kam mit PR #8 - und ab da lud die Maske nicht mehr. Der
+  // Prozessor, der die Seite fuer den document.write zusammenbaut, zerlegt sich
+  // an Apostroph-Literalen in dieser Funktion; der Schreibvorgang bricht ab und
+  // im Frame bleibt nur Apps Scripts Bootstrap-Dokument stehen. Deshalb kommt
+  // hier kein einziges Apostroph-Zeichen mehr direkt im Quelltext vor.
+  const APOS = String.fromCharCode(39);
+  const safeName = String(name).split(APOS).join("\\" + APOS);
+  const q = "name=" + APOS + safeName + APOS +
+    " and mimeType=" + APOS + "application/vnd.google-apps.folder" + APOS +
+    " and trashed=false" +
+    (parentId ? " and " + APOS + parentId + APOS + " in parents"
+              : " and " + APOS + "root" + APOS + " in parents");
 
   fetch('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {
     headers: { Authorization: 'Bearer ' + token }
