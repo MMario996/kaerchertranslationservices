@@ -6,6 +6,17 @@ function doGet(e) {
     .addMetaTag("viewport", "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1");
 }
 
+/**
+ * Liefert die ausgelagerten Guide-/FAQ-Inhalte (GuideContent.html) als HTML-String.
+ * Diese ~144 KB stecken bewusst nicht mehr in Index.html: das ausgelieferte
+ * Dokument wurde dadurch so gross, dass Apps Script es beim Schreiben in den
+ * userCodeAppPanel-Frame abgeschnitten hat - mitten im <script>-Block, wodurch
+ * die komplette Maske nicht mehr startete.
+ */
+function apiGetGuideContent() {
+  return HtmlService.createHtmlOutputFromFile("GuideContent").getContent();
+}
+
 function apiGetConfig(impersonateEmail) {
   return getConfig_(impersonateEmail);
 }
