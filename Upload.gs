@@ -7,12 +7,12 @@
  * - Google Chat Bot triggers
  * FIX: Deadline guard added to prevent silent timeout on large files.
  * FIX: rememberChatUserFromEvent_ schreibt via saveChatUserResourceName_ ins Notifications-Sheet
- * FIX: onAddedToSpace trägt User beim App-Install automatisch mit ON ins Notifications-Sheet ein
+ * FIX: onAddedToSpace tr?gt User beim App-Install automatisch mit ON ins Notifications-Sheet ein
  *      ? Sheet-Zugriff entfernt aus Bot-Kontext (kein SpreadsheetApp in doPost/onAddedToSpace)
  * FIX: Watcher-Benachrichtigung bei Projekt-Create
  *
  * HINWEIS: getStoredChatUserResourceName_() und saveChatUserResourceName_()
- * sind kanonisch in ChatToken.js definiert (Sheet-basiert, primär).
+ * sind kanonisch in ChatToken.js definiert (Sheet-basiert, prim?r).
  * Duplikate hier entfernt ? die Property-Only-Versionen verhinderten
  * das Auffinden der Chat-IDs aus dem Notifications-Sheet.
  */
@@ -113,7 +113,7 @@ function apiCreateProjectAndUpload(payload) {
   for (const uid of Object.keys(uidGroups)) {
 
     if (Date.now() - _startTime > UPLOAD_DEADLINE_MS_) {
-      const timeoutMsg = "⏱️ Upload is taking longer than expected. " +
+      const timeoutMsg = "?? Upload is taking longer than expected. " +
         "The project may already have been created in Phrase TMS. " +
         "Please check 'My Projects' in a moment. " +
         "Remaining languages: " + uidGroups[uid].join(", ");
@@ -167,7 +167,7 @@ function apiCreateProjectAndUpload(payload) {
       for (let i = 0; i < mainFiles.length; i++) {
         if (Date.now() - _startTime > UPLOAD_DEADLINE_MS_) {
           console.warn("?? Deadline guard: skipping remaining main files");
-          overallErrors.push("⏱️ Some files were not uploaded due to time limit. Please re-submit remaining files.");
+          overallErrors.push("?? Some files were not uploaded due to time limit. Please re-submit remaining files.");
           break;
         }
         try {
@@ -183,7 +183,7 @@ function apiCreateProjectAndUpload(payload) {
           if (up.unsupportedFiles && up.unsupportedFiles.length > 0) {
             console.warn("?? Phrase rejected as unsupported:", up.unsupportedFiles.join(", "));
             mainResults.push({ name: mainFileName, jobUids: [], asyncId, unsupported: true, unsupportedFiles: up.unsupportedFiles });
-            overallErrors.push(`"${mainFileName}" was rejected by Phrase TMS – format not supported.`);
+            overallErrors.push(`"${mainFileName}" was rejected by Phrase TMS ? format not supported.`);
             continue;
           }
 
@@ -259,22 +259,22 @@ function apiCreateProjectAndUpload(payload) {
          if (seenLangsPerFile[j.fileName][tLang]) return;
          seenLangsPerFile[j.fileName][tLang] = true;
          const jobUrl = "https://cloud.memsource.com/web/job/" + encodeURIComponent(j.jobUid) + "/translate";
-         entry.lines.push(`   ↳ ${tLang}: ${jobUrl}`);
+         entry.lines.push(`   ? ${tLang}: ${jobUrl}`);
       });
 
       const filesBlockArr = [];
       for (const [fName, data] of Object.entries(fileJobMap)) {
-         if (data.unsupported) filesBlockArr.push(`📄 *${fName}* ⚠️ (Upload failed – format not supported)`);
-         else filesBlockArr.push(`📄 *${fName}*\n${data.lines.join('\n')}`);
+         if (data.unsupported) filesBlockArr.push(`? *${fName}* ?? (Upload failed ? format not supported)`);
+         else filesBlockArr.push(`? *${fName}*\n${data.lines.join('\n')}`);
       }
       let filesBlock = filesBlockArr.join("\n");
 
       if (overallRefResults && overallRefResults.length > 0) {
-        filesBlock += "\n\n📎 *Reference Files*\n" +
-          overallRefResults.map(r => "📎 " + r.name + (r.ok ? "" : " ⚠️ (Upload failed)")).join("\n");
+        filesBlock += "\n\n? *Reference Files*\n" +
+          overallRefResults.map(r => "? " + r.name + (r.ok ? "" : " ?? (Upload failed)")).join("\n");
       }
 
-      const noteLine = note ? "📝 *Note:* " + note + "\n" : "";
+      const noteLine = note ? "? *Note:* " + note + "\n" : "";
 
       const projectMsg = fillTemplate_(getMessageTemplate_("MSG_PROJECT_SUBMITTED", "en"), {
         PROJECT_NAME:  projectName + (totalGroups > 1 ? " (Multiple Projects)" : ""),
@@ -324,7 +324,7 @@ function apiCreateProjectAndUpload(payload) {
      return { success: false, error: "Failed to create any projects.\n" + overallErrors.join("\n") };
   }
 
-  const hasTimeoutWarning = overallErrors.some(e => e.includes("⏱️"));
+  const hasTimeoutWarning = overallErrors.some(e => e.includes("??"));
 
   return {
     success:         true,
@@ -522,7 +522,7 @@ function requireChatBotService_() {
 
 function sendPrivateMessage_(userEmail, messageText) {
   const normalizedEmail  = normalizeEmail_(userEmail);
-  if (!normalizedEmail) throw new Error("Ungültige Empfänger-E-Mail.");
+  if (!normalizedEmail) throw new Error("Ung?ltige Empf?nger-E-Mail.");
   const service          = requireChatBotService_();
   const token            = service.getAccessToken();
   const userResourceName = resolveChatUserResourceName_(normalizedEmail);
@@ -574,7 +574,7 @@ function sendThreadReply_(userEmail, threadMessageName, replyText) {
   } else if (threadMessageName.includes("/threads/")) {
     spaceName = threadMessageName.split("/threads/")[0];
   } else {
-    console.warn("Ungültiges Thread-Format:", threadMessageName);
+    console.warn("Ung?ltiges Thread-Format:", threadMessageName);
     return null;
   }
 
@@ -623,7 +623,7 @@ function findDirectMessageSpaceName_(token, userResourceName) {
   const res = UrlFetchApp.fetch(url, { method: "get", headers: { Authorization: "Bearer " + token }, muteHttpExceptions: true });
   const code = res.getResponseCode();
   const body = res.getContentText();
-  if (code === 404) throw new Error("Kein Direktchat. Der Nutzer muss den Bot 'Translation-Services' einmal öffnen und eine Nachricht schreiben.");
+  if (code === 404) throw new Error("Kein Direktchat. Der Nutzer muss den Bot 'Translation-Services' einmal ?ffnen und eine Nachricht schreiben.");
   if (code >= 400)  throw new Error("Fehler beim Suchen des Direktchats: " + body);
   const data = JSON.parse(body || "{}");
   if (!data.name) throw new Error("Direktchat gefunden, aber kein Space-Name.");
@@ -635,7 +635,7 @@ function resolveChatUserResourceName_(userEmail) {
   if (cached) return cached;
   const fallback = tryResolveChatUserResourceNameViaDirectory_(userEmail);
   if (fallback) { saveChatUserResourceName_(userEmail, fallback); return fallback; }
-  throw new Error("Kein Chat-User-Mapping für " + userEmail + ". Der Nutzer muss den Bot 'Translation-Services' einmal öffnen.");
+  throw new Error("Kein Chat-User-Mapping f?r " + userEmail + ". Der Nutzer muss den Bot 'Translation-Services' einmal ?ffnen.");
 }
 
 function tryResolveChatUserResourceNameViaDirectory_(userEmail) {
@@ -672,27 +672,27 @@ function onAddedToSpace(e) {
     if (!alreadyWelcomed && userInfo.userEmail) {
       props.setProperty(welcomeKey, "true");
       const welcomeText = [
-        "👋 Welcome to *Translation-Services*" + (userInfo.displayName ? ", " + userInfo.displayName : "") + "!",
+        "? Welcome to *Translation-Services*" + (userInfo.displayName ? ", " + userInfo.displayName : "") + "!",
         "",
         "You are now registered and will receive automatic notifications when:",
-        "✅ Your project has been submitted",
-        "✅ Your translation is ready to download",
-        "✅ A colleague shares a project with you",
-        "⏰ A deadline is approaching (24h reminder)",
+        "? Your project has been submitted",
+        "? Your translation is ready to download",
+        "? A colleague shares a project with you",
+        "? A deadline is approaching (24h reminder)",
         "",
-        "👉 *Next step:* Submit your first project in the portal – you'll receive a confirmation here.",
+        "? *Next step:* Submit your first project in the portal ? you'll receive a confirmation here.",
         "",
-        "🌐 " + PORTAL_URL_,
+        "? " + PORTAL_URL_,
         "",
-        "ℹ️ *Note:* This is a read-only notification channel. Please use the Portal for all actions."
+        "?? *Note:* This is a read-only notification channel. Please use the Portal for all actions."
       ].join("\n");
       return { text: welcomeText };
     }
 
-    return { text: "✅ *Translation-Services* – Notifications active.\n\n🌐 " + PORTAL_URL_ };
+    return { text: "? *Translation-Services* ? Notifications active.\n\n? " + PORTAL_URL_ };
 
   } catch(err) {
-    return { text: "✅ *Translation-Services* – Notification bot active.\n\n🌐 " + PORTAL_URL_ };
+    return { text: "? *Translation-Services* ? Notification bot active.\n\n? " + PORTAL_URL_ };
   }
 }
 
@@ -700,23 +700,23 @@ function onMessage(e) {
   rememberChatUserFromEvent_(e);
   return {
     text: [
-      "🤖 *Translation-Services Bot*",
+      "? *Translation-Services Bot*",
       "",
       "This is a read-only notification channel. I cannot process commands or answer questions.",
       "",
-      "👉 *What you can do in the Portal:*",
-      "• Submit new translation projects",
-      "• Track project status in 'My Projects'",
-      "• Download completed translations",
-      "• Share projects with colleagues",
+      "? *What you can do in the Portal:*",
+      "? Submit new translation projects",
+      "? Track project status in 'My Projects'",
+      "? Download completed translations",
+      "? Share projects with colleagues",
       "",
-      "🌐 *Open Portal:* " + PORTAL_URL_
+      "? *Open Portal:* " + PORTAL_URL_
     ].join("\n")
   };
 }
 
 function onAppCommand(e) {
-  return { text: "✅ *Translation-Services* – Read-only notification bot.\n\n🌐 " + PORTAL_URL_ };
+  return { text: "? *Translation-Services* ? Read-only notification bot.\n\n? " + PORTAL_URL_ };
 }
 
 function onRemovedFromSpace(e) { return; }
@@ -732,7 +732,7 @@ function doPost(e) {
     return createChatJsonResponse_({});
   } catch(err) {
     return createChatJsonResponse_({
-      text: "⚠️ *Translation-Services Bot* – An error occurred. Please use the Portal.\n\n🌐 " + PORTAL_URL_
+      text: "?? *Translation-Services Bot* ? An error occurred. Please use the Portal.\n\n? " + PORTAL_URL_
     });
   }
 }
@@ -779,14 +779,14 @@ function apiTestChatBot(email) {
   const currentUser = getUserEmail_();
   if (!isAdmin_(currentUser)) return { success: false, error: "Not authorized. Admin only." };
   const normalizedEmail = normalizeEmail_(email);
-  if (!normalizedEmail || normalizedEmail.indexOf("@") === -1) return { success: false, error: "Ungültige E-Mail." };
+  if (!normalizedEmail || normalizedEmail.indexOf("@") === -1) return { success: false, error: "Ung?ltige E-Mail." };
   try {
     sendPrivateMessage_(normalizedEmail, [
-      "✅ *Translation-Services – Connection Test*",
+      "? *Translation-Services ? Connection Test*",
       "",
       "If you can read this, your Chat Bot setup is working correctly.",
       "",
-      "🌐 " + PORTAL_URL_
+      "? " + PORTAL_URL_
     ].join("\n"));
     return { success: true };
   } catch(e) {
