@@ -43,7 +43,7 @@ function saveDocDriveRootSettings_() {
     .withSuccessHandler(res => {
       btn.innerText = 'SPEICHERN';
       if (!res.success) { btn.disabled = false; showCustomAlert("Fehler: " + res.error, "Error"); return; }
-      showCustomAlert("? Drive-Root gespeichert: " + res.folderName, "Gespeichert");
+      showCustomAlert("\u2713 Drive-Root gespeichert: " + res.folderName, "Gespeichert");
       toggleDocDriveRootLock();
     })
     .withFailureHandler(e => {
@@ -115,8 +115,8 @@ function toggleAdminHelp(id) {
       if (!deEl || !enEl) return;
       google.script.run
         .withSuccessHandler(r => {
-          if (r.success) showCustomAlert("? Template saved!", "Saved");
-          else showCustomAlert("? " + r.error, "Error");
+          if (r.success) showCustomAlert("\u2713 Template saved!", "Saved");
+          else showCustomAlert("\u2717 " + r.error, "Error");
           loadMessageTemplates();
         })
         .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
@@ -125,7 +125,7 @@ function toggleAdminHelp(id) {
     function resetMessageTemplate(key) {
       showCustomConfirm('Reset "' + (MSG_KEY_LABELS[key] || key) + '" to default?', function() {
         google.script.run
-          .withSuccessHandler(() => { showCustomAlert("? Reset to default.", "Reset"); loadMessageTemplates(); })
+          .withSuccessHandler(() => { showCustomAlert("\u2713 Reset to default.", "Reset"); loadMessageTemplates(); })
           .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
           .apiResetMessageTemplate(key);
       }, "Reset Template");
@@ -187,7 +187,7 @@ function toggleAdminHelp(id) {
       google.script.run
         .withSuccessHandler(() => {
           btn.innerText = 'SPEICHERN';
-          showCustomAlert("? KeC Eligibility Settings gespeichert.", "Gespeichert");
+          showCustomAlert("\u2713 KeC Eligibility Settings gespeichert.", "Gespeichert");
           toggleKecEligLock(); // wieder sperren
         })
         .withFailureHandler(e => {
@@ -302,7 +302,7 @@ function toggleAdminHelp(id) {
       if (!rows.length) { table.style.display='none'; empty.style.display='block'; _tmplMgrUpdateBatchBar(); return; }
       table.style.display='table'; empty.style.display='none';
       tbody.innerHTML = rows.map(r => {
-        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' \u2013 ') || '?';
+        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' \u2013 ') || '\u2013';
         return `
         <tr data-uid="${escapeHtml(r.uid)}" style="${_tmplMgrSelected[r.uid] ? 'background:#fffde7;' : ''}">
           <td style="text-align:center;">
@@ -454,12 +454,12 @@ function toggleAdminHelp(id) {
         const roleOptions = USER_MGR_ROLES.map(role =>
           '<option value="' + role + '"' + (r.role === role ? ' selected' : '') + '>' + role + '</option>'
         ).join('');
-        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' \u2013 ') || '? keine Angaben ?';
+        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' \u2013 ') || '\u2022 keine Angaben ?';
         const langSummary = [
           r.sourceLangs ? ('Quelle: ' + r.sourceLangs) : '',
           r.targetLangs ? ('Ziel: ' + r.targetLangs) : '',
           r.workflowSteps ? ('Workflow: ' + r.workflowSteps) : ''
-        ].filter(Boolean).join(' \u2013 ') || '? keine Angaben ?';
+        ].filter(Boolean).join(' \u2013 ') || '\u2022 keine Angaben ?';
         const segKey = r.username + '_seg';
         const langKey = r.username + '_lang';
         const segOpen = !!_userMgrExpanded[segKey];
@@ -478,8 +478,8 @@ function toggleAdminHelp(id) {
               '<span style="position:absolute;height:14px;width:14px;left:' + (r.status === 'ACTIVE' ? '19px' : '3px') + ';top:3px;background:#fff;border-radius:50%;transition:.2s;"></span>' +
             '</label>' +
           '</td>' +
-          '<td><button type="button" class="expand-btn' + (segOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'seg\')" title="' + escapeHtml(segSummary) + '">' + (segOpen ? '?' : '?') + ' ' + escapeHtml(segSummary) + '</button></td>' +
-          '<td><button type="button" class="expand-btn' + (langOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'lang\')" title="' + escapeHtml(langSummary) + '">' + (langOpen ? '?' : '?') + ' ' + escapeHtml(langSummary) + '</button></td>' +
+          '<td><button type="button" class="expand-btn' + (segOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'seg\')" title="' + escapeHtml(segSummary) + '">' + (segOpen ? '\u25BE' : '\u25B8') + ' ' + escapeHtml(segSummary) + '</button></td>' +
+          '<td><button type="button" class="expand-btn' + (langOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'lang\')" title="' + escapeHtml(langSummary) + '">' + (langOpen ? '\u25BE' : '\u25B8') + ' ' + escapeHtml(langSummary) + '</button></td>' +
         '</tr>';
 
         if (segOpen) {
@@ -536,7 +536,7 @@ function toggleAdminHelp(id) {
 
         google.script.run.withSuccessHandler(r => {
             document.getElementById('adminDriveClientId').value = (r && r.clientId) || '';
-            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '? Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
+            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '\u2022 Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
         }).apiGetDriveSaveConfig();
         
         const m = configData.maintenance || { active: false };
@@ -609,7 +609,7 @@ function toggleAdminHelp(id) {
         google.script.run.withSuccessHandler(r => {
             if (r.success) {
                 driveSaveConfigCache_ = null; // Force reload on next "Save to Drive" click
-                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '? Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
+                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '\u2022 Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
                 showCustomAlert("Saved.", "Success");
             } else {
                 showCustomAlert("Error: " + r.error, "Error");
@@ -862,9 +862,9 @@ function toggleAdminHelp(id) {
                           `<strong>User Data (FetchTMS_USERS-Prod):</strong>\n` +
                           `Client: ${r.userData.client}\nDomain: ${r.userData.domain}\nSubdomain: ${r.userData.subdomain}\nBU: ${r.userData.bu}\n\n` +
                           `<strong>Erlaubte Templates (${r.allowed.length}):</strong>\n` + 
-                          r.allowed.map(x => `? ${x.name}`).join('\n') + `\n\n` +
+                          r.allowed.map(x => `\u2713 ${x.name}`).join('\n') + `\n\n` +
                           `<strong>Blockierte Templates (${r.denied.length}):</strong>\n` +
-                          r.denied.map(x => `? ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
+                          r.denied.map(x => `\u2717 ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
         }).apiDebugUserTemplates(email);
     }
     function testChatBot(btn) {
@@ -1132,7 +1132,7 @@ function addWatcher() {
           _watcherConfig = currentConfig;
           document.getElementById('newWatcherEmail').value = '';
           document.getElementById('newWatcherTemplates').value = '';
-          showCustomAlert('? Watcher hinzugefügt.', 'Gespeichert');
+          showCustomAlert('\u2713 Watcher hinzugefügt.', 'Gespeichert');
           renderWatcherConfig();
         })
         .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
@@ -1145,7 +1145,7 @@ function removeWatcher(idx) {
   showCustomConfirm('Watcher "' + _watcherConfig[idx].email + '" entfernen?', function() {
     _watcherConfig.splice(idx, 1);
     google.script.run
-      .withSuccessHandler(() => { showCustomAlert('? Watcher entfernt.'); renderWatcherConfig(); })
+      .withSuccessHandler(() => { showCustomAlert('\u2713 Watcher entfernt.'); renderWatcherConfig(); })
       .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
       .apiSaveWatcherConfig(_watcherConfig);
   });

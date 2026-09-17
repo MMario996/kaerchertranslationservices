@@ -813,7 +813,7 @@ function apiUpdateDueDate(projectUid, newDateIso) {
     return { success: true, newDate: isoDate, formattedDate, phraseWarning: phraseWarning || null };
 
   } catch(e) {
-    console.error("? apiUpdateDueDate failed:", e.message);
+    console.error("\u2717 apiUpdateDueDate failed:", e.message);
     return { success: false, error: e.message };
   }
 }
