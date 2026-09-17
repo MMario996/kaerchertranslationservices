@@ -4,14 +4,14 @@
  * read-only Baumstruktur (Sprachunterordner + XML-Dateien) - gemeinsam
  * genutzt von Import (Quelldateien) und Export (Zielort).
  *
- * Ordner-Zugriff l?uft ?ber zwei Wege:
- *  - per ID (apiGetDocDriveTreeById): das Frontend w?hlt den Ordner ?ber die
+ * Ordner-Zugriff läuft über zwei Wege:
+ *  - per ID (apiGetDocDriveTreeById): das Frontend wählt den Ordner über die
  *    Such-Dropdown (apiSearchDocDriveFolders) aus und referenziert ihn danach
- *    ausschlie?lich ?ber seine eindeutige Drive-ID. Das ist robust auch wenn
- *    sp?ter ein NEUER Ordner mit demselben Namen angelegt wird (z.B. dasselbe
- *    Projekt Monate sp?ter erneut).
+ *    ausschließlich über seine eindeutige Drive-ID. Das ist robust auch wenn
+ *    später ein NEUER Ordner mit demselben Namen angelegt wird (z.B. dasselbe
+ *    Projekt Monate später erneut).
  *  - per exaktem Namens-Match (docDriveFindProjectFolder_ / apiGetDocDriveTree):
- *    bleibt als Fallback/Kompatibilit?t erhalten (z.B. f?r Export, der bereits
+ *    bleibt als Fallback/Kompatibilität erhalten (z.B. für Export, der bereits
  *    einen bekannten Projektnamen hat).
  */
 var DOC_DRIVE_LANG_FOLDER_RE_ = /^[a-zA-Z]{2,3}-[a-zA-Z]{2,4}$/;
@@ -93,7 +93,7 @@ function apiGetDocDriveTreeById(folderId) {
   var access = apiCheckAccess();
   if (!access.allowed) return { success: false, error: "Not authorized." };
   try {
-    if (!folderId) return { success: false, error: "Keine Ordner-ID ?bergeben." };
+    if (!folderId) return { success: false, error: "Keine Ordner-ID übergeben." };
     var folder = DriveApp.getFolderById(folderId);
     var tree = docDriveBuildTree_(folder);
     return { success: true, found: true, tree: tree };
@@ -104,7 +104,7 @@ function apiGetDocDriveTreeById(folderId) {
 
 /**
  * Durchsucht die direkten Unterordner des konfigurierten Root-Ordners per
- * Namens-Teilstring (case-insensitive), f?r die Such-Dropdown im Frontend.
+ * Namens-Teilstring (case-insensitive), für die Such-Dropdown im Frontend.
  * Nutzt die Drive-API v2 (in appsscript.json aktiviert) statt alle Unterordner
  * client-seitig zu iterieren, damit auch bei vielen Projektordnern schnell
  * gefiltert werden kann.

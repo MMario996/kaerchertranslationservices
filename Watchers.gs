@@ -14,7 +14,7 @@
 
 var WATCHERS_SHEET_NAME_ = "Watchers";
 
-// ??? Sheet holen / anlegen ????????????????????????????????????????????????????
+// --- Sheet holen / anlegen ----------------------------------------------------
 
 function getWatchersSheet_() {
   const ss = openOpsSpreadsheet_();
@@ -26,12 +26,12 @@ function getWatchersSheet_() {
     sh.setFrozenRows(1);
     sh.setColumnWidth(1, 280);
     sh.setColumnWidth(2, 600);
-    console.log("? Watchers sheet created.");
+    console.log("\u2022 Watchers sheet created.");
   }
   return sh;
 }
 
-// ??? Config lesen ?????????????????????????????????????????????????????????????
+// --- Config lesen -------------------------------------------------------------
 
 function getWatcherConfig_() {
   try {
@@ -59,7 +59,7 @@ function getWatcherConfig_() {
   }
 }
 
-// ??? Watcher f?r ein Template ermitteln ??????????????????????????????????????
+// --- Watcher für ein Template ermitteln --------------------------------------
 
 function getWatchersForTemplate_(templateName, templateUid) {
   if (!templateName && !templateUid) return [];
@@ -75,8 +75,8 @@ function getWatchersForTemplate_(templateName, templateUid) {
       const valLower = val.toLowerCase();
       return val === tUid ||                    // exakte UID
              valLower === tName ||              // exakter Name
-             tName.includes(valLower) ||        // Name enth?lt Eintrag
-             valLower.includes(tName);          // Eintrag enth?lt Name
+             tName.includes(valLower) ||        // Name enthält Eintrag
+             valLower.includes(tName);          // Eintrag enthält Name
     });
     if (matches) watchers.push(entry.email);
   });
@@ -84,7 +84,7 @@ function getWatchersForTemplate_(templateName, templateUid) {
   return [...new Set(watchers)];
 }
 
-// ??? Watcher benachrichtigen ?????????????????????????????????????????????????
+// --- Watcher benachrichtigen -------------------------------------------------
 
 function notifyWatchers_(templateName, projectName, submitterEmail, projectUid, targetLangs, templateUid) {
   const watchers = getWatchersForTemplate_(templateName, templateUid);
@@ -93,30 +93,30 @@ function notifyWatchers_(templateName, projectName, submitterEmail, projectUid, 
   const phraseUrl = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);
 
   const msg = [
-    "?? *New project submitted*",
+    "\u26A0 *New project submitted*",
     "",
-    "? *Project:* " + projectName,
-    "? *Template:* " + templateName,
-    "? *Submitted by:* " + submitterEmail,
-    "? *Target languages:* " + (Array.isArray(targetLangs) ? targetLangs.join(", ") : targetLangs),
-    "? *Phrase ID:* " + projectUid,
+    "\u2022 *Project:* " + projectName,
+    "\u2022 *Template:* " + templateName,
+    "\u2022 *Submitted by:* " + submitterEmail,
+    "\u2022 *Target languages:* " + (Array.isArray(targetLangs) ? targetLangs.join(", ") : targetLangs),
+    "\u2022 *Phrase ID:* " + projectUid,
     "",
-    "? *Open in Phrase TMS:* " + phraseUrl,
-    "? *Translation Services Portal:* " + PORTAL_URL_
+    "\u2022 *Open in Phrase TMS:* " + phraseUrl,
+    "\u2022 *Translation Services Portal:* " + PORTAL_URL_
   ].join("\n");
 
   watchers.forEach(watcherEmail => {
     if (watcherEmail === String(submitterEmail || "").toLowerCase()) return;
     try {
       sendPrivateMessage_(watcherEmail, msg);
-      console.log("? Watcher notified:", watcherEmail, "for template:", templateName);
+      console.log("\u2022 Watcher notified:", watcherEmail, "for template:", templateName);
     } catch(e) {
-      console.warn("?? Watcher notification failed for " + watcherEmail + ": " + e.message);
+      console.warn("\u26A0 Watcher notification failed for " + watcherEmail + ": " + e.message);
     }
   });
 }
 
-// ??? Admin APIs ???????????????????????????????????????????????????????????????
+// --- Admin APIs ---------------------------------------------------------------
 
 function apiGetWatcherConfig() {
   const caller = getUserEmail_();
@@ -137,7 +137,7 @@ function apiSaveWatcherConfig(configArray) {
 
   const sh = getWatchersSheet_();
 
-  // Alle Datenzeilen l?schen (ab Zeile 2)
+  // Alle Datenzeilen löschen (ab Zeile 2)
   const lastRow = sh.getLastRow();
   if (lastRow > 1) {
     sh.getRange(2, 1, lastRow - 1, 2).clearContent();

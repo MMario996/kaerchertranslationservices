@@ -19,13 +19,13 @@
 
 const PORTAL_URL_ = "https://sites.google.com/karcher.com/phrase";
 
-// ??? Blocked file extensions for main files ???????????????????????????????????
+// --- Blocked file extensions for main files -----------------------------------
 const BLOCKED_MAIN_EXTENSIONS_ = [".pdf", ".doc"];
 
-// ??? Deadline guard ???????????????????????????????????????????????????????????
+// --- Deadline guard -----------------------------------------------------------
 const UPLOAD_DEADLINE_MS_ = 300 * 1000; // 5 minutes
 
-// ??? Project Creation + Upload ????????????????????????????????????????????????
+// --- Project Creation + Upload ------------------------------------------------
 
 function apiCreateProjectAndUpload(payload) {
   const _startTime = Date.now();
@@ -39,7 +39,7 @@ function apiCreateProjectAndUpload(payload) {
   }
 
   const userEmail = getUserEmail_();
-  console.log("? Starting project creation for user:", userEmail);
+  console.log("\u2022 Starting project creation for user:", userEmail);
 
   const portalType = String(payload.portalType || "").trim().toLowerCase();
   const setRealOwner = (portalType === "woma" || portalType === "cc");
@@ -72,7 +72,7 @@ function apiCreateProjectAndUpload(payload) {
     if (id) refFiles.push({ source: "drive", id: id, name: "" });
   });
 
-  // ?? Validate main file extensions ??????????????????????????????????????????
+  // ?? Validate main file extensions ------------------------------------------
   for (const f of mainFiles) {
     const meta = resolveFileMeta_(f);
     const name = String(meta.fileName || "").toLowerCase();
@@ -87,7 +87,7 @@ function apiCreateProjectAndUpload(payload) {
     }
   }
 
-  // ?? Group target languages by their template UID ???????????????????????????
+  // ?? Group target languages by their template UID ---------------------------
   const uidGroups = {};
   const targetUidMap = payload.targetUidMap || {};
   const fallbackUid = templateUid;
@@ -109,7 +109,7 @@ function apiCreateProjectAndUpload(payload) {
   let threadId = "";
   const queueRowsToAppend = [];
 
-  // ?? Loop over template UID groups ?????????????????????????????????????????
+  // ?? Loop over template UID groups -----------------------------------------
   for (const uid of Object.keys(uidGroups)) {
 
     if (Date.now() - _startTime > UPLOAD_DEADLINE_MS_) {
@@ -118,7 +118,7 @@ function apiCreateProjectAndUpload(payload) {
         "Please check 'My Projects' in a moment. " +
         "Remaining languages: " + uidGroups[uid].join(", ");
       overallErrors.push(timeoutMsg);
-      console.warn("?? Deadline guard triggered for UID:", uid);
+      console.warn("\u26A0 Deadline guard triggered for UID:", uid);
       break;
     }
 
@@ -137,13 +137,13 @@ function apiCreateProjectAndUpload(payload) {
       phraseSetProjectCreator_(projectUid, userEmail);
       if (setRealOwner) phraseSetProjectOwner_(projectUid, userEmail);
       overallProjectUids.push(projectUid);
-      console.log("? Project created:", projectUid);
+      console.log("\u2022 Project created:", projectUid);
 
       // Upload Reference Files
       const refResults = [];
       for (const f of refFiles) {
         if (Date.now() - _startTime > UPLOAD_DEADLINE_MS_) {
-          console.warn("?? Deadline guard: skipping remaining reference files");
+          console.warn("\u26A0 Deadline guard: skipping remaining reference files");
           break;
         }
         try {
@@ -152,7 +152,7 @@ function apiCreateProjectAndUpload(payload) {
           phraseUploadReference_(projectUid, blob, refName);
           if (overallProjectUids.length === 1) refResults.push({ name: refName, ok: true });
         } catch (e) {
-          console.warn("?? Reference upload failed:", e.message);
+          console.warn("\u26A0 Reference upload failed:", e.message);
           const metaName = resolveFileMeta_(f).fileName || "reference";
           if (overallProjectUids.length === 1) refResults.push({ name: metaName, ok: false, error: String(e) });
         }
@@ -166,7 +166,7 @@ function apiCreateProjectAndUpload(payload) {
 
       for (let i = 0; i < mainFiles.length; i++) {
         if (Date.now() - _startTime > UPLOAD_DEADLINE_MS_) {
-          console.warn("?? Deadline guard: skipping remaining main files");
+          console.warn("\u26A0 Deadline guard: skipping remaining main files");
           overallErrors.push("⏱️ Some files were not uploaded due to time limit. Please re-submit remaining files.");
           break;
         }
@@ -181,7 +181,7 @@ function apiCreateProjectAndUpload(payload) {
           const asyncId = (up.asyncRequest && up.asyncRequest.id) ? up.asyncRequest.id : "";
 
           if (up.unsupportedFiles && up.unsupportedFiles.length > 0) {
-            console.warn("?? Phrase rejected as unsupported:", up.unsupportedFiles.join(", "));
+            console.warn("\u26A0 Phrase rejected as unsupported:", up.unsupportedFiles.join(", "));
             mainResults.push({ name: mainFileName, jobUids: [], asyncId, unsupported: true, unsupportedFiles: up.unsupportedFiles });
             overallErrors.push(`"${mainFileName}" was rejected by Phrase TMS – format not supported.`);
             continue;
@@ -225,7 +225,7 @@ function apiCreateProjectAndUpload(payload) {
     }
   }
 
-  // ?? Chat Notifications ????????????????????????????????????????????????????
+  // ?? Chat Notifications ----------------------------------------------------
   if (overallProjectUids.length > 0) {
     const chatEnabled = getUserChatPreference_(userEmail);
     if (chatEnabled) {
@@ -306,7 +306,7 @@ function apiCreateProjectAndUpload(payload) {
         userEmail,
         overallProjectUids[0],
         targetLangs,
-        payload.templateUid || ""   // ? Template-UID erg?nzen
+        payload.templateUid || ""   // ? Template-UID ergänzen
       );
       } catch(watcherErr) {
         console.warn("Watcher notification failed:", watcherErr.message);
@@ -341,7 +341,7 @@ function apiCreateProjectAndUpload(payload) {
 }
 
 
-// ??? B: Job Notes via Phrase Conversations API ????????????????????????????????
+// --- B: Job Notes via Phrase Conversations API --------------------------------
 
 function apiAddJobNote(projectUid, jobUidRaw, noteText) {
   const caller = getUserEmail_();
@@ -392,12 +392,12 @@ function apiAddJobNote(projectUid, jobUidRaw, noteText) {
       })
     });
 
-    console.log("? Job note added to Phrase:", jobUid);
+    console.log("\u2022 Job note added to Phrase:", jobUid);
     logAuditEvent_(caller, "JOB_NOTE", "Note added to job " + jobUid + " in project " + projectUid);
     return { success: true, conversationId: result && result.id };
 
   } catch (e) {
-    console.error("? Phrase job note failed:", e.message);
+    console.error("\u2717 Phrase job note failed:", e.message);
     return { success: false, error: e.message };
   }
 }
@@ -436,7 +436,7 @@ function phraseApiUrlV3_(path) {
   return getPhraseWebBaseUrl_() + "/api2/v3" + (p.startsWith("/") ? p : "/" + p);
 }
 
-// ??? File Resolvers ???????????????????????????????????????????????????????????
+// --- File Resolvers -----------------------------------------------------------
 
 function resolveFileToBlob_(f) {
   const meta = resolveFileMeta_(f);
@@ -530,18 +530,18 @@ function sendPrivateMessage_(userEmail, messageText) {
   try {
     const spaceName = findDirectMessageSpaceName_(token, userResourceName);
     const result     = postChatMessage_(token, spaceName, messageText);
-    console.log("? Chat DM sent to " + normalizedEmail);
+    console.log("\u2022 Chat DM sent to " + normalizedEmail);
     return result;
   } catch (dmErr) {
     // FIX: Kein 1:1-Chat vorhanden ? das passiert z.B. wenn der Nutzer den Bot
-    // nur ?ber einen Space (Room) kennt und ihn nie direkt angeschrieben hat.
+    // nur über einen Space (Room) kennt und ihn nie direkt angeschrieben hat.
     // In dem Fall auf den zuletzt bekannten Space ausweichen und den Nutzer dort taggen,
     // statt die Nachricht stillschweigend zu verlieren.
     const fallbackSpace = getStoredChatUserSpace_(normalizedEmail);
     if (!fallbackSpace) throw dmErr;
     const mention = "<" + userResourceName + "> ";
     const result  = postChatMessage_(token, fallbackSpace, mention + messageText);
-    console.log("? Chat message sent via space fallback to " + normalizedEmail + " (" + fallbackSpace + ")");
+    console.log("\u2022 Chat message sent via space fallback to " + normalizedEmail + " (" + fallbackSpace + ")");
     return result;
   }
 }
@@ -647,7 +647,7 @@ function tryResolveChatUserResourceNameViaDirectory_(userEmail) {
   return "";
 }
 
-// ??? Chat Triggers ????????????????????????????????????????????????????????????
+// --- Chat Triggers ------------------------------------------------------------
 
 function onAddedToSpace(e) {
   try {
@@ -658,14 +658,14 @@ function onAddedToSpace(e) {
     const alreadyWelcomed = props.getProperty(welcomeKey);
 
     // FIX: User beim App-Install in Script Properties als "Notifications ON" markieren
-    // Sheet-Zugriff hier nicht m?glich (Bot-Kontext hat keinen SpreadsheetApp-Scope)
+    // Sheet-Zugriff hier nicht möglich (Bot-Kontext hat keinen SpreadsheetApp-Scope)
     // Die Notifications-Sheet-Eintragung passiert beim ersten apiSetChatPreference-Aufruf
     // oder via Admin "Sync Notifications"
     if (userInfo.userEmail) {
       const prefKey = "CHAT_PREF_ON__" + userInfo.userEmail;
       if (!props.getProperty(prefKey)) {
         props.setProperty(prefKey, "true");
-        console.log("? Chat pref ON gesetzt in Script Properties f?r:", userInfo.userEmail);
+        console.log("\u2022 Chat pref ON gesetzt in Script Properties für:", userInfo.userEmail);
       }
     }
 
@@ -766,7 +766,7 @@ function rememberChatUserFromEvent_(event) {
   }
 
   // FIX: Ist der Bot Teil eines Spaces (Room), statt einer 1:1-DM, merken wir uns
-  // diesen Space als Fallback-Ziel. Sonst kommen bei Nutzern, die den Bot nur ?ber
+  // diesen Space als Fallback-Ziel. Sonst kommen bei Nutzern, die den Bot nur über
   // einen gemeinsamen Space kennen (statt ihn direkt anzuschreiben), keine Benachrichtigungen an.
   if (userEmail && event.space && event.space.name && String(event.space.type || "").toUpperCase() !== "DM") {
     try { saveChatUserSpace_(userEmail, event.space.name); } catch(e) {}

@@ -1,7 +1,7 @@
 /**
  * KecWhitelistAliases.gs
- * Alias-Funktionen: Frontend ruft "Kec" (kleines c), Backend definiert "KeC" (gro?es C).
- * Diese Wrapper vermeiden ?nderungen am bestehenden WebApp.gs.
+ * Alias-Funktionen: Frontend ruft "Kec" (kleines c), Backend definiert "KeC" (großes C).
+ * Diese Wrapper vermeiden Änderungen am bestehenden WebApp.gs.
  */
 function apiGetKecWhitelist() {
   return apiGetKeCWhitelist();

@@ -80,12 +80,12 @@ var TEST_PATCHES_ = [
   {
     scopeId: "course",
     path: "title",
-    text: "? GAS-TEST: Growth Mindset (LIVE-PREVIEW-DEMO)",
+    text: "\u2022 GAS-TEST: Growth Mindset (LIVE-PREVIEW-DEMO)",
   },
   {
     scopeId: "8thYMbDR4u6h5je6SlqhlKCsLyqsn9UK",
     path: "title",
-    text: "? GAS-TEST: Lektion 1 - gepatcht via Apps Script",
+    text: "\u2022 GAS-TEST: Lektion 1 - gepatcht via Apps Script",
   },
   {
     scopeId: "8thYMbDR4u6h5je6SlqhlKCsLyqsn9UK",

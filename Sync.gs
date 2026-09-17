@@ -1,6 +1,6 @@
 /**
  * Sync.gs
- * Smart Synchronization f?r Templates und User
+ * Smart Synchronization für Templates und User
  * + Notifications Sync: PROJECT_MANAGER / ADMIN ? Notifications Sheet mit OFF
  *
  * HINWEIS: apiTriggerManualSync() ist kanonisch in WebApp.js definiert
@@ -50,7 +50,7 @@ function extractName_(data) {
  */
 function syncUsersSmart_(mode) {
   mode = mode || 'full';
-  console.log("? Starte Sync f?r Users (mode=" + mode + ")...");
+  console.log("\u2022 Starte Sync für Users (mode=" + mode + ")...");
 
   // 1. Basis-Liste aller User aus Phrase holen (inkl. Paginierung)
   let pageNumber = 0;
@@ -158,7 +158,7 @@ function syncUsersSmart_(mode) {
       sh.getRange(sh.getLastRow() + 1, 1, newRows.length, header.length).setValues(newRows);
     }
     const notifResult = syncNotificationsFromUsers_(detailedUsers);
-    return { success: true, msg: `${newRows.length} neue User erg?nzt. Bestehende Zeilen unver?ndert. ${notifResult.msg}` };
+    return { success: true, msg: `${newRows.length} neue User ergänzt. Bestehende Zeilen unverändert. ${notifResult.msg}` };
   }
 
   sh.clearContents();
@@ -168,7 +168,7 @@ function syncUsersSmart_(mode) {
 
   // 7. Notifications Sync automatisch anstossen
   const notifResult = syncNotificationsFromUsers_(detailedUsers);
-  console.log("? Notifications Sync: " + notifResult.msg);
+  console.log("\u2022 Notifications Sync: " + notifResult.msg);
 
   return {
     success: true,
@@ -179,12 +179,12 @@ function syncUsersSmart_(mode) {
 /**
  * ----------------------------------------------------------------------
  * NOTIFICATIONS SYNC
- * Tr?gt alle USER mit Rolle PROJECT_MANAGER oder ADMIN ins Sheet
+ * Trägt alle USER mit Rolle PROJECT_MANAGER oder ADMIN ins Sheet
  * "Notifications" ein ? falls noch nicht vorhanden, mit Wert "OFF".
- * Bestehende Eintr?ge (auch ON) werden NICHT ?berschrieben.
+ * Bestehende Einträge (auch ON) werden NICHT überschrieben.
  *
  * Kann direkt aufgerufen werden (Admin Button) oder von syncUsersSmart_().
- * Parameter detailedUsers: optional ? wenn nicht ?bergeben, wird
+ * Parameter detailedUsers: optional ? wenn nicht übergeben, wird
  * FetchTMS_USERS-Prod Sheet gelesen.
  * ----------------------------------------------------------------------
  */
@@ -201,10 +201,10 @@ function syncNotificationsFromUsers_(detailedUsers) {
       notifSh.appendRow(["Email", "Chat_Enabled"]);
       notifSh.getRange("A1:B1").setFontWeight("bold").setBackground("#FFED00");
       notifSh.setFrozenRows(1);
-      console.log("? Notifications sheet created.");
+      console.log("\u2022 Notifications sheet created.");
     }
 
-    // Bestehende Eintr?ge lesen
+    // Bestehende Einträge lesen
     const notifData   = notifSh.getDataRange().getValues();
     const existingMap = {}; // email ? row index (1-based)
     for (let i = 1; i < notifData.length; i++) {
@@ -244,12 +244,12 @@ function syncNotificationsFromUsers_(detailedUsers) {
       if (!email || !email.includes("@")) return;
       if (isExternalUser_(email))              return;  // skip contractor/ext/country accounts
       if (!NOTIFICATION_ROLES.includes(role))  return;
-      if (existingMap[email])                  return; // bereits vorhanden ? nicht ?berschreiben
+      if (existingMap[email])                  return; // bereits vorhanden ? nicht überschreiben
 
       notifSh.appendRow([email, "OFF"]);
       existingMap[email] = true; // Duplikate verhindern falls User doppelt vorkommt
       added++;
-      console.log("? Notifications: added " + email + " (" + role + ")");
+      console.log("\u2022 Notifications: added " + email + " (" + role + ")");
     });
 
     if (added > 0) SpreadsheetApp.flush();
@@ -283,7 +283,7 @@ function apiSyncNotifications() {
  */
 function syncTemplatesSmart_(mode) {
   mode = mode || 'full';
-  console.log("? Starte Smart Sync f?r Templates (mode=" + mode + ")...");
+  console.log("\u2022 Starte Smart Sync für Templates (mode=" + mode + ")...");
 
   const phraseTemplates = fetchAllTemplatesFromPhrase_();
   const tmsMap = {};
@@ -380,8 +380,8 @@ function syncTemplatesSmart_(mode) {
   }
 
   const msg = mode === 'add_only'
-    ? `${added} neue Templates erg?nzt. Bestehende Zeilen wurden nicht ver?ndert.`
-    : `${added} neue Templates erg?nzt, ${updated} bestehende aktualisiert.`;
+    ? `${added} neue Templates ergänzt. Bestehende Zeilen wurden nicht verändert.`
+    : `${added} neue Templates ergänzt, ${updated} bestehende aktualisiert.`;
   return { success: true, msg: msg };
 }
 

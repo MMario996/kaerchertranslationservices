@@ -1,17 +1,17 @@
 /**
  * ChatBot.gs
- * Gemini-powered Google Chat Bot f?r Translation Services ? mit Function Calling.
+ * Gemini-powered Google Chat Bot für Translation Services ? mit Function Calling.
  *
  * Gemini entscheidet selbst, welche Tools (Phrase-Abfragen) es aufruft.
  * Tools sind in ChatBotTools.js definiert (alle READ-ONLY, mit Zugriffsschutz).
  *
  * ASYNC-MODUS (B1): doPost ruft handleChatMessageAsync_ auf.
- *   1. Sofort "? Einen Moment..." als Bot-Nachricht senden
+ *   1. Sofort "\u2022 Einen Moment..." als Bot-Nachricht senden
  *   2. Gemini Function-Calling Loop (10-30s)
  *   3. Finale Antwort als separate Bot-Nachricht senden
  *   Damit wird das Google-Chat 30s-Inline-Timeout umgangen.
  *
- * onMessage(e) bleibt f?r Editor-Tests (gibt Text zur?ck statt zu senden).
+ * onMessage(e) bleibt für Editor-Tests (gibt Text zurück statt zu senden).
  *
  * Script Property: GEMINI_API_KEY
  * Apigee-Proxy Basis-URL in GEMINI_API_BASE_.
@@ -21,7 +21,7 @@ var GEMINI_MODEL_     = "gemini-2.0-flash";
 var GEMINI_API_BASE_  = "https://34-111-99-134.nip.io/gemini/v1beta/models/";
 var MAX_TOOL_ROUNDS_  = 5;   // Hard-Limit gegen Endlosschleifen
 
-// ??? ASYNC Handler (wird von doPost bei type=MESSAGE aufgerufen) ??????????????
+// --- ASYNC Handler (wird von doPost bei type=MESSAGE aufgerufen) --------------
 
 function handleChatMessageAsync_(e) {
   const user        = e.user || (e.message && e.message.sender) || {};
@@ -36,12 +36,12 @@ function handleChatMessageAsync_(e) {
   }
 
   if (!userEmail) {
-    _botSafeSend_(userEmail, "?? Ich konnte deine E-Mail nicht ermitteln. Bitte ?ffne den Bot direkt in Google Chat.");
+    _botSafeSend_(userEmail, "\u26A0 Ich konnte deine E-Mail nicht ermitteln. Bitte öffne den Bot direkt in Google Chat.");
     return;
   }
 
   // 1. Sofort-Feedback senden
-  _botSafeSend_(userEmail, "? Einen Moment, ich schaue das f?r dich nach...");
+  _botSafeSend_(userEmail, "\u2022 Einen Moment, ich schaue das für dich nach...");
 
   // 2. Gemini-Loop (dauert 10-30s)
   let answer;
@@ -49,8 +49,8 @@ function handleChatMessageAsync_(e) {
     answer = runGeminiConversation_(messageText, displayName, userEmail);
   } catch (err) {
     console.error("ChatBot async error:", err.message);
-    answer = "?? Ich konnte deine Anfrage leider nicht verarbeiten.\n\nFehler: " + err.message +
-             "\n\n? Nutze das Portal f?r alle Aktionen: " + PORTAL_URL_;
+    answer = "\u26A0 Ich konnte deine Anfrage leider nicht verarbeiten.\n\nFehler: " + err.message +
+             "\n\n? Nutze das Portal für alle Aktionen: " + PORTAL_URL_;
   }
 
   // 3. Finale Antwort senden
@@ -69,19 +69,19 @@ function _botSafeSend_(userEmail, text) {
 
 function _botHelpText_() {
   return [
-    "? Hallo! Ich bin der Translation-Services Bot.",
+    "\u2022 Hallo! Ich bin der Translation-Services Bot.",
     "",
     "Stell mir Fragen zu deinen Projekten, z.B.:",
-    "? *Was ist der Status von Projekt X?*",
-    "? *Welche Jobs sind in Projekt X noch offen?*",
-    "? *Kann ich Projekt X schon herunterladen?*",
-    "? *Welche Projekte laufen diese Woche ab?*",
-    "? *Wie viele W?rter hat Projekt X?*",
-    "? *Wie funktioniert das Tool?*"
+    "\u2022 *Was ist der Status von Projekt X?*",
+    "\u2022 *Welche Jobs sind in Projekt X noch offen?*",
+    "\u231B *Kann ich Projekt X schon herunterladen?*",
+    "\u2022 *Welche Projekte laufen diese Woche ab?*",
+    "\u2022 *Wie viele Wörter hat Projekt X?*",
+    "\u2022 *Wie funktioniert das Tool?*"
   ].join("\n");
 }
 
-// ??? onMessage (NUR f?r Editor-Tests ? gibt Text zur?ck) ?????????????????????
+// --- onMessage (NUR für Editor-Tests ? gibt Text zurück) ---------------------
 
 function onMessage(e) {
   rememberChatUserFromEvent_(e);
@@ -92,7 +92,7 @@ function onMessage(e) {
   const displayName = String(user.displayName || "").trim() || (userEmail ? userEmail.split("@")[0] : "");
 
   if (!messageText) return { text: _botHelpText_() };
-  if (!userEmail)   return { text: "?? Ich konnte deine E-Mail nicht ermitteln." };
+  if (!userEmail)   return { text: "\u26A0 Ich konnte deine E-Mail nicht ermitteln." };
 
   try {
     const answer = runGeminiConversation_(messageText, displayName, userEmail);
@@ -100,13 +100,13 @@ function onMessage(e) {
   } catch (err) {
     console.error("ChatBot onMessage error:", err.message);
     return {
-      text: "?? Ich konnte deine Anfrage leider nicht verarbeiten.\n\nFehler: " + err.message +
-            "\n\n? Nutze das Portal f?r alle Aktionen: " + PORTAL_URL_
+      text: "\u26A0 Ich konnte deine Anfrage leider nicht verarbeiten.\n\nFehler: " + err.message +
+            "\n\n? Nutze das Portal für alle Aktionen: " + PORTAL_URL_
     };
   }
 }
 
-// ??? Gemini Function-Calling Loop ?????????????????????????????????????????????
+// --- Gemini Function-Calling Loop ---------------------------------------------
 
 function runGeminiConversation_(userMessage, displayName, userEmail) {
   const apiKey = String(PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY") || "").trim();
@@ -167,7 +167,7 @@ function runGeminiConversation_(userMessage, displayName, userEmail) {
     for (const fc of functionCalls) {
       const toolName = fc.name;
       const args     = fc.args || {};
-      console.log("? Gemini Tool-Call: " + toolName + " " + JSON.stringify(args));
+      console.log("\u2022 Gemini Tool-Call: " + toolName + " " + JSON.stringify(args));
 
       // userEmail SERVERSEITIG (nicht aus Gemini-Args) ? Zugriffsschutz
       const toolResult = executeChatBotTool_(toolName, args, userEmail);
@@ -183,40 +183,40 @@ function runGeminiConversation_(userMessage, displayName, userEmail) {
     contents.push({ role: "user", parts: responseParts });
   }
 
-  return "Die Anfrage war zu komplex und ich konnte sie nicht vollst?ndig beantworten. " +
-         "Bitte stelle eine konkretere Frage oder pr?fe direkt im Portal.";
+  return "Die Anfrage war zu komplex und ich konnte sie nicht vollständig beantworten. " +
+         "Bitte stelle eine konkretere Frage oder prüfe direkt im Portal.";
 }
 
-// ??? System Prompt ????????????????????????????????????????????????????????????
+// --- System Prompt ------------------------------------------------------------
 
 function buildSystemPrompt_(isAdmin, displayName, userEmail) {
   return [
-    "Du bist der intelligente Assistent des K?rcher Translation Services Portals (basiert auf Phrase TMS).",
+    "Du bist der intelligente Assistent des Kärcher Translation Services Portals (basiert auf Phrase TMS).",
     "Dein Name ist 'Translation-Services'.",
-    "Du kommunizierst auf Deutsch, au?er der Nutzer schreibt auf Englisch ? dann antwortest du auf Englisch.",
+    "Du kommunizierst auf Deutsch, außer der Nutzer schreibt auf Englisch ? dann antwortest du auf Englisch.",
     "",
-    "DEINE F?HIGKEITEN (?ber Tools, die du selbst aufrufst):",
+    "DEINE FÄHIGKEITEN (über Tools, die du selbst aufrufst):",
     "- Projekte des Nutzers finden (findMyProjects)",
     "- Live-Projektstatus aus Phrase TMS holen (getProjectStatusLive)",
-    "- Job-Status pro Sprache/Workflow-Level und Download-Verf?gbarkeit pr?fen (getJobStatuses)",
+    "- Job-Status pro Sprache/Workflow-Level und Download-Verfügbarkeit prüfen (getJobStatuses)",
     "- Analyse-/Wortzahl-Daten holen (getProjectAnalysis)",
     "- Notizen/Kommentare eines Jobs lesen (getJobNotes)",
     "- Referenzdateien auflisten (getProjectReferences)",
     "- Anstehende Deadlines auflisten (getDeadlinesOverview)",
     "",
-    "WICHTIGE REGELN F?R TOOL-NUTZUNG:",
+    "WICHTIGE REGELN FÜR TOOL-NUTZUNG:",
     "- Wenn der Nutzer ein Projekt per NAMEN nennt, rufe ZUERST findMyProjects auf, um die projectUid zu bekommen.",
-    "- Nutze die projectUid dann f?r die spezifischeren Tools.",
-    "- Erfinde NIEMALS projectUids oder jobUids. Hole sie immer ?ber die Tools.",
-    "- Wenn ein Tool einen Fehler oder 'kein Zugriff' zur?ckgibt, teile dem Nutzer h?flich mit, dass das Projekt nicht gefunden wurde oder er keinen Zugriff hat.",
-    "- Rufe nur die Tools auf, die f?r die Frage n?tig sind.",
+    "- Nutze die projectUid dann für die spezifischeren Tools.",
+    "- Erfinde NIEMALS projectUids oder jobUids. Hole sie immer über die Tools.",
+    "- Wenn ein Tool einen Fehler oder 'kein Zugriff' zurückgibt, teile dem Nutzer höflich mit, dass das Projekt nicht gefunden wurde oder er keinen Zugriff hat.",
+    "- Rufe nur die Tools auf, die für die Frage nötig sind.",
     "",
     "ANTWORT-REGELN:",
-    "- Antworte pr?zise und kurz. Maximal 10-15 Zeilen.",
+    "- Antworte präzise und kurz. Maximal 10-15 Zeilen.",
     "- Nutze Status-Emojis: UPLOADED=?, ASSIGNED=?, ACCEPTED=?, COMPLETED=?, DELIVERED=?, CANCELLED=?, NEW=?",
-    "- Bei spezifischen Projekten gib wenn m?glich den Phrase-Link an.",
-    "- 'DELIVERED' oder finales Level 'COMPLETED' bedeutet: Download ist m?glich.",
-    "- Du kannst KEINE Aktionen ausf?hren (kein Stornieren, kein Erstellen, kein ?ndern). Verweise daf?r auf das Portal.",
+    "- Bei spezifischen Projekten gib wenn möglich den Phrase-Link an.",
+    "- 'DELIVERED' oder finales Level 'COMPLETED' bedeutet: Download ist möglich.",
+    "- Du kannst KEINE Aktionen ausführen (kein Stornieren, kein Erstellen, kein ändern). Verweise dafür auf das Portal.",
     isAdmin
       ? "- Du hast Admin-Zugriff und kannst ALLE Projekte aller Nutzer einsehen."
       : "- Du siehst nur Projekte, bei denen " + displayName + " Owner ist oder die mit ihm geteilt wurden.",
@@ -237,7 +237,7 @@ function buildSystemPrompt_(isAdmin, displayName, userEmail) {
   ].join("\n");
 }
 
-// ??? Test-Funktionen (Editor) ?????????????????????????????????????????????????
+// --- Test-Funktionen (Editor) -------------------------------------------------
 
 function testChatBotGemini() {
   const result = onMessage({

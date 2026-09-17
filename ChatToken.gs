@@ -4,12 +4,12 @@
  * Script Properties nur noch als Legacy-Fallback
  */
 
-// ??? Mapping lesen ????????????????????????????????????????????????????????????
+// --- Mapping lesen ------------------------------------------------------------
 
 function getStoredChatUserResourceName_(userEmail) {
   const email = normalizeEmail_(userEmail);
   
-  // 1. Notifications Sheet pr?fen (prim?r)
+  // 1. Notifications Sheet prüfen (primär)
   try {
     const ss = SpreadsheetApp.openById(
       PropertiesService.getScriptProperties().getProperty("ACCESS_SHEET_ID")
@@ -36,14 +36,14 @@ function getStoredChatUserResourceName_(userEmail) {
   return "";
 }
 
-// ??? Mapping speichern ????????????????????????????????????????????????????????
+// --- Mapping speichern --------------------------------------------------------
 
 function saveChatUserResourceName_(userEmail, userResourceName) {
   const email    = normalizeEmail_(userEmail);
   const userName = String(userResourceName || "").trim();
   if (!email || !/^users\/.+/.test(userName)) return;
 
-  // Ins Notifications Sheet schreiben (prim?r)
+  // Ins Notifications Sheet schreiben (primär)
   try {
     const ss = SpreadsheetApp.openById(
       PropertiesService.getScriptProperties().getProperty("ACCESS_SHEET_ID")
@@ -57,7 +57,7 @@ function saveChatUserResourceName_(userEmail, userResourceName) {
           return;
         }
       }
-      // User noch nicht im Sheet ? neue Zeile anh?ngen
+      // User noch nicht im Sheet ? neue Zeile anhängen
       sh.appendRow([email, "ON", userName]);
       return;
     }
@@ -70,9 +70,9 @@ function saveChatUserResourceName_(userEmail, userResourceName) {
     .setProperty("CHAT_USER_MAP__" + email, userName);
 }
 
-// ??? Space-Fallback Mapping ???????????????????????????????????????????????????
-// Wenn der Bot nur zu einem Space (Room) hinzugef?gt wurde statt zu einer 1:1-DM,
-// gibt es keinen "findDirectMessage"-Space f?r den Nutzer. Damit Benachrichtigungen
+// --- Space-Fallback Mapping ---------------------------------------------------
+// Wenn der Bot nur zu einem Space (Room) hinzugefügt wurde statt zu einer 1:1-DM,
+// gibt es keinen "findDirectMessage"-Space für den Nutzer. Damit Benachrichtigungen
 // trotzdem ankommen, merken wir uns den zuletzt bekannten Space je Nutzer als Fallback.
 
 function getStoredChatUserSpace_(userEmail) {
@@ -88,14 +88,14 @@ function saveChatUserSpace_(userEmail, spaceName) {
   PropertiesService.getScriptProperties().setProperty("CHAT_USER_SPACE__" + email, name);
 }
 
-// ??? Bulk Resolve: Emails aus Sheet ? Chat IDs via People API ????????????????
+// --- Bulk Resolve: Emails aus Sheet ? Chat IDs via People API ----------------
 
 function copyPropsToSheet() {
   const ss = SpreadsheetApp.openById(
     PropertiesService.getScriptProperties().getProperty("ACCESS_SHEET_ID")
   );
   const sh = ss.getSheetByName("Notifications");
-  if (!sh) { console.log("? Notifications Sheet nicht gefunden"); return; }
+  if (!sh) { console.log("\u2022 Notifications Sheet nicht gefunden"); return; }
 
   const rows  = sh.getDataRange().getValues();
   const props = PropertiesService.getScriptProperties().getProperties();
@@ -114,8 +114,8 @@ function copyPropsToSheet() {
   }
 
   SpreadsheetApp.flush();
-  console.log("???????????????????????????");
-  console.log("? Gesamt ins Sheet geschrieben:", written);
+  console.log("---------------------------");
+  console.log("\u2022 Gesamt ins Sheet geschrieben:", written);
   return { written };
 }
 
@@ -124,7 +124,7 @@ function bulkResolveFromSheet() {
     PropertiesService.getScriptProperties().getProperty("ACCESS_SHEET_ID")
   );
   const sh = ss.getSheetByName("Notifications");
-  if (!sh) { console.log("? Notifications Sheet nicht gefunden"); return; }
+  if (!sh) { console.log("\u2022 Notifications Sheet nicht gefunden"); return; }
 
   const rows  = sh.getDataRange().getValues();
   const token = ScriptApp.getOAuthToken();
@@ -136,7 +136,7 @@ function bulkResolveFromSheet() {
     const email = String(rows[i][0] || "").trim().toLowerCase();
     if (!email || !email.includes("@")) continue;
 
-    // Bereits in Spalte C ? ?berspringen
+    // Bereits in Spalte C ? überspringen
     const colC = String(rows[i][2] || "").trim();
     if (colC && colC.startsWith("users/")) {
       skipped++;
@@ -162,12 +162,12 @@ function bulkResolveFromSheet() {
         resolved++;
       } else {
         failed.push(email);
-        sh.getRange(i + 1, 3).setValue("? nicht gefunden");
-        console.warn("?? Nicht gefunden:", email);
+        sh.getRange(i + 1, 3).setValue("\u2022 nicht gefunden");
+        console.warn("\u26A0 Nicht gefunden:", email);
       }
     } catch(e) {
       if (e.message.includes("Bandwidth")) {
-        console.warn("? Bandwidth limit ? warte 5s:", email);
+        console.warn("\u26A0 Bandwidth limit ? warte 5s:", email);
         Utilities.sleep(5000);
         try {
           const url = "https://people.googleapis.com/v1/people:searchDirectoryPeople"
@@ -182,20 +182,20 @@ function bulkResolveFromSheet() {
           if (data.people && data.people.length) {
             const chatId = data.people[0].resourceName.replace("people/", "users/");
             sh.getRange(i + 1, 3).setValue(chatId);
-            console.log("? (retry)", email, "?", chatId);
+            console.log("\u2022 (retry)", email, "?", chatId);
             resolved++;
           } else {
             failed.push(email);
-            sh.getRange(i + 1, 3).setValue("? nicht gefunden");
+            sh.getRange(i + 1, 3).setValue("\u2022 nicht gefunden");
           }
         } catch(e2) {
           failed.push(email);
-          sh.getRange(i + 1, 3).setValue("? " + e2.message);
-          console.warn("? (retry failed)", email, ":", e2.message);
+          sh.getRange(i + 1, 3).setValue("\u2022 " + e2.message);
+          console.warn("\u2717 (retry failed)", email, ":", e2.message);
         }
       } else {
         failed.push(email);
-        sh.getRange(i + 1, 3).setValue("? " + e.message);
+        sh.getRange(i + 1, 3).setValue("\u2022 " + e.message);
         console.warn("?", email, ":", e.message);
       }
     }
@@ -204,15 +204,15 @@ function bulkResolveFromSheet() {
   }
 
   SpreadsheetApp.flush();
-  console.log("???????????????????????????");
-  console.log("?? Skipped:", skipped);
-  console.log("? Resolved:", resolved);
-  console.log("? Failed:", failed.length);
+  console.log("---------------------------");
+  console.log("\u26A0 Skipped:", skipped);
+  console.log("\u2022 Resolved:", resolved);
+  console.log("\u2717 Failed:", failed.length);
   if (failed.length) console.log("Failed:", failed.join(", "));
   return { resolved, skipped, failed: failed.length, failedEmails: failed };
 }
 
-// ??? Admin API: Bulk Resolve via Button in Admin Console ?????????????????????
+// --- Admin API: Bulk Resolve via Button in Admin Console ---------------------
 
 function apiResolveChatMappings() {
   const caller = getUserEmail_();
@@ -225,7 +225,7 @@ function apiResolveChatMappings() {
   }
 }
 
-// ??? Script Properties bereinigen ????????????????????????????????????????????
+// --- Script Properties bereinigen --------------------------------------------
 
 function cleanupChatMappingsFromProperties() {
   const props   = PropertiesService.getScriptProperties().getProperties();
@@ -235,19 +235,19 @@ function cleanupChatMappingsFromProperties() {
     if (key.startsWith("CHAT_USER_MAP__")) {
       PropertiesService.getScriptProperties().deleteProperty(key);
       deleted++;
-      console.log("?? Gel?scht:", key);
+      console.log("\u26A0 Gelöscht:", key);
     }
   });
 
-  console.log("???????????????????????????");
-  console.log("? Gesamt gel?scht:", deleted, "Chat Mappings aus Script Properties");
+  console.log("---------------------------");
+  console.log("\u2022 Gesamt gelöscht:", deleted, "Chat Mappings aus Script Properties");
   return { deleted };
 }
 
-// ??? Einzelne Email nachschlagen ??????????????????????????????????????????????
+// --- Einzelne Email nachschlagen ----------------------------------------------
 
 function findIdForEmail() {
-  const email = "thilo.parg@karcher.com"; // ? Email ?ndern
+  const email = "thilo.parg@karcher.com"; // ? Email ändern
   
   const token = ScriptApp.getOAuthToken();
   const url   = "https://people.googleapis.com/v1/people:searchDirectoryPeople"
@@ -262,28 +262,28 @@ function findIdForEmail() {
   const data = JSON.parse(res.getContentText());
 
   if (!data.people || !data.people.length) {
-    console.log("? Nicht gefunden:", email);
+    console.log("\u2022 Nicht gefunden:", email);
     return;
   }
 
   const chatId = data.people[0].resourceName.replace("people/", "users/");
-  console.log("? Email:", email);
-  console.log("? Chat ID:", chatId);
+  console.log("\u2022 Email:", email);
+  console.log("\u2022 Chat ID:", chatId);
   return chatId;
 }
 
-// ??? Debug Funktionen ?????????????????????????????????????????????????????????
+// --- Debug Funktionen ---------------------------------------------------------
 
 function debugChatAuth() {
   const service = getChatBotService_();
   if (!service) {
-    console.log("? Service ist null ? Keys fehlen");
+    console.log("\u2022 Service ist null ? Keys fehlen");
     return;
   }
   console.log("Has Access:", service.hasAccess());
   console.log("Last Error:", service.getLastError());
   if (service.hasAccess()) {
-    console.log("? Token OK:", service.getAccessToken().substring(0, 20) + "...");
+    console.log("\u2022 Token OK:", service.getAccessToken().substring(0, 20) + "...");
   }
 }
 
@@ -291,20 +291,20 @@ function fixCorruptChatToken() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty("oauth2.TranslationChatBot_v3");
   props.deleteProperty("oauth2.GoogleChatBot");
-  console.log("? Korrupte Token gel?scht");
+  console.log("\u2022 Korrupte Token gelöscht");
 
   const service = getChatBotService_();
-  if (!service) { console.log("? Service null ? Keys fehlen"); return; }
+  if (!service) { console.log("\u2022 Service null ? Keys fehlen"); return; }
   console.log("Has Access:", service.hasAccess());
-  if (service.hasAccess()) console.log("? Neuer Token erfolgreich generiert!");
+  if (service.hasAccess()) console.log("\u2713 Neuer Token erfolgreich generiert!");
 }
 
 function testChatMessage() {
   sendPrivateMessage_(
     "axel.ruecker@karcher.com",
-    "? Test ? Bot ist wieder online!"
+    "\u2022 Test ? Bot ist wieder online!"
   );
-  console.log("? Gesendet");
+  console.log("\u2022 Gesendet");
 }
 
 function setChatUserMappingManually() {
@@ -312,21 +312,21 @@ function setChatUserMappingManually() {
     "axel.ruecker@karcher.com",
     "users/102946247320120215267"
   );
-  console.log("? Mapping gesetzt");
+  console.log("\u2022 Mapping gesetzt");
 }
 function setChatBotKeys() {
   PropertiesService.getScriptProperties().setProperties({
     "CHAT_CLIENT_EMAIL": "sa-automation@p-ak-phrase-tms-bot.iam.gserviceaccount.com",
     "CHAT_PRIVATE_KEY": ""
   });
-  console.log("? Keys gesetzt");
+  console.log("\u2022 Keys gesetzt");
 }
 function DEBUG_checkMapping() {
   const email = "mario.magliano@karcher.com";
   const result = getStoredChatUserResourceName_(email);
   console.log("getStoredChatUserResourceName_ Ergebnis:", JSON.stringify(result));
 
-  // Direkt Sheet pr?fen
+  // Direkt Sheet prüfen
   const ss = SpreadsheetApp.openById(
     PropertiesService.getScriptProperties().getProperty("ACCESS_SHEET_ID")
   );
@@ -347,7 +347,7 @@ function DEBUG_checkMapping2() {
 
   const ss = SpreadsheetApp.openById(accessId);
   const sh = ss.getSheetByName("Notifications");
-  if (!sh) { console.log("? Notifications Sheet NICHT gefunden"); return; }
+  if (!sh) { console.log("\u2022 Notifications Sheet NICHT gefunden"); return; }
 
   const rows = sh.getDataRange().getValues();
   console.log("Zeilen gesamt:", rows.length);
@@ -358,14 +358,14 @@ function DEBUG_checkMapping2() {
 
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim().toLowerCase() === email) {
-      console.log("? Gefunden Row " + i);
+      console.log("\u2022 Gefunden Row " + i);
       console.log("  Spalte A:", JSON.stringify(rows[i][0]));
       console.log("  Spalte B:", JSON.stringify(rows[i][1]));
       console.log("  Spalte C:", JSON.stringify(rows[i][2]));
       return;
     }
   }
-  console.log("? Email nicht in Sheet gefunden");
+  console.log("\u2022 Email nicht in Sheet gefunden");
 }
 function DEBUG_findAxelProp() {
   const v = PropertiesService.getScriptProperties()
@@ -391,12 +391,12 @@ function findIdForEmail() {
   const data = JSON.parse(res.getContentText());
 
   if (!data.people || !data.people.length) {
-    console.log("? Nicht gefunden:", email);
+    console.log("\u2022 Nicht gefunden:", email);
     return;
   }
 
   const chatId = data.people[0].resourceName.replace("people/", "users/");
-  console.log("? Email:", email);
-  console.log("? Chat ID:", chatId);
+  console.log("\u2022 Email:", email);
+  console.log("\u2022 Chat ID:", chatId);
   return chatId;
 }

@@ -1,7 +1,7 @@
 /**
  * ApiAliases.js
  *
- * L?st zwei Probleme:
+ * Löst zwei Probleme:
  *
  * 1) DUPLICATE FUNCTIONS:
  * getUserEmail_(), isAdmin_(), openAccessSS_(), openOpsSS_(), getQueueSheet_()
@@ -10,10 +10,10 @@
  *
  * 2) MISSING FUNCTION NAMES:
  * Das Frontend ruft via google.script.run Funktionsnamen auf, die im
- * Backend anders hei?en oder gar nicht existieren. Diese Datei registriert
- * alle fehlenden Namen als d?nne Wrapper.
+ * Backend anders heißen oder gar nicht existieren. Diese Datei registriert
+ * alle fehlenden Namen als dünne Wrapper.
  *
- * NEU: KeC Whitelist Aliases (Frontend nutzt kleines 'c', Backend hat gro?es 'C')
+ * NEU: KeC Whitelist Aliases (Frontend nutzt kleines 'c', Backend hat großes 'C')
  */
 
 // =============================================================================
@@ -112,12 +112,12 @@ function apiRemoveKecWhitelist(email) {
 // ADMIN DASHBOARD ? fehlende Felder absichern
 // loadAdminDashboardData() im Frontend versucht configData.sizeLimitMb,
 // adminFileSize, adminMaintStart etc. zu lesen ? diese kommen aus apiGetAdminDashboardData.
-// Sicherstellen dass apiGetAdminDashboardData alle n?tigen Felder liefert.
+// Sicherstellen dass apiGetAdminDashboardData alle nötigen Felder liefert.
 // =============================================================================
 
 /**
  * Erweiterter Admin Dashboard Data Wrapper.
- * Gibt zus?tzlich sizeLimitMb zur?ck, das Config.gs nicht immer liefert.
+ * Gibt zusätzlich sizeLimitMb zurück, das Config.gs nicht immer liefert.
  */
 function apiGetAdminDashboardDataExtended() {
   var caller = getUserEmail_();
@@ -137,11 +137,11 @@ function apiGetAdminDashboardDataExtended() {
 // WebApp.js hat apiSavePreset/apiDeletePreset. Sicherstellen dass beide erreichbar.
 // =============================================================================
 
-// apiLoadPresets ist in Presets.js definiert ? kein Alias n?tig.
+// apiLoadPresets ist in Presets.js definiert ? kein Alias nötig.
 // apiSavePreset und apiDeletePreset sind in Presets.js definiert.
 // WebApp.js definiert nochmal apiSavePreset/apiDeletePreset via UserProperties.
-// Presets.js (Sheet-basiert) hat Priorit?t ? Duplikat in WebApp.js entfernen wenn m?glich.
-// F?r jetzt: Alias der Sheet-basierten Version sicherstellen.
+// Presets.js (Sheet-basiert) hat Priorität ? Duplikat in WebApp.js entfernen wenn möglich.
+// Für jetzt: Alias der Sheet-basierten Version sicherstellen.
 
 function apiSavePresetSheet(presetData) {
   // Ruft Presets.js Version auf (Sheet-basiert, robuster)

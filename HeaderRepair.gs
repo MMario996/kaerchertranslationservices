@@ -26,7 +26,7 @@ function repairQueueDataAlignment() {
   const data = sh.getRange(1, 1, lastRow, 19).getValues();
   const header = data[0];
  
-  console.log("? Checking queue data alignment...");
+  console.log("\u2022 Checking queue data alignment...");
  
   let repairedCount = 0;
   const repairedRows = [header]; // Header behalten

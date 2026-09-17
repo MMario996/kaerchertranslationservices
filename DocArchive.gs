@@ -1,9 +1,9 @@
 /**
  * DocArchive.gs
- * Archiviert ein Documentation-Projekt: verschiebt alle zugeh?rigen Zeilen
+ * Archiviert ein Documentation-Projekt: verschiebt alle zugehörigen Zeilen
  * vom Queue-Sheet ins Archive-Sheet (identische Spaltenreihenfolge, daher
  * positional-copy) und sendet die "Translation Complete"-Chat-Notification
- * an den urspr?nglichen Einreicher (Notification Email aus der Zeile).
+ * an den ursprünglichen Einreicher (Notification Email aus der Zeile).
  */
 function apiArchiveDocQueueProject(projectUid, projectName) {
   var access = apiCheckAccess();
@@ -46,11 +46,11 @@ function apiArchiveDocQueueProject(projectUid, projectName) {
       return { success: false, error: "Keine passenden Zeilen im Queue-Sheet gefunden." };
     }
 
-    // Zeilen an Archive anh?ngen (positional copy, gleiche Spaltenreihenfolge)
+    // Zeilen an Archive anhängen (positional copy, gleiche Spaltenreihenfolge)
     var rowsToArchive = matchedRowIndices.map(function(r) { return data[r]; });
     archiveSh.getRange(archiveSh.getLastRow() + 1, 1, rowsToArchive.length, lastCol).setValues(rowsToArchive);
 
-    // Aus Queue l?schen ? von unten nach oben (1-indexiert, +1 wegen Header-Zeile)
+    // Aus Queue löschen ? von unten nach oben (1-indexiert, +1 wegen Header-Zeile)
     for (var i = matchedRowIndices.length - 1; i >= 0; i--) {
       queueSh.deleteRow(matchedRowIndices[i] + 1);
     }

@@ -1,8 +1,8 @@
 /**
  * DocQueue.gs
- * Gemeinsame Datenquelle f?r Documentation Import-Board und Export-Tab.
+ * Gemeinsame Datenquelle für Documentation Import-Board und Export-Tab.
  * Liest das Queue-Sheet EINMAL komplett (kein Phrase-API-Call), gruppiert
- * pro Projekt (Project UID) und liefert alle Sheet-Spalten f?r Filterung.
+ * pro Projekt (Project UID) und liefert alle Sheet-Spalten für Filterung.
  * Phrase-Zusatzdaten (Owner, Domain, Client, Custom Fields...) werden erst
  * beim Aufklappen einer Karte per apiGetPhraseProjectMetaByName() nachgeladen.
  */

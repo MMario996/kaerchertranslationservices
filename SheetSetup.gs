@@ -4,10 +4,10 @@
  * Run setupSheetDocumentation() ONCE to add a "README" sheet to the
  * Admin/Access spreadsheet that explains every sheet and its purpose.
  *
- * ??? SHEET OVERVIEW ??????????????????????????????????????????????????????????
+ * --- SHEET OVERVIEW ----------------------------------------------------------
  *
  * ACCESS SHEET  (contains config, whitelists, templates)
- * ?????????????????????????????????????????????????????
+ * -----------------------------------------------------
  *  FetchTemplate-Prod    Templates imported from Phrase TMS (used in production).
  *                        Column "Active (Yes/No)" controls which templates users see.
  *                        Use "Sync Templates" in Admin Console to refresh.
@@ -25,7 +25,7 @@
  *                        Columns: PageID (internal), PageName (shown as tab label).
  *
  *  Maintenance           Scheduled maintenance windows. If a row has Active=TRUE
- *                        and the current time is within Start?End, all non-admin
+ *                        and the current time is within Start-End, all non-admin
  *                        users see a lock screen.
  *
  *  TMS_USERS             Read-only user list synced from Phrase TMS.
@@ -34,7 +34,7 @@
  *  FetchTemplate-Test    Sandbox template list for testing. Not used in production.
  *
  * OPS SHEET  (contains upload log / project submissions)
- * ??????????????????????????????????????????????????????
+ * ------------------------------------------------------
  *  Queue                 Every submitted project gets one row here.
  *                        This is the source of truth for "My Projects" tab
  *                        and the System Logs in Admin Console.
@@ -78,13 +78,13 @@ function setupSheetDocumentation() {
   _writeReadme_(SpreadsheetApp.openById(accessId), "ACCESS");
   _writeReadme_(SpreadsheetApp.openById(opsId),    "OPS");
 
-  return "? README sheets created in both spreadsheets.";
+  return "\u2022 README sheets created in both spreadsheets.";
 }
 
 function _writeReadme_(ss, type) {
-  let sh = ss.getSheetByName("? README");
+  let sh = ss.getSheetByName("\u2022 README");
   if (sh) ss.deleteSheet(sh);
-  sh = ss.insertSheet("? README", 0); // insert as first sheet
+  sh = ss.insertSheet("\u2022 README", 0); // insert as first sheet
 
   sh.setTabColor("#FFED00");
 
@@ -211,8 +211,8 @@ function fixQueueHeader() {
       .setFontWeight("bold")
       .setBackground("#FFED00");
     sh.setFrozenRows(1);
-    return "? Queue header updated to 19 columns.";
+    return "\u2713 Queue header updated to 19 columns.";
   }
 
-  return "?? Queue header already has data ? not changed. Review manually.";
+  return "\u26A0 Queue header already has data ? not changed. Review manually.";
 }

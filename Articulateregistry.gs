@@ -260,7 +260,7 @@ function extractDriveFolderId_(urlOrId) {
 function slugifyForPath_(text) {
   return String(text || "")
     .toLowerCase()
-    .replace(/[????]/g, function (c) {
+    .replace(/[----]/g, function (c) {
       return { "?": "ae", "?": "oe", "?": "ue", "?": "ss" }[c];
     })
     .replace(/[^a-z0-9]+/g, "-")

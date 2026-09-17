@@ -17,7 +17,7 @@ function apiBrowseDrive(folderId) {
   var parentId = null;
 
   try {
-    // ?? HOME SCREEN ??????????????????????????????????????????
+    // ?? HOME SCREEN ------------------------------------------
     if (!folderId || folderId === "home") {
       var homeContents = [
         { id: "root", name: "My Drive", type: "folder" }
@@ -40,7 +40,7 @@ function apiBrowseDrive(folderId) {
       };
     }
 
-    // ?? SHARED DRIVES ROOT ???????????????????????????????????
+    // ?? SHARED DRIVES ROOT -----------------------------------
     if (folderId === "::shared-drives-root::") {
       if (typeof Drive === "undefined" || !Drive.Teamdrives || !Drive.Teamdrives.list) {
         return {
@@ -159,9 +159,9 @@ function apiBrowseDrive(folderId) {
 
 /**
  * Converts Google-native files to Office formats for Phrase upload.
- * - Shortcuts werden automatisch aufgel?st (max. 3 Ebenen tief)
+ * - Shortcuts werden automatisch aufgelöst (max. 3 Ebenen tief)
  * - Google Docs/Sheets/Slides werden zu docx/xlsx/pptx exportiert
- * - Echte Office-Dateien (.xlsx, .docx etc.) werden direkt als Blob zur?ckgegeben
+ * - Echte Office-Dateien (.xlsx, .docx etc.) werden direkt als Blob zurückgegeben
  *
  * Primary export: DriveApp.getAs() ? robuster als UrlFetchApp REST
  * Fallback export: UrlFetchApp + Drive v3 REST API
@@ -180,16 +180,16 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
 
   console.log("Processing Drive file (depth=" + depth + "):", { name: name, mime: mime, id: id });
 
-  // ?? 1) Shortcut aufl?sen ??????????????????????????????????
+  // ?? 1) Shortcut auflösen ----------------------------------
   if (mime === "application/vnd.google-apps.shortcut") {
     if (depth >= MAX_SHORTCUT_DEPTH) {
       throw new Error(
         "Die Datei \"" + name + "\" ist ein verschachtelter Shortcut (Tiefe > " + MAX_SHORTCUT_DEPTH + ").\n" +
-        "Bitte navigiere im Drive-Browser direkt zur Originaldatei statt zu einer Verkn?pfung."
+        "Bitte navigiere im Drive-Browser direkt zur Originaldatei statt zu einer Verknüpfung."
       );
     }
 
-    console.log("? Shortcut erkannt (Tiefe " + depth + "), folge dem Ziel-File...");
+    console.log("\u2022 Shortcut erkannt (Tiefe " + depth + "), folge dem Ziel-File...");
     try {
       var token = ScriptApp.getOAuthToken();
       var metaUrl = "https://www.googleapis.com/drive/v3/files/" + id
@@ -207,10 +207,10 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
       var targetId = meta.shortcutDetails && meta.shortcutDetails.targetId;
       if (!targetId) throw new Error("Shortcut hat kein targetId.");
 
-      console.log("? Shortcut zeigt auf targetId: " + targetId + " (Tiefe " + depth + ")");
+      console.log("\u2022 Shortcut zeigt auf targetId: " + targetId + " (Tiefe " + depth + ")");
       var targetFile = DriveApp.getFileById(targetId);
 
-      // Rekursiver Aufruf mit erh?hter Tiefe
+      // Rekursiver Aufruf mit erhöhter Tiefe
       return getProcessedDriveFileBlobForUpload_(targetFile, depth + 1);
 
     } catch (e) {
@@ -218,15 +218,15 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
       if (e.message && e.message.indexOf("verschachtelter Shortcut") !== -1) throw e;
 
       throw new Error(
-        "Die Datei \"" + name + "\" ist eine Drive-Verkn?pfung (Shortcut) " +
-        "und konnte nicht aufgel?st werden.\n" +
+        "Die Datei \"" + name + "\" ist eine Drive-Verknüpfung (Shortcut) " +
+        "und konnte nicht aufgelöst werden.\n" +
         "Bitte navigiere im Drive-Browser direkt zur Originaldatei.\n\n" +
         "Fehler: " + e.message
       );
     }
   }
 
-  // ?? 2) Google-native Formate exportieren ??????????????????
+  // ?? 2) Google-native Formate exportieren ------------------
   var exportMap = {
     "application/vnd.google-apps.document": {
       ext: ".docx",
@@ -247,14 +247,14 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
     var exportName = name;
     if (!exportName.toLowerCase().endsWith(setting.ext)) exportName += setting.ext;
 
-    // Prim?r: DriveApp.getAs()
+    // Primär: DriveApp.getAs()
     try {
       var blob = driveFile.getAs(setting.exportMime);
       blob.setName(exportName);
-      console.log("? Export via DriveApp.getAs() erfolgreich: " + exportName);
+      console.log("\u2713 Export via DriveApp.getAs() erfolgreich: " + exportName);
       return blob;
     } catch (e1) {
-      console.warn("?? DriveApp.getAs() fehlgeschlagen, versuche UrlFetchApp Fallback: " + e1.message);
+      console.warn("\u26A0 DriveApp.getAs() fehlgeschlagen, versuche UrlFetchApp Fallback: " + e1.message);
     }
 
     // Fallback: UrlFetchApp + Drive v3 REST
@@ -274,18 +274,18 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
 
       var fallbackBlob = resp.getBlob();
       fallbackBlob.setName(exportName);
-      console.log("? Export via UrlFetchApp Fallback erfolgreich: " + exportName);
+      console.log("\u2713 Export via UrlFetchApp Fallback erfolgreich: " + exportName);
       return fallbackBlob;
 
     } catch (e2) {
       var fileType = mime.indexOf("spreadsheet") !== -1 ? "Google Sheets"
                    : mime.indexOf("document")    !== -1 ? "Google Docs"
-                   : "Google Pr?sentation";
+                   : "Google Präsentation";
 
       throw new Error(
         "Die Datei \"" + name + "\" ist ein " + fileType + "-Dokument und konnte nicht " +
         "zu " + setting.ext + " konvertiert werden.\n\n" +
-        "L?sung: Lade die Datei in Google Drive als " + setting.ext + " herunter " +
+        "Lösung: Lade die Datei in Google Drive als " + setting.ext + " herunter " +
         "(Datei ? Herunterladen ? " + setting.ext.toUpperCase().replace(".", "") + ") " +
         "und lade diese lokale Datei dann per 'PC Upload' hoch.\n\n" +
         "Technischer Fehler: " + e2.message
@@ -293,10 +293,10 @@ function getProcessedDriveFileBlobForUpload_(driveFile, _depth) {
     }
   }
 
-  // ?? 3) Echte Office-/sonstige Dateien direkt zur?ckgeben ??
+  // ?? 3) Echte Office-/sonstige Dateien direkt zurückgeben ??
   // .xlsx, .docx, .pptx, .idml, .txt etc. brauchen keinen Export
   var directBlob = driveFile.getBlob();
   directBlob.setName(name);
-  console.log("? Direkt-Blob (kein Export n?tig): " + name + " [" + mime + "]");
+  console.log("\u2022 Direkt-Blob (kein Export nötig): " + name + " [" + mime + "]");
   return directBlob;
 }

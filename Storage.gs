@@ -1,6 +1,6 @@
 /**
  * --- Storage.gs ---
- * Enth?lt Helfer f?r Statistiken und Sheet-Zugriffe
+ * Enthält Helfer für Statistiken und Sheet-Zugriffe
  */
 
 // HINWEIS: getQueueSheet_() ist kanonisch in AutoSync.js / WebApp.js definiert.
@@ -14,7 +14,7 @@ function getDashboardStatsFromSheet_(userEmail, isAdmin) {
   if (!sh) return { totalProjects: 0, completed: 0, overdue: 0, active: 0, topTemplates: [] };
 
   const data = sh.getDataRange().getValues();
-  // Header ?berspringen
+  // Header überspringen
   if (data.length < 2) return { totalProjects: 0, completed: 0, overdue: 0, active: 0, topTemplates: [] };
 
   const stats = {

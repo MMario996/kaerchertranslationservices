@@ -32,7 +32,7 @@ function apiGetMarketingWhitelist() {
 }
 
 /**
- * F?gt User zur Marketing Whitelist hinzu
+ * Fügt User zur Marketing Whitelist hinzu
  */
 function apiAddMarketingWhitelist(emailToAdd) {
   const email = getUserEmail_();
@@ -82,7 +82,7 @@ function apiRemoveMarketingWhitelist(emailToRemove) {
 }
 
 /**
- * Pr?ft ob User in Marketing Whitelist ist
+ * Prüft ob User in Marketing Whitelist ist
  */
 function isMarketingUser_(email) {
   const wl = apiGetMarketingWhitelist().emails;

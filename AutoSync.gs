@@ -35,7 +35,7 @@ function setupAutoSyncTrigger_() {
   removeAutoSyncTrigger_();
   ScriptApp.newTrigger("autoSyncProjectStatuses_").timeBased().everyMinutes(15).create();
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "true");
-  console.log("? Auto-sync trigger created (every 15 minutes).");
+  console.log("\u2022 Auto-sync trigger created (every 15 minutes).");
   return { success: true, msg: "Auto-sync enabled (every 15 minutes)." };
 }
 
@@ -47,13 +47,13 @@ function removeAutoSyncTrigger_() {
     }
   }
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "false");
-  console.log("? Auto-sync trigger removed.");
+  console.log("\u2022 Auto-sync trigger removed.");
   return { success: true, msg: "Auto-sync disabled." };
 }
 
 function autoSyncProjectStatuses_() {
   var startTime = new Date();
-  console.log("? Auto-sync started at " + startTime.toISOString());
+  console.log("\u2022 Auto-sync started at " + startTime.toISOString());
 
   var TERMINAL_STATUSES   = ["CANCELLED", "CANCELED", "REJECTED"];
   var COMPLETION_STATUSES = ["COMPLETED", "DELIVERED"];
@@ -90,7 +90,7 @@ function autoSyncProjectStatuses_() {
 
       checked++;
 
-      // ?? 1. Status sync ??????????????????????????????????????????????????????
+      // ?? 1. Status sync ------------------------------------------------------
       try {
         var url    = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
         var result = phraseFetchJson_(url, {
@@ -132,7 +132,7 @@ function autoSyncProjectStatuses_() {
             props.setProperty(notifiedKey, "true");
             try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
 
-            // FIX: Thread-IDs nach Completion aus Sheet l?schen
+            // FIX: Thread-IDs nach Completion aus Sheet löschen
             _clearThreadIds_(sh, i + 1);
 
             updated++;
@@ -143,10 +143,10 @@ function autoSyncProjectStatuses_() {
             sh.getRange(i + 1, 8).setValue(newStatus);
             try { docImportUpdateProjectStatusInKanban_(projectUid, newStatus); } catch (e) {}
             updated++;
-            console.log("? " + projectUid + ": " + currentStatus + " ? " + newStatus);
+            console.log("\u2022 " + projectUid + ": " + currentStatus + " ? " + newStatus);
             currentStatus = newStatus;
 
-            // FIX: Bei Terminal-Status (Cancelled etc.) Thread-IDs auch l?schen
+            // FIX: Bei Terminal-Status (Cancelled etc.) Thread-IDs auch löschen
             if (TERMINAL_STATUSES.indexOf(newStatus) !== -1) {
               _clearThreadIds_(sh, i + 1);
             }
@@ -157,7 +157,7 @@ function autoSyncProjectStatuses_() {
         console.warn("  ? Sync failed for " + projectUid + ": " + e.message);
       }
 
-      // ?? 2. Deadline reminder (24h) ??????????????????????????????????????????
+      // ?? 2. Deadline reminder (24h) ------------------------------------------
       try {
         if (dueDateRaw && TERMINAL_STATUSES.indexOf(currentStatus) === -1 &&
             COMPLETION_STATUSES.indexOf(currentStatus) === -1) {
@@ -213,12 +213,12 @@ function autoSyncProjectStatuses_() {
     props.setProperty("AUTO_SYNC_LAST_RUN", new Date().toISOString());
     props.setProperty("AUTO_SYNC_LAST_UPDATED", String(updated));
   } catch (e) {
-    console.error("? Auto-sync fatal error: " + e.message);
+    console.error("\u2717 Auto-sync fatal error: " + e.message);
   }
 }
 
 /**
- * FIX: L?scht Thread-IDs (Spalten T und U) aus dem Queue Sheet nach Completion/Cancellation.
+ * FIX: Löscht Thread-IDs (Spalten T und U) aus dem Queue Sheet nach Completion/Cancellation.
  * Spart Speicher und verhindert veraltete Thread-Referenzen.
  * @param {Sheet} sh  Queue Sheet
  * @param {number} rowNum  1-basierte Zeilennummer
@@ -240,7 +240,7 @@ function recordDownloadTimestamp_(projectUid) {
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][2]).trim() === projectUid) {
         sh.getRange(i + 1, 22).setValue(new Date().toISOString());
-        console.log("? Download timestamp recorded for:", projectUid);
+        console.log("\u2022 Download timestamp recorded for:", projectUid);
         break;
       }
     }

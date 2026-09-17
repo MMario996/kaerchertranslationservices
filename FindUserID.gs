@@ -3,8 +3,8 @@ function findeUserId() {
   
   try {
     const user = AdminDirectory.Users.get(email);
-    console.log("? Die ID lautet: users/" + user.id);
+    console.log("\u2022 Die ID lautet: users/" + user.id);
   } catch(e) {
-    console.log("? Nutzer nicht gefunden: " + e.message);
+    console.log("\u2022 Nutzer nicht gefunden: " + e.message);
   }
 }

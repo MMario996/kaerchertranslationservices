@@ -1,24 +1,24 @@
 /**
- * KeCDebugScan.gs ? TEMPOR?RE Debug-Datei
+ * KeCDebugScan.gs ? TEMPORÄRE Debug-Datei
  *
- * Im Apps Script Editor ausf?hren: Funktion "DEBUG_kecScanTrace" ? Run
- * Dann Logs (Ausf?hrungsprotokoll) anschauen.
+ * Im Apps Script Editor ausführen: Funktion "DEBUG_kecScanTrace" ? Run
+ * Dann Logs (Ausführungsprotokoll) anschauen.
  *
- * Zeigt Schritt f?r Schritt, wo "Test Mario KeC" (482NuiLb8kUGfJbHYIXKm2)
- * im Scan-Flow rausf?llt.
+ * Zeigt Schritt für Schritt, wo "Test Mario KeC" (482NuiLb8kUGfJbHYIXKm2)
+ * im Scan-Flow rausfällt.
  *
- * Nach dem Debugging: Datei wieder l?schen.
+ * Nach dem Debugging: Datei wieder löschen.
  */
 
 function DEBUG_kecScanTrace() {
   const TARGET_UID = "nwC8uSIdSGE7fRwURueGP1"; // Test Mario KeC
   const authHeader = { Authorization: getPhraseAuthHeader_() };
 
-  console.log("???????????????????????????????????????????");
-  console.log("KeC SCAN TRACE f?r UID:", TARGET_UID);
-  console.log("???????????????????????????????????????????");
+  console.log("-------------------------------------------");
+  console.log("KeC SCAN TRACE für UID:", TARGET_UID);
+  console.log("-------------------------------------------");
 
-  // ?? SCHRITT 1: Paginierte NEW-Projekt-Liste laden ??????????????????????
+  // ?? SCHRITT 1: Paginierte NEW-Projekt-Liste laden ----------------------
   let allProjects = [];
   let pageNumber  = 0;
   const pageSize  = 50;
@@ -32,12 +32,12 @@ function DEBUG_kecScanTrace() {
     try {
       res = phraseFetchJson_(url, { method: "get", headers: authHeader });
     } catch(e) {
-      console.log("? Seite " + pageNumber + " Fehler:", e.message);
+      console.log("\u2717 Seite " + pageNumber + " Fehler:", e.message);
       break;
     }
 
     const page = Array.isArray(res) ? res : (res && res.content ? res.content : []);
-    console.log("? Seite " + pageNumber + ": " + page.length + " Projekte" +
+    console.log("\u2022 Seite " + pageNumber + ": " + page.length + " Projekte" +
                 (res && res.totalElements != null ? " (totalElements: " + res.totalElements + ")" : ""));
 
     // Ist das Zielprojekt auf dieser Seite?
@@ -55,17 +55,17 @@ function DEBUG_kecScanTrace() {
     allProjects = allProjects.concat(page);
     if (page.length < pageSize) break;
     pageNumber++;
-    if (pageNumber >= 20) { console.log("?? Pagination-Limit erreicht"); break; }
+    if (pageNumber >= 20) { console.log("\u26A0 Pagination-Limit erreicht"); break; }
   }
 
-  console.log("???????????????????????????????????????????");
+  console.log("-------------------------------------------");
   console.log("GESAMT NEW-Projekte geladen:", allProjects.length);
-  console.log("Zielprojekt in Liste?", foundOnPage >= 0 ? ("JA (Seite " + foundOnPage + ")") : "? NEIN");
+  console.log("Zielprojekt in Liste?", foundOnPage >= 0 ? ("JA (Seite " + foundOnPage + ")") : "\u2022 NEIN");
 
   if (foundOnPage < 0) {
     console.log("");
-    console.log("? PROBLEM IDENTIFIZIERT: Das Projekt ist NICHT in der /projects?statuses=NEW Liste.");
-    console.log("   ? M?glicher Grund: Projekt-Status ist NICHT mehr 'NEW' in der Listen-Ansicht,");
+    console.log("\u2022 PROBLEM IDENTIFIZIERT: Das Projekt ist NICHT in der /projects?statuses=NEW Liste.");
+    console.log("   ? Möglicher Grund: Projekt-Status ist NICHT mehr 'NEW' in der Listen-Ansicht,");
     console.log("     oder die Liste zeigt nur Projekte mit bestimmtem Zugriff.");
     console.log("");
     console.log("   Teste jetzt Direktzugriff per UID...");
@@ -79,8 +79,8 @@ function DEBUG_kecScanTrace() {
     return;
   }
 
-  // ?? SCHRITT 2: Metadaten-Filter testen ?????????????????????????????????
-  console.log("???????????????????????????????????????????");
+  // ?? SCHRITT 2: Metadaten-Filter testen ---------------------------------
+  console.log("-------------------------------------------");
   console.log("SCHRITT 2: Metadaten-Filter");
   const p = allProjects.find(x => x.uid === TARGET_UID);
   const clientId = String((p.client && p.client.id) || "");
@@ -94,26 +94,26 @@ function DEBUG_kecScanTrace() {
   console.log("clientId:", clientId, "=== '" + KEC_CLIENT_ID_ + "' ?", clientOk);
   console.log("domainId:", domainId, "=== '" + KEC_DOMAIN_ID_ + "' ?", domainOk);
   console.log("buId:", buId, "=== '" + KEC_BUSINESS_UNIT_ID_ + "' ?", buOk);
-  console.log("Metadaten-Filter gesamt:", (clientOk && domainOk && buOk) ? "? BESTANDEN" : "? FAILED");
+  console.log("Metadaten-Filter gesamt:", (clientOk && domainOk && buOk) ? "\u2717 BESTANDEN" : "\u2717 FAILED");
 
   if (!(clientOk && domainOk && buOk)) {
-    console.log("? PROBLEM: Metadaten-Filter blockt das Projekt.");
+    console.log("\u2022 PROBLEM: Metadaten-Filter blockt das Projekt.");
     return;
   }
 
-  // ?? SCHRITT 3: Workflow-Eligibility ????????????????????????????????????
-  console.log("???????????????????????????????????????????");
+  // ?? SCHRITT 3: Workflow-Eligibility ------------------------------------
+  console.log("-------------------------------------------");
   console.log("SCHRITT 3: Workflow-Eligibility");
   const elig = _kecCheckProjectEligibility_(TARGET_UID);
   console.log("eligible:", elig.eligible);
   console.log("reason:", elig.reason || "(keine)");
   console.log("targetLangs:", JSON.stringify(elig.targetLangs));
 
-  console.log("???????????????????????????????????????????");
+  console.log("-------------------------------------------");
   if (elig.eligible) {
-    console.log("? ALLE 3 SCHRITTE BESTANDEN ? Projekt SOLLTE im Dropdown erscheinen!");
+    console.log("\u2022 ALLE 3 SCHRITTE BESTANDEN ? Projekt SOLLTE im Dropdown erscheinen!");
     console.log("   Falls es trotzdem nicht erscheint: Frontend-Caching / Deployment-Problem.");
   } else {
-    console.log("? PROBLEM: Workflow-Eligibility blockt: " + elig.reason);
+    console.log("\u2022 PROBLEM: Workflow-Eligibility blockt: " + elig.reason);
   }
 }
