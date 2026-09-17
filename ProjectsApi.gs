@@ -366,7 +366,7 @@ function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
       }
     }
     if (!fieldUid) {
-      var notFoundMsg = "Custom Field '" + fieldName + "' nicht gefunden (Name prüfen / Feld existiert nicht).";
+      var notFoundMsg = "Custom Field '" + fieldName + "' nicht gefunden (Name pr?fen / Feld existiert nicht).";
       console.warn("phraseSetJobCustomFieldByName_: " + notFoundMsg);
       return { ok: false, error: notFoundMsg };
     }
