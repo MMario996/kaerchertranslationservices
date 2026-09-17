@@ -1066,11 +1066,11 @@
                 <div style="display:flex; flex-direction:column; gap:8px;">
                   <select id="artQuickProject" onchange="artPickerOnProjectChange()"
                           style="width:100%; height:38px; padding:0 12px; font-size:12px; border:1px solid #ccc; background:#fff; box-sizing:border-box;">
-                    <option value="">Projekt wählen?</option>
+                    <option value="">Projekt w&auml;hlen&hellip;</option>
                   </select>
                   <select id="artQuickJob" onchange="artPickerOnJobChange()"
                           style="width:100%; height:38px; padding:0 12px; font-size:12px; border:1px solid #ccc; background:#fff; box-sizing:border-box;">
-                    <option value="">Job wählen?</option>
+                    <option value="">Job w&auml;hlen&hellip;</option>
                   </select>
                   <input type="text" id="artQuickFolder"
                          data-i18n-placeholder="art_ph_folder"
@@ -1083,7 +1083,7 @@
                            style="flex:1; height:38px; padding:0 12px; font-size:12px; border:1px solid #ccc; box-sizing:border-box;">
                     <select id="artQuickLang"
                             style="width:110px; height:38px; padding:0 12px; font-size:12px; border:1px solid #ccc; background:#fff; box-sizing:border-box;">
-                      <option value="">Zielsprache?</option>
+                      <option value="">Zielsprache&hellip;</option>
                     </select>
                   </div>
                   <button type="button" onclick="articulateValidateInputs()"
@@ -1113,7 +1113,7 @@
                     <span class="material-icons-outlined">open_in_full</span>
                   </button>
                   <button class="btn-close-sidebar" onclick="loadArticulateProjects()" title="Refresh">
-                    <span class8="material-icons-outlined">refresh</span>
+                    <span class="material-icons-outlined">refresh</span>
                   </button>
                 </div>
               </div>
@@ -1620,7 +1620,7 @@ const i18n = {
     "art_sel_job":         "Zuerst Projekt wählen...",
     "art_sel_job_pick":    "Job wählen...",
     "art_sel_lang":        "Sprache wählen...",
-    "art_btn_generate":   "? Preview erzeugen",
+    "art_btn_generate":   "\u25B6 Preview erzeugen",
     "art_saved_title":    "Gespeicherte Kurse",
     "art_loading":        "Lade Kurse...",
     "art_empty":          "Noch keine Kurse gespeichert.",
@@ -1642,7 +1642,7 @@ const i18n = {
     "art_btn_open_preview":"Preview öffnen",
     "art_btn_close":      "Schließen",
     "art_error":          "Fehler",
-    "art_btn_check":      "? Eingaben prüfen",
+    "art_btn_check":      "\uD83D\uDD0D Eingaben prüfen",
     "art_checking":       "Prüfe Eingaben gegen Phrase und Drive...",
     "art_check_ok":       "Alles gefunden",
     "art_check_project":  "Projekt",
@@ -1682,7 +1682,7 @@ const i18n = {
     "txt_select_source":  "Quellsprache auswählen",
     "txt_select_target":  "Zielsprache(n) auswählen",
     "alert_multifile_name": "\u26A0 Mehrere Dateien ausgewählt. Bitte vergeben Sie den Projektnamen manuell.",
-    "alert_clone":        "? Projektdaten kopiert.\n\nBitte Template, Sprachen und Dateien neu auswählen.",
+    "alert_clone":        "\u2713 Projektdaten kopiert.\n\nBitte Template, Sprachen und Dateien neu auswählen.",
     "opt_all":            "Alle Projekte",
     "opt_own":            "Meine Projekte",
     "opt_shared":         "Geteilte Projekte",
@@ -1718,7 +1718,7 @@ const i18n = {
     "art_sel_job":         "Select project first...",
     "art_sel_job_pick":    "Select job...",
     "art_sel_lang":        "Select language...",
-    "art_btn_generate":   "? Generate preview",
+    "art_btn_generate":   "\u25B6 Generate preview",
     "art_saved_title":    "Saved courses",
     "art_loading":        "Loading courses...",
     "art_empty":          "No courses saved yet.",
@@ -1740,7 +1740,7 @@ const i18n = {
     "art_btn_open_preview":"Open preview",
     "art_btn_close":      "Close",
     "art_error":          "Error",
-    "art_btn_check":      "? Validate inputs",
+    "art_btn_check":      "\uD83D\uDD0D Validate inputs",
     "art_checking":       "Checking inputs against Phrase and Drive...",
     "art_check_ok":       "Everything found",
     "art_check_project":  "Project",
@@ -1780,7 +1780,7 @@ const i18n = {
     "txt_select_source":  "Select Source Language",
     "txt_select_target":  "Select Target Language(s)",
     "alert_multifile_name": "\u26A0 Multiple files selected. Please enter the project name manually.",
-    "alert_clone":        "? Project data copied.\n\nPlease re-select template, languages and files.",
+    "alert_clone":        "\u2713 Project data copied.\n\nPlease re-select template, languages and files.",
     "opt_all":            "All Projects",
     "opt_own":            "My Projects",
     "opt_shared":         "Shared with me",
@@ -2408,16 +2408,16 @@ function scanKeCProjects(suffix) {
                     opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")";
                     exSel.appendChild(opt);
                 });
-                showCustomAlert("? " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
+                showCustomAlert("\u2713 " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
             } else {
               exSel.innerHTML = '<option value="">-- Keine passenden Projekte gefunden --</option>';
                 showCustomAlert(
                   "Keine passenden offenen Projekte gefunden.\n\n" +
                   "Geprüfte Kriterien:\n" +
-                  "? Status: NEW\n" +
-                  "? Client: AKW\n" +
-                  "? Domain: Marketing Content\n" +
-                  "? Business Unit: MMV-P\n\n" +
+                  "\u2022 Status: NEW\n" +
+                  "\u2022 Client: AKW\n" +
+                  "\u2022 Domain: Marketing Content\n" +
+                  "\u2022 Business Unit: MMV-P\n\n" +
                   "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
                   "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
                   "Scan-Ergebnis"
@@ -2456,7 +2456,7 @@ function executeKecLiveDebug() {
     resultEl.style.background = '#f5f5f5';
     resultEl.style.color = '#333';
     resultEl.style.border = '1px solid #ddd';
-    resultEl.innerText = "? Verbindung zu Phrase TMS wird aufgebaut und Daten analysiert...";
+    resultEl.innerText = "\u231B Verbindung zu Phrase TMS wird aufgebaut und Daten analysiert...";
 
     google.script.run
         .withSuccessHandler(res => {
@@ -2464,32 +2464,32 @@ function executeKecLiveDebug() {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = "? Fehler im Debugger: " + res.error;
+                resultEl.innerText = "\u2717 Fehler im Debugger: " + res.error;
                 return;
             }
 
             const r = res.report;
-            let log = `? **Live-Analysebericht für UID:** ${r.uid}\n\n`;
+            let log = `\uD83D\uDD0D **Live-Analysebericht für UID:** ${r.uid}\n\n`;
 
             // Gate 1: Existenz
             if (!r.exists) {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = log + "? **Gate 1 (Existenz): FEHLGESCHLAGEN**\n" + r.details.existence;
+                resultEl.innerText = log + "\u2717 **Gate 1 (Existenz): FEHLGESCHLAGEN**\n" + r.details.existence;
                 return;
             }
-            log += "? **Gate 1 (Existenz):** Projekt in Phrase TMS gefunden.\n";
+            log += "\u2713 **Gate 1 (Existenz):** Projekt in Phrase TMS gefunden.\n";
 
             // Gate 2: Status
             if (!r.statusOk) {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = log + "? **Gate 2 (Status): FEHLGESCHLAGEN**\n" + r.details.statusError;
+                resultEl.innerText = log + "\u2717 **Gate 2 (Status): FEHLGESCHLAGEN**\n" + r.details.statusError;
                 return;
             }
-            log += `? **Gate 2 (Status):** Projekt-Status ist 'NEW'.\n`;
+            log += `\u2713 **Gate 2 (Status):** Projekt-Status ist 'NEW'.\n`;
 
             // Gate 3, 4, 5: Metadaten
             log += `   \u2013 Gefundener Client: ${r.details.client}\n`;
@@ -2509,7 +2509,7 @@ function executeKecLiveDebug() {
                 resultEl.innerText = log + "\n? **Gate 3-5 (Metadaten): FEHLGESCHLAGEN**\n" + mismatches.join("\n");
                 return;
             }
-            log += "? **Gate 3-5 (Metadaten):** Alle Kärcher-Metadaten stimmen perfekt überein.\n";
+            log += "\u2713 **Gate 3-5 (Metadaten):** Alle Kärcher-Metadaten stimmen perfekt überein.\n";
 
             // Gate 6: Workflow-Zustand
             if (!r.workflowOk) {
@@ -2530,7 +2530,7 @@ function executeKecLiveDebug() {
             resultEl.style.background = '#fff3f3';
             resultEl.style.color = '#c62828';
             resultEl.style.border = '1px solid #ffcdD2';
-            resultEl.innerText = "? Verbindungsfehler zum Server: " + err.message;
+            resultEl.innerText = "\u2717 Verbindungsfehler zum Server: " + err.message;
         })
         .apiDebugSingleKeCProject(extractedUid);
 }
@@ -2562,16 +2562,16 @@ function scanKeCProjects(suffix) {
                     opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")";
                     exSel.appendChild(opt);
                 });
-                showCustomAlert("? " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
+                showCustomAlert("\u2713 " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
             } else {
                exSel.innerHTML = '<option value="">-- Keine passenden Projekte gefunden --</option>';
                 showCustomAlert(
                   "Keine passenden offenen Projekte gefunden.\n\n" +
                   "Geprüfte Kriterien:\n" +
-                  "? Status: NEW\n" +
-                  "? Client: AKW\n" +
-                  "? Domain: Marketing Content\n" +
-                  "? Business Unit: MMV-P\n\n" +
+                  "\u2022 Status: NEW\n" +
+                  "\u2022 Client: AKW\n" +
+                  "\u2022 Domain: Marketing Content\n" +
+                  "\u2022 Business Unit: MMV-P\n\n" +
                   "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
                   "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
                   "Scan-Ergebnis"
@@ -3091,7 +3091,7 @@ function openArticulateHelp() {
     '</ul>' +
 
     '<div style="background:#fff3e0;border:1px solid #ffe0b2;padding:10px 12px;font-size:12px;color:#e65100;">' +
-    '? Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext \u2013 du kannst die Preview also ' +
+    '\u2022 Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext \u2013 du kannst die Preview also ' +
     'auch mitten in der Übersetzung schon anschauen. Videos werden aus Geschwindigkeitsgründen weggelassen, ' +
     'das Vorschaubild bleibt aber sichtbar.' +
     '</div>' +
@@ -3305,7 +3305,7 @@ function openArticulateBatchPanel() {
 
   panel.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-      '<div style="font-weight:700;font-size:13px;">? ' + artPickerJobs.length + ' Jobs im Projekt</div>' +
+      '<div style="font-weight:700;font-size:13px;">\u2022 ' + artPickerJobs.length + ' Jobs im Projekt</div>' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#555;cursor:pointer;">' +
         '<input type="checkbox" id="batchSelectAll" checked onchange="toggleAllBatchJobs(this.checked)" style="width:16px;height:16px;cursor:pointer;">' +
         'Alle auswählen' +
@@ -3321,11 +3321,11 @@ function openArticulateBatchPanel() {
     '<div style="display:flex;gap:8px;margin-top:10px;">' +
       '<button type="button" onclick="checkArticulateBatchCompatibility()" ' +
         'style="flex:1;background:#fff;color:#1a73e8;border:1px solid #1a73e8;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
-        '? Alle prüfen' +
+        '\uD83D\uDD0D Alle prüfen' +
       '</button>' +
       '<button type="button" onclick="startArticulateBatch()" ' +
         'style="flex:1.4;background:#1a73e8;color:#fff;border:none;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
-        '? Ausgewählte Kurse starten' +
+        '\u25B6 Ausgewählte Kurse starten' +
       '</button>' +
     '</div>' +
     '<div id="articulateBatchStatus" style="margin-top:10px;"></div>';
@@ -3414,12 +3414,12 @@ function startArticulateBatch() {
       if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
       else if (statusEl) {
         var summary = document.getElementById('articulateBatchSummary');
-        if (summary) summary.innerText = '? Keine Kurse konnten angelegt werden.';
+        if (summary) summary.innerText = '\u2022 Keine Kurse konnten angelegt werden.';
       }
     })
     .withFailureHandler(function (err) {
       var summary = document.getElementById('articulateBatchSummary');
-      if (summary) summary.innerText = '? ' + err.message;
+      if (summary) summary.innerText = '\u2717 ' + err.message;
     })
     .apiBatchCreateArticulateProjectsFromUi(payloads);
 }
@@ -3456,24 +3456,24 @@ function checkArticulateBatchCompatibility() {
 
   toCheck.forEach(function (item) {
     var resEl = document.getElementById('batchCheckResult_' + item.idx);
-    if (resEl) { resEl.style.color = '#888'; resEl.innerText = '? prüfe...'; }
+    if (resEl) { resEl.style.color = '#888'; resEl.innerText = '\uD83D\uDD0D prüfe...'; }
     google.script.run
       .withSuccessHandler(function (info) {
         if (!resEl) return;
         if (info.scormMatchWarning) {
           resEl.style.color = '#c62828';
-          resEl.innerText = '? ' + info.scormMatchWarning;
+          resEl.innerText = '\u26A0 ' + info.scormMatchWarning;
         } else if (info.scormMatchRatio !== null) {
           resEl.style.color = '#2e7d32';
-          resEl.innerText = '? ' + info.scormMatchRatio + '% übereinstimmung (' +
+          resEl.innerText = '\u2713 ' + info.scormMatchRatio + '% übereinstimmung (' +
             info.scormMatchedSegments + '/' + info.scormTotalSegments + ')';
         } else {
           resEl.style.color = '#888';
-          resEl.innerText = '? Kein Abgleich möglich.';
+          resEl.innerText = '\u2022 Kein Abgleich möglich.';
         }
       })
       .withFailureHandler(function (err) {
-        if (resEl) { resEl.style.color = '#c62828'; resEl.innerText = '? ' + err.message; }
+        if (resEl) { resEl.style.color = '#c62828'; resEl.innerText = '\u2717 ' + err.message; }
       })
       .apiValidateArticulateInputs({
         courseName: 'check',
@@ -3516,11 +3516,11 @@ function _setBatchRowStatus(i, status, msg) {
 function runArticulateBatchSequential(ok, pos, total) {
   var summary = document.getElementById('articulateBatchSummary');
   if (pos >= ok.length) {
-    if (summary) summary.innerText = '? Batch abgeschlossen (' + ok.length + ' von ' + total + ' Kursen erzeugt).';
+    if (summary) summary.innerText = '\u2713 Batch abgeschlossen (' + ok.length + ' von ' + total + ' Kursen erzeugt).';
     return;
   }
   var current = ok[pos];
-  if (summary) summary.innerText = '? Erzeuge Preview ' + (pos + 1) + ' / ' + ok.length + '...';
+  if (summary) summary.innerText = '\u25B6 Erzeuge Preview ' + (pos + 1) + ' / ' + ok.length + '...';
   _setBatchRowStatus(current.index, 'generating');
   runArticulatePreview(current.id, function () {
     _setBatchRowStatus(current.index, 'done');
@@ -3533,7 +3533,7 @@ function runArticulateBatchSequential(ok, pos, total) {
 function copyArticulateLink(url) {
   if (!url) { showCustomAlert('Für diesen Kurs wurde noch keine Preview erzeugt.', 'Kein Link'); return; }
   navigator.clipboard.writeText(url).then(function () {
-    showCustomAlert('? Link kopiert:\n' + url, 'Kopiert');
+    showCustomAlert('\u2713 Link kopiert:\n' + url, 'Kopiert');
   }).catch(function () {
     showCustomPrompt('Konnte nicht automatisch kopiert werden \u2013 hier manuell kopieren:', url, function () {}, 'Link');
   });
@@ -3570,11 +3570,11 @@ function articulateQuickGenerate() {
   panel.style.display = 'block';
   panel.style.background = '#f5f5f5';
   panel.style.border = '1px solid #ddd';
-  panel.innerHTML = '? ' + t_('art_saving', 'Kurs wird gespeichert...');
+  panel.innerHTML = '\u231B ' + t_('art_saving', 'Kurs wird gespeichert...');
 
   google.script.run
     .withSuccessHandler(function (res) {
-      panel.innerHTML = '? ' + t_('art_saved', 'Gespeichert.') + ' ' +
+      panel.innerHTML = '\u2713 ' + t_('art_saved', 'Gespeichert.') + ' ' +
         t_('art_starting', 'Preview wird erzeugt...');
       ['artQuickName', 'artQuickFolder']
         .forEach(function (id) { document.getElementById(id).value = ''; });
@@ -3587,7 +3587,7 @@ function articulateQuickGenerate() {
     .withFailureHandler(function (err) {
       panel.style.background = '#fff3f3';
       panel.style.border = '1px solid #ffcdd2';
-      panel.innerHTML = '? ' + escapeHtmlJs(err.message);
+      panel.innerHTML = '\u2717 ' + escapeHtmlJs(err.message);
     })
     .apiCreateArticulateProjectFromUi(payload);
 }
@@ -3765,7 +3765,7 @@ function renderArticulateTable() {
         'title="' + escapeHtmlJs(r.liveUrl) + '">' +
         escapeHtmlJs(r.firebasePath || '') + ' ?</a>'
       : '<span style="color:#999;font-size:11px;font-family:monospace;">' +
-        escapeHtmlJs(r.firebasePath || '?') + '</span>';
+        escapeHtmlJs(r.firebasePath || '\u2013') + '</span>';
 
     var tr = document.createElement('tr');
     tr.innerHTML =
@@ -3774,7 +3774,7 @@ function renderArticulateTable() {
       '<td>' + phraseHtml + '</td>' +
       '<td>' + pathHtml + '</td>' +
       '<td style="font-size:12px;">' +
-        (r.lastDeploy ? escapeHtmlJs(String(r.lastDeploy).substring(0, 16)) : '?') +
+        (r.lastDeploy ? escapeHtmlJs(String(r.lastDeploy).substring(0, 16)) : '\u2013') +
       '</td>' +
       '<td>' + statusHtml + '</td>' +
       '<td style="text-align:center;white-space:nowrap;">' +
@@ -3816,26 +3816,26 @@ function articulateValidateInputs() {
   panel.style.display = 'block';
   panel.style.background = '#f5f5f5';
   panel.style.border = '1px solid #ddd';
-  panel.innerHTML = '? ' + t_('art_checking', 'Prüfe Eingaben gegen Phrase und Drive...');
+  panel.innerHTML = '\u231B ' + t_('art_checking', 'Prüfe Eingaben gegen Phrase und Drive...');
 
   google.script.run
     .withSuccessHandler(function (info) {
       panel.style.background = '#e8f5e9';
       panel.style.border = '1px solid #c8e6c9';
       panel.innerHTML =
-        '<strong>? ' + t_('art_check_ok', 'Alles gefunden') + '</strong><br>' +
+        '<strong>\u2713 ' + t_('art_check_ok', 'Alles gefunden') + '</strong><br>' +
         '<div style="margin-top:8px;line-height:1.7;">' +
-          '? ' + t_('art_check_project', 'Projekt') + ': <strong>' +
+          '\u2022 ' + t_('art_check_project', 'Projekt') + ': <strong>' +
             escapeHtmlJs(info.projectName) + '</strong><br>' +
-          '? ' + t_('art_check_job', 'Job') + ': ' +
-            escapeHtmlJs(info.jobFileName || '?') +
+          '\u2022 ' + t_('art_check_job', 'Job') + ': ' +
+            escapeHtmlJs(info.jobFileName || '\u2013') +
             ' <span style="color:#888;">(' + escapeHtmlJs(info.jobTargetLang) +
             ', ' + escapeHtmlJs(info.jobStatus) + ')</span><br>' +
-          '? ' + t_('art_check_folder', 'Ordner') + ': ' +
+          '\u2022 ' + t_('art_check_folder', 'Ordner') + ': ' +
             escapeHtmlJs(info.folderName) +
             ' <span style="color:#888;">(' + info.fileCount + ' ' +
             t_('art_check_files', 'Dateien') + ')</span><br>' +
-          '? ' + t_('art_check_path', 'Pfad') + ': <code style="font-size:11px;">' +
+          '\u2022 ' + t_('art_check_path', 'Pfad') + ': <code style="font-size:11px;">' +
             escapeHtmlJs(info.firebasePath) + '</code>' +
         '</div>' +
         (!info.looksLikeXliff
@@ -3853,7 +3853,7 @@ function articulateValidateInputs() {
             ': <strong>' + escapeHtmlJs(info.jobTargetLang) + '</strong></div>'
           : '') +
         (info.scormMatchWarning
-          ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">? ' +
+          ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">\u26A0 ' +
             escapeHtmlJs(info.scormMatchWarning) + '</div>'
           : (info.scormMatchRatio !== null
               ? '<div style="margin-top:8px;color:#2e7d32;">\u2022 Kurs-Abgleich: <strong>' +
@@ -3865,7 +3865,7 @@ function articulateValidateInputs() {
     .withFailureHandler(function (err) {
       panel.style.background = '#fff3f3';
       panel.style.border = '1px solid #ffcdd2';
-      panel.innerHTML = '? ' + escapeHtmlJs(err.message);
+      panel.innerHTML = '\u2717 ' + escapeHtmlJs(err.message);
     })
     .apiValidateArticulateInputs(payload);
 }
@@ -4328,7 +4328,7 @@ function docImportSubmit_() {
   }
 
   if (!refFilesMap['_docimport'] || refFilesMap['_docimport'].length === 0) {
-    showCustomAlert("? Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist für Documentation Projects obligatorisch.", "Pflichtfeld");
+    showCustomAlert("\u231B Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist für Documentation Projects obligatorisch.", "Pflichtfeld");
     return;
   }
 
@@ -5309,7 +5309,7 @@ function syncProjectStatuses() {
   google.script.run
     .withSuccessHandler(r => {
       btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
-      showCustomAlert(r.success ? `? ${r.updated} project(s) updated.` : '? ' + r.message, "Status Sync");
+      showCustomAlert(r.success ? `\u2713 ${r.updated} project(s) updated.` : '\u2717 ' + r.message, "Status Sync");
       if (r.success && r.updated > 0) loadMyProjects();
     })
     .withFailureHandler(e => {
@@ -5388,7 +5388,7 @@ function showTimeline(uid) {
     return `<div style="display:flex;align-items:center;gap:15px;margin-bottom:12px;">
       <div style="width:32px;height:32px;border-radius:50%;background:${active?'var(--primary-yellow)':done?'#4CAF50':'#eee'};
             display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">
-        ${done&&!active?'?':active?'?':'?'}
+        ${done&&!active?'\u2713':active?'\u231B':'\u25CB'}
       </div>
       <div style="font-weight:${active?'800':'500'};font-size:13px;color:${done?'#222':'#aaa'};text-transform:uppercase;letter-spacing:0.5px;">${s}</div>
     </div>`;
@@ -5526,7 +5526,7 @@ function smartDownloadFiles(projectUid) {
           o.style.display = 'none';
           if(r.success) {
             saveBase64AsFile(r.base64, r.mimeType, r.fileName);
-            showCustomAlert(`? Downloaded ${r.downloadedCount} of ${r.totalJobs} files.\n${r.errors && r.errors.length ? "\nErrors:\n"+r.errors.join("\n") : ""}`);
+            showCustomAlert(`\u2713 Downloaded ${r.downloadedCount} of ${r.totalJobs} files.\n${r.errors && r.errors.length ? "\nErrors:\n"+r.errors.join("\n") : ""}`);
             loadMyProjects();
           } else {
             showCustomAlert("Error: " + r.error, "Download Error");
@@ -5721,7 +5721,7 @@ function uploadFilesToDrive_(token, files, projectName, convertToGoogle, overlay
         if (idx >= files.length) {
           overlay.style.display = 'none';
           const folderUrl = 'https://drive.google.com/drive/folders/' + projectFolderId;
-          let msg = '? Saved ' + successCount + ' of ' + files.length + ' file(s) to Google Drive.';
+          let msg = '\u2713 Saved ' + successCount + ' of ' + files.length + ' file(s) to Google Drive.';
           msg += '<div style="margin-top:15px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive ?</a></div>';
           if (errors.length) {
             msg += '<div style="color:#c62828;font-weight:bold;margin-top:15px;">Errors:</div>';
@@ -5785,10 +5785,10 @@ function openJobNoteModal(projectUid, jobUids) {
       google.script.run.withSuccessHandler(res => {
         btn.disabled = false; btn.innerText = "Send Note";
         if (res.success) {
-          showCustomAlert("? Note added successfully.");
+          showCustomAlert("\u2713 Note added successfully.");
           closeJobNoteModal();
         } else {
-          showCustomAlert("? Failed to add note: " + res.error, "Error");
+          showCustomAlert("\u2717 Failed to add note: " + res.error, "Error");
         }
       }).withFailureHandler(e => {
         btn.disabled = false; btn.innerText = "Send Note";
@@ -5944,7 +5944,7 @@ function openJobNoteModal(projectUid, jobUids) {
       if (!anyChecked) {
         showCustomAlert("Preset loaded \u2013 but target languages were not found in this template. Please re-select.", "Warning");
       } else {
-        showCustomAlert("? Preset loaded successfully.");
+        showCustomAlert("\u2713 Preset loaded successfully.");
       }
     }
 
@@ -5963,7 +5963,7 @@ function openJobNoteModal(projectUid, jobUids) {
         google.script.run
           .withSuccessHandler(r => {
             if(r.success) { 
-              showCustomAlert("? Preset deleted successfully.", "Success");
+              showCustomAlert("\u2713 Preset deleted successfully.", "Success");
               loadUserPresets(suffix); 
             } else {
               showCustomAlert("Error: " + r.error, "Error");
@@ -6125,14 +6125,14 @@ function openJobNoteModal(projectUid, jobUids) {
       panelEl.style.display = 'block';
       panelEl.style.background = '#f5f5f5';
       panelEl.style.border = '1px solid #ddd';
-      panelEl.innerHTML = '? Verbinde mit Phrase TMS...';
+      panelEl.innerHTML = '\u231B Verbinde mit Phrase TMS...';
 
       google.script.run
         .withSuccessHandler(res => {
           if (!res.success) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            panelEl.innerHTML = '? Server-Fehler: ' + escapeHtml(res.error);
+            panelEl.innerHTML = '\u2717 Server-Fehler: ' + escapeHtml(res.error);
             return;
           }
           const r = res.report;
@@ -6145,7 +6145,7 @@ function openJobNoteModal(projectUid, jobUids) {
             panelEl.innerHTML = log;
             return;
           }
-          log += '? Gate 1: Projekt existiert<br>';
+          log += '\u2022 Gate 1: Projekt existiert<br>';
 
           if (!r.statusOk) {
             panelEl.style.background = '#fff3f3';
@@ -6154,7 +6154,7 @@ function openJobNoteModal(projectUid, jobUids) {
             panelEl.innerHTML = log;
             return;
           }
-          log += '? Gate 2: Status ist NEW<br>';
+          log += '\u2022 Gate 2: Status ist NEW<br>';
           log += '<span style="color:#666;">\u2022 Client: ' + escapeHtml(r.details.client) + '</span><br>';
           log += '<span style="color:#666;">\u2022 Domain: ' + escapeHtml(r.details.domain) + '</span><br>';
           log += '<span style="color:#666;">\u2022 BU: ' + escapeHtml(r.details.bu) + '</span><br>';
@@ -6163,14 +6163,14 @@ function openJobNoteModal(projectUid, jobUids) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
             log += '<br><span style="color:#d93025;">\u2022 Metadaten stimmen nicht überein:<br>';
-            if (!r.clientOk) log += '? Client \u2013 AKW<br>';
-            if (!r.domainOk) log += '? Domain \u2013 Marketing Content<br>';
-            if (!r.buOk)     log += '? BU \u2013 MMV-P<br>';
+            if (!r.clientOk) log += '\u2022 Client \u2013 AKW<br>';
+            if (!r.domainOk) log += '\u2022 Domain \u2013 Marketing Content<br>';
+            if (!r.buOk)     log += '\u2022 BU \u2013 MMV-P<br>';
             log += '</span>';
             panelEl.innerHTML = log;
             return;
           }
-          log += '? Gate 3-5: Metadaten korrekt<br>';
+          log += '\u2022 Gate 3-5: Metadaten korrekt<br>';
 
           if (!r.workflowOk) {
             panelEl.style.background = '#fff3f3';
@@ -6188,7 +6188,7 @@ function openJobNoteModal(projectUid, jobUids) {
         .withFailureHandler(err => {
           panelEl.style.background = '#fff3f3';
           panelEl.style.border = '1px solid #ffcdd2';
-          panelEl.innerHTML = '? Verbindungsfehler: ' + escapeHtml(err.message);
+          panelEl.innerHTML = '\u2717 Verbindungsfehler: ' + escapeHtml(err.message);
         })
         .apiDebugSingleKeCProject(uid);
     }
@@ -6550,7 +6550,7 @@ function openJobNoteModal(projectUid, jobUids) {
               return '<span class="doc-board-mini-badge" style="background:' + c2 + '22;color:' + c2 + ';border:1px solid ' + c2 + '55;">' + escapeHtml(j.targetLang || '') + '</span>';
             }).join('');
             if (hiddenJobs.length) {
-              var hiddenTitle = hiddenJobs.map(function(j) { return j.targetLang || '?'; }).join(', ');
+              var hiddenTitle = hiddenJobs.map(function(j) { return j.targetLang || '\u2013'; }).join(', ');
               badges += '<span class="doc-board-badge-more" title="' + escapeHtml(hiddenTitle) + '">+' + hiddenJobs.length + '</span>';
             }
             var headerExportBtn = (target === 'export' && completedJobs.length > 0)
@@ -6563,10 +6563,10 @@ function openJobNoteModal(projectUid, jobUids) {
                     '<div style="display:flex;align-items:center;">' + headerExportBtn + '<span class="doc-board-project-badges">' + badges + '</span></div></div>';
             html += '<div class="doc-board-project-body" id="docBoardBody_' + cardId + '" style="display:' + (isOpen ? 'block' : 'none') + ';">';
             html += '<div class="doc-board-meta-box">' +
-                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">IA Number</span><span style="font-weight:600;">' + escapeHtml(p.iaNumber || '?') + '</span></div>' +
-                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Order Number</span><span style="font-weight:600;">' + escapeHtml(p.orderNumber || '?') + '</span></div>' +
-                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Eingereicht von</span><span style="font-weight:600;">' + escapeHtml(p.userID || '?') + '</span></div>' +
-                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Template</span><span style="font-weight:600;">' + escapeHtml(p.templateName || '?') + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">IA Number</span><span style="font-weight:600;">' + escapeHtml(p.iaNumber || '\u2013') + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Order Number</span><span style="font-weight:600;">' + escapeHtml(p.orderNumber || '\u2013') + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Eingereicht von</span><span style="font-weight:600;">' + escapeHtml(p.userID || '\u2013') + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span style="color:#888;">Template</span><span style="font-weight:600;">' + escapeHtml(p.templateName || '\u2013') + '</span></div>' +
                     '</div>';
             html += '<div>' + (p.jobs || []).map(function(j) {
               var c3 = DOC_QUEUE_STATUS_COLORS_[j.status] || '#666';
@@ -6622,9 +6622,9 @@ function openJobNoteModal(projectUid, jobUids) {
         ['#', res.internalId],
         ['Name', projectName],
         ['Created by', res.createdBy],
-        ['Created', res.dateCreated ? new Date(res.dateCreated).toLocaleString() : '?'],
+        ['Created', res.dateCreated ? new Date(res.dateCreated).toLocaleString() : '\u2013'],
         ['Status', res.status],
-        ['Due', res.dateDue ? new Date(res.dateDue).toLocaleString() : '?'],
+        ['Due', res.dateDue ? new Date(res.dateDue).toLocaleString() : '\u2013'],
         ['Source language', res.sourceLang],
         ['Target languages', res.targetLangs],
         ['Owner', res.owner],
@@ -6637,7 +6637,7 @@ function openJobNoteModal(projectUid, jobUids) {
       var rowsHtml = rows.map(function(r) {
         return '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;">' +
                '<span style="color:#888;">' + escapeHtml(r[0]) + '</span>' +
-               '<span style="font-weight:600;color:#333;text-align:right;">' + escapeHtml(String(r[1] || '?')) + '</span></div>';
+               '<span style="font-weight:600;color:#333;text-align:right;">' + escapeHtml(String(r[1] || '\u2013')) + '</span></div>';
       }).join('');
       return ambigNote + rowsHtml;
     }
