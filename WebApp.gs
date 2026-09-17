@@ -808,7 +808,7 @@ function apiUpdateDueDate(projectUid, newDateIso) {
     _notifySharedUsers_(sharedWith, sharedThreads, chatMsg, caller);
 
     logAuditEvent_(caller, "DUE_DATE_UPDATE",
-      "Updated due date for '" + projectName + "' (" + projectUid + ") ? " + formattedDate);
+      "Updated due date for '" + projectName + "' (" + projectUid + ") \u2013 " + formattedDate);
 
     return { success: true, newDate: isoDate, formattedDate, phraseWarning: phraseWarning || null };
 

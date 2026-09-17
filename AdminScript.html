@@ -18,7 +18,7 @@ function toggleDocDriveRootLock() {
     document.getElementById('docDriveRootInput').disabled = true;
     document.getElementById('docDriveRootSaveBtn').disabled = true;
     document.getElementById('docDriveRootLockIcon').innerText = 'lock';
-    document.getElementById('docDriveRootLockText').innerText = 'Locked ? Click to unlock';
+    document.getElementById('docDriveRootLockText').innerText = 'Locked \u2013 Click to unlock';
     loadDocDriveRootSettings();
     return;
   }
@@ -29,7 +29,7 @@ function toggleDocDriveRootLock() {
       document.getElementById('docDriveRootInput').disabled = false;
       document.getElementById('docDriveRootSaveBtn').disabled = false;
       document.getElementById('docDriveRootLockIcon').innerText = 'lock_open';
-      document.getElementById('docDriveRootLockText').innerText = 'Unlocked ? Click to lock';
+      document.getElementById('docDriveRootLockText').innerText = 'Unlocked \u2013 Click to lock';
     },
     "Entsperren bestätigen"
   );
@@ -83,7 +83,7 @@ function toggleAdminHelp(id) {
                   ${customBadge}
                   <button onclick="resetMessageTemplate('${escapeJs(t.key)}')"
                           style="background:none;border:1px solid #ddd;cursor:pointer;padding:3px 10px;font-size:11px;color:#888;border-radius:2px;"
-                          title="Reset to default">? Reset</button>
+                          title="Reset to default">\u2022 Reset</button>
                   <button onclick="saveMessageTemplateFromUI('${escapeJs(t.key)}')"
                           style="background:var(--primary-yellow);border:none;cursor:pointer;padding:3px 12px;font-size:11px;font-weight:700;border-radius:2px;">Save</button>
                 </div>
@@ -151,7 +151,7 @@ function toggleAdminHelp(id) {
         document.getElementById('kecBuIdInput').disabled = true;
         document.getElementById('kecEligSaveBtn').disabled = true;
         document.getElementById('kecEligLockIcon').innerText = 'lock';
-        document.getElementById('kecEligLockText').innerText = 'Locked ? Click to unlock';
+        document.getElementById('kecEligLockText').innerText = 'Locked \u2013 Click to unlock';
         loadKecEligSettings(); // Änderungen ohne Speichern verwerfen
         return;
       }
@@ -165,7 +165,7 @@ function toggleAdminHelp(id) {
           document.getElementById('kecBuIdInput').disabled = false;
           document.getElementById('kecEligSaveBtn').disabled = false;
           document.getElementById('kecEligLockIcon').innerText = 'lock_open';
-          document.getElementById('kecEligLockText').innerText = 'Unlocked ? Click to lock';
+          document.getElementById('kecEligLockText').innerText = 'Unlocked \u2013 Click to lock';
         },
         "Entsperren bestätigen"
       );
@@ -302,7 +302,7 @@ function toggleAdminHelp(id) {
       if (!rows.length) { table.style.display='none'; empty.style.display='block'; _tmplMgrUpdateBatchBar(); return; }
       table.style.display='table'; empty.style.display='none';
       tbody.innerHTML = rows.map(r => {
-        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' ? ') || '?';
+        const segSummary = [r.client, r.domain, r.subDomain, r.businessUnit].filter(Boolean).join(' \u2013 ') || '?';
         return `
         <tr data-uid="${escapeHtml(r.uid)}" style="${_tmplMgrSelected[r.uid] ? 'background:#fffde7;' : ''}">
           <td style="text-align:center;">
@@ -454,12 +454,12 @@ function toggleAdminHelp(id) {
         const roleOptions = USER_MGR_ROLES.map(role =>
           '<option value="' + role + '"' + (r.role === role ? ' selected' : '') + '>' + role + '</option>'
         ).join('');
-        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' ? ') || '? keine Angaben ?';
+        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' \u2013 ') || '? keine Angaben ?';
         const langSummary = [
           r.sourceLangs ? ('Quelle: ' + r.sourceLangs) : '',
           r.targetLangs ? ('Ziel: ' + r.targetLangs) : '',
           r.workflowSteps ? ('Workflow: ' + r.workflowSteps) : ''
-        ].filter(Boolean).join(' ? ') || '? keine Angaben ?';
+        ].filter(Boolean).join(' \u2013 ') || '? keine Angaben ?';
         const segKey = r.username + '_seg';
         const langKey = r.username + '_lang';
         const segOpen = !!_userMgrExpanded[segKey];
@@ -510,7 +510,7 @@ function toggleAdminHelp(id) {
           if (el) el.style.opacity = '1';
           if (row) row[field] = value;
           if (res && res.phraseWarning) {
-            showCustomAlert('?? Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:\n' + res.phraseWarning, 'Teilweise gespeichert');
+            showCustomAlert('\u26A0 Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:\n' + res.phraseWarning, 'Teilweise gespeichert');
           }
         })
         .withFailureHandler(e => {
@@ -536,7 +536,7 @@ function toggleAdminHelp(id) {
 
         google.script.run.withSuccessHandler(r => {
             document.getElementById('adminDriveClientId').value = (r && r.clientId) || '';
-            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
+            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '? Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
         }).apiGetDriveSaveConfig();
         
         const m = configData.maintenance || { active: false };
@@ -609,7 +609,7 @@ function toggleAdminHelp(id) {
         google.script.run.withSuccessHandler(r => {
             if (r.success) {
                 driveSaveConfigCache_ = null; // Force reload on next "Save to Drive" click
-                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '? Save to Drive is active for all users.' : 'Not configured yet ? the "Save to Drive" button is inactive for users.';
+                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '? Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
                 showCustomAlert("Saved.", "Success");
             } else {
                 showCustomAlert("Error: " + r.error, "Error");
@@ -892,11 +892,11 @@ function toggleAdminHelp(id) {
         </div>
         <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;"
                 onclick="closeCustomDialog(); runSync('${type}','add_only', document.getElementById('syncBtn_${type}'))">
-          ? Nur neue ${label} ergänzen (bestehende Zeilen bleiben unverändert)
+          \u2022 Nur neue ${label} ergänzen (bestehende Zeilen bleiben unverändert)
         </button>
         <button class="btn btn-primary" style="width:100%;"
                 onclick="closeCustomDialog(); runSync('${type}','full', document.getElementById('syncBtn_${type}'))">
-          ? Neue ergänzen + bestehende mit Phrase-Daten aktualisieren
+          \u2022 Neue ergänzen + bestehende mit Phrase-Daten aktualisieren
         </button>`;
       btn.id = 'syncBtn_' + type;
       document.getElementById('customDialogTitle').innerText = label + ' synchronisieren';
@@ -946,7 +946,7 @@ function toggleAdminHelp(id) {
             const isSens = p.sensitive;
             html += `<tr style="border-bottom:1px solid #eee;">
               <td style="padding:10px;font-family:monospace;font-weight:bold;color:${isProt?'#d93025':'#333'};">
-                ${escapeHtml(p.key)} ${isProt?'<span title="Protected" style="cursor:help;">?</span>':''}
+                ${escapeHtml(p.key)} ${isProt?'<span title="Protected" style="cursor:help;">\uD83D\uDD12</span>':''}
               </td>
               <td style="padding:10px;font-family:monospace;color:#555;word-break:break-all;" id="prop_val_${escapeHtmlId(p.key)}">
                 ${escapeHtml(p.value)}
@@ -1012,7 +1012,7 @@ function toggleAdminHelp(id) {
             if (el) {
                 el.innerText = r.value;
                 el.style.background = "#fff9c4";
-                setTimeout(() => { el.style.background = "none"; el.innerText = "????????"; }, 10000); 
+                setTimeout(() => { el.style.background = "none"; el.innerText = "--------"; }, 10000); 
             }
           }
         })
