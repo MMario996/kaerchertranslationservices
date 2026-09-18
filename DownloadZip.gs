@@ -314,14 +314,28 @@ function apiUserDownloadFromPhrase(projectUid, jobUid, fileName, targetLang, mim
     const outName = _buildTargetFileName_(fileName, targetLang, fallbackExt, blobName, sourceExt);
     _setBlobNameSafe_(blob, outName);
 
+    // Campus-Batch-Post-Process: fuer "Campus Template"-Projekte fehlende
+    // <target>-Elemente auffuellen (siehe CampusBatch.gs). Original bleibt
+    // erhalten; bei Erfolg wird zusaetzlich "<name>_WithTargets.xlf" als ZIP
+    // mitgeliefert.
+    const campusResult = applyCampusBatchIfNeeded_(projectUid, outName, blob);
+    recordDownloadTimestamp_(projectUid);
+
+    if (campusResult.applied && campusResult.blobs.length > 1) {
+      const zipName = _stripExt_(outName) + "_CampusBatch.zip";
+      const zipBlob = Utilities.zip(campusResult.blobs, zipName);
+      const zipB64  = Utilities.base64Encode(zipBlob.getBytes());
+      console.log("\u2713 Download successful (Campus batch applied):", zipName);
+      return { success: true, fileName: zipName, mimeType: "application/zip", base64: zipB64, isZip: true, downloadedCount: 1, totalJobs: 1, errors: [], campusBatchApplied: true };
+    }
+
     const bytes = blob.getBytes();
     const b64   = Utilities.base64Encode(bytes);
     const ext   = _getExt_(outName);
     const mime  = sourceExt ? _mimeFromExt_(sourceExt) : (blobContentType || _mimeFromExt_(ext));
 
-    recordDownloadTimestamp_(projectUid);
     console.log("\u2713 Download successful:", outName, "| mime:", mime);
-    return { success: true, fileName: outName, mimeType: mime, base64: b64, isZip: false, downloadedCount: 1, totalJobs: 1, errors: [] };
+    return { success: true, fileName: outName, mimeType: mime, base64: b64, isZip: false, downloadedCount: 1, totalJobs: 1, errors: [], campusBatchApplied: false };
 
   } catch (e) {
     console.error("\u2717 Download failed:", e);
@@ -377,8 +391,12 @@ function apiDownloadAllJobsAsZip(projectUid, jobUids, projectName, targetLangs, 
           try { blob.setContentType(_mimeFromExt_(sourceExt)); } catch(e) {}
         }
 
-        blobs.push(blob);
-        console.log("  ?", outName);
+        // Campus-Batch-Post-Process: Original bleibt im ZIP, "_WithTargets"
+        // wird bei Bedarf zusaetzlich hineingelegt (siehe CampusBatch.gs).
+        const campusResult = applyCampusBatchIfNeeded_(projectUid, outName, blob);
+        campusResult.blobs.forEach(b => blobs.push(b));
+
+        console.log("  ?", outName, campusResult.applied ? "(+ Campus batch)" : "");
       } catch (e) {
         console.warn("  ?? Job " + jobUid + " failed:", e.message);
         errors.push({ jobUid, error: e.message });
@@ -493,6 +511,21 @@ function apiGetFilesForDriveExport(projectUid, jobUids, projectName, targetLangs
         googleMimeType: googleMime || null,
         targetLang: jobLang
       });
+
+      // Campus-Batch-Post-Process: Original bleibt wie es ist, "_WithTargets"
+      // wird als zusaetzliche Datei zum Speichern angeboten (siehe CampusBatch.gs).
+      const campusResult = applyCampusBatchIfNeeded_(projectUid, outName, blob);
+      if (campusResult.applied && campusResult.blobs.length > 1) {
+        const campusBlob = campusResult.blobs[1];
+        files.push({
+          fileName: campusBlob.getName(),
+          mimeType: "application/xml",
+          base64: Utilities.base64Encode(campusBlob.getBytes()),
+          canConvertToGoogle: false,
+          googleMimeType: null,
+          targetLang: jobLang
+        });
+      }
     } catch (e) {
       errors.push({ jobUid: jobUid, targetLang: jobLang, error: e.message });
     }
@@ -510,10 +543,25 @@ function apiDownloadTargetFile(projectUid, jobUid) {
   if (!access.allowed) throw new Error("Not authorized.");
 
   const blob = phraseDownloadTargetFile_(String(projectUid).trim(), String(jobUid).trim());
-  const bytes = blob.getBytes();
   const name  = _flattenBlobName_(blob.getName()) || ("target_" + jobUid);
   const ext   = _getExt_(name);
-  
+
+  // Campus-Batch-Post-Process (siehe CampusBatch.gs): Original bleibt
+  // erhalten; bei Erfolg wird stattdessen ein ZIP mit Original + "_WithTargets"
+  // geliefert.
+  const campusResult = applyCampusBatchIfNeeded_(projectUid, name, blob);
+  if (campusResult.applied && campusResult.blobs.length > 1) {
+    const zipName = _stripExt_(name) + "_CampusBatch.zip";
+    const zipBlob = Utilities.zip(campusResult.blobs, zipName);
+    return {
+      ok: true,
+      fileName: zipName,
+      mimeType: "application/zip",
+      base64: Utilities.base64Encode(zipBlob.getBytes())
+    };
+  }
+
+  const bytes = blob.getBytes();
   return {
     ok: true,
     fileName: name,
