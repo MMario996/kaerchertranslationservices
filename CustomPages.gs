@@ -2,17 +2,31 @@
  * CustomPages.gs
  *
  * Admin-verwaltete zusaetzliche Reiter (Tabs) - ganz ohne Code-Deploy anlegbar:
- * Name + eigene Whitelist. Persistiert im Sheet "CustomPages" (Access-Spreadsheet).
+ * Name, ein Baukasten aus optionalen Formular-Bausteinen, und eine eigene
+ * Whitelist. Persistiert im Sheet "CustomPages" (Access-Spreadsheet).
+ *
+ * WICHTIG: Es wird KEIN Code generiert. Jeder Reiter nutzt dasselbe generische
+ * Anfrageformular (Template/Quellsprache/Zielsprache/Projektname/Hauptdateien
+ * sind immer Pflicht, da ohne die kein Phrase-Projekt entstehen kann) - der
+ * "Baukasten" speichert nur, welche der optionalen Bausteine (Vorlagen,
+ * Wunschtermin, Notiz, Referenzdateien) fuer diesen Reiter sichtbar sein
+ * sollen. Der bestehende Renderer (initForm()/renderFormFromTemplate() in
+ * Index.html) blendet den Rest anhand dieser Konfiguration zur Laufzeit aus.
  *
  * Die Sichtbarkeit je Reiter laeuft ueber dasselbe Muster wie Marketing/KeC/Doc/...:
  * ein eigenes Sheet "Whitelist_<ID>" (siehe getDynamicWhitelist_ in WebApp.gs),
  * das getConfig_() bereits konsumiert (config.customPages).
+ *
+ * Berechtigung: volle Admins ODER Admin-Light-User mit Subtab "custompages"
+ * (siehe AdminLight.gs) duerfen Reiter anlegen/verwalten.
  */
 const CUSTOM_PAGES_SHEET_NAME = "CustomPages";
 const RESERVED_PAGE_IDS_ = [
   "request", "marketing", "woma", "cc", "kec", "documentation", "articulate",
   "history", "dashboard", "admin", "health", "guide", "help"
 ];
+const CUSTOM_PAGE_FIELD_KEYS_ = ["presets", "dueDate", "note", "refFiles"];
+const CUSTOM_PAGE_DEFAULT_FIELDS_ = { presets: true, dueDate: true, note: true, refFiles: true };
 
 function normalizePageId_(raw) {
   return String(raw || "")
@@ -22,12 +36,25 @@ function normalizePageId_(raw) {
     .replace(/^-+|-+$/g, "");
 }
 
+function canManageCustomPages_(email) {
+  return isAdmin_(email) || isAdminLightWithAccess_(email, "custompages");
+}
+
+/** Nur bekannte Feld-Keys, als bool - unbekannte Keys werden verworfen, fehlende bleiben Default (an). */
+function sanitizeCustomPageFields_(fields) {
+  const out = {};
+  CUSTOM_PAGE_FIELD_KEYS_.forEach(k => {
+    out[k] = (fields && typeof fields === "object" && k in fields) ? !!fields[k] : CUSTOM_PAGE_DEFAULT_FIELDS_[k];
+  });
+  return out;
+}
+
 function getCustomPagesSheet_() {
   const ss = SpreadsheetApp.openById(getAccessSheetId_());
   let sh = ss.getSheetByName(CUSTOM_PAGES_SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(CUSTOM_PAGES_SHEET_NAME);
-    sh.appendRow(["ID", "Name", "Active (yes/no)", "Created"]);
+    sh.appendRow(["ID", "Name", "Active (yes/no)", "Created", "Fields (JSON)"]);
   }
   return sh;
 }
@@ -39,11 +66,17 @@ function readCustomPagesRows_() {
   for (let i = 1; i < data.length; i++) {
     const id = String(data[i][0] || "").trim();
     if (!id) continue;
+    let fields = CUSTOM_PAGE_DEFAULT_FIELDS_;
+    const rawFields = String(data[i][4] || "").trim();
+    if (rawFields) {
+      try { fields = sanitizeCustomPageFields_(JSON.parse(rawFields)); } catch (e) { /* Default beibehalten */ }
+    }
     rows.push({
       rowIndex: i + 1,
       id: id,
       name: String(data[i][1] || "").trim() || id,
-      active: String(data[i][2] || "").trim().toLowerCase() !== "no"
+      active: String(data[i][2] || "").trim().toLowerCase() !== "no",
+      fields: fields
     });
   }
   return rows;
@@ -61,24 +94,25 @@ function findCustomPageRow_(id) {
 function apiGetCustomPages() {
   return readCustomPagesRows_()
     .filter(p => p.active)
-    .map(p => ({ id: p.id, name: p.name }));
+    .map(p => ({ id: p.id, name: p.name, fields: p.fields }));
 }
 
 function apiAdminListCustomPages() {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  if (!canManageCustomPages_(caller)) return { success: false, error: "Not authorized. Admin only." };
   const pages = readCustomPagesRows_().map(p => ({
     id: p.id,
     name: p.name,
     active: p.active,
+    fields: p.fields,
     userCount: getDynamicWhitelist_(p.id).length
   }));
   return { success: true, pages: pages };
 }
 
-function apiAdminCreateCustomPage(name, idHint) {
+function apiAdminCreateCustomPage(name, idHint, fields) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
 
   const cleanName = String(name || "").trim();
   if (!cleanName) throw new Error("Bitte einen Namen fuer den Reiter angeben.");
@@ -92,8 +126,9 @@ function apiAdminCreateCustomPage(name, idHint) {
     throw new Error('Ein Reiter mit der ID "' + id + '" existiert bereits.');
   }
 
+  const cleanFields = sanitizeCustomPageFields_(fields);
   const sh = getCustomPagesSheet_();
-  sh.appendRow([id, cleanName, "yes", new Date().toISOString()]);
+  sh.appendRow([id, cleanName, "yes", new Date().toISOString(), JSON.stringify(cleanFields)]);
 
   // Whitelist-Sheet sofort anlegen, damit Admins direkt danach Nutzer eintragen
   // koennen, ohne dass getDynamicWhitelist_ zuvor "Sheet nicht gefunden" liefert.
@@ -102,13 +137,13 @@ function apiAdminCreateCustomPage(name, idHint) {
     ss.insertSheet("Whitelist_" + id).appendRow(["Email"]);
   }
 
-  logAuditEvent_(caller, "CUSTOM_PAGE_CREATE", id + ' ("' + cleanName + '")');
-  return { success: true, id: id, name: cleanName };
+  logAuditEvent_(caller, "CUSTOM_PAGE_CREATE", id + ' ("' + cleanName + '") fields=' + JSON.stringify(cleanFields));
+  return { success: true, id: id, name: cleanName, fields: cleanFields };
 }
 
 function apiAdminRenameCustomPage(id, newName) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
   const cleanName = String(newName || "").trim();
   if (!cleanName) throw new Error("Name darf nicht leer sein.");
 
@@ -119,9 +154,21 @@ function apiAdminRenameCustomPage(id, newName) {
   return { success: true };
 }
 
+function apiAdminUpdateCustomPageFields(id, fields) {
+  const caller = getUserEmail_();
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
+
+  const row = findCustomPageRow_(id);
+  if (!row) throw new Error("Reiter nicht gefunden.");
+  const cleanFields = sanitizeCustomPageFields_(fields);
+  getCustomPagesSheet_().getRange(row.rowIndex, 5).setValue(JSON.stringify(cleanFields));
+  logAuditEvent_(caller, "CUSTOM_PAGE_FIELDS", row.id + " -> " + JSON.stringify(cleanFields));
+  return { success: true, fields: cleanFields };
+}
+
 function apiAdminSetCustomPageActive(id, active) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
 
   const row = findCustomPageRow_(id);
   if (!row) throw new Error("Reiter nicht gefunden.");
@@ -132,7 +179,7 @@ function apiAdminSetCustomPageActive(id, active) {
 
 function apiAdminDeleteCustomPage(id) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
 
   const row = findCustomPageRow_(id);
   if (!row) throw new Error("Reiter nicht gefunden.");
@@ -145,13 +192,13 @@ function apiAdminDeleteCustomPage(id) {
 
 function apiGetCustomPageWhitelist(id) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { emails: [] };
+  if (!canManageCustomPages_(caller)) return { emails: [] };
   return { emails: getDynamicWhitelist_(String(id || "").trim()) };
 }
 
 function apiAddCustomPageWhitelist(id, email) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
   const cleanId = String(id || "").trim();
   const add = String(email || "").trim().toLowerCase();
   if (!add || add.indexOf("@") === -1) throw new Error("Invalid email.");
@@ -168,7 +215,7 @@ function apiAddCustomPageWhitelist(id, email) {
 
 function apiRemoveCustomPageWhitelist(id, email) {
   const caller = getUserEmail_();
-  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  if (!canManageCustomPages_(caller)) throw new Error("Not authorized. Admin only.");
   const cleanId = String(id || "").trim();
   const rem = String(email || "").trim().toLowerCase();
 
