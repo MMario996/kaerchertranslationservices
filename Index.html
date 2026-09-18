@@ -1697,7 +1697,27 @@ const i18n = {
     "ph_note_marketing":  "Angebot bitte an vorname.nachname@karcher.com schicken.",
     "btn_pc_upload":      "PC Upload",
     "btn_drive":          "Drive",
-    "opt_select_template":"Template auswählen"
+    "opt_select_template":"Template auswählen",
+    "tour_skip":          "Überspringen",
+    "tour_back":          "Zurück",
+    "tour_next":          "Weiter",
+    "tour_done":          "Fertig",
+    "tour_step_of":       "Schritt {n} von {m}",
+    "tour_step_start":    "Hier starten Sie eine neue Anfrage.",
+    "tour_step_template": "Wählen Sie zuerst ein Template. Dies bestimmt den Workflow.",
+    "tour_step_source":   "Wählen Sie die Quellsprache aus.",
+    "tour_step_target":   "Wählen Sie eine oder mehrere Zielsprachen.",
+    "tour_step_projectname": "Geben Sie einen Projektnamen ein (wird meist aus der Datei übernommen).",
+    "tour_step_presets":  "Häufig genutzte Einstellungen können Sie als Vorlage speichern und beim nächsten Mal mit einem Klick wieder laden.",
+    "tour_step_duedate":  "Optional: Wunschtermin für die Fertigstellung festlegen.",
+    "tour_step_note":     "Optional: Zusätzliche Hinweise für die Übersetzer hinterlegen.",
+    "tour_step_mainfiles":"Laden Sie Ihre zu übersetzenden Dateien hier hoch.",
+    "tour_step_reffiles": "Optional: Referenzdateien (z.B. Bilder, Glossare) für zusätzlichen Kontext hochladen.",
+    "tour_step_submit":   "Wenn alles ausgefüllt ist, erstellen Sie hier das Projekt.",
+    "tour_step_myprojects": "In \"Meine Projekte\" finden Sie alle Ihre Anfragen, Status-Updates und fertigen Downloads.",
+    "tour_step_dashboard": "Als Admin sehen Sie hier ein Dashboard mit einer Übersicht über alle Projekte.",
+    "tour_step_preferences": "Hier stellen Sie Ihre Benachrichtigungseinstellungen ein (z.B. Google Chat).",
+    "tour_step_langswitch": "Hier können Sie jederzeit die Sprache der Oberfläche wechseln."
   },
   en: {
     "nav_request":        "General Projects",
@@ -1795,7 +1815,27 @@ const i18n = {
     "ph_note_marketing":  "Please send quote to firstname.lastname@karcher.com",
     "btn_pc_upload":      "PC Upload",
     "btn_drive":          "Drive",
-    "opt_select_template":"Select Template Type"
+    "opt_select_template":"Select Template Type",
+    "tour_skip":          "Skip",
+    "tour_back":          "Back",
+    "tour_next":          "Next",
+    "tour_done":          "Done",
+    "tour_step_of":       "Step {n} of {m}",
+    "tour_step_start":    "Start a new translation request here.",
+    "tour_step_template": "Select a template first. This defines the workflow.",
+    "tour_step_source":   "Select the source language.",
+    "tour_step_target":   "Select one or more target languages.",
+    "tour_step_projectname": "Enter a project name (usually auto-filled from the file).",
+    "tour_step_presets":  "Save frequently used settings as a preset and reload them with one click next time.",
+    "tour_step_duedate":  "Optional: set a desired completion date.",
+    "tour_step_note":     "Optional: add extra notes for the translators.",
+    "tour_step_mainfiles":"Upload the files you want translated here.",
+    "tour_step_reffiles": "Optional: upload reference files (e.g. images, glossaries) for extra context.",
+    "tour_step_submit":   "Once everything is filled in, create the project here.",
+    "tour_step_myprojects": "In \"My Projects\" you can track all requests, statuses, and download finished translations.",
+    "tour_step_dashboard": "As an admin, you'll find a dashboard here with an overview of all projects.",
+    "tour_step_preferences": "Set your notification preferences here (e.g. Google Chat).",
+    "tour_step_langswitch": "You can switch the interface language here at any time."
   },
 };
 
@@ -6234,54 +6274,71 @@ function openJobNoteModal(projectUid, jobUids) {
     let currentTour = null;
     let currentTourStep = 0;
 
-    const tourStepsDe = [
-      { target: '#btn-nav-request', text: 'Hier starten Sie eine neue Anfrage.' },
-      { target: '[id^="templateUid_"]', text: 'Wählen Sie zuerst ein Template. Dies bestimmt den Workflow.' },
-      { target: '[id^="sourceLangDisplay"]', text: 'Wählen Sie die Quellsprache aus.' },
-      { target: '[id^="targetLangTrigger"]', text: 'Wählen Sie eine oder mehrere Zielsprachen.' },
-      { target: '[id^="projectName_"]', text: 'Geben Sie einen Projektnamen ein (wird meist aus der Datei übernommen).' },
-      { target: '[id^="mainFilePC_"]', text: 'Laden Sie Ihre zu übersetzenden Dateien hier hoch.', isUploadBtn: true, type: 'main' },
-      { target: '#btn-nav-history', text: 'In "Meine Projekte" finden Sie alle Ihre Anfragen, Status-Updates und fertigen Downloads.' }
-    ];
-
-    const tourStepsEn = [
-      { target: '#btn-nav-request', text: 'Start a new translation request here.' },
-      { target: '[id^="templateUid_"]', text: 'Select a template first. This defines the workflow.' },
-      { target: '[id^="sourceLangDisplay"]', text: 'Select the source language.' },
-      { target: '[id^="targetLangTrigger"]', text: 'Select one or more target languages.' },
-      { target: '[id^="projectName_"]', text: 'Enter a project name (usually auto-filled from the file).' },
-      { target: '[id^="mainFilePC_"]', text: 'Upload the files you want translated here.', isUploadBtn: true, type: 'main' },
-      { target: '#btn-nav-history', text: 'In "My Projects" you can track all requests, statuses, and download finished translations.' }
+    // Sprachneutrale Schritt-Definitionen - der eigentliche Text kommt bei der
+    // Anzeige per t_i18n_(currentLang, textKey) aus dem i18n-Woerterbuch, damit
+    // die Tour IMMER in der aktuell angezeigten Sprache laeuft (nicht nur de/en).
+    const TOUR_STEPS_ = [
+      { target: '#btn-nav-request', textKey: 'tour_step_start' },
+      { target: '[id^="templateUid_"]', textKey: 'tour_step_template' },
+      { target: '[id^="sourceLangDisplay"]', textKey: 'tour_step_source' },
+      { target: '[id^="targetLangTrigger"]', textKey: 'tour_step_target' },
+      { target: '[id^="projectName_"]', textKey: 'tour_step_projectname' },
+      { target: '[id^="presetsDropdown_"]', textKey: 'tour_step_presets' },
+      { target: '[id^="dateDue_"]', textKey: 'tour_step_duedate' },
+      { target: '[id^="note_"]', textKey: 'tour_step_note' },
+      { target: '[id^="mainFilePC_"]', textKey: 'tour_step_mainfiles', isUploadBtn: true, type: 'main' },
+      { target: '[id^="refFilePC_"]', textKey: 'tour_step_reffiles', isUploadBtn: true, type: 'ref' },
+      { target: '[id^="submitBtn_"]', textKey: 'tour_step_submit' },
+      { target: '#btn-nav-history', textKey: 'tour_step_myprojects' },
+      { target: '#btn-dashboard', textKey: 'tour_step_dashboard' },
+      { target: '#prefsBtn', textKey: 'tour_step_preferences' },
+      { target: '.global-lang-switch', textKey: 'tour_step_langswitch' }
     ];
 
     function resolveTarget(step) {
+      // Zuerst im aktuell sichtbaren Tab suchen (vermeidet Treffer auf gleich
+      // benannte, aber unsichtbare Elemente eines anderen Portals/Tabs);
+      // Nav-Buttons, Sprachumschalter etc. liegen ausserhalb von .tab-content
+      // und werden per Fallback im gesamten Dokument gesucht.
+      const scope = document.querySelector('.tab-content.active');
       if (step.isUploadBtn) {
         const activeSuffix = activePortals[0];
-        const btn = document.querySelector(`button[onclick="handlePcUploadClick('${step.type}', '${activeSuffix}')"]`);
-        return btn;
+        const sel = `button[onclick="handlePcUploadClick('${step.type}', '${activeSuffix}')"]`;
+        return (scope && scope.querySelector(sel)) || document.querySelector(sel);
       }
-      let el = document.querySelector(step.target);
+      let el = scope && scope.querySelector(step.target);
+      if (!el && step.target.includes('_')) {
+        const activeSuffix = activePortals[0];
+        el = scope && scope.querySelector(step.target.replace('_', activeSuffix));
+      }
+      if (!el) el = document.querySelector(step.target);
       if (!el && step.target.includes('_')) {
         const activeSuffix = activePortals[0];
         el = document.querySelector(step.target.replace('_', activeSuffix));
       }
+      // Ausgeblendete Elemente (display:none, z.B. ein per Whitelist nicht
+      // sichtbarer Nav-Button) bleiben trotzdem im DOM - offsetParent ist dann
+      // null. Solche Treffer als "nicht gefunden" behandeln, damit der Schritt
+      // automatisch uebersprungen wird statt eine unsichtbare Bubble zu zeigen.
+      if (el && el.offsetParent === null) el = null;
       return el;
     }
 
     window.tourStart = function(lang, force) {
+      const tourLang = lang || currentLang;
       if (!force) {
-        const done = localStorage.getItem('tourDone_' + lang);
+        const done = localStorage.getItem('tourDone_' + tourLang);
         if (done === 'true') return;
       }
-      currentTour = (lang === 'de') ? tourStepsDe : tourStepsEn;
+      currentTour = TOUR_STEPS_;
       currentTourStep = 0;
-      
+
       if (document.getElementById('btn-nav-request')) {
         switchTab('request');
       } else if (activePortals.length > 0) {
         switchTab(activePortals[0].replace('_',''));
       }
-      
+
       renderTourBubble();
     };
 
@@ -6322,15 +6379,17 @@ function openJobNoteModal(projectUid, jobUids) {
       
       const isLast = currentTourStep === currentTour.length - 1;
       const isFirst = currentTourStep === 0;
-      
-      const lang = currentLang;
-      const skipLabel = lang === 'de' ? 'überspringen' : 'Skip';
-      const prevLabel = lang === 'de' ? 'Zurück' : 'Back';
-      const nextLabel = isLast ? (lang === 'de' ? 'Fertig' : 'Done') : (lang === 'de' ? 'Weiter' : 'Next');
-      
+
+      const skipLabel = t_i18n_(currentLang, 'tour_skip') || 'Skip';
+      const prevLabel = t_i18n_(currentLang, 'tour_back') || 'Back';
+      const nextLabel = isLast ? (t_i18n_(currentLang, 'tour_done') || 'Done') : (t_i18n_(currentLang, 'tour_next') || 'Next');
+      const stepOfLabel = (t_i18n_(currentLang, 'tour_step_of') || 'Step {n} of {m}')
+        .replace('{n}', currentTourStep + 1).replace('{m}', currentTour.length);
+      const stepText = t_i18n_(currentLang, step.textKey) || step.textKey;
+
       bubble.innerHTML = `
-        <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:#333;">Step ${currentTourStep + 1} of ${currentTour.length}</div>
-        <div style="font-size:14px; color:#555; line-height:1.5; margin-bottom:20px;">${step.text}</div>
+        <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:#333;">${escapeHtml(stepOfLabel)}</div>
+        <div style="font-size:14px; color:#555; line-height:1.5; margin-bottom:20px;">${escapeHtml(stepText)}</div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <button onclick="tourEnd()" style="background:none; border:none; color:#999; cursor:pointer; font-size:13px; text-decoration:underline;">${skipLabel}</button>
           <div style="display:flex; gap:8px;">
