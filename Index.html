@@ -1309,13 +1309,13 @@
               </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="settingsCard_{SUFFIX}">
               <div class="section-title" data-i18n="lbl_settings">Settings</div>
-              <div class="form-row">
+              <div class="form-row" id="dueDateRow_{SUFFIX}">
                  <label data-i18n="lbl_duedate">Due Date <small style="color:#666; font-weight:normal;">(Defaults to 12:00 PM)</small></label>
                  <input type="date" id="dateDue_{SUFFIX}">
               </div>
-              <div class="form-row">
+              <div class="form-row" id="noteRow_{SUFFIX}">
                  <label data-i18n="lbl_note">Note</label>
                  <textarea id="note_{SUFFIX}" rows="5" placeholder="..."></textarea>
               </div>
@@ -1334,7 +1334,7 @@
               <div id="mainListContainer_{SUFFIX}" class="file-list-container mainListContainerStyle" style="display:none;"></div>
             </div>
 
-            <div class="card">
+            <div class="card" id="refFilesCard_{SUFFIX}">
               <div class="section-title" id="refTitle_{SUFFIX}" data-i18n="title_reffiles">Reference Files (Optional)</div>
                <div class="upload-actions">
                 <button type="button" class="btn btn-secondary" onclick="handlePcUploadClick('ref', '_{SUFFIX}')"><i class="material-icons-outlined">computer</i> <span data-i18n="btn_pc_upload">PC Upload</span></button>
@@ -2371,7 +2371,7 @@ function initForm(config) {
       tabDiv.className = 'tab-content dynamic-tab-div';
       document.querySelector('.container').insertBefore(tabDiv, document.getElementById('tab-history'));
 
-      renderFormFromTemplate(page.id, page.name, tabDiv);
+      renderFormFromTemplate(page.id, page.name, tabDiv, page.fields);
       activePortals.push('_' + page.id);
     });
   }
@@ -2379,7 +2379,13 @@ function initForm(config) {
   if (nav) nav.classList.add('app-ready');
 }
 
-function renderFormFromTemplate(id, name, targetDiv) {
+/**
+ * fieldsConfig (optional): { presets, dueDate, note, refFiles } - blendet die
+ * jeweiligen optionalen Bausteine aus, wenn ein Wert explizit false ist. Wird
+ * nur von Custom-Tabs (config.customPages) befuellt, siehe CustomPages.gs -
+ * die Standard-Portale (Allgemein/Marketing/WOMA/CC) zeigen weiterhin alles.
+ */
+function renderFormFromTemplate(id, name, targetDiv, fieldsConfig) {
   const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
   let finalHtml = templateHtml
     .replace(/\{SUFFIX\}/g, id)
@@ -2390,6 +2396,16 @@ function renderFormFromTemplate(id, name, targetDiv) {
   if (targetDiv) targetDiv.innerHTML = finalHtml;
   else document.getElementById('tab-' + id).innerHTML = finalHtml;
   attachFormLogic('_' + id);
+
+  if (fieldsConfig) {
+    const hide = (elId) => { const el = document.getElementById(elId); if (el) el.style.display = 'none'; };
+    if (fieldsConfig.presets === false) hide('presetRow_' + id);
+    if (fieldsConfig.dueDate === false) hide('dueDateRow_' + id);
+    if (fieldsConfig.note === false) hide('noteRow_' + id);
+    if (fieldsConfig.refFiles === false) hide('refFilesCard_' + id);
+    // Settings-Karte komplett ausblenden, wenn beide ihrer Felder deaktiviert sind.
+    if (fieldsConfig.dueDate === false && fieldsConfig.note === false) hide('settingsCard_' + id);
+  }
 }
 
 function applyI18nToHtmlString_(html, lang) {
@@ -6210,7 +6226,7 @@ function openJobNoteModal(projectUid, jobUids) {
 
 
 
-    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager' };
+    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager', custompages: 'Eigene Reiter' };
 
 
 
