@@ -570,7 +570,7 @@ function toggleAdminHelp(id) {
       currentImpersonationEmail = email;
       startStartupOverlay_();
       google.script.run
-        .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab(activeTabId); })
+        .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab(computeStartTab_(config)); })
         .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
         .apiGetConfig(currentImpersonationEmail, currentLang);
     }
