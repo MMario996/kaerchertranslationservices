@@ -1983,6 +1983,27 @@ function stopStartupOverlay_() {
 
 window.onload = function() { loadAppConfig(); };
 
+/**
+ * Ermittelt, welcher Tab nach dem Laden/Wechseln der Config (normaler Login
+ * ODER Admin-Simulation) angezeigt werden soll. Zentral an einer Stelle,
+ * damit toggleImpersonation() (AdminScript.html) nicht denselben Chain
+ * dupliziert und dabei aus dem Takt geraet (siehe: Simulation landete auf
+ * dem zuletzt aktiven Admin-Tab statt auf dem fuer den Ziel-User passenden).
+ */
+function computeStartTab_(config) {
+  let startTab = 'request';
+  if (config.isExclusive) {
+    if (config.isMarketing) startTab = 'marketing';
+    else if (config.isKeC) startTab = 'kec';
+    else if (config.isDoc) startTab = 'documentation';
+    else if (config.isWoma) startTab = 'woma';
+    else if (config.isCc) startTab = 'cc';
+    else if (config.isArticulate) startTab = 'articulate';
+    else if (config.customPages && config.customPages.length > 0) startTab = config.customPages[0].id;
+  }
+  return startTab;
+}
+
 function loadAppConfig() {
   startStartupOverlay_();
   try {
@@ -2003,17 +2024,8 @@ function loadAppConfig() {
         }
 
         initForm(config);
-        
-        let startTab = 'request';
-        if (config.isExclusive) {
-          if (config.isMarketing) startTab = 'marketing';
-          else if (config.isKeC) startTab = 'kec';
-          else if (config.isDoc) startTab = 'documentation';
-          else if (config.isWoma) startTab = 'woma';
-          else if (config.isCc) startTab = 'cc';
-          else if (config.isArticulate) startTab = 'articulate';
-          else if (config.customPages && config.customPages.length > 0) startTab = config.customPages[0].id;
-        }
+
+        let startTab = computeStartTab_(config);
         if (!currentImpersonationEmail) {
           google.script.url.getLocation(function(loc) {
             if (loc.parameter && loc.parameter.tab === 'history') switchTab('history');
@@ -2160,6 +2172,13 @@ function initForm(config) {
       attachFormLogic('_articulate');
       activePortals.push('_articulate');
       artContainer.dataset.formInjected = '1';
+    } else if (artContainer) {
+      // Formular-HTML existiert schon (wird wegen "+=" oben nicht erneut eingefuegt,
+      // sonst gaebe es doppelte IDs) - aber das Template-Dropdown muss trotzdem neu
+      // aufgebaut werden, wenn sich config.templates geaendert hat (z.B. beim Start
+      // einer Admin-Simulation fuer einen anderen User).
+      renderTemplateOptions('_articulate');
+      activePortals.push('_articulate');
     }
   } else {
     if (btnArticulate) btnArticulate.style.display = 'none';
