@@ -2011,6 +2011,7 @@ function loadAppConfig() {
           else if (config.isDoc) startTab = 'documentation';
           else if (config.isWoma) startTab = 'woma';
           else if (config.isCc) startTab = 'cc';
+          else if (config.isArticulate) startTab = 'articulate';
           else if (config.customPages && config.customPages.length > 0) startTab = config.customPages[0].id;
         }
         if (!currentImpersonationEmail) {
@@ -2106,10 +2107,14 @@ function initForm(config) {
   const btnMarketing = document.getElementById('btn-nav-marketing');
   const btnKec       = document.getElementById('btn-nav-kec');
 
-  if (config.isExclusive) {
-    if (btnRequest) btnRequest.style.display = 'none';
-  } else {
+  // "Allgemeine Projekte" nur fuer explizit auf der Whitelist stehende User (oder Admins),
+  // nicht mehr Default-sichtbar fuer jeden, der in keiner anderen Exklusiv-Kategorie steckt.
+  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Articulate/CustomPages) sehen weiterhin NUR ihren Spezial-Tab.
+  const showRequest = (config.isGeneral && !config.isExclusive) || (config.isAdmin && !config.isImpersonating);
+  if (showRequest) {
     if (btnRequest) btnRequest.style.display = 'block';
+  } else {
+    if (btnRequest) btnRequest.style.display = 'none';
   }
 
   const showMarketing = config.isMarketing || (config.isAdmin && !config.isImpersonating);
@@ -2180,7 +2185,7 @@ function initForm(config) {
 
   activePortals = [];
 
-  if (!config.isExclusive || config.effectiveIsAdmin) {
+  if (showRequest || config.effectiveIsAdmin) {
     renderFormFromTemplate('request', 'Standard');
     activePortals.push('_request');
   }

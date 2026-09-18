@@ -49,8 +49,9 @@ function getConfig_(impersonateEmail) {
 
   const effectiveIsAdmin = isAdmin_(effectiveUser);
   const adminLightSubtabs = effectiveIsAdmin ? [] : getAdminLightSubtabs_(effectiveUser);
+  const isGeneral = isGeneralUser_(effectiveUser);
   // isExclusive: User sieht NUR den jeweiligen Spezial-Tab (kein "General Projects")
-  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || userCustomPages.length > 0);
+  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isArticulate || userCustomPages.length > 0);
 
   // ?? FETCH TEMPLATES AND FILTER ??
   const allTemplates = readTemplates_();
@@ -85,6 +86,7 @@ function getConfig_(impersonateEmail) {
     isArticulate: isArticulate,
     isWoma: isWoma,
     isCc: isCc,
+    isGeneral: isGeneral,
     isExclusive: isExclusive,
     customPages: userCustomPages,
     maintenance: maintenance,
@@ -198,6 +200,13 @@ function isKeCUser_(email) {
 function isDocUser_(email) {
   try {
     const wl = apiGetDocWhitelist().emails;
+    return wl.includes(String(email || "").trim().toLowerCase());
+  } catch(e) { return false; }
+}
+
+function isGeneralUser_(email) {
+  try {
+    const wl = apiGetWhitelist().emails;
     return wl.includes(String(email || "").trim().toLowerCase());
   } catch(e) { return false; }
 }
