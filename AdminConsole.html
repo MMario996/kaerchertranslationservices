@@ -283,10 +283,9 @@
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('artwl')" title="Help">?</button>
                     </div>
                     <div id="help-artwl" class="admin-help-panel">
-                        <span class="help-impact impact-medium">Medium Impact &#8211; Zusatz-Tab</span>
-                        <p>Users listed here see the <strong>"Campus Projects"</strong> tab und können Rise-Kurs-Previews erzeugen.</p>
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Exclusive tab</span>
+                        <p>Users listed here see <strong>only the "Campus Projects"</strong> tab und können Rise-Kurs-Previews erzeugen &#8211; der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
                         <ul>
-                            <li>Anders als bei Marketing/KeC/Documentation ist dieser Tab <strong>nicht exklusiv</strong> &#8211; die Nutzer behalten "General Projects".</li>
                             <li>Admins sehen den Tab automatisch, ohne Eintrag hier.</li>
                         </ul>
                     </div>
@@ -295,6 +294,47 @@
                         <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addArticulateWhitelistUser()">ADD</button>
                     </div>
                     <div id="articulateWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
+                </div>
+
+                <div class="card" style="border-top-color:#607d8b; grid-column: 1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#607d8b;">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">tab</span>
+                            Eigene Reiter (Custom Tabs)
+                        </div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('custompages')" title="Help">?</button>
+                    </div>
+                    <div id="help-custompages" class="admin-help-panel">
+                        <span class="help-impact impact-medium">Medium Impact &#8211; Neuer Reiter fuer bestimmte Nutzer</span>
+                        <p>Hier lassen sich zusaetzliche Reiter anlegen, ohne Code zu aendern. Jeder Reiter bekommt ein Standard-Anfrageformular (Template/Sprachen/Dateien wie bei "General Projects") und eine eigene Whitelist &#8211; nur eingetragene Nutzer sehen ihn, Admins sehen automatisch alle.</p>
+                        <ul>
+                            <li>Die "ID" wird automatisch aus dem Namen abgeleitet (Kleinbuchstaben, Zahlen, Bindestriche) und kann danach nicht mehr geaendert werden.</li>
+                            <li>"Deaktivieren" blendet den Reiter fuer alle aus, ohne die Whitelist zu verlieren.</li>
+                            <li>"Löschen" entfernt den Reiter aus der Liste; die Whitelist bleibt erhalten, falls er spaeter unter derselben ID neu angelegt wird.</li>
+                        </ul>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                        <input type="text" id="newCustomPageName" placeholder='Name des neuen Reiters (z.B. "Sonderprojekt XY")' style="flex:1;">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="createCustomPage()">
+                            <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>ANLEGEN
+                        </button>
+                    </div>
+                    <div class="modern-table-wrap">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                    <th>Nutzer</th>
+                                    <th style="text-align:right;">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customPagesTableBody">
+                                <tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="card" style="border-top-color:#9c27b0;">

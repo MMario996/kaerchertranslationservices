@@ -308,13 +308,13 @@
 
     <div id="accessDeniedLock" class="maintenance-overlay" style="display:none; background: rgba(255,255,255,1); z-index: 9999;">
        <span class="material-icons-outlined maintenance-icon" style="color:#d93025; font-size: 70px; margin-bottom: 20px;">block</span>
-       <h1 style="text-transform:uppercase; margin-bottom:10px; color:#000;">Access Denied</h1>
-       <p style="font-size:16px; max-width:600px; line-height:1.6; color:#555;">
+       <h1 data-i18n="ad_title" style="text-transform:uppercase; margin-bottom:10px; color:#000;">Access Denied</h1>
+       <p data-i18n="ad_text" style="font-size:16px; max-width:600px; line-height:1.6; color:#555;">
           You do not have permission to access the Translation-Services App.<br>
           Please request authorization to use this application.
        </p>
        <a href="https://taskbox.karcher.com/plugins/servlet/desk/portal/97/create/2916" target="_blank" class="btn btn-primary" style="margin-top:30px; text-decoration:none; width:auto; padding: 0 30px; display:inline-flex;">
-          <span class="material-icons-outlined" style="font-size:18px; margin-right:8px;">lock_open</span> Request Access
+          <span class="material-icons-outlined" style="font-size:18px; margin-right:8px;">lock_open</span> <span data-i18n="ad_btn">Request Access</span>
        </a>
     </div>
 
@@ -408,7 +408,7 @@
           <div id="customDialogMessage" style="font-size: 14px; color: #444; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap;"></div>
           <input type="text" id="customDialogInput" style="display:none; width: 100%; margin-bottom: 20px; padding: 10px; font-size: 14px; border: 1px solid #ccc; font-family: inherit;">
           <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: auto;">
-            <button class="btn btn-secondary" id="customDialogCancelBtn" style="display:none; height: 38px; width: auto; padding: 0 15px; font-size: 13px;" onclick="closeCustomDialog()">Cancel</button>
+            <button class="btn btn-secondary" id="customDialogCancelBtn" data-i18n="btn_cancel" style="display:none; height: 38px; width: auto; padding: 0 15px; font-size: 13px;" onclick="closeCustomDialog()">Cancel</button>
             <button class="btn btn-primary" id="customDialogConfirmBtn" style="height: 38px; width: auto; padding: 0 25px; font-size: 13px;" onclick="confirmCustomDialog()">OK</button>
           </div>
         </div>
@@ -454,17 +454,17 @@
     <div id="instructionModal" class="instruction-overlay" style="display:none;" onclick="closeInstruction()">
        <div class="instruction-box" onclick="event.stopPropagation()">
           <div class="instruction-icon"><span class="material-icons-outlined">touch_app</span></div>
-          <div class="instruction-title">Workflow Required</div>
+          <div class="instruction-title" data-i18n="instr_title">Workflow Required</div>
           <div class="instruction-text">
-             To ensure your project is set up correctly, please follow the order:
+             <span data-i18n="instr_text">To ensure your project is set up correctly, please follow the order:</span>
              <br><br>
-             <div class="instruction-step">1. Select Template</div>
-             <div class="instruction-step">2. Select Source Language</div>
-             <div class="instruction-step">3. Select Target Language</div>
+             <div class="instruction-step" data-i18n="instr_step1">1. Select Template</div>
+             <div class="instruction-step" data-i18n="instr_step2">2. Select Source Language</div>
+             <div class="instruction-step" data-i18n="instr_step3">3. Select Target Language</div>
           </div>
           <div style="display:flex; gap:15px; justify-content:center;">
-             <button class="btn btn-secondary" onclick="closeInstruction()">OK, I understand</button>
-             <button class="btn btn-black" style="width:auto; padding:0 25px;" onclick="goToGuide()">Open User Guide</button>
+             <button class="btn btn-secondary" data-i18n="instr_btn_ok" onclick="closeInstruction()">OK, I understand</button>
+             <button class="btn btn-black" style="width:auto; padding:0 25px;" data-i18n="instr_btn_guide" onclick="goToGuide()">Open User Guide</button>
           </div>
        </div>
     </div>
@@ -552,32 +552,32 @@
       <div style="background:#fff;width:460px;max-width:92vw;border-top:6px solid var(--primary-yellow);padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
           <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;display:flex;align-items:center;gap:8px;">
-            <span class="material-icons-outlined" style="color:#1a73e8;">add_to_drive</span> Save to Google Drive
+            <span class="material-icons-outlined" style="color:#1a73e8;">add_to_drive</span> <span data-i18n="sd_title">Save to Google Drive</span>
           </h3>
           <button onclick="closeSaveToDriveModal()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
         </div>
-        <p style="font-size:13px;color:#666;margin-top:0;">The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.</p>
+        <p style="font-size:13px;color:#666;margin-top:0;" data-i18n="sd_desc">The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.</p>
 
         <div id="saveToDriveFormatChoice" style="display:none;margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
-          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Save Word / Excel / PowerPoint files as:</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="sd_format_label">Save Word / Excel / PowerPoint files as:</div>
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
             <input type="radio" name="saveToDriveFormat" value="office" checked style="margin-top:3px;">
-            <span><strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)</span>
+            <span data-i18n="sd_format_office"><strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)</span>
           </label>
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
             <input type="radio" name="saveToDriveFormat" value="google" style="margin-top:3px;">
-            <span><strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)</span>
+            <span data-i18n="sd_format_google"><strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)</span>
           </label>
-          <div style="font-size:11px;color:#888;margin-top:8px;">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is &#8211; Google format conversion is only offered when saving into Drive.</div>
+          <div style="font-size:11px;color:#888;margin-top:8px;" data-i18n="sd_format_hint">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is &#8211; Google format conversion is only offered when saving into Drive.</div>
         </div>
 
-        <div id="saveToDriveNotConfigured" style="display:none;font-size:13px;background:#fff3f3;border:1px solid #ffcdd2;color:#c62828;padding:12px;margin:15px 0;">
+        <div id="saveToDriveNotConfigured" style="display:none;font-size:13px;background:#fff3f3;border:1px solid #ffcdd2;color:#c62828;padding:12px;margin:15px 0;" data-i18n="sd_not_configured">
           Saving to Google Drive is not set up yet for this portal. Please contact an administrator.
         </div>
 
         <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-secondary" style="height:40px;" onclick="closeSaveToDriveModal()">Cancel</button>
-          <button id="saveToDriveConfirmBtn" class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" onclick="confirmSaveToGoogleDrive()">Save to Drive</button>
+          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closeSaveToDriveModal()">Cancel</button>
+          <button id="saveToDriveConfirmBtn" class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="sd_btn_save" onclick="confirmSaveToGoogleDrive()">Save to Drive</button>
         </div>
       </div>
     </div>
@@ -612,7 +612,7 @@
       <div style="background:#fff;width:420px;border-top:6px solid var(--primary-yellow);padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;">Preferences</h3>
+            <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;" data-i18n="prefs_title">Preferences</h3>
             <button onclick="openChatHelpManually()" title="How to activate" style="background:none; border:none; cursor:pointer; color:var(--primary-yellow); padding:0; display:flex; align-items:center; background-color:#333; border-radius:50%; width:20px; height:20px; justify-content:center;">
               <span class="material-icons-outlined" style="font-size:14px;">question_mark</span>
             </button>
@@ -621,8 +621,8 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-top:1px solid #eee;">
           <div>
-            <div style="font-weight:700;font-size:14px;">Google Chat Notifications</div>
-            <div style="font-size:12px;color:#888;margin-top:3px;">Receive a direct message when your project is created.</div>
+            <div style="font-weight:700;font-size:14px;" data-i18n="prefs_chat_title">Google Chat Notifications</div>
+            <div style="font-size:12px;color:#888;margin-top:3px;" data-i18n="prefs_chat_desc">Receive a direct message when your project is created.</div>
           </div>
           
           <div style="display:flex; align-items:center; gap:10px;">
@@ -636,10 +636,10 @@
 
         </div>
         <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-secondary" style="height:40px;" onclick="closePreferences()">Cancel</button>
-          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" onclick="saveChatPreference()">Save</button>
+          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closePreferences()">Cancel</button>
+          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="btn_save" onclick="saveChatPreference()">Save</button>
         </div>
-        <div id="prefsSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">&#10003; Saved!</div>
+        <div id="prefsSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;" data-i18n="prefs_saved_msg">&#10003; Saved!</div>
       </div>
     </div>
 
@@ -648,25 +648,25 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
           <h3 style="margin:0;font-size:15px;text-transform:uppercase;font-weight:800;">
             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;font-size:18px;">edit_calendar</span>
-            Update Due Date
+            <span data-i18n="dd_title">Update Due Date</span>
           </h3>
           <button onclick="closeDueDateModal()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
         </div>
         <div id="dueDateProjectName" style="font-size:13px;color:#666;margin-bottom:16px;padding:10px;background:#f9f9f9;border-left:3px solid var(--primary-yellow);"></div>
         <div class="form-row">
-          <label style="font-size:13px;font-weight:700;">New Due Date <span style="color:#d93025;">*</span></label>
+          <label style="font-size:13px;font-weight:700;" data-i18n="dd_label">New Due Date <span style="color:#d93025;">*</span></label>
           <input type="date" id="dueDateInput" style="font-size:14px;">
         </div>
-        <div style="font-size:12px;color:#888;margin-top:8px;margin-bottom:20px;">
+        <div style="font-size:12px;color:#888;margin-top:8px;margin-bottom:20px;" data-i18n="dd_hint">
           &#9888; The date will be updated in Phrase TMS and all project participants will be notified via Google Chat.
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-secondary" style="height:40px;" onclick="closeDueDateModal()">Cancel</button>
+          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closeDueDateModal()">Cancel</button>
           <button id="dueDateSaveBtn" class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" onclick="saveDueDate()">
-            <span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save &amp; Notify
+            <span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> <span data-i18n="dd_btn_save">Save &amp; Notify</span>
           </button>
         </div>
-        <div id="dueDateSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;">&#10003; Due date updated!</div>
+        <div id="dueDateSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;" data-i18n="dd_saved_msg">&#10003; Due date updated!</div>
       </div>
     </div>
 
@@ -675,18 +675,18 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-shrink:0;">
           <h3 style="margin:0;font-size:15px;text-transform:uppercase;font-weight:800;">
             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;font-size:18px;">edit_note</span>
-            Notes for Translator
+            <span data-i18n="jn_title">Notes for Translator</span>
           </h3>
           <button onclick="closeJobNoteModal()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
         </div>
-        <div style="font-size:12px;color:#888;margin-bottom:10px;flex-shrink:0;">Existing notes (from Phrase TMS):</div>
+        <div style="font-size:12px;color:#888;margin-bottom:10px;flex-shrink:0;" data-i18n="jn_existing">Existing notes (from Phrase TMS):</div>
         <div id="jobNotesList" style="flex:1;overflow-y:auto;margin-bottom:15px;border:1px solid #eee;padding:10px;background:#fafafa;min-height:60px;max-height:200px;font-size:12px;"></div>
         <div style="flex-shrink:0;">
-          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Add new note:</label>
-          <textarea id="jobNoteText" rows="4" placeholder="Write a note for the translator..." style="width:100%;box-sizing:border-box;padding:10px;font-size:13px;border:1px solid #ccc;font-family:inherit;resize:vertical;"></textarea>
+          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;" data-i18n="jn_add_label">Add new note:</label>
+          <textarea id="jobNoteText" rows="4" data-i18n-placeholder="jn_placeholder" placeholder="Write a note for the translator..." style="width:100%;box-sizing:border-box;padding:10px;font-size:13px;border:1px solid #ccc;font-family:inherit;resize:vertical;"></textarea>
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
-            <button class="btn btn-secondary" style="height:38px;" onclick="closeJobNoteModal()">Cancel</button>
-            <button id="jobNoteSubmitBtn" class="btn btn-primary" style="height:38px;width:auto;padding:0 25px;" onclick="submitJobNote()">Send Note</button>
+            <button class="btn btn-secondary" style="height:38px;" data-i18n="btn_cancel" onclick="closeJobNoteModal()">Cancel</button>
+            <button id="jobNoteSubmitBtn" class="btn btn-primary" style="height:38px;width:auto;padding:0 25px;" data-i18n="jn_btn_send" onclick="submitJobNote()">Send Note</button>
           </div>
         </div>
       </div>
@@ -1697,7 +1697,61 @@ const i18n = {
     "ph_note_marketing":  "Angebot bitte an vorname.nachname@karcher.com schicken.",
     "btn_pc_upload":      "PC Upload",
     "btn_drive":          "Drive",
-    "opt_select_template":"Template auswählen"
+    "opt_select_template":"Template auswählen",
+    "tour_skip":          "Überspringen",
+    "tour_back":          "Zurück",
+    "tour_next":          "Weiter",
+    "tour_done":          "Fertig",
+    "tour_step_of":       "Schritt {n} von {m}",
+    "tour_step_start":    "Hier starten Sie eine neue Anfrage.",
+    "tour_step_template": "Wählen Sie zuerst ein Template. Dies bestimmt den Workflow.",
+    "tour_step_source":   "Wählen Sie die Quellsprache aus.",
+    "tour_step_target":   "Wählen Sie eine oder mehrere Zielsprachen.",
+    "tour_step_projectname": "Geben Sie einen Projektnamen ein (wird meist aus der Datei übernommen).",
+    "tour_step_presets":  "Häufig genutzte Einstellungen können Sie als Vorlage speichern und beim nächsten Mal mit einem Klick wieder laden.",
+    "tour_step_duedate":  "Optional: Wunschtermin für die Fertigstellung festlegen.",
+    "tour_step_note":     "Optional: Zusätzliche Hinweise für die Übersetzer hinterlegen.",
+    "tour_step_mainfiles":"Laden Sie Ihre zu übersetzenden Dateien hier hoch.",
+    "tour_step_reffiles": "Optional: Referenzdateien (z.B. Bilder, Glossare) für zusätzlichen Kontext hochladen.",
+    "tour_step_submit":   "Wenn alles ausgefüllt ist, erstellen Sie hier das Projekt.",
+    "tour_step_myprojects": "In \"Meine Projekte\" finden Sie alle Ihre Anfragen, Status-Updates und fertigen Downloads.",
+    "tour_step_dashboard": "Als Admin sehen Sie hier ein Dashboard mit einer Übersicht über alle Projekte.",
+    "tour_step_preferences": "Hier stellen Sie Ihre Benachrichtigungseinstellungen ein (z.B. Google Chat).",
+    "tour_step_langswitch": "Hier können Sie jederzeit die Sprache der Oberfläche wechseln.",
+    "ad_title":           "Zugriff verweigert",
+    "ad_text":            "Sie haben keine Berechtigung, auf die Translation-Services-App zuzugreifen.<br>Bitte beantragen Sie eine Freischaltung für diese Anwendung.",
+    "ad_btn":             "Zugriff beantragen",
+    "instr_title":        "Workflow erforderlich",
+    "instr_text":         "Damit Ihr Projekt korrekt eingerichtet wird, halten Sie bitte diese Reihenfolge ein:",
+    "instr_step1":        "1. Template auswählen",
+    "instr_step2":        "2. Quellsprache auswählen",
+    "instr_step3":        "3. Zielsprache auswählen",
+    "instr_btn_ok":       "OK, verstanden",
+    "instr_btn_guide":    "Anleitung öffnen",
+    "dd_title":           "Fälligkeitsdatum aktualisieren",
+    "dd_label":           'Neues Fälligkeitsdatum <span style="color:#d93025;">*</span>',
+    "dd_hint":            "&#9888; Das Datum wird in Phrase TMS aktualisiert, alle Projektbeteiligten werden per Google Chat benachrichtigt.",
+    "dd_btn_save":        "Speichern &amp; Benachrichtigen",
+    "dd_saved_msg":       "&#10003; Fälligkeitsdatum aktualisiert!",
+    "jn_title":           "Notizen für Übersetzer",
+    "jn_existing":        "Bestehende Notizen (aus Phrase TMS):",
+    "jn_add_label":       "Neue Notiz hinzufügen:",
+    "jn_placeholder":     "Notiz für den Übersetzer schreiben...",
+    "jn_btn_send":        "Notiz senden",
+    "btn_cancel":         "Abbrechen",
+    "btn_save":           "Speichern",
+    "sd_title":           "In Google Drive speichern",
+    "sd_desc":            'Die übersetzte(n) Datei(en) werden in einem Ordner namens <strong>Translation Services</strong> in Ihrem eigenen <strong>Meine Ablage</strong> gespeichert.',
+    "sd_format_label":    "Word-/Excel-/PowerPoint-Dateien speichern als:",
+    "sd_format_office":   '<strong>Original-Microsoft-Format</strong> (.docx / .xlsx / .pptx)',
+    "sd_format_google":   '<strong>In Google-Format konvertieren</strong> (Google Docs / Sheets / Slides)',
+    "sd_format_hint":     "Andere Dateitypen (PDF, IDML, XML, TXT, HTML, ...) werden immer unverändert gespeichert – eine Google-Format-Konvertierung wird nur beim Speichern in Drive angeboten.",
+    "sd_not_configured":  "Das Speichern in Google Drive ist für dieses Portal noch nicht eingerichtet. Bitte wenden Sie sich an einen Administrator.",
+    "sd_btn_save":        "In Drive speichern",
+    "prefs_title":        "Einstellungen",
+    "prefs_chat_title":   "Google Chat-Benachrichtigungen",
+    "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
+    "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
     "nav_request":        "General Projects",
@@ -1795,7 +1849,61 @@ const i18n = {
     "ph_note_marketing":  "Please send quote to firstname.lastname@karcher.com",
     "btn_pc_upload":      "PC Upload",
     "btn_drive":          "Drive",
-    "opt_select_template":"Select Template Type"
+    "opt_select_template":"Select Template Type",
+    "tour_skip":          "Skip",
+    "tour_back":          "Back",
+    "tour_next":          "Next",
+    "tour_done":          "Done",
+    "tour_step_of":       "Step {n} of {m}",
+    "tour_step_start":    "Start a new translation request here.",
+    "tour_step_template": "Select a template first. This defines the workflow.",
+    "tour_step_source":   "Select the source language.",
+    "tour_step_target":   "Select one or more target languages.",
+    "tour_step_projectname": "Enter a project name (usually auto-filled from the file).",
+    "tour_step_presets":  "Save frequently used settings as a preset and reload them with one click next time.",
+    "tour_step_duedate":  "Optional: set a desired completion date.",
+    "tour_step_note":     "Optional: add extra notes for the translators.",
+    "tour_step_mainfiles":"Upload the files you want translated here.",
+    "tour_step_reffiles": "Optional: upload reference files (e.g. images, glossaries) for extra context.",
+    "tour_step_submit":   "Once everything is filled in, create the project here.",
+    "tour_step_myprojects": "In \"My Projects\" you can track all requests, statuses, and download finished translations.",
+    "tour_step_dashboard": "As an admin, you'll find a dashboard here with an overview of all projects.",
+    "tour_step_preferences": "Set your notification preferences here (e.g. Google Chat).",
+    "tour_step_langswitch": "You can switch the interface language here at any time.",
+    "ad_title":           "Access Denied",
+    "ad_text":            "You do not have permission to access the Translation-Services App.<br>Please request authorization to use this application.",
+    "ad_btn":             "Request Access",
+    "instr_title":        "Workflow Required",
+    "instr_text":         "To ensure your project is set up correctly, please follow the order:",
+    "instr_step1":        "1. Select Template",
+    "instr_step2":        "2. Select Source Language",
+    "instr_step3":        "3. Select Target Language",
+    "instr_btn_ok":       "OK, I understand",
+    "instr_btn_guide":    "Open User Guide",
+    "dd_title":           "Update Due Date",
+    "dd_label":           'New Due Date <span style="color:#d93025;">*</span>',
+    "dd_hint":            "&#9888; The date will be updated in Phrase TMS and all project participants will be notified via Google Chat.",
+    "dd_btn_save":        "Save &amp; Notify",
+    "dd_saved_msg":       "&#10003; Due date updated!",
+    "jn_title":           "Notes for Translator",
+    "jn_existing":        "Existing notes (from Phrase TMS):",
+    "jn_add_label":       "Add new note:",
+    "jn_placeholder":     "Write a note for the translator...",
+    "jn_btn_send":        "Send Note",
+    "btn_cancel":         "Cancel",
+    "btn_save":           "Save",
+    "sd_title":           "Save to Google Drive",
+    "sd_desc":            'The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.',
+    "sd_format_label":    "Save Word / Excel / PowerPoint files as:",
+    "sd_format_office":   '<strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)',
+    "sd_format_google":   '<strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)',
+    "sd_format_hint":     "Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is – Google format conversion is only offered when saving into Drive.",
+    "sd_not_configured":  "Saving to Google Drive is not set up yet for this portal. Please contact an administrator.",
+    "sd_btn_save":        "Save to Drive",
+    "prefs_title":        "Preferences",
+    "prefs_chat_title":   "Google Chat Notifications",
+    "prefs_chat_desc":    "Receive a direct message when your project is created.",
+    "prefs_saved_msg":    "&#10003; Saved!"
   },
 };
 
@@ -6234,54 +6342,71 @@ function openJobNoteModal(projectUid, jobUids) {
     let currentTour = null;
     let currentTourStep = 0;
 
-    const tourStepsDe = [
-      { target: '#btn-nav-request', text: 'Hier starten Sie eine neue Anfrage.' },
-      { target: '[id^="templateUid_"]', text: 'Wählen Sie zuerst ein Template. Dies bestimmt den Workflow.' },
-      { target: '[id^="sourceLangDisplay"]', text: 'Wählen Sie die Quellsprache aus.' },
-      { target: '[id^="targetLangTrigger"]', text: 'Wählen Sie eine oder mehrere Zielsprachen.' },
-      { target: '[id^="projectName_"]', text: 'Geben Sie einen Projektnamen ein (wird meist aus der Datei übernommen).' },
-      { target: '[id^="mainFilePC_"]', text: 'Laden Sie Ihre zu übersetzenden Dateien hier hoch.', isUploadBtn: true, type: 'main' },
-      { target: '#btn-nav-history', text: 'In "Meine Projekte" finden Sie alle Ihre Anfragen, Status-Updates und fertigen Downloads.' }
-    ];
-
-    const tourStepsEn = [
-      { target: '#btn-nav-request', text: 'Start a new translation request here.' },
-      { target: '[id^="templateUid_"]', text: 'Select a template first. This defines the workflow.' },
-      { target: '[id^="sourceLangDisplay"]', text: 'Select the source language.' },
-      { target: '[id^="targetLangTrigger"]', text: 'Select one or more target languages.' },
-      { target: '[id^="projectName_"]', text: 'Enter a project name (usually auto-filled from the file).' },
-      { target: '[id^="mainFilePC_"]', text: 'Upload the files you want translated here.', isUploadBtn: true, type: 'main' },
-      { target: '#btn-nav-history', text: 'In "My Projects" you can track all requests, statuses, and download finished translations.' }
+    // Sprachneutrale Schritt-Definitionen - der eigentliche Text kommt bei der
+    // Anzeige per t_i18n_(currentLang, textKey) aus dem i18n-Woerterbuch, damit
+    // die Tour IMMER in der aktuell angezeigten Sprache laeuft (nicht nur de/en).
+    const TOUR_STEPS_ = [
+      { target: '#btn-nav-request', textKey: 'tour_step_start' },
+      { target: '[id^="templateUid_"]', textKey: 'tour_step_template' },
+      { target: '[id^="sourceLangDisplay"]', textKey: 'tour_step_source' },
+      { target: '[id^="targetLangTrigger"]', textKey: 'tour_step_target' },
+      { target: '[id^="projectName_"]', textKey: 'tour_step_projectname' },
+      { target: '[id^="presetsDropdown_"]', textKey: 'tour_step_presets' },
+      { target: '[id^="dateDue_"]', textKey: 'tour_step_duedate' },
+      { target: '[id^="note_"]', textKey: 'tour_step_note' },
+      { target: '[id^="mainFilePC_"]', textKey: 'tour_step_mainfiles', isUploadBtn: true, type: 'main' },
+      { target: '[id^="refFilePC_"]', textKey: 'tour_step_reffiles', isUploadBtn: true, type: 'ref' },
+      { target: '[id^="submitBtn_"]', textKey: 'tour_step_submit' },
+      { target: '#btn-nav-history', textKey: 'tour_step_myprojects' },
+      { target: '#btn-dashboard', textKey: 'tour_step_dashboard' },
+      { target: '#prefsBtn', textKey: 'tour_step_preferences' },
+      { target: '.global-lang-switch', textKey: 'tour_step_langswitch' }
     ];
 
     function resolveTarget(step) {
+      // Zuerst im aktuell sichtbaren Tab suchen (vermeidet Treffer auf gleich
+      // benannte, aber unsichtbare Elemente eines anderen Portals/Tabs);
+      // Nav-Buttons, Sprachumschalter etc. liegen ausserhalb von .tab-content
+      // und werden per Fallback im gesamten Dokument gesucht.
+      const scope = document.querySelector('.tab-content.active');
       if (step.isUploadBtn) {
         const activeSuffix = activePortals[0];
-        const btn = document.querySelector(`button[onclick="handlePcUploadClick('${step.type}', '${activeSuffix}')"]`);
-        return btn;
+        const sel = `button[onclick="handlePcUploadClick('${step.type}', '${activeSuffix}')"]`;
+        return (scope && scope.querySelector(sel)) || document.querySelector(sel);
       }
-      let el = document.querySelector(step.target);
+      let el = scope && scope.querySelector(step.target);
+      if (!el && step.target.includes('_')) {
+        const activeSuffix = activePortals[0];
+        el = scope && scope.querySelector(step.target.replace('_', activeSuffix));
+      }
+      if (!el) el = document.querySelector(step.target);
       if (!el && step.target.includes('_')) {
         const activeSuffix = activePortals[0];
         el = document.querySelector(step.target.replace('_', activeSuffix));
       }
+      // Ausgeblendete Elemente (display:none, z.B. ein per Whitelist nicht
+      // sichtbarer Nav-Button) bleiben trotzdem im DOM - offsetParent ist dann
+      // null. Solche Treffer als "nicht gefunden" behandeln, damit der Schritt
+      // automatisch uebersprungen wird statt eine unsichtbare Bubble zu zeigen.
+      if (el && el.offsetParent === null) el = null;
       return el;
     }
 
     window.tourStart = function(lang, force) {
+      const tourLang = lang || currentLang;
       if (!force) {
-        const done = localStorage.getItem('tourDone_' + lang);
+        const done = localStorage.getItem('tourDone_' + tourLang);
         if (done === 'true') return;
       }
-      currentTour = (lang === 'de') ? tourStepsDe : tourStepsEn;
+      currentTour = TOUR_STEPS_;
       currentTourStep = 0;
-      
+
       if (document.getElementById('btn-nav-request')) {
         switchTab('request');
       } else if (activePortals.length > 0) {
         switchTab(activePortals[0].replace('_',''));
       }
-      
+
       renderTourBubble();
     };
 
@@ -6322,15 +6447,17 @@ function openJobNoteModal(projectUid, jobUids) {
       
       const isLast = currentTourStep === currentTour.length - 1;
       const isFirst = currentTourStep === 0;
-      
-      const lang = currentLang;
-      const skipLabel = lang === 'de' ? 'überspringen' : 'Skip';
-      const prevLabel = lang === 'de' ? 'Zurück' : 'Back';
-      const nextLabel = isLast ? (lang === 'de' ? 'Fertig' : 'Done') : (lang === 'de' ? 'Weiter' : 'Next');
-      
+
+      const skipLabel = t_i18n_(currentLang, 'tour_skip') || 'Skip';
+      const prevLabel = t_i18n_(currentLang, 'tour_back') || 'Back';
+      const nextLabel = isLast ? (t_i18n_(currentLang, 'tour_done') || 'Done') : (t_i18n_(currentLang, 'tour_next') || 'Next');
+      const stepOfLabel = (t_i18n_(currentLang, 'tour_step_of') || 'Step {n} of {m}')
+        .replace('{n}', currentTourStep + 1).replace('{m}', currentTour.length);
+      const stepText = t_i18n_(currentLang, step.textKey) || step.textKey;
+
       bubble.innerHTML = `
-        <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:#333;">Step ${currentTourStep + 1} of ${currentTour.length}</div>
-        <div style="font-size:14px; color:#555; line-height:1.5; margin-bottom:20px;">${step.text}</div>
+        <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:#333;">${escapeHtml(stepOfLabel)}</div>
+        <div style="font-size:14px; color:#555; line-height:1.5; margin-bottom:20px;">${escapeHtml(stepText)}</div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <button onclick="tourEnd()" style="background:none; border:none; color:#999; cursor:pointer; font-size:13px; text-decoration:underline;">${skipLabel}</button>
           <div style="display:flex; gap:8px;">

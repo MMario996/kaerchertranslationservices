@@ -485,7 +485,3 @@ function apiDebugUserTemplates(email) {
     denied: denied
   };
 }
-
-function apiGetCustomPages() {
-  return [];
-}
