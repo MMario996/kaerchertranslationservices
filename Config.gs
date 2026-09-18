@@ -59,21 +59,8 @@ function getConfig_(impersonateEmail) {
 
   for (let key in allTemplates) {
     const t = allTemplates[key];
-    let hasAccess = true;
-    
-    // Filter anwenden, wenn der Nutzer KEIN Admin ist
-    if (!effectiveIsAdmin) { 
-      // Nutzer-Werte an Zeilenumbruch (\n) oder Komma splitten
-      const uClients = userData.client.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
-      const uDomains = userData.domain.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
-      const uSubs = userData.subdomain.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
+    const hasAccess = effectiveIsAdmin || templateMatchesUser_(t, userData);
 
-      // Prüfen, ob der Template-Wert in den Nutzer-Werten enthalten ist
-      if (t.client !== "" && !uClients.includes(t.client.toLowerCase())) hasAccess = false;
-      if (t.domain !== "" && !uDomains.includes(t.domain.toLowerCase())) hasAccess = false;
-      if (t.subdomain !== "" && !uSubs.includes(t.subdomain.toLowerCase())) hasAccess = false;
-    }
-    
     if (hasAccess) {
       allowedTemplates[key] = t;
     }
@@ -231,33 +218,35 @@ function getSizeLimitMb_() {
 
 /** Holt Nutzerdaten robust inkl. Groß-/Kleinschreibungs-Toleranz */
 function getUserData_(email) {
-  const empty = { client: "", domain: "", subdomain: "" };
+  const empty = { client: "", domain: "", subdomain: "", businessUnit: "" };
   if (!email) return empty;
-  
+
   try {
     const ss = SpreadsheetApp.openById(getAccessSheetId_());
     const sh = ss.getSheetByName(USERS_SHEET_NAME);
     if (!sh) return empty;
-    
+
     const data = sh.getDataRange().getValues();
     if (data.length < 2) return empty;
-    
+
     const headers = data[0].map(h => String(h || "").trim());
     const idx = indexByHeader_(headers);
-    
+
     const iEmail = pickIdx_(idx, ["email", "e-mail", "user email"]);
     const iClient = pickIdx_(idx, ["client", "clients"]);
     const iDomain = pickIdx_(idx, ["domain", "domains"]);
     const iSub = pickIdx_(idx, ["subdomain", "subdomains", "sub-domain"]);
-    
+    const iBu = pickIdx_(idx, ["business unit", "business units", "businessunit"]);
+
     if (iEmail === -1) return empty;
-    
+
     for (let r = 1; r < data.length; r++) {
       if (String(data[r][iEmail]).trim().toLowerCase() === email.toLowerCase()) {
         return {
           client: iClient !== -1 ? String(data[r][iClient]).trim() : "",
           domain: iDomain !== -1 ? String(data[r][iDomain]).trim() : "",
-          subdomain: iSub !== -1 ? String(data[r][iSub]).trim() : ""
+          subdomain: iSub !== -1 ? String(data[r][iSub]).trim() : "",
+          businessUnit: iBu !== -1 ? String(data[r][iBu]).trim() : ""
         };
       }
     }
@@ -265,6 +254,32 @@ function getUserData_(email) {
     console.warn("getUserData_ error:", e.message);
   }
   return empty;
+}
+
+/**
+ * Prueft, ob ein Template fuer einen Nutzer sichtbar sein darf.
+ * Fail-closed: Ist ein Feld beim Template ODER beim Nutzer leer, gilt es
+ * NICHT als Match (verhindert, dass unvollstaendig getaggte Templates,
+ * z.B. ohne Domain/Client aus Phrase, automatisch fuer alle sichtbar sind).
+ */
+function templateMatchesUser_(template, userData) {
+  const uClients = String(userData.client || "").toLowerCase().split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const uDomains = String(userData.domain || "").toLowerCase().split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const uSubs = String(userData.subdomain || "").toLowerCase().split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const uBus = String(userData.businessUnit || "").toLowerCase().split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+
+  const fields = [
+    [template.client, uClients],
+    [template.domain, uDomains],
+    [template.subdomain, uSubs],
+    [template.businessUnit, uBus]
+  ];
+
+  return fields.every(([templateValue, userValues]) => {
+    const v = String(templateValue || "").trim().toLowerCase();
+    if (!v) return false; // leeres Template-Feld ? nicht sichtbar (fail-closed)
+    return userValues.includes(v);
+  });
 }
 
 function readTemplates_() {
@@ -287,6 +302,7 @@ function readTemplates_() {
   const colClient = pickIdx_(idx, ["client", "clients"]);
   const colDomain = pickIdx_(idx, ["domain", "domains"]);
   const colSub = pickIdx_(idx, ["subdomain", "subdomains", "sub-domain"]);
+  const colBu = pickIdx_(idx, ["business unit", "business units", "businessunit"]);
 
   if (colName === -1 || colUid === -1) {
     throw new Error("Template sheet: missing 'Template Name' or 'Template UID' columns.");
@@ -308,11 +324,12 @@ function readTemplates_() {
     const client = colClient !== -1 ? String(row[colClient] || "").trim() : "";
     const domain = colDomain !== -1 ? String(row[colDomain] || "").trim() : "";
     const subdomain = colSub !== -1 ? String(row[colSub] || "").trim() : "";
+    const businessUnit = colBu !== -1 ? String(row[colBu] || "").trim() : "";
 
     const key = `${name} [${source}]`;
-    
+
     if (!out[key]) {
-      out[key] = { uid, source, targets: [], client, domain, subdomain, targetUidMap: {} };
+      out[key] = { uid, source, targets: [], client, domain, subdomain, businessUnit, targetUidMap: {} };
     }
     
     // Zielsprachen aggregieren und die UID pro Sprache mappen
@@ -420,39 +437,35 @@ function apiDebugUserTemplates(email) {
   if (!isAdmin_(adminEmail)) return { success: false, error: "Not authorized. Admin only." };
 
   email = String(email).trim().toLowerCase();
-  const userData = getUserData_(email); 
-  const allTemplates = readTemplates_(); 
-  
+  const userData = getUserData_(email);
+  const allTemplates = readTemplates_();
+
   const allowed = [];
   const denied = [];
 
-  const uClients = userData.client.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
-  const uDomains = userData.domain.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
-  const uSubs = userData.subdomain.toLowerCase().split(/[\n,;]+/).map(s => s.trim());
-
   for (let key in allTemplates) {
     const t = allTemplates[key];
-    let hasAccess = true;
-    let reasons = [];
-
-    if (t.client !== "" && !uClients.includes(t.client.toLowerCase())) {
-      hasAccess = false; 
-      reasons.push(`Client mismatch (Template: '${t.client}' vs User: '${userData.client}')`);
-    }
-    if (t.domain !== "" && !uDomains.includes(t.domain.toLowerCase())) {
-      hasAccess = false; 
-      reasons.push(`Domain mismatch (Template: '${t.domain}' vs User: '${userData.domain}')`);
-    }
-    if (t.subdomain !== "" && !uSubs.includes(t.subdomain.toLowerCase())) {
-      hasAccess = false; 
-      reasons.push(`Subdomain mismatch (Template: '${t.subdomain}' vs User: '${userData.subdomain}')`);
-    }
+    const hasAccess = templateMatchesUser_(t, userData);
 
     if (hasAccess) {
       allowed.push({ name: key, info: "Matched successfully" });
-    } else {
-      denied.push({ name: key, reasons: reasons.join(" | ") });
+      continue;
     }
+
+    const reasons = [];
+    if (!String(t.client || "").trim()) reasons.push(`Client fehlt am Template (User: '${userData.client}')`);
+    else if (!String(userData.client || "").toLowerCase().includes(t.client.toLowerCase())) reasons.push(`Client mismatch (Template: '${t.client}' vs User: '${userData.client}')`);
+
+    if (!String(t.domain || "").trim()) reasons.push(`Domain fehlt am Template (User: '${userData.domain}')`);
+    else if (!String(userData.domain || "").toLowerCase().includes(t.domain.toLowerCase())) reasons.push(`Domain mismatch (Template: '${t.domain}' vs User: '${userData.domain}')`);
+
+    if (!String(t.subdomain || "").trim()) reasons.push(`Subdomain fehlt am Template (User: '${userData.subdomain}')`);
+    else if (!String(userData.subdomain || "").toLowerCase().includes(t.subdomain.toLowerCase())) reasons.push(`Subdomain mismatch (Template: '${t.subdomain}' vs User: '${userData.subdomain}')`);
+
+    if (!String(t.businessUnit || "").trim()) reasons.push(`Business Unit fehlt am Template (User: '${userData.businessUnit}')`);
+    else if (!String(userData.businessUnit || "").toLowerCase().includes(t.businessUnit.toLowerCase())) reasons.push(`Business Unit mismatch (Template: '${t.businessUnit}' vs User: '${userData.businessUnit}')`);
+
+    denied.push({ name: key, reasons: reasons.join(" | ") });
   }
 
   return {
