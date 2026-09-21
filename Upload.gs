@@ -57,11 +57,13 @@ function apiCreateProjectAndUpload(payload) {
 
   const note    = String(payload.note    || "").trim();
   const dueDate = payload.dueDate || payload.dateDue || "";
+  const campusReviewType = String(payload.campusReviewType || "").trim();
 
   if (!templateUid && !payload.targetUidMap)    return { ok: false, error: "Template missing." };
   if (!projectName)                             return { ok: false, error: "Project name missing." };
   if (!sourceLang)                              return { ok: false, error: "Source language missing." };
   if (!targetLangs || targetLangs.length === 0) return { ok: false, error: "Target language missing." };
+  if (portalType === "articulate" && !campusReviewType) return { ok: false, error: "Review Type missing." };
 
   const mainFiles = payload.mainFiles || payload.allMainFiles || [];
   if (!Array.isArray(mainFiles) || mainFiles.length === 0) return { ok: false, error: "Main file missing." };
@@ -136,6 +138,9 @@ function apiCreateProjectAndUpload(payload) {
       });
       phraseSetProjectCreator_(projectUid, userEmail);
       if (setRealOwner) phraseSetProjectOwner_(projectUid, userEmail);
+      if (portalType === "articulate" && campusReviewType) {
+        phraseSetProjectSingleSelectFieldByName_(projectUid, "Review", campusReviewType);
+      }
       overallProjectUids.push(projectUid);
       console.log("\u2022 Project created:", projectUid);
 

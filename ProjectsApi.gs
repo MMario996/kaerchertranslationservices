@@ -339,6 +339,117 @@ function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
 }
 
 /**
+ * Liefert { optionValue: optionUid } fuer ein Custom Field (SINGLE_SELECT /
+ * MULTI_SELECT). Gleiches Cache-Muster wie phraseGetCustomFieldDefinitionsMap_,
+ * da /customFields (Liste) die Options-Liste je Feld auf 5 Eintraege
+ * abschneidet ("truncatedOptions") - hier wird stattdessen der dedizierte
+ * Options-Endpoint mit voller Pagination abgefragt.
+ */
+function phraseGetCustomFieldOptionsMap_(fieldUid, forceRefresh) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "phrase_cf_opts_" + fieldUid;
+  if (!forceRefresh) {
+    var cached = cache.get(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+  }
+  var map = {};
+  var pageNumber = 0;
+  while (true) {
+    var url = phraseApiUrlV1_(
+      "/customFields/" + encodeURIComponent(fieldUid) + "/options?pageNumber=" + pageNumber + "&pageSize=50"
+    );
+    var res = phraseFetchJson_(url, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var content = (res && res.content) || [];
+    content.forEach(function(o) {
+      if (o.uid && o.value) map[o.value] = o.uid;
+    });
+    if (content.length < 50) break;
+    pageNumber++;
+    if (pageNumber >= 10) break;
+  }
+  try { cache.put(cacheKey, JSON.stringify(map), 21600); } catch (e) {}
+  return map;
+}
+
+/**
+ * Setzt ein SINGLE_SELECT (bzw. MULTI_SELECT) Custom Field am Projekt anhand
+ * des Feldnamens UND des Options-Textes (nicht der UID) - beides wird live
+ * gegen Phrase aufgeloest. Gleiches GET-dann-PUT-Muster wie
+ * phraseSetProjectCustomFieldByName_, nutzt aber "selectedOptions" statt
+ * "value" (laut Phrase-API-Schema ist "value" nur fuer STRING/NUMBER/URL-
+ * Felder vorgesehen, SELECT-Felder erwarten eine UidReference-Liste).
+ * Non-blocking: Fehler werden nur geloggt, nie geworfen.
+ */
+function phraseSetProjectSingleSelectFieldByName_(projectUid, fieldName, optionValue) {
+  if (!projectUid || !fieldName || !optionValue) return;
+
+  try {
+    var cfDefs = phraseGetCustomFieldDefinitionsMap_(); // { uid: name }
+    var fieldUid = null;
+    for (var uid in cfDefs) {
+      if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
+    }
+    if (!fieldUid) {
+      // Cache kann bis zu 6h alt sein - bei neu angelegten Custom Fields
+      // einmal mit erzwungenem Refresh nachschlagen, bevor aufgegeben wird.
+      cfDefs = phraseGetCustomFieldDefinitionsMap_(true);
+      for (var uid2 in cfDefs) {
+        if (cfDefs[uid2] === fieldName) { fieldUid = uid2; break; }
+      }
+    }
+    if (!fieldUid) {
+      console.warn("phraseSetProjectSingleSelectFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
+      return;
+    }
+
+    var optDefs = phraseGetCustomFieldOptionsMap_(fieldUid);
+    var optionUid = optDefs[optionValue];
+    if (!optionUid) {
+      optDefs = phraseGetCustomFieldOptionsMap_(fieldUid, true);
+      optionUid = optDefs[optionValue];
+    }
+    if (!optionUid) {
+      console.warn("phraseSetProjectSingleSelectFieldByName_: Option '" + optionValue + "' auf Feld '" + fieldName + "' nicht gefunden.");
+      return;
+    }
+
+    var getUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields?pageSize=50");
+    var getRes = phraseFetchJson_(getUrl, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var instances = (getRes && Array.isArray(getRes.content)) ? getRes.content : (Array.isArray(getRes) ? getRes : []);
+
+    var instanceUid = null;
+    for (var i = 0; i < instances.length; i++) {
+      var instFieldUid = instances[i].customField && instances[i].customField.uid;
+      if (instFieldUid === fieldUid) { instanceUid = instances[i].uid; break; }
+    }
+
+    var putUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields");
+    var putPayload = instanceUid
+      ? { updateInstances: [{ customFieldInstance: { uid: instanceUid }, customField: { uid: fieldUid }, selectedOptions: [{ uid: optionUid }] }] }
+      : { addInstances: [{ customField: { uid: fieldUid }, selectedOptions: [{ uid: optionUid }] }] };
+
+    var putRes = UrlFetchApp.fetch(putUrl, {
+      method: "put",
+      contentType: "application/json",
+      headers: { Authorization: getPhraseAuthHeader_() },
+      payload: JSON.stringify(putPayload),
+      muteHttpExceptions: true
+    });
+
+    var putCode = putRes.getResponseCode();
+    if (putCode >= 400) {
+      console.warn("phraseSetProjectSingleSelectFieldByName_ PUT HTTP " + putCode + " (" + fieldName + "): " + putRes.getContentText().substring(0, 200));
+    } else {
+      console.log("Custom Field gesetzt: " + fieldName + " = '" + optionValue + "' (" + projectUid + ")");
+    }
+  } catch (e) {
+    console.warn("phraseSetProjectSingleSelectFieldByName_ fehlgeschlagen (" + fieldName + "): " + e.message);
+  }
+}
+
+/**
  * Setzt ein JOB-basiertes Custom Field anhand des Feldnamens (z.B. "SCORM
  * File-URL"). Gleiches GET-dann-PUT-Muster wie phraseSetProjectCustomFieldByName_,
  * nur auf Job- statt Projekt-Ebene:
