@@ -2259,6 +2259,20 @@ function initForm(config) {
     if (artContainer && !artContainer.dataset.formInjected) {
       const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
       let articulateFormHtml = templateHtml.replace(/\{SUFFIX\}/g, 'articulate').replace(/\{NAME\}/g, 'Articulate');
+      const reviewCard =
+        '<div class="card" style="border-top:5px solid #1a73e8;">' +
+          '<div class="section-title" style="color:#1a73e8;">Review</div>' +
+          '<div class="form-row">' +
+            '<label>Review Type <span class="required">*</span></label>' +
+            '<select id="artReviewType" required>' +
+              '<option value="" disabled selected>-- Bitte auswählen --</option>' +
+              '<option value="Review Campus Sales H&amp;G">Review Campus Sales H&amp;G</option>' +
+              '<option value="Review Campus Sales Professional">Review Campus Sales Professional</option>' +
+              '<option value="Review Campus Product Trainings">Review Campus Product Trainings</option>' +
+              '<option value="Review Campus DSGVO Training">Review Campus DSGVO Training</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>';
       const scormCard =
         '<div class="card" style="border-top:5px solid #1a73e8;">' +
           '<div class="section-title" style="color:#1a73e8;">SCORM Preview (Optional)</div>' +
@@ -2274,7 +2288,7 @@ function initForm(config) {
         '</div>';
       articulateFormHtml = articulateFormHtml.replace(
         '<div style="margin-top:40px; margin-bottom:60px; text-align:right;">',
-        scormCard + '<div style="margin-top:40px; margin-bottom:60px; text-align:right;">'
+        reviewCard + scormCard + '<div style="margin-top:40px; margin-bottom:60px; text-align:right;">'
       );
       artContainer.innerHTML += articulateFormHtml;
       attachFormLogic('_articulate');
@@ -5105,6 +5119,11 @@ function submitStandard(suffix) {
               allMainFiles:readyMain, refFiles:readyRef, refDriveIds:refIds,
               portalType: suffix.replace(/^_/, '')
             };
+
+            if (suffix === '_articulate') {
+              const reviewEl = document.getElementById('artReviewType');
+              payload.campusReviewType = reviewEl ? reviewEl.value.trim() : '';
+            }
 
             _uploadWatchdog_ = setTimeout(function() {
               _uploadWatchdog_ = null;
