@@ -150,6 +150,8 @@ function apiGetDashboardData() {
 function apiGetAdminDashboardData() { return getAdminDashboardData_(); }
 
 function apiSaveAdminSettings(sizeLimitMb) {
+  const caller = getUserEmail_();
+  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
   const mb = Number(sizeLimitMb);
   if (!isFinite(mb) || mb <= 0) throw new Error("Invalid sizeLimitMb");
   PropertiesService.getScriptProperties().setProperty("MAX_FILE_SIZE_MB", String(mb));
@@ -158,6 +160,7 @@ function apiSaveAdminSettings(sizeLimitMb) {
 
 function apiSaveMaintenanceConfig(startIso, endIso, message) {
   const caller = getUserEmail_();
+  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
   const props = PropertiesService.getScriptProperties();
   props.setProperty("MAINT_START", String(startIso || ""));
   props.setProperty("MAINT_END",   String(endIso  || ""));
@@ -168,6 +171,7 @@ function apiSaveMaintenanceConfig(startIso, endIso, message) {
 
 function apiClearMaintenanceConfig() {
   const caller = getUserEmail_();
+  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty("MAINT_START");
   props.deleteProperty("MAINT_END");
