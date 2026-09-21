@@ -16,6 +16,18 @@ function apiBrowseDrive(folderId) {
   var currentId = folderId || "home";
   var parentId = null;
 
+  var access = apiCheckAccess();
+  if (!access.allowed) {
+    return {
+      ok: false,
+      error: "Not authorized.",
+      currentId: currentId,
+      currentName: currentName,
+      parentId: null,
+      contents: []
+    };
+  }
+
   try {
     // ?? HOME SCREEN ------------------------------------------
     if (!folderId || folderId === "home") {
