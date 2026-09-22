@@ -234,6 +234,14 @@ function autoSyncProjectStatuses_() {
       }
       if (checked % 10 === 0) Utilities.sleep(500);
     }
+
+    // Nochmal ausfuehren: Parent-Zeilen, die WAEHREND dieses Laufs gerade erst
+    // auf WAITING_CHILD gewechselt sind (siehe Schleife oben), wurden vom
+    // Aufruf am Anfang dieser Funktion noch nicht erfasst - ohne diesen
+    // zweiten Aufruf wuerde das Child-Projekt erst im naechsten Sync-Lauf
+    // gefunden, obwohl es in Phrase oft schon existiert.
+    try { pivotDiscoverAndTrackChildren_(); } catch (e) { console.warn("pivotDiscoverAndTrackChildren_ (2nd pass) fehlgeschlagen: " + e.message); }
+
     if (updated > 0) SpreadsheetApp.flush();
     props.setProperty("AUTO_SYNC_LAST_RUN", new Date().toISOString());
     props.setProperty("AUTO_SYNC_LAST_UPDATED", String(updated));

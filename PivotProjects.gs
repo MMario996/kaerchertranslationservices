@@ -316,7 +316,7 @@ function pivotFindProjectByExactName_(exactName) {
   var authHeader = { Authorization: getPhraseAuthHeader_() };
   var pageNumber = 0;
   var pageSize   = 50;
-  var maxPages   = 10; // Sicherheitslimit, siehe KeCProjects.gs fuer das gleiche Muster
+  var maxPages   = 20; // Sicherheitslimit, siehe KeCProjects.gs fuer das gleiche Muster
 
   while (pageNumber < maxPages) {
     var url = phraseApiUrlV2_(
