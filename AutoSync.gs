@@ -74,6 +74,10 @@ function autoSyncProjectStatuses_() {
     // bekommen statt erst am Projektende.
     try { checkArticulateJobCompletions_(); } catch (e) { console.warn("checkArticulateJobCompletions_ fehlgeschlagen: " + e.message); }
 
+    // Pivot (Job-based-Trigger): automatisch erstellte Child-Projekte fuer
+    // fertige Parent-Projekte finden und als eigene Queue-Zeile anlegen.
+    try { pivotDiscoverAndTrackChildren_(); } catch (e) { console.warn("pivotDiscoverAndTrackChildren_ fehlgeschlagen: " + e.message); }
+
     for (var i = 1; i < data.length; i++) {
       var row           = data[i];
       var projectUid    = String(row[2]  || "").trim();
@@ -104,7 +108,28 @@ function autoSyncProjectStatuses_() {
         var notifiedKey = "CHAT_NOTIFIED__" + projectUid;
         var alreadyNotified = props.getProperty(notifiedKey) === "true";
 
-        if (newStatus && (newStatus !== currentStatus || (isNowDone && !alreadyNotified))) {
+        // Pivot (Job-based-Trigger) Parent/Child-Zeilen bekommen eine eigene
+        // Benachrichtigungslogik (siehe PivotProjects.gs) statt der normalen
+        // Completion-Behandlung unten - v.a. weil der Chat-Thread nach dem
+        // Parent-Abschluss NICHT geschlossen werden darf. WICHTIG: das muss
+        // JEDEN Lauf geprueft werden, nicht nur wenn sich der Status aendert -
+        // sonst wuerde die normale Logik ueber ihr eigenes
+        // "isNowDone && !alreadyNotified"-Kriterium (das Pivot-Zeilen nie
+        // setzen) den Thread doch noch schliessen.
+        var pivotHandled = false;
+        if (newStatus) {
+          try { pivotHandled = pivotHandleStatusChange_(sh, i + 1, row, newStatus, currentStatus); } catch (e) {
+            console.warn("  ⚠ pivotHandleStatusChange_ failed for " + projectUid + ": " + e.message);
+          }
+          if (pivotHandled && newStatus !== currentStatus) {
+            updated++;
+            currentStatus = newStatus;
+          }
+        }
+
+        if (pivotHandled) {
+          // erledigt - normale Logik unten ueberspringen
+        } else if (newStatus && (newStatus !== currentStatus || (isNowDone && !alreadyNotified))) {
 
           if (isNowDone && !alreadyNotified) {
             var phraseUrl = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);

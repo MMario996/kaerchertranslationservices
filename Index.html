@@ -5397,24 +5397,46 @@ function loadMyProjects() {
 function fillTable(projects) {
   const t=document.querySelector('#projectsTable tbody'); t.innerHTML='';
   if(!projects.length){t.innerHTML='<tr><td colspan="10" style="text-align:center;padding:15px;">No records.</td></tr>';return;}
-  projects.forEach(p=>{
+
+  // Pivot (Job-based-Trigger) Parent-Child-Projekte: das Child bekommt eine
+  // eigene Queue-Zeile (fuer Status/Download), soll aber nicht als
+  // eigenstaendige Zeile in der Liste auftauchen, sondern im aufklappbaren
+  // Container seines Parent-Projekts.
+  const childByParentUid = {};
+  projects.forEach(p => { if (p.pivotRole==='CHILD' && p.pivotLink) childByParentUid[p.pivotLink]=p; });
+  const topLevel = projects.filter(p => p.pivotRole !== 'CHILD');
+
+  if(!topLevel.length){t.innerHTML='<tr><td colspan="10" style="text-align:center;padding:15px;">No records.</td></tr>';return;}
+
+  topLevel.forEach(p=>{
     const tr=document.createElement('tr');
     let due=p.dueDate?new Date(p.dueDate).toLocaleDateString():"-";
     let shText=p.isShared?(p.owner===configData.currentUser
       ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">Shared with<br>${p.sharedWith}</span>`
       :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">Shared by<br>${p.owner}</span>`
     ):"-";
-    
+
     const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
       ?`<div style="width:36px;display:inline-block;"></div>`
       :`<button class="btn-icon danger" title="Cancel Project" onclick="cancelProject('${p.projectUid}','${p.projectName}')"><span class="material-icons-outlined">delete</span></button>`;
-    
+
     const dlBtn=['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status)
       ?`<button class="btn-icon" title="Download Translation" onclick="smartDownloadFiles('${p.projectUid}')"><span class="material-icons-outlined">cloud_download</span></button>
         <button class="btn-icon" title="Save to Google Drive (My Drive)" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">add_to_drive</span></button>`
       :'-';
-      
-    tr.innerHTML=`<td><strong>${p.projectName}</strong></td>
+
+    const isPivotParent = p.pivotRole === 'PARENT';
+    const pivotChild = isPivotParent ? childByParentUid[p.projectUid] : null;
+    const pivotGroupId = isPivotParent ? 'pivotGroup_' + String(p.projectUid).replace(/[^a-zA-Z0-9]/g,'') : '';
+    const nameCell = isPivotParent
+      ? `<span class="pivot-toggle" onclick="togglePivotGroup('${pivotGroupId}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Parent-Child project – click to expand">
+           <span class="material-icons-outlined pivot-caret" style="font-size:16px;transition:transform .15s;">chevron_right</span>
+           <span class="material-icons-outlined" style="font-size:15px;color:#888;">account_tree</span>
+           <strong>${p.projectName}</strong>
+         </span>`
+      : `<strong>${p.projectName}</strong>`;
+
+    tr.innerHTML=`<td>${nameCell}</td>
       <td><a href="${p.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS">${p.projectUid} <span class="material-icons-outlined" style="font-size:12px">open_in_new</span></a></td>
       <td style="font-size:11px;">${p.uploadDate||"-"}</td><td>${p.sourceLang}</td>
       <td><span style="font-size:11px;">${p.targetLang||"-"}</span></td>
@@ -5422,15 +5444,58 @@ function fillTable(projects) {
       <td>${due}</td><td>${shText}</td>
       <td style="text-align:center;">${dlBtn}</td>
       <td style="text-align:center">
-         <button class="btn-icon" onclick="showTimeline('${p.projectUid}')" title="Timeline & Status"><span class="material-icons-outlined">timeline</span></button> 
-         <button class="btn-icon" onclick="shareProject('${p.projectUid}')" title="Share with Colleague"><span class="material-icons-outlined">share</span></button> 
+         <button class="btn-icon" onclick="showTimeline('${p.projectUid}')" title="Timeline & Status"><span class="material-icons-outlined">timeline</span></button>
+         <button class="btn-icon" onclick="shareProject('${p.projectUid}')" title="Share with Colleague"><span class="material-icons-outlined">share</span></button>
          <button class="btn-icon" onclick="cloneProject('${p.projectUid}')" title="Clone / Duplicate Project"><span class="material-icons-outlined">content_copy</span></button>
          <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}',${JSON.stringify(p.jobUids||[])})" title="Add Note to Translator"><span class="material-icons-outlined">edit_note</span></button>
          ${['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status) ? '<div style="width:36px;display:inline-block;"></div>' : `<button class="btn-icon" onclick="openDueDateModal('${p.projectUid}','${p.projectName}','${p.dueDate||''}')" title="Update Due Date"><span class="material-icons-outlined">edit_calendar</span></button>`}
          ${cnlBtn}
       </td>`;
     t.appendChild(tr);
+
+    if (isPivotParent) t.appendChild(buildPivotDetailRow_(pivotGroupId, p, pivotChild));
   });
+}
+
+function buildPivotDetailRow_(groupId, parent, child) {
+  const tr = document.createElement('tr');
+  tr.id = groupId;
+  tr.style.display = 'none';
+  tr.className = 'pivot-detail-row';
+
+  const step = (label, proj) => {
+    if (!proj) {
+      return `<div style="padding:8px 12px;font-size:12px;color:#888;border-top:1px solid #eee;">
+        <span class="material-icons-outlined" style="font-size:14px;vertical-align:-3px;">hourglass_empty</span>
+        <strong>${label}:</strong> will be created automatically once the previous step is done
+      </div>`;
+    }
+    const dlBtn = ['NOTIFIED','COMPLETED','DELIVERED'].includes(proj.status)
+      ? `<button class="btn-icon" title="Download Translation" onclick="smartDownloadFiles('${proj.projectUid}')"><span class="material-icons-outlined" style="font-size:18px;">cloud_download</span></button>`
+      : '';
+    return `<div style="padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:10px;border-top:1px solid #eee;">
+      <strong style="min-width:90px;">${label}:</strong>
+      <span>${proj.projectName}</span>
+      <span class="status-badge status-${proj.status}" style="font-size:10px;">${proj.status}</span>
+      <a href="${proj.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS"><span class="material-icons-outlined" style="font-size:14px;vertical-align:-2px;">open_in_new</span></a>
+      <span style="margin-left:auto;">${dlBtn}</span>
+    </div>`;
+  };
+
+  tr.innerHTML = `<td colspan="10" style="background:#fafafa;padding:0;">
+    ${step('Source-Check', parent)}
+    ${step('Translation', child)}
+  </td>`;
+  return tr;
+}
+
+function togglePivotGroup(groupId) {
+  const row = document.getElementById(groupId);
+  if (!row) return;
+  const expanded = row.style.display !== 'none';
+  row.style.display = expanded ? 'none' : 'table-row';
+  const caret = row.previousElementSibling && row.previousElementSibling.querySelector('.pivot-caret');
+  if (caret) caret.style.transform = expanded ? '' : 'rotate(90deg)';
 }
 
 function globalSearch() {

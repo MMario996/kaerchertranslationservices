@@ -105,6 +105,102 @@ var DEFAULT_TEMPLATES_ = {
       "\u2022 *Translation Services Portal:* {{PORTAL_URL}}"
     ].join("\n")
   },
+  MSG_PIVOT_PROJECT_SUBMITTED: {
+    de: [
+      "✓ 🔗 *Neues Projekt erstellt (Parent-Child project)*",
+      "",
+      "Dieses Projekt laeuft in zwei gekoppelten Schritten: zuerst die Source-Check-Übersetzung, danach wird automatisch ein Child-Projekt fuer die weiteren Zielsprachen erzeugt.",
+      "",
+      "• *Projektdetails*",
+      "• *Name:* {{PROJECT_NAME}}",
+      "• *Template:* {{TEMPLATE_NAME}}",
+      "• *Sprachen:* {{SOURCE_LANG}} ? {{TARGET_LANGS}}",
+      "• *Deadline:* {{DEADLINE}}",
+      "{{NOTE_LINE}}",
+      "• *Dateien & Jobs*",
+      "{{FILES}}",
+      "",
+      "• *In Phrase TMS öffnen:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}",
+      "",
+      "_Du erhältst in diesem Thread eine Meldung sobald die Source-Check-Übersetzung fertig ist, und danach nochmal sobald die finalen Übersetzungen fertig sind._"
+    ].join("\n"),
+    en: [
+      "✓ 🔗 *New project created (Parent-Child project)*",
+      "",
+      "This project runs in two coupled steps: first the source-check translation, then a child project for the remaining target languages is created automatically.",
+      "",
+      "• *Project Details*",
+      "• *Name:* {{PROJECT_NAME}}",
+      "• *Template:* {{TEMPLATE_NAME}}",
+      "• *Languages:* {{SOURCE_LANG}} ? {{TARGET_LANGS}}",
+      "• *Deadline:* {{DEADLINE}}",
+      "{{NOTE_LINE}}",
+      "• *Files & Jobs*",
+      "{{FILES}}",
+      "",
+      "• *Open in Phrase TMS:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}",
+      "",
+      "_You'll get a reply here once the source-check translation is done, and another once the final translations are ready._"
+    ].join("\n")
+  },
+  MSG_PIVOT_PARENT_COMPLETED: {
+    de: [
+      "✓ *Source-Check Übersetzung fertig!*",
+      "",
+      "• *Projekt:* {{PROJECT_NAME}}",
+      "• *Phrase ID:* {{PHRASE_ID}}",
+      "• *Status:* {{STATUS}}",
+      "",
+      "Das Child-Projekt fuer die weiteren Zielsprachen wird jetzt automatisch erstellt. Du bekommst in diesem Thread Bescheid, sobald auch diese Übersetzungen fertig sind.",
+      "",
+      "• *In Phrase TMS öffnen:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "✓ *Source-check translation done!*",
+      "",
+      "• *Project:* {{PROJECT_NAME}}",
+      "• *Phrase ID:* {{PHRASE_ID}}",
+      "• *Status:* {{STATUS}}",
+      "",
+      "The child project for the remaining target languages is now being created automatically. You'll get another message in this thread once those translations are ready too.",
+      "",
+      "• *Open in Phrase TMS:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}"
+    ].join("\n")
+  },
+  MSG_PIVOT_CHILD_COMPLETED: {
+    de: [
+      "✓ *Übersetzung fertig ? bereit zum Download!*",
+      "",
+      "Beide Schritte dieses Parent-Child-Projekts sind jetzt abgeschlossen.",
+      "",
+      "• *Child-Projekt:* {{PROJECT_NAME}}",
+      "• *Phrase ID:* {{PHRASE_ID}}",
+      "• *Status:* {{STATUS}}",
+      "",
+      "Gehe zu *Meine Projekte* im Translation Services Portal um deine Dateien herunterzuladen ? klappe den Projekt-Container auf, um Source-Check und Translation getrennt zu sehen.",
+      "",
+      "• *In Phrase TMS öffnen:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "✓ *Translation complete ? ready to download!*",
+      "",
+      "Both steps of this parent-child project are now finished.",
+      "",
+      "• *Child project:* {{PROJECT_NAME}}",
+      "• *Phrase ID:* {{PHRASE_ID}}",
+      "• *Status:* {{STATUS}}",
+      "",
+      "Go to *My Projects* in the Translation Services Portal to download your files ? expand the project container to see the Source-Check and Translation steps separately.",
+      "",
+      "• *Open in Phrase TMS:* {{PHRASE_URL}}",
+      "• *Translation Services Portal:* {{PORTAL_URL}}"
+    ].join("\n")
+  },
   MSG_SHARED: {
     de: [
       "\u2022 *Ein Projekt wurde mit dir geteilt*",
