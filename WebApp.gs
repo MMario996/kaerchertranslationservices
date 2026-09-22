@@ -442,6 +442,11 @@ function apiSyncProjectStatuses() {
       }
     }
 
+    // Nochmal ausfuehren: Parent-Zeilen, die WAEHREND dieses Laufs gerade erst
+    // auf WAITING_CHILD gewechselt sind, wurden vom Aufruf am Anfang dieser
+    // Funktion noch nicht erfasst.
+    try { pivotDiscoverAndTrackChildren_(); } catch (e) { console.warn("pivotDiscoverAndTrackChildren_ (2nd pass) failed: " + e.message); }
+
     if (updated > 0) SpreadsheetApp.flush();
     return { success: true, updated, message: `${updated} project(s) updated.` };
 
