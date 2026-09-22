@@ -256,6 +256,14 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
   var templateName  = String(row[18] || "").trim();
   var dueDate       = row[12] || "";
 
+  // WICHTIG: erst verlinken (CHILD_LINKED), DANN die Child-Zeile anlegen -
+  // pivotCreateChildQueueRow_ prueft den Live-Status des Childs sofort mit
+  // und kann den Parent-Status direkt weiter auf DONE setzen (falls das
+  // Child beim Entdecken schon fertig war). In umgekehrter Reihenfolge
+  // wuerde dieses "state: CHILD_LINKED" den zuvor gesetzten "DONE"-Status
+  // wieder ueberschreiben.
+  pivotWriteRow_(sh, rowNum, cols, { link: child.uid, state: PIVOT_STATE_CHILD_LINKED_ });
+
   pivotCreateChildQueueRow_(sh, {
     ownerEmail:   rowUser,
     sharedWith:   sharedWith,
@@ -263,8 +271,6 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
     dueDate:      dueDate,
     parentUid:    parentUid
   }, child);
-
-  pivotWriteRow_(sh, rowNum, cols, { link: child.uid, state: PIVOT_STATE_CHILD_LINKED_ });
 
   console.log("• Pivot: Child-Projekt gefunden fuer Parent " + parentUid + " ? " + child.uid + " (\"" + childName + "\")");
 }
@@ -278,6 +284,14 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
 function pivotCreateChildQueueRow_(sh, parentInfo, child) {
   var targetLangs = Array.isArray(child.targetLangs) ? child.targetLangs.join(", ") : "";
 
+  // WICHTIG: Status hier IMMER als Platzhalter "NEW" anlegen, NIE mit dem
+  // tatsaechlichen (moeglicherweise schon fertigen) Live-Status aus Phrase.
+  // Die Completion-Meldung wird nur bei einem WECHSEL auf COMPLETED/DELIVERED
+  // ausgeloest - stuende hier direkt der echte (schon fertige) Status drin,
+  // gaebe es nie einen erkennbaren Wechsel und die finale Meldung wuerde nie
+  // verschickt (genau das ist live so aufgefallen: Child war beim Entdecken
+  // schon COMPLETED). Der echte Status wird direkt im Anschluss ueber
+  // pivotHandleStatusChange_ nachgezogen, inkl. Completion-Check.
   var row = [
     new Date().toISOString(),       // Timestamp
     parentInfo.ownerEmail,          // User
@@ -286,7 +300,7 @@ function pivotCreateChildQueueRow_(sh, parentInfo, child) {
     child.name,                     // Dateiname (Fallback)
     "",                             // Mime
     targetLangs,                    // Target Langs
-    String(child.status || "NEW"),  // Status
+    "NEW",                          // Status (Platzhalter, siehe oben)
     "[]",                           // Job UIDs (werden bei Bedarf ueber Phrase nachgeladen)
     "",                             // (frei)
     "",                             // (frei)
@@ -304,6 +318,16 @@ function pivotCreateChildQueueRow_(sh, parentInfo, child) {
   var newRowNum = sh.getLastRow();
   var cols = pivotColumnsCached_(sh);
   pivotWriteRow_(sh, newRowNum, cols, { role: "CHILD", link: parentInfo.parentUid, state: "" });
+
+  // Echten Status sofort nachziehen (schreibt die korrekte Statuszelle UND
+  // loest die Completion-Meldung aus, falls das Child beim Entdecken schon
+  // fertig war).
+  var realStatus = String(child.status || "NEW").trim().toUpperCase();
+  try {
+    pivotHandleStatusChange_(sh, newRowNum, row, realStatus, "NEW");
+  } catch (e) {
+    console.warn("⚠ Pivot: initiale Status-Pruefung fuer neues Child fehlgeschlagen: " + e.message);
+  }
 }
 
 /**
