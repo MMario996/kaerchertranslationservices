@@ -59,6 +59,12 @@ function apiCreateProjectAndUpload(payload) {
   const dueDate = payload.dueDate || payload.dateDue || "";
   const campusReviewType = String(payload.campusReviewType || "").trim();
 
+  // Pivot (Job-based-Trigger) Parent-Projekt: der Orchestrator-Workflow
+  // reagiert nur, wenn das Notizfeld "Child Project Creation" enthaelt -
+  // eine eigene Notiz des Einreichers darf diesen Marker nicht verdraengen.
+  const isPivot   = isPivotTemplateName_(payload.templateName || "");
+  const noteToSend = isPivot ? pivotBuildNote_(note) : note;
+
   if (!templateUid && !payload.targetUidMap)    return { ok: false, error: "Template missing." };
   if (!projectName)                             return { ok: false, error: "Project name missing." };
   if (!sourceLang)                              return { ok: false, error: "Source language missing." };
@@ -133,7 +139,7 @@ function apiCreateProjectAndUpload(payload) {
         name:        groupProjectName,
         sourceLang:  sourceLang,
         targetLangs: groupLangs,
-        note:        note,
+        note:        noteToSend,
         dateDue:     dueDate || undefined
       });
       phraseSetProjectCreator_(projectUid, userEmail);
@@ -281,7 +287,7 @@ function apiCreateProjectAndUpload(payload) {
 
       const noteLine = note ? "📝 *Note:* " + note + "\n" : "";
 
-      const projectMsg = fillTemplate_(getMessageTemplate_("MSG_PROJECT_SUBMITTED", "en"), {
+      const projectMsg = fillTemplate_(getMessageTemplate_(isPivot ? "MSG_PIVOT_PROJECT_SUBMITTED" : "MSG_PROJECT_SUBMITTED", "en"), {
         PROJECT_NAME:  projectName + (totalGroups > 1 ? " (Multiple Projects)" : ""),
         TEMPLATE_NAME: payload.templateName || "Mixed",
         SOURCE_LANG:   sourceLang,
@@ -322,6 +328,11 @@ function apiCreateProjectAndUpload(payload) {
     queueRowsToAppend.forEach(row => {
       row[19] = threadId;
       sh.appendRow(row);
+      if (isPivot) {
+        try { pivotTagNewParentRow_(sh, sh.getLastRow()); } catch (e) {
+          console.warn("pivotTagNewParentRow_ failed:", e.message);
+        }
+      }
     });
   }
 

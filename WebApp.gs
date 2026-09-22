@@ -360,6 +360,9 @@ function apiSyncProjectStatuses() {
 
   try {
     const sh   = getQueueSheet_();
+
+    try { pivotDiscoverAndTrackChildren_(); } catch (e) { console.warn("pivotDiscoverAndTrackChildren_ failed: " + e.message); }
+
     const data = sh.getDataRange().getValues();
     if (data.length < 2) return { success: true, updated: 0, message: "No rows to sync." };
 
@@ -388,6 +391,16 @@ function apiSyncProjectStatuses() {
 
         const newStatus = result && result.status ? String(result.status).toUpperCase() : "";
         if (!newStatus || newStatus === currentStatus) continue;
+
+        // Pivot (Job-based-Trigger) Parent/Child-Zeilen: eigene
+        // Benachrichtigungslogik statt der normalen Completion-Behandlung
+        // unten (siehe PivotProjects.gs) - der Thread darf nach dem
+        // Parent-Abschluss nicht geschlossen werden.
+        let pivotHandled = false;
+        try { pivotHandled = pivotHandleStatusChange_(sh, i + 1, row, newStatus, currentStatus); } catch (e) {
+          console.warn("pivotHandleStatusChange_ failed for " + projectUid + ": " + e.message);
+        }
+        if (pivotHandled) { updated++; continue; }
 
         sh.getRange(i + 1, 8).setValue(newStatus);
         updated++;
@@ -879,6 +892,8 @@ function readQueueRows_() {
     const dueDate     = pick(row, ["duedate","due date","deadline"], 12);
     const sharedWith  = pick(row, ["sharedwith","shared with","shared"], 17);
     const templateName = pick(row, ["templatename","template name","template"], null);
+    const pivotRole  = pick(row, ["pivot role"], null);
+    const pivotLink  = pick(row, ["pivot link"], null);
 
     const jobMappingRaw = pick(row, ["jobmapping"], 20);
     const jobMapping = (() => {
@@ -930,7 +945,9 @@ function readQueueRows_() {
       status:       String(status || ""),
       dueDate:      dueDate || "",
       sharedWith:   String(sharedWith || "").trim(),
-      jobMapping:   jobMapping
+      jobMapping:   jobMapping,
+      pivotRole:    String(pivotRole || "").trim(),
+      pivotLink:    String(pivotLink || "").trim()
     });
   }
 
