@@ -307,31 +307,53 @@ function pivotCreateChildQueueRow_(sh, parentInfo, child) {
 }
 
 /**
- * Sucht ein Phrase-Projekt mit EXAKT passendem Namen. Nutzt v2 /projects mit
- * dem "name"-Filter als (best-effort) Server-Vorfilter und prueft das
- * Ergebnis zusaetzlich clientseitig auf exakte Gleichheit, falls der Filter
- * von Phrase nur als Teilstring-Suche behandelt wird.
+ * Sucht ein Phrase-Projekt mit EXAKT passendem Namen.
+ *
+ * WICHTIG: /projects mit einem "name"-Query-Param wurde live getestet und
+ * findet ein frisch erstelltes Projekt NICHT (Phrase ignoriert diesen Filter
+ * offenbar still - siehe auch den Kommentar in KeCProjects.gs zu
+ * clientId/domainId/businessUnitId, die genauso ignoriert werden). Ein
+ * ungefilterter Scan ueber ALLE Projekte ist bei mehreren tausend
+ * historischen Projekten nicht praktikabel.
+ *
+ * Stattdessen: dasselbe NACHWEISLICH funktionierende Muster wie
+ * KeCProjects.gs (apiGetEligibleKeCProjects) - v1 /projects mit
+ * "statuses=..." serverseitig gefiltert, dann paginiert komplett
+ * durchsucht und clientseitig exakt auf den Namen geprueft. Ein frisch vom
+ * Orchestrator erstelltes Child-Projekt steht praktisch immer in einem
+ * dieser fruehen Status.
  */
+var PIVOT_CHILD_SEARCH_STATUSES_ = ["NEW", "ASSIGNED", "COMPLETED", "DELIVERED"];
+
 function pivotFindProjectByExactName_(exactName) {
+  for (var s = 0; s < PIVOT_CHILD_SEARCH_STATUSES_.length; s++) {
+    var found = pivotSearchProjectsByStatus_(exactName, PIVOT_CHILD_SEARCH_STATUSES_[s]);
+    if (found) return found;
+  }
+  return null;
+}
+
+function pivotSearchProjectsByStatus_(exactName, status) {
   var authHeader = { Authorization: getPhraseAuthHeader_() };
   var pageNumber = 0;
   var pageSize   = 50;
-  var maxPages   = 20; // Sicherheitslimit, siehe KeCProjects.gs fuer das gleiche Muster
+  var maxPages   = 20; // je Status - Sicherheitslimit wie in KeCProjects.gs
 
   while (pageNumber < maxPages) {
-    var url = phraseApiUrlV2_(
-      "/projects?name=" + encodeURIComponent(exactName) +
+    var url = phraseApiUrlV1_(
+      "/projects?statuses=" + encodeURIComponent(status) +
       "&pageNumber=" + pageNumber + "&pageSize=" + pageSize
     );
     var res;
     try {
       res = phraseFetchJson_(url, { method: "get", headers: authHeader });
     } catch (e) {
-      console.warn("⚠ pivotFindProjectByExactName_ fehlgeschlagen: " + e.message);
+      console.warn("⚠ pivotSearchProjectsByStatus_ (" + status + ") fehlgeschlagen: " + e.message);
       return null;
     }
 
-    var page = (res && Array.isArray(res.content)) ? res.content : (Array.isArray(res) ? res : []);
+    // v1 gibt teils ein Array direkt zurueck, teils {content:[...]} - siehe KeCProjects.gs
+    var page = Array.isArray(res) ? res : (res && Array.isArray(res.content) ? res.content : []);
     if (!page.length) break;
 
     for (var i = 0; i < page.length; i++) {
@@ -408,5 +430,58 @@ function pivotHandleChildCompletion_(sh, childRowNum, childRow, newStatus, curre
 
     console.log("• Pivot: Child " + childProjectUid + " fertig - Parent-Thread abgeschlossen (" + parentUid + ").");
     return;
+  }
+}
+
+// ============================================================================
+// Debug / Test-Helfer (im Apps Script Editor direkt ausfuehrbar)
+// ============================================================================
+
+/**
+ * Testet die Child-Suche direkt gegen Phrase, ohne auf einen Sync-Lauf zu
+ * warten. Im Apps Script Editor: Funktion auswaehlen -> Run, dann Logger-
+ * Ausgabe (Ausfuehrungsprotokoll) pruefen. Name exakt wie in Phrase, inkl.
+ * " (a Child)"-Suffix falls direkt nach dem Child gesucht wird.
+ */
+function testPivotFindChild_(exactName) {
+  var name = String(exactName || "Unterlagen 57899760 (a Child)").trim();
+  var result = pivotFindProjectByExactName_(name);
+  console.log("Suche nach: \"" + name + "\"");
+  console.log("Ergebnis: " + (result ? JSON.stringify(result) : "NICHT GEFUNDEN"));
+  return result;
+}
+
+/**
+ * Admin-API-Variante von testPivotFindChild_ fuer Aufrufe ausserhalb des
+ * Apps Script Editors (z.B. spaeter aus einer Admin-UI).
+ */
+function apiDebugPivotFindChild(exactName) {
+  var caller = getUserEmail_();
+  if (!isAdmin_(caller)) throw new Error("Not authorized. Admin only.");
+  var name = String(exactName || "").trim();
+  if (!name) throw new Error("Name fehlt.");
+  var result = pivotFindProjectByExactName_(name);
+  return { success: true, found: !!result, project: result };
+}
+
+/**
+ * Zeigt den aktuellen Pivot-Zustand aller PARENT-Zeilen im Queue-Sheet
+ * (Role/State/Link) fuers schnelle Debuggen im Apps Script Editor.
+ */
+function debugPivotQueueState_() {
+  var sh = getQueueSheet_();
+  var data = sh.getDataRange().getValues();
+  var cols = pivotColumnsCached_(sh);
+  for (var i = 1; i < data.length; i++) {
+    var role = String(data[i][cols.role - 1] || "").trim();
+    if (!role) continue;
+    var name = String(data[i][11] || data[i][4] || data[i][2] || "").trim();
+    console.log(
+      "Zeile " + (i + 1) + ": " + role +
+      " | Name: " + name +
+      " | UID: " + data[i][2] +
+      " | State: " + String(data[i][cols.state - 1] || "") +
+      " | Link: " + String(data[i][cols.link - 1] || "")
+    );
   }
 }
