@@ -89,6 +89,12 @@ function apiHandleUpload(payload) {
 function apiGetMyProjects() {
   const ctx  = getUserContext_();
   const rows = readQueueRows_();
+  // WOMA-Whitelist-User sollen Projekte, die ueber die "WOMA Projects"-Seite
+  // eingereicht wurden, untereinander sehen (Team-Sichtbarkeit), ohne dass
+  // jedes Projekt manuell per "Share with Colleague" freigegeben werden muss.
+  // Nur WOMA-User selbst koennen ueber diese Seite einreichen (isExclusive),
+  // Eigentuemer in der WOMA-Whitelist reicht daher als Kriterium.
+  const isWomaCaller = isWomaUser_(ctx.userEmail);
 
   const filtered = rows.filter(r => {
     if (ctx.isAdmin) return true;
@@ -97,7 +103,12 @@ function apiGetMyProjects() {
       const parts = r.sharedWith.split(/[;,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
       if (parts.includes(ctx.userEmail)) return true;
     }
+    if (isWomaCaller && isWomaUser_(r.owner)) return true;
     return false;
+  });
+
+  filtered.forEach(r => {
+    r.groupShared = isWomaCaller && r.owner !== ctx.userEmail && isWomaUser_(r.owner);
   });
 
   filtered.sort((a, b) => {

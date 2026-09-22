@@ -5414,7 +5414,9 @@ function fillTable(projects) {
     let shText=p.isShared?(p.owner===configData.currentUser
       ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">Shared with<br>${p.sharedWith}</span>`
       :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">Shared by<br>${p.owner}</span>`
-    ):"-";
+    ):(p.groupShared
+      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">WOMA Team<br>${p.owner}</span>`
+      :"-");
 
     const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
       ?`<div style="width:36px;display:inline-block;"></div>`
@@ -5511,7 +5513,7 @@ function globalSearch() {
   if (filterVal === 'own') {
       filtered = filtered.filter(p => p.owner === currentUser);
   } else if (filterVal === 'shared') {
-      filtered = filtered.filter(p => p.owner !== currentUser && (p.sharedWith || '').toLowerCase().includes(currentUser));
+      filtered = filtered.filter(p => p.owner !== currentUser && ((p.sharedWith || '').toLowerCase().includes(currentUser) || p.groupShared));
   }
 
   if (q) {
