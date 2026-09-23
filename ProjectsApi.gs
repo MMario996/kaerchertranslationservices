@@ -562,7 +562,13 @@ function phraseCreateProjectFromTemplate_(templateUid, options) {
  */
 function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptional) {
   const mem = {
-    targetLangs: Array.isArray(targetLangs) ? targetLangs : String(targetLangs || "").split(",").map(s => s.trim()).filter(Boolean)
+    targetLangs: Array.isArray(targetLangs) ? targetLangs : String(targetLangs || "").split(",").map(s => s.trim()).filter(Boolean),
+    // Ohne dieses Flag ignoriert Phrase die im Projekt/Template hinterlegten
+    // File-Import-Settings (z.B. Multilingual-Excel-Filter mit Context-Note-
+    // Spalte) und importiert stattdessen mit den API-Defaults - dadurch
+    // wurden z.B. Context-Note-URLs nicht uebernommen, obwohl das Template
+    // korrekt konfiguriert war.
+    useProjectFileImportSettings: true
   };
   if (dueIsoOptional) mem.due = dueIsoOptional;
 
