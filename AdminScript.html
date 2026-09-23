@@ -227,7 +227,7 @@ function toggleAdminHelp(id) {
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
       if (name === 'custompages') loadCustomPages();
-      if (name === 'pivot') { loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapValueDropdown_(); }
+      if (name === 'pivot') { loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapDatalist_(); populatePivotLangMapValueDatalist_(); }
     }
     function loadTemplateManager() {
       document.getElementById('tmplMgrLoading').style.display = 'block';
@@ -990,7 +990,6 @@ function toggleAdminHelp(id) {
               return;
             }
             renderPivotLinksTable(res.links || []);
-            populatePivotLangMapLangDropdown_(res.links || []);
           })
           .withFailureHandler(err => {
             if (loading) loading.style.display = 'none';
@@ -1003,30 +1002,34 @@ function toggleAdminHelp(id) {
     // Sprachen-Mapping ("Pivot languages" Custom Field)
     // ============================================================================
 
-    /** Fuellt das "Phrase-Sprache"-Dropdown mit der Vereinigung aller Zielsprachen der verlinkten Child-Templates. */
-    function populatePivotLangMapLangDropdown_(links) {
-        const sel = document.getElementById('newPivotLangMapLang');
-        if (!sel) return;
-        const codes = [];
-        (links || []).forEach(l => (l.childTargetLangs || []).forEach(c => { if (codes.indexOf(c) === -1) codes.push(c); }));
-        codes.sort();
-        sel.innerHTML = codes.length
-          ? codes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(getPrettyLangName(c))} (${escapeHtml(c)})</option>`).join('')
-          : '<option value="">-- erst Child-Templates verknuepfen --</option>';
+    /**
+     * Fuellt die Sprach-Datalist mit ALLEN bekannten Sprachen (PRETTY_LANG_MAP,
+     * dieselbe Liste wie im Upload-Formular) als Vorschlaege - das Feld selbst
+     * ist ein freies Textfeld, admin kann also jederzeit auch einen eigenen,
+     * dort nicht gelisteten Sprachcode eintippen.
+     */
+    function populatePivotLangMapDatalist_() {
+        const dl = document.getElementById('pivotLangMapLangDatalist');
+        if (!dl || typeof PRETTY_LANG_MAP === 'undefined') return;
+        const codes = Object.keys(PRETTY_LANG_MAP).sort();
+        dl.innerHTML = codes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(PRETTY_LANG_MAP[c])}</option>`).join('');
     }
 
-    /** Fuellt das "Options-Wert"-Dropdown mit den vollstaendigen Optionen des "Pivot languages"-Custom-Fields. */
-    function populatePivotLangMapValueDropdown_() {
-        const sel = document.getElementById('newPivotLangMapValue');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">Loading...</option>';
+    /**
+     * Fuellt die Options-Wert-Datalist mit den vollstaendigen Optionen des
+     * "Pivot languages"-Custom-Fields als Vorschlaege - auch hier ein freies
+     * Textfeld, falls ein Options-Wert (noch) nicht ueber die API auftaucht
+     * oder ein eigener/neuer Kuerzel eingetragen werden soll.
+     */
+    function populatePivotLangMapValueDatalist_() {
+        const dl = document.getElementById('pivotLangMapValueDatalist');
+        if (!dl) return;
         google.script.run
           .withSuccessHandler(res => {
-            if (!res.success) { sel.innerHTML = '<option value="">' + escapeHtml(res.error || 'Error') + '</option>'; return; }
-            sel.innerHTML = (res.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')
-              || '<option value="">Keine Optionen gefunden</option>';
+            if (!res.success) return;
+            dl.innerHTML = (res.options || []).map(o => `<option value="${escapeHtml(o)}">`).join('');
           })
-          .withFailureHandler(err => { sel.innerHTML = '<option value="">Error: ' + escapeHtml(err.message) + '</option>'; })
+          .withFailureHandler(() => {})
           .apiGetPivotFieldOptionValues();
     }
 
@@ -1139,7 +1142,6 @@ function toggleAdminHelp(id) {
             if (parentInput) parentInput.value = '';
             if (childInput) childInput.value = '';
             renderPivotLinksTable(res.links || []);
-            populatePivotLangMapLangDropdown_(res.links || []);
 
             // Nach dem Speichern direkt zu beiden Templates springen - Browser
             // blocken das ggf. als Popup (google.script.run ist async, also
@@ -1161,7 +1163,6 @@ function toggleAdminHelp(id) {
               .withSuccessHandler(res => {
                 if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
                 renderPivotLinksTable(res.links || []);
-                populatePivotLangMapLangDropdown_(res.links || []);
               })
               .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
               .apiRemovePivotTemplateLink(parentUid, childUid);

@@ -781,12 +781,14 @@
           <div class="section-title" style="font-size:14px;">Neue Zuordnung anlegen</div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
             <div class="form-row" style="flex:1;min-width:220px;">
-              <label style="font-size:12px;">Phrase-Sprache</label>
-              <select id="newPivotLangMapLang" style="height:40px;"></select>
+              <label style="font-size:12px;">Phrase-Sprache (Code, z.B. "de" oder "en_gb")</label>
+              <input type="text" id="newPivotLangMapLang" list="pivotLangMapLangDatalist" placeholder="Sprachcode eingeben oder aus Liste waehlen..." style="height:40px;">
+              <datalist id="pivotLangMapLangDatalist"></datalist>
             </div>
             <div class="form-row" style="flex:1;min-width:220px;">
               <label style="font-size:12px;">Options-Wert im Custom Field</label>
-              <select id="newPivotLangMapValue" style="height:40px;"></select>
+              <input type="text" id="newPivotLangMapValue" list="pivotLangMapValueDatalist" placeholder="Options-Wert eingeben oder aus Liste waehlen..." style="height:40px;">
+              <datalist id="pivotLangMapValueDatalist"></datalist>
             </div>
             <button class="btn btn-primary" style="width:auto;padding:0 25px;height:40px;" onclick="savePivotLanguageMapping()">
               <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>ZUORDNEN

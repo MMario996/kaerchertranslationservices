@@ -131,10 +131,14 @@ function apiRemovePivotTemplateLink(parentTemplateUid, childTemplateUid) {
 /**
  * Liefert die Zielsprachen, die im Upload-Formular fuer ein gewaehltes
  * Pivot-Parent-Template zur Auswahl stehen sollen - die Vereinigung der
- * Zielsprachen aller admin-verlinkten Child-Templates. Fragt die Child-
- * Sprachen LIVE bei Phrase ab (gecacht, siehe phraseGetProjectTemplateDetails_),
- * damit eine nachtraegliche Aenderung am Child-Template in Phrase (neue
- * Zielsprache) nicht erst manuell im Sheet nachgepflegt werden muss.
+ * Zielsprachen aller admin-verlinkten Child-Templates, EINGESCHRAENKT auf
+ * die Sprachen, fuer die auch ein Sprachen-Mapping existiert (siehe
+ * PivotLanguageMap.gs) - sonst koennte der Nutzer eine Sprache waehlen, die
+ * beim Absenden stillschweigend nicht ins "Pivot languages"-Custom-Field
+ * geschrieben wird. Fragt die Child-Sprachen LIVE bei Phrase ab (gecacht,
+ * siehe phraseGetProjectTemplateDetails_), damit eine nachtraegliche
+ * Aenderung am Child-Template in Phrase (neue Zielsprache) nicht erst
+ * manuell im Sheet nachgepflegt werden muss.
  * @return {{ok:boolean, sourceLang:string, targets:string[], childUidMap:Object, error:string}}
  */
 function apiGetPivotChildLanguageOptions(parentTemplateUid) {
@@ -173,7 +177,24 @@ function apiGetPivotChildLanguageOptions(parentTemplateUid) {
       return { ok: false, error: "Keine Zielsprachen bei den verlinkten Child-Templates gefunden." };
     }
 
-    return { ok: true, sourceLang: sourceLang, targets: targets, childUidMap: childUidMap };
+    // Nur Sprachen anbieten, fuer die auch ein Sprachen-Mapping (Admin -> Pivot
+    // Templates -> Sprachen-Mapping) existiert - sonst waere eine Auswahl im
+    // Formular moeglich, die beim Absenden stillschweigend ignoriert wird
+    // (phraseSetProjectMultiSelectFieldByName_ kann die Sprache dann nicht auf
+    // einen Options-Wert des "Pivot languages"-Custom-Fields aufloesen).
+    var langMap = pivotLangMapAsObject_();
+    var mappedTargets = targets.filter(function (l) { return !!langMap[String(l).toLowerCase()]; });
+
+    if (!mappedTargets.length) {
+      return {
+        ok: false,
+        error: "Zielsprachen gefunden (" + targets.join(", ") + "), aber noch keine davon ist im Sprachen-Mapping " +
+          "hinterlegt (Admin -> Pivot Templates -> Sprachen-Mapping) - ohne Mapping wuerde die Auswahl beim " +
+          "Absenden stillschweigend ignoriert. Bitte dort mindestens eine dieser Sprachen zuordnen."
+      };
+    }
+
+    return { ok: true, sourceLang: sourceLang, targets: mappedTargets, childUidMap: childUidMap };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   }
