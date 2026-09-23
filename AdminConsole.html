@@ -202,6 +202,9 @@
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabCustompages" style="width:auto;"> Eigene Reiter
                         </label>
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
+                            <input type="checkbox" id="adminLightSubtabPivot" style="width:auto;"> Pivot Templates
+                        </label>
                         <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#795548; color:#fff;" onclick="addAdminLightUser()">ADD</button>
                     </div>
                     <div id="adminLightListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
@@ -729,17 +732,23 @@
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
             <div class="form-row" style="flex:1;min-width:240px;">
               <label style="font-size:12px;">Parent-Template-UID (Source Check)</label>
-              <input type="text" id="newPivotParentUid" placeholder="z.B. zPEhSs5Z659v0Gb7UF1pe">
+              <div style="display:flex;gap:6px;">
+                <input type="text" id="newPivotParentUid" placeholder="z.B. zPEhSs5Z659v0Gb7UF1pe" style="flex:1;">
+                <button type="button" class="btn-refresh" title="Template in Phrase oeffnen" style="width:auto;padding:0 10px;" onclick="openPivotTemplateFromInput_('newPivotParentUid')"><i class="material-icons-outlined" style="font-size:16px;">open_in_new</i></button>
+              </div>
             </div>
             <div class="form-row" style="flex:1;min-width:240px;">
               <label style="font-size:12px;">Child-Template-UID (Translation)</label>
-              <input type="text" id="newPivotChildUid" placeholder="z.B. 9zPRwZ0QO4ScmGG3thbS20">
+              <div style="display:flex;gap:6px;">
+                <input type="text" id="newPivotChildUid" placeholder="z.B. 9zPRwZ0QO4ScmGG3thbS20" style="flex:1;">
+                <button type="button" class="btn-refresh" title="Template in Phrase oeffnen" style="width:auto;padding:0 10px;" onclick="openPivotTemplateFromInput_('newPivotChildUid')"><i class="material-icons-outlined" style="font-size:16px;">open_in_new</i></button>
+              </div>
             </div>
             <button class="btn btn-primary" style="width:auto;padding:0 25px;height:40px;" onclick="addPivotLink()">
               <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>VERKNUEPFEN
             </button>
           </div>
-          <div style="font-size:11px;color:#888;margin-top:8px;">Beide UIDs stehen in Phrase in der Template-URL (.../projectTemplate/edit/&lt;UID&gt;). Name und Zielsprachen werden automatisch von Phrase geholt.</div>
+          <div style="font-size:11px;color:#888;margin-top:8px;">Beide UIDs stehen in Phrase in der Template-URL (.../projectTemplate/edit/&lt;UID&gt;). Name und Zielsprachen werden automatisch von Phrase geholt. Nach dem Speichern sind Parent/Child unten in der Liste direkt anklickbar.</div>
         </div>
 
         <div id="pivotLinksLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
@@ -756,6 +765,47 @@
             </thead>
             <tbody id="pivotLinksTableBody">
               <tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-title" style="font-size:18px;margin-top:35px;">Sprachen-Mapping ("Pivot languages" Custom Field)</div>
+        <div style="font-size:12px;color:#888;margin-bottom:15px;line-height:1.6;">
+          Das Phrase-Custom-Field <strong>"Pivot languages"</strong> nutzt eigene, kurze Options-Codes (z.B. "DE", "EN"), die
+          NICHT mit unseren Phrase-Sprachcodes (z.B. "de", "en_gb") uebereinstimmen. Ohne Mapping kann die im Formular
+          gewaehlte Translation-Zielsprache nicht ins Feld geschrieben werden. Hier je Sprache den passenden Options-Wert
+          zuordnen - nur fuer Sprachen noetig, die tatsaechlich als Pivot-Ziel vorkommen sollen.
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="section-title" style="font-size:14px;">Neue Zuordnung anlegen</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="form-row" style="flex:1;min-width:220px;">
+              <label style="font-size:12px;">Phrase-Sprache</label>
+              <select id="newPivotLangMapLang" style="height:40px;"></select>
+            </div>
+            <div class="form-row" style="flex:1;min-width:220px;">
+              <label style="font-size:12px;">Options-Wert im Custom Field</label>
+              <select id="newPivotLangMapValue" style="height:40px;"></select>
+            </div>
+            <button class="btn btn-primary" style="width:auto;padding:0 25px;height:40px;" onclick="savePivotLanguageMapping()">
+              <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>ZUORDNEN
+            </button>
+          </div>
+        </div>
+
+        <div id="pivotLangMapLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
+        <div class="modern-table-wrap">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Phrase-Sprache</th>
+                <th>Options-Wert</th>
+                <th style="text-align:right;">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="pivotLangMapTableBody">
+              <tr><td colspan="3" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
             </tbody>
           </table>
         </div>

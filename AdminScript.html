@@ -227,7 +227,7 @@ function toggleAdminHelp(id) {
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
       if (name === 'custompages') loadCustomPages();
-      if (name === 'pivot') loadPivotLinks();
+      if (name === 'pivot') { loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapValueDropdown_(); }
     }
     function loadTemplateManager() {
       document.getElementById('tmplMgrLoading').style.display = 'block';
@@ -990,12 +990,121 @@ function toggleAdminHelp(id) {
               return;
             }
             renderPivotLinksTable(res.links || []);
+            populatePivotLangMapLangDropdown_(res.links || []);
           })
           .withFailureHandler(err => {
             if (loading) loading.style.display = 'none';
             tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
           })
           .apiGetPivotTemplateLinks();
+    }
+
+    // ============================================================================
+    // Sprachen-Mapping ("Pivot languages" Custom Field)
+    // ============================================================================
+
+    /** Fuellt das "Phrase-Sprache"-Dropdown mit der Vereinigung aller Zielsprachen der verlinkten Child-Templates. */
+    function populatePivotLangMapLangDropdown_(links) {
+        const sel = document.getElementById('newPivotLangMapLang');
+        if (!sel) return;
+        const codes = [];
+        (links || []).forEach(l => (l.childTargetLangs || []).forEach(c => { if (codes.indexOf(c) === -1) codes.push(c); }));
+        codes.sort();
+        sel.innerHTML = codes.length
+          ? codes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(getPrettyLangName(c))} (${escapeHtml(c)})</option>`).join('')
+          : '<option value="">-- erst Child-Templates verknuepfen --</option>';
+    }
+
+    /** Fuellt das "Options-Wert"-Dropdown mit den vollstaendigen Optionen des "Pivot languages"-Custom-Fields. */
+    function populatePivotLangMapValueDropdown_() {
+        const sel = document.getElementById('newPivotLangMapValue');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Loading...</option>';
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.success) { sel.innerHTML = '<option value="">' + escapeHtml(res.error || 'Error') + '</option>'; return; }
+            sel.innerHTML = (res.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')
+              || '<option value="">Keine Optionen gefunden</option>';
+          })
+          .withFailureHandler(err => { sel.innerHTML = '<option value="">Error: ' + escapeHtml(err.message) + '</option>'; })
+          .apiGetPivotFieldOptionValues();
+    }
+
+    function loadPivotLanguageMap() {
+        const tbody = document.getElementById('pivotLangMapTableBody');
+        const loading = document.getElementById('pivotLangMapLoading');
+        if (!tbody) return;
+        if (loading) loading.style.display = 'block';
+        google.script.run
+          .withSuccessHandler(res => {
+            if (loading) loading.style.display = 'none';
+            if (!res.success) {
+              tbody.innerHTML = '<tr><td colspan="3" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
+              return;
+            }
+            renderPivotLanguageMapTable(res.map || []);
+          })
+          .withFailureHandler(err => {
+            if (loading) loading.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="3" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
+          })
+          .apiGetPivotLanguageMap();
+    }
+
+    function renderPivotLanguageMapTable(map) {
+        const tbody = document.getElementById('pivotLangMapTableBody');
+        if (!tbody) return;
+        if (!map.length) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px;">Noch keine Zuordnungen angelegt.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = map.map(m => `
+          <tr>
+            <td><strong>${escapeHtml(getPrettyLangName(m.langCode))}</strong> <span style="color:#888;font-size:11px;">(${escapeHtml(m.langCode)})</span></td>
+            <td><code>${escapeHtml(m.optionValue)}</code></td>
+            <td style="text-align:right;white-space:nowrap;">
+              <span class="material-icons-outlined icon-btn-danger" title="Zuordnung entfernen" style="cursor:pointer;" onclick="removePivotLanguageMapping('${escapeJs(m.langCode)}')">delete</span>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    function savePivotLanguageMapping() {
+        const langSel = document.getElementById('newPivotLangMapLang');
+        const valSel  = document.getElementById('newPivotLangMapValue');
+        const lang = langSel ? langSel.value : '';
+        const val  = valSel  ? valSel.value  : '';
+        if (!lang || !val) { showCustomAlert('Bitte beide Felder auswaehlen.', 'Hinweis'); return; }
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
+            renderPivotLanguageMapTable(res.map || []);
+          })
+          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
+          .apiSetPivotLanguageMapping(lang, val);
+    }
+
+    function removePivotLanguageMapping(langCode) {
+        showCustomConfirm('Diese Zuordnung wirklich entfernen?', function() {
+            google.script.run
+              .withSuccessHandler(res => {
+                if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
+                renderPivotLanguageMapTable(res.map || []);
+              })
+              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
+              .apiRemovePivotLanguageMapping(langCode);
+        });
+    }
+
+    function phraseTemplateEditUrl_(uid) {
+        return 'https://cloud.memsource.com/tms/projectTemplate/edit/' + encodeURIComponent(uid);
+    }
+
+    function openPivotTemplateFromInput_(inputId) {
+        const input = document.getElementById(inputId);
+        const uid = input ? input.value.trim() : '';
+        if (!uid) { showCustomAlert('Bitte zuerst eine UID eingeben.', 'Hinweis'); return; }
+        window.open(phraseTemplateEditUrl_(uid), '_blank');
     }
 
     function renderPivotLinksTable(links) {
@@ -1007,8 +1116,8 @@ function toggleAdminHelp(id) {
         }
         tbody.innerHTML = links.map(l => `
           <tr>
-            <td><strong>${escapeHtml(l.parentName || l.parentUid)}</strong><br><code style="font-size:11px;color:#888;">${escapeHtml(l.parentUid)}</code></td>
-            <td><strong>${escapeHtml(l.childName || l.childUid)}</strong><br><code style="font-size:11px;color:#888;">${escapeHtml(l.childUid)}</code></td>
+            <td><a href="${phraseTemplateEditUrl_(l.parentUid)}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;">${escapeHtml(l.parentName || l.parentUid)}</a><br><code style="font-size:11px;color:#888;">${escapeHtml(l.parentUid)}</code></td>
+            <td><a href="${phraseTemplateEditUrl_(l.childUid)}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;">${escapeHtml(l.childName || l.childUid)}</a><br><code style="font-size:11px;color:#888;">${escapeHtml(l.childUid)}</code></td>
             <td>${escapeHtml(l.childSourceLang || '-')}</td>
             <td>${(l.childTargetLangs || []).map(t => `<span class="pill-badge role" style="margin:1px;">${escapeHtml(t)}</span>`).join('') || '-'}</td>
             <td style="text-align:right;white-space:nowrap;">
@@ -1030,6 +1139,17 @@ function toggleAdminHelp(id) {
             if (parentInput) parentInput.value = '';
             if (childInput) childInput.value = '';
             renderPivotLinksTable(res.links || []);
+            populatePivotLangMapLangDropdown_(res.links || []);
+
+            // Nach dem Speichern direkt zu beiden Templates springen - Browser
+            // blocken das ggf. als Popup (google.script.run ist async, also
+            // kein "direkter" Klick-Kontext mehr); Fallback dann ueber die
+            // anklickbaren Links in der Tabelle oben.
+            const wP = window.open(phraseTemplateEditUrl_(parentUid), '_blank');
+            const wC = window.open(phraseTemplateEditUrl_(childUid), '_blank');
+            if (!wP || !wC) {
+              showCustomAlert('Verknuepfung gespeichert. Dein Browser hat das automatische Oeffnen der Templates blockiert - bitte Pop-ups fuer diese Seite erlauben, oder die Namen in der Tabelle unten anklicken.', 'Gespeichert');
+            }
           })
           .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
           .apiAddPivotTemplateLink(parentUid, childUid);
@@ -1041,6 +1161,7 @@ function toggleAdminHelp(id) {
               .withSuccessHandler(res => {
                 if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
                 renderPivotLinksTable(res.links || []);
+                populatePivotLangMapLangDropdown_(res.links || []);
               })
               .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
               .apiRemovePivotTemplateLink(parentUid, childUid);
@@ -1083,6 +1204,7 @@ function toggleAdminHelp(id) {
         if (document.getElementById('adminLightSubtabUsers').checked) subtabs.push('users');
         if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
         if (document.getElementById('adminLightSubtabCustompages').checked) subtabs.push('custompages');
+        if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
         if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
         google.script.run
           .withSuccessHandler(r => {
@@ -1091,6 +1213,7 @@ function toggleAdminHelp(id) {
             document.getElementById('adminLightSubtabUsers').checked = false;
             document.getElementById('adminLightSubtabTemplates').checked = false;
             document.getElementById('adminLightSubtabCustompages').checked = false;
+            document.getElementById('adminLightSubtabPivot').checked = false;
             loadAdminLightUsers();
           })
           .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
