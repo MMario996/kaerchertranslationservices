@@ -41,17 +41,30 @@ var XDR_NS_ = XmlService.getNamespace("xdr", "http://schemas.openxmlformats.org/
 var XDRA_NS_ = XmlService.getNamespace("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 var XDRR_NS_ = XmlService.getNamespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
 
+var CONTEXT_IMAGE_FIREBASE_SITE_ = "kaercher-course-preview";
+
+/**
+ * Admin-gategter Wrapper um _hostSheetImagesForContextNotes_ - fuer manuelle
+ * Tests/Debugging im Apps-Script-Editor (siehe testHostContextImagesTicket243154
+ * unten). Der eigentliche, automatische Aufruf beim Projekt-Einreichen (siehe
+ * maybeInjectContextImageNotes_ in Upload.gs) laeuft fuer normale Nutzer und
+ * ruft deshalb direkt die interne Funktion ohne Admin-Check auf.
+ */
+function apiHostSheetImagesForContextNotes(spreadsheetId, sheetName, siteId, urlColumn) {
+  var caller = getUserEmail_();
+  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  return _hostSheetImagesForContextNotes_(spreadsheetId, sheetName, siteId, urlColumn, caller);
+}
+
 /**
  * @param {string} spreadsheetId Google-Sheet-ID (aus der Sheet-URL)
  * @param {string} [sheetName]   Tabellenblatt-Name; leer = erstes Blatt (Tab-Reihenfolge)
  * @param {string} siteId        Firebase-Hosting-Site-ID (z.B. "kaercher-course-preview")
  * @param {number} [urlColumn]   1-basierte Zielspalte fuer die URLs; leer = naechste freie Spalte
+ * @param {string} [auditEmail]  Fuer's Audit-Log; faellt sonst auf getUserEmail_() zurueck
  * @return {Object} {success, count, column, results:[{row, imageUrl}], error}
  */
-function apiHostSheetImagesForContextNotes(spreadsheetId, sheetName, siteId, urlColumn) {
-  var caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
-
+function _hostSheetImagesForContextNotes_(spreadsheetId, sheetName, siteId, urlColumn, auditEmail) {
   if (!spreadsheetId) return { success: false, error: "spreadsheetId missing." };
   if (!siteId) return { success: false, error: "siteId missing." };
 
@@ -92,7 +105,7 @@ function apiHostSheetImagesForContextNotes(spreadsheetId, sheetName, siteId, url
 
     var colLetter = _columnToLetter_(col);
 
-    logAuditEvent_(caller, "IMAGE_CONTEXT_HOSTING",
+    logAuditEvent_(auditEmail || getUserEmail_(), "IMAGE_CONTEXT_HOSTING",
       "Hosted " + results.length + " image(s) from sheet " + spreadsheetId + " (" + targetSheet.getName() + ") -> column " + colLetter);
 
     return { success: true, count: results.length, column: col, columnLetter: colLetter, results: results, deploy: deployResult };
@@ -303,16 +316,69 @@ function _deployBlobsToFirebaseHostingPlain_(accessToken, siteId, fileEntries, p
   return { versionName: versionName, uploadedFileCount: requiredHashes.length, totalFileCount: fileEntries.length };
 }
 
+// ============================================================================
+// Automatischer Einsatz beim Einreichen (Upload.gs -> apiCreateProjectAndUpload)
+// ============================================================================
+
+/**
+ * Ein Template gilt als "Context-Image-Template" (Phrase-Ticket #243154-
+ * Workaround), wenn sein Name das Tag "[CH]" enthaelt - analog zu
+ * isPivotTemplateName_() in PivotProjects.gs.
+ */
+function isContextImageTemplateName_(templateName) {
+  return /\[CH\]/i.test(String(templateName || ""));
+}
+
+/**
+ * Wird von apiCreateProjectAndUpload() (Upload.gs) VOR dem eigentlichen
+ * Datei-Upload aufgerufen. Fuer jede Hauptdatei, die als per Drive
+ * ausgewaehltes Google Sheet vorliegt (nicht: PC-Upload, nicht: fertige
+ * .xlsx-Datei aus Drive), werden die eingebetteten Screenshots gehostet und
+ * die URL-Spalte direkt in dieses Sheet geschrieben - BEVOR der normale
+ * Upload-Code das Sheet als .xlsx exportiert und an Phrase schickt. Der
+ * Nutzer bekommt davon nichts mit; die Datei selbst wird nicht ausgetauscht,
+ * nur ihr Inhalt (eine zusaetzliche Spalte) vor dem Export ergaenzt.
+ *
+ * Fail-safe: Jeder Fehler wird nur geloggt, NIE geworfen - eine kaputte
+ * Bilder-Extraktion darf eine normale Projekt-Einreichung nicht blockieren.
+ */
+function maybeInjectContextImageNotes_(mainFiles, templateName) {
+  if (!isContextImageTemplateName_(templateName)) return;
+  if (!Array.isArray(mainFiles)) return;
+
+  mainFiles.forEach(function (f) {
+    try {
+      var meta = resolveFileMeta_(f);
+      if (meta.source !== "drive" && meta.source !== "drivelink") return; // nur Drive-Dateien betroffen
+      if (!meta.fileId) return;
+
+      var driveFile = DriveApp.getFileById(meta.fileId);
+      if (driveFile.getMimeType() !== MimeType.GOOGLE_SHEETS) return; // PC-Uploads/fertige .xlsx bleiben unveraendert
+
+      var result = _hostSheetImagesForContextNotes_(
+        meta.fileId, null, CONTEXT_IMAGE_FIREBASE_SITE_, null, "system:" + (meta.fileName || meta.fileId)
+      );
+      if (result.success) {
+        console.log("• Context images auto-hosted for '" + driveFile.getName() + "': " +
+          result.count + " image(s) → column " + result.columnLetter);
+      } else {
+        console.log("• Context-image auto-injection skipped for '" + driveFile.getName() + "': " + result.error);
+      }
+    } catch (e) {
+      console.warn("⚠ Context-image auto-injection failed (submitting file unchanged): " + e.message);
+    }
+  });
+}
+
 /**
  * Test-/Editor-Funktion fuer Phrase-Ticket #243154: mit der von Mario
  * verlinkten Google-Sheet-Kopie der SINGLELANG_TranslationWB_TESTING_MARIO.xlsx.
- * SiteId identisch zur bestehenden SCORM-Preview-Site (Test.gs).
  */
 function testHostContextImagesTicket243154() {
   var result = apiHostSheetImagesForContextNotes(
     "1p7rfYZjPgqif9o0Bk-etUZSPKgGqyFcTARS2v5f79GE",
     null,
-    "kaercher-course-preview",
+    CONTEXT_IMAGE_FIREBASE_SITE_,
     null
   );
   Logger.log(JSON.stringify(result, null, 2));
