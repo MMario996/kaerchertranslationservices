@@ -197,7 +197,7 @@ function toggleAdminHelp(id) {
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []);
@@ -227,6 +227,7 @@ function toggleAdminHelp(id) {
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
       if (name === 'custompages') loadCustomPages();
+      if (name === 'pivot') loadPivotLinks();
     }
     function loadTemplateManager() {
       document.getElementById('tmplMgrLoading').style.display = 'block';
@@ -973,6 +974,76 @@ function toggleAdminHelp(id) {
               .withSuccessHandler(() => loadCustomPages())
               .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
               .apiAdminDeleteCustomPage(id);
+        });
+    }
+
+    function loadPivotLinks() {
+        const tbody = document.getElementById('pivotLinksTableBody');
+        const loading = document.getElementById('pivotLinksLoading');
+        if (!tbody) return;
+        if (loading) loading.style.display = 'block';
+        google.script.run
+          .withSuccessHandler(res => {
+            if (loading) loading.style.display = 'none';
+            if (!res.success) {
+              tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
+              return;
+            }
+            renderPivotLinksTable(res.links || []);
+          })
+          .withFailureHandler(err => {
+            if (loading) loading.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
+          })
+          .apiGetPivotTemplateLinks();
+    }
+
+    function renderPivotLinksTable(links) {
+        const tbody = document.getElementById('pivotLinksTableBody');
+        if (!tbody) return;
+        if (!links.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Noch keine Verknuepfungen angelegt.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = links.map(l => `
+          <tr>
+            <td><strong>${escapeHtml(l.parentName || l.parentUid)}</strong><br><code style="font-size:11px;color:#888;">${escapeHtml(l.parentUid)}</code></td>
+            <td><strong>${escapeHtml(l.childName || l.childUid)}</strong><br><code style="font-size:11px;color:#888;">${escapeHtml(l.childUid)}</code></td>
+            <td>${escapeHtml(l.childSourceLang || '-')}</td>
+            <td>${(l.childTargetLangs || []).map(t => `<span class="pill-badge role" style="margin:1px;">${escapeHtml(t)}</span>`).join('') || '-'}</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <span class="material-icons-outlined icon-btn-danger" title="Verknuepfung entfernen" style="cursor:pointer;" onclick="removePivotLink('${escapeJs(l.parentUid)}', '${escapeJs(l.childUid)}')">delete</span>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    function addPivotLink() {
+        const parentInput = document.getElementById('newPivotParentUid');
+        const childInput  = document.getElementById('newPivotChildUid');
+        const parentUid = parentInput ? parentInput.value.trim() : '';
+        const childUid  = childInput  ? childInput.value.trim()  : '';
+        if (!parentUid || !childUid) { showCustomAlert('Bitte beide UIDs eingeben.', 'Hinweis'); return; }
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
+            if (parentInput) parentInput.value = '';
+            if (childInput) childInput.value = '';
+            renderPivotLinksTable(res.links || []);
+          })
+          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
+          .apiAddPivotTemplateLink(parentUid, childUid);
+    }
+
+    function removePivotLink(parentUid, childUid) {
+        showCustomConfirm('Diese Verknuepfung wirklich entfernen?', function() {
+            google.script.run
+              .withSuccessHandler(res => {
+                if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
+                renderPivotLinksTable(res.links || []);
+              })
+              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
+              .apiRemovePivotTemplateLink(parentUid, childUid);
         });
     }
 

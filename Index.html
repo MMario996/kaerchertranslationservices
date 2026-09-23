@@ -1306,6 +1306,17 @@
                   </div>
                 </div>
               </div>
+              <div class="form-row" id="pivotTargetLangRow_{SUFFIX}" style="display:none;">
+                <label>Translation Target Language(s) <span class="required">*</span>
+                  <span style="font-size:11px;color:#888;font-weight:400;text-transform:none;">(Pivot &ndash; source: <span id="pivotSourceLangDisplay_{SUFFIX}">-</span>)</span>
+                </label>
+                <div class="multiselect-wrapper" id="pivotTargetLangWrapper_{SUFFIX}">
+                  <div class="multiselect-trigger disabled" id="pivotTargetLangTrigger_{SUFFIX}" onclick="toggleMultiselect('_{SUFFIX}', 'pivotTargetLang')">
+                    <div id="pivotTargetLangText_{SUFFIX}" style="flex:1;">-</div>
+                  </div>
+                  <div class="multiselect-options" id="pivotTargetLangList_{SUFFIX}"></div>
+                </div>
+              </div>
             </div>
 
             <div class="card" id="settingsCard_{SUFFIX}">
@@ -1437,6 +1448,17 @@
                   <div class="multiselect-options" id="targetLangList_{SUFFIX}"></div>
                   <div id="targetLangOverlay_{SUFFIX}" class="multiselect-overlay" onclick="checkTemplateSelected('{SUFFIX}', 'target')"></div>
                 </div>
+              </div>
+            </div>
+            <div class="form-row" id="pivotTargetLangRow_{SUFFIX}" style="display:none;">
+              <label>Translation Target Language(s) <span class="required">*</span>
+                <span style="font-size:11px;color:#888;font-weight:400;text-transform:none;">(Pivot &ndash; source: <span id="pivotSourceLangDisplay_{SUFFIX}">-</span>)</span>
+              </label>
+              <div class="multiselect-wrapper" id="pivotTargetLangWrapper_{SUFFIX}">
+                <div class="multiselect-trigger disabled" id="pivotTargetLangTrigger_{SUFFIX}" onclick="toggleMultiselect('_{SUFFIX}', 'pivotTargetLang')">
+                  <div id="pivotTargetLangText_{SUFFIX}" style="flex:1;">-</div>
+                </div>
+                <div class="multiselect-options" id="pivotTargetLangList_{SUFFIX}"></div>
               </div>
             </div>
           </div>
@@ -2950,6 +2972,7 @@ function onTemplateGroupChange(suffix) {
   if(!tmplSelect || !tmplSelect.value) return;
   selectedGroup = templateGroups[tmplSelect.value];
   finalSelectedUid = null;
+  hidePivotTargetLangRow_(suffix);
 
   const srcSelect  = document.getElementById('sourceLang' + suffix);
   const srcTrigger = document.getElementById('sourceLangTrigger' + suffix);
@@ -3033,6 +3056,59 @@ function onSourceLangChange(suffix) {
   const tData = selectedGroup.variants[value];
   finalSelectedUid = tData.uid;
   initMultiSelect(suffix, tData.targets || []);
+  maybeLoadPivotTargetLanguages_(suffix, selectedGroup, tData);
+}
+
+/** Ein Template gilt clientseitig als Pivot-Template, wenn sein Name "pivot" enthaelt - Spiegel von isPivotTemplateName_ (PivotProjects.gs). */
+function isPivotGroupName_(name) {
+  return /pivot/i.test(String(name || ""));
+}
+
+function hidePivotTargetLangRow_(suffix) {
+  const row = document.getElementById('pivotTargetLangRow' + suffix);
+  if (row) row.style.display = 'none';
+  const list = document.getElementById('pivotTargetLangList' + suffix);
+  if (list) list.innerHTML = '';
+  const trigger = document.getElementById('pivotTargetLangTrigger' + suffix);
+  if (trigger) trigger.classList.add('disabled');
+  const text = document.getElementById('pivotTargetLangText' + suffix);
+  if (text) text.innerHTML = '-';
+}
+
+/**
+ * Bei einem Pivot-("Source Check")-Template zeigt das Formular zusaetzlich
+ * einen zweiten, unabhaengigen Zielsprachen-Picker ("Translation Target
+ * Language(s)") - die dort gewaehlten Sprachen gehen NICHT in targetLangs/
+ * die eigentliche Job-Erstellung ein, sondern nur ins Phrase-Custom-Field
+ * "Pivot languages" (siehe Upload.gs), das der Phrase-Orchestrator fuer die
+ * automatische Child-Projekt-Erstellung liest. Die verfuegbaren Sprachen
+ * stammen aus den admin-verlinkten Child-Templates (Admin -> Pivot Templates).
+ */
+function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
+  if (!isPivotGroupName_(group && group.name)) { hidePivotTargetLangRow_(suffix); return; }
+
+  const row = document.getElementById('pivotTargetLangRow' + suffix);
+  const srcDisplay = document.getElementById('pivotSourceLangDisplay' + suffix);
+  const text = document.getElementById('pivotTargetLangText' + suffix);
+  if (row) row.style.display = '';
+  if (srcDisplay) srcDisplay.innerText = '...';
+  if (text) text.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || 'Loading...'}</span>`;
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.ok) {
+        if (srcDisplay) srcDisplay.innerText = '-';
+        if (text) text.innerHTML = `<span style='color:#d93025'>${escapeHtml(res.error || 'Error')}</span>`;
+        return;
+      }
+      if (srcDisplay) srcDisplay.innerText = getPrettyLangName(res.sourceLang);
+      initMultiSelect(suffix, res.targets || [], 'pivotTargetLang');
+    })
+    .withFailureHandler(err => {
+      if (srcDisplay) srcDisplay.innerText = '-';
+      if (text) text.innerHTML = `<span style='color:#d93025'>Error: ${escapeHtml(err.message)}</span>`;
+    })
+    .apiGetPivotChildLanguageOptions(tData.uid);
 }
 
 function getPrettyLangName(code) {
@@ -3044,8 +3120,9 @@ function getPrettyLangName(code) {
   return (configData.languages && configData.languages[key]) || code;
 }
 
-function initMultiSelect(suffix, targetCodes) {
-  const list = document.getElementById('targetLangList' + suffix);
+function initMultiSelect(suffix, targetCodes, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
   if(!list) return;
   list.innerHTML = "";
   const searchInput = document.createElement("input");
@@ -3060,45 +3137,49 @@ function initMultiSelect(suffix, targetCodes) {
   list.appendChild(searchInput);
   targetCodes.forEach(code => {
     const div = document.createElement("div"); div.className = "multiselect-option";
-    div.onclick = (e) => toggleOption(e, suffix, code);
-    const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = code; cb.id = `cb${suffix}_${code}`;
-    cb.onclick = (e) => e.stopPropagation(); cb.onchange = () => updateTriggerText(suffix);
+    div.onclick = (e) => toggleOption(e, suffix, code, prefix);
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = code; cb.id = `cb${prefix}${suffix}_${code}`;
+    cb.onclick = (e) => e.stopPropagation(); cb.onchange = () => updateTriggerText(suffix, prefix);
     const lbl = document.createElement("label"); lbl.htmlFor = cb.id; lbl.style.cursor = "pointer"; lbl.innerText = getPrettyLangName(code);
     div.appendChild(cb); div.appendChild(lbl); list.appendChild(div);
   });
-  const tOverlay = document.getElementById('targetLangOverlay' + suffix);
+  const tOverlay = document.getElementById(prefix + 'Overlay' + suffix);
   if(tOverlay) tOverlay.style.display = 'none';
-  const tTrigger = document.getElementById('targetLangTrigger' + suffix);
+  const tTrigger = document.getElementById(prefix + 'Trigger' + suffix);
   if(tTrigger) tTrigger.classList.remove('disabled');
-  updateTriggerText(suffix);
+  updateTriggerText(suffix, prefix);
 }
 
-function toggleMultiselect(suffix) {
-  const list = document.getElementById('targetLangList' + suffix);
+function toggleMultiselect(suffix, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
   if(!list) return;
   const isOpen = list.classList.contains('open');
   document.querySelectorAll('.multiselect-options').forEach(el => el.classList.remove('open'));
   if (!isOpen) list.classList.add('open');
 }
-function toggleOption(e, suffix, code) {
+function toggleOption(e, suffix, code, prefix) {
+  prefix = prefix || 'targetLang';
   e.stopPropagation();
-  const cb = document.getElementById(`cb${suffix}_${code}`);
+  const cb = document.getElementById(`cb${prefix}${suffix}_${code}`);
   if (e.target !== cb) cb.checked = !cb.checked;
-  updateTriggerText(suffix);
+  updateTriggerText(suffix, prefix);
 }
-function removeChip(e, suffix, code) {
+function removeChip(e, suffix, code, prefix) {
+  prefix = prefix || 'targetLang';
   e.stopPropagation();
-  const cb = document.getElementById(`cb${suffix}_${code}`);
+  const cb = document.getElementById(`cb${prefix}${suffix}_${code}`);
   if (cb) cb.checked = false;
-  updateTriggerText(suffix);
+  updateTriggerText(suffix, prefix);
 }
-function updateTriggerText(suffix) {
-  const list = document.getElementById('targetLangList' + suffix);
+function updateTriggerText(suffix, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
   if(!list) return;
   const checkboxes = list.querySelectorAll('input[type="checkbox"]:checked');
-  const triggerDiv = document.getElementById('targetLangText' + suffix);
+  const triggerDiv = document.getElementById(prefix + 'Text' + suffix);
   if(!triggerDiv) return;
-  
+
   if (checkboxes.length === 0) {
     triggerDiv.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target']}</span>`;
   } else {
@@ -3106,7 +3187,7 @@ function updateTriggerText(suffix) {
     const container = triggerDiv.querySelector('.chip-container');
     checkboxes.forEach(cb => {
       const chip = document.createElement("div"); chip.className = "chip";
-      chip.innerHTML = `${getPrettyLangName(cb.value)} <span class="chip-remove" onclick="removeChip(event,'${suffix}','${cb.value}')">\u00D7</span>`;
+      chip.innerHTML = `${getPrettyLangName(cb.value)} <span class="chip-remove" onclick="removeChip(event,'${suffix}','${cb.value}','${prefix}')">\u00D7</span>`;
       container.appendChild(chip);
     });
   }
@@ -4650,6 +4731,12 @@ function checkPreconditions(suffix) {
     if(tList && tList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select Target Language."); return false; }
   }
 
+  const pivotRow = document.getElementById('pivotTargetLangRow' + suffix);
+  if (pivotRow && pivotRow.style.display !== 'none') {
+    const pList = document.getElementById(`pivotTargetLangList${suffix}`);
+    if (pList && pList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select at least one Translation Target Language (Pivot)."); return false; }
+  }
+
   return true;
 }
 
@@ -5097,6 +5184,7 @@ function submitStandard(suffix) {
 
             const sel=document.getElementById('templateUid'+suffix);
             const targets=Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb=>cb.value);
+            const pivotTargets=Array.from(document.querySelectorAll(`#pivotTargetLangList${suffix} input:checked`)).map(cb=>cb.value);
             let rDate=document.getElementById('dateDue'+suffix).value;
             let fDate=rDate?new Date(rDate+"T12:00:00").toISOString():null;
 
@@ -5114,6 +5202,7 @@ function submitStandard(suffix) {
               projectName:document.getElementById('projectName'+suffix).value,
               sourceLang:srcLang,
               targetLangs:targets,
+              pivotTargetLangs:pivotTargets,
               dateDue:fDate, note:document.getElementById('note'+suffix).value,
               allMainFiles:readyMain, refFiles:readyRef, refDriveIds:refIds,
               portalType: suffix.replace(/^_/, '')
