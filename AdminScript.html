@@ -606,15 +606,21 @@ function toggleAdminHelp(id) {
     }
     function saveAdminDriveClientId() {
         const clientId = document.getElementById('adminDriveClientId').value.trim();
+        const clientSecret = document.getElementById('adminDriveClientSecret').value.trim();
         google.script.run.withSuccessHandler(r => {
             if (r.success) {
                 driveSaveConfigCache_ = null; // Force reload on next "Save to Drive" click
-                document.getElementById('adminDriveClientIdStatus').innerText = clientId ? '\u2022 Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
-                showCustomAlert("Saved.", "Success");
+                document.getElementById('adminDriveClientSecret').value = '';
+                google.script.run.withSuccessHandler(cfg => {
+                    document.getElementById('adminDriveClientIdStatus').innerText = (cfg && cfg.configured)
+                        ? '\u2022 Save to Drive is active for all users.'
+                        : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users (need both Client ID and Secret).';
+                }).apiGetDriveSaveConfig();
+                showCustomAlert("Saved. Existing users will need to re-authorize once.", "Success");
             } else {
                 showCustomAlert("Error: " + r.error, "Error");
             }
-        }).apiSaveDriveSaveClientId(clientId);
+        }).apiSaveDriveSaveClientId(clientId, clientSecret);
     }
     function loadWhitelist() {
         const c = document.getElementById('whitelistContainer');

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <base target="_top">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
       :root {
         --primary-yellow: #FFED00;
@@ -5789,12 +5788,12 @@ function smartDownloadFiles(projectUid) {
     }
 
 // --- Save to Google Drive (My Drive) ----------------------------------------
-// Der eigentliche Upload passiert bewusst client-seitig via Google Identity
-// Services + Drive REST API (nicht ?ber google.script.run) ? siehe Kommentar
-// in DriveSaveConfig.gs f?r den Hintergrund (Web-App l?uft als "Execute as: Me").
+// Der Upload laeuft komplett serverseitig (Apps-Script-OAuth2-Bibliothek,
+// pro Nutzer autorisiert) - der Browser bekommt keine Access Tokens mehr zu
+// Gesicht. Ein rein clientseitiger Ansatz (Google Identity Services) scheitert
+// hier strukturell, weil diese Web-App in einem von Google gesperrten
+// *.googleusercontent.com-Sandbox-Iframe laeuft; Details siehe DriveSaveConfig.gs.
 var driveSaveConfigCache_ = null;
-var driveSaveTokenClient_ = null;
-var driveSaveAccessToken_ = null;
 var driveSavePendingProject_ = null;
 
 function ensureDriveSaveConfig_(cb) {
@@ -5828,25 +5827,54 @@ function closeSaveToDriveModal() {
   driveSavePendingProject_ = null;
 }
 
-function getDriveAccessToken_(clientId, cb) {
-  if (driveSaveAccessToken_) { cb(driveSaveAccessToken_); return; }
-  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
-    cb(null, 'Google Identity Services could not be loaded. Please check your connection and try again.');
-    return;
-  }
-  try {
-    driveSaveTokenClient_ = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: (resp) => {
-        if (resp && resp.access_token) { driveSaveAccessToken_ = resp.access_token; cb(resp.access_token); }
-        else cb(null, (resp && resp.error) || 'No access token received.');
+/**
+ * Stellt sicher, dass der Nutzer fuer Drive autorisiert ist. Oeffnet dafuer
+ * bei Bedarf ein Autorisierungs-Popup (das direkt, noch synchron im
+ * Klick-Handler als leeres Fenster erzeugt wird - sonst blockieren Browser
+ * es als Popup, weil die eigentliche URL erst asynchron vom Server kommt)
+ * und pollt anschliessend, bis der Callback (siehe DriveSaveConfig.gs) den
+ * Token gespeichert hat.
+ */
+function ensureDriveAuthorized_(authPopup, cb) {
+  google.script.run.withSuccessHandler(status => {
+    if (status && status.authorized) {
+      if (authPopup) authPopup.close();
+      cb(true);
+      return;
+    }
+
+    google.script.run.withSuccessHandler(urlRes => {
+      if (!urlRes || !urlRes.success) {
+        if (authPopup) authPopup.close();
+        cb(false, urlRes && urlRes.error);
+        return;
       }
-    });
-    driveSaveTokenClient_.requestAccessToken({ prompt: '' });
-  } catch (e) {
-    cb(null, e.message);
-  }
+      if (!authPopup || authPopup.closed) {
+        cb(false, 'Popup was blocked. Please allow popups for this site and try again.');
+        return;
+      }
+      authPopup.location.href = urlRes.url;
+
+      let elapsedMs = 0;
+      const timer = setInterval(() => {
+        elapsedMs += 1500;
+        const popupClosed = authPopup.closed;
+        google.script.run.withSuccessHandler(s2 => {
+          if (s2 && s2.authorized) {
+            clearInterval(timer);
+            if (!popupClosed) authPopup.close();
+            cb(true);
+          } else if (popupClosed || elapsedMs > 120000) {
+            clearInterval(timer);
+            cb(false, popupClosed ? 'Authorization window closed.' : 'Authorization timed out.');
+          }
+        }).withFailureHandler(() => {
+          clearInterval(timer);
+          cb(false, 'Could not verify authorization status.');
+        }).apiCheckDriveAuthStatus();
+      }, 1500);
+    }).apiGetDriveAuthUrl();
+  }).apiCheckDriveAuthStatus();
 }
 
 function confirmSaveToGoogleDrive() {
@@ -5854,8 +5882,12 @@ function confirmSaveToGoogleDrive() {
   if (!p) return;
   const convertToGoogle = document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked;
 
+  // Noch synchron im Klick auf "Save to Drive" oeffnen (siehe ensureDriveAuthorized_).
+  const authPopup = window.open('about:blank', 'driveAuth', 'width=520,height=680');
+
   ensureDriveSaveConfig_(cfg => {
     if (!cfg || !cfg.configured) {
+      if (authPopup) authPopup.close();
       showCustomAlert('Saving to Google Drive is not set up yet. Please contact an administrator.', 'Not available');
       return;
     }
@@ -5864,118 +5896,33 @@ function confirmSaveToGoogleDrive() {
     const overlay = document.getElementById('downloadOverlay');
     const title = document.getElementById('downloadOverlayTitle');
     overlay.style.display = 'flex';
-    title.innerText = 'Requesting Google Drive access...';
+    title.innerText = 'Checking Google Drive access...';
 
-    getDriveAccessToken_(cfg.clientId, function (token, err) {
-      if (!token) {
+    ensureDriveAuthorized_(authPopup, (authorized, err) => {
+      if (!authorized) {
         overlay.style.display = 'none';
         showCustomAlert('Could not get Google Drive access: ' + escapeHtml(err || 'permission denied'), 'Drive Error');
         return;
       }
 
-      title.innerText = 'Preparing files...';
+      title.innerText = 'Saving files to Google Drive...';
       google.script.run.withSuccessHandler(r => {
+        overlay.style.display = 'none';
         if (!r.success) {
-          overlay.style.display = 'none';
           showCustomAlert('Error: ' + escapeHtml(r.error), 'Drive Error');
           return;
         }
-        uploadFilesToDrive_(token, r.files, p.projectName, convertToGoogle, overlay, title);
+        let msg = '\u2713 Saved ' + r.uploaded + ' of ' + r.total + ' file(s) to Google Drive.';
+        msg += '<div style="margin-top:15px;"><a href="' + r.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive \u2192</a></div>';
+        if (r.errors && r.errors.length) {
+          msg += '<div style="color:#c62828;font-weight:bold;margin-top:15px;">Errors:</div>';
+          msg += '<div style="background:#fff3f3;border:1px solid #ffcdd2;padding:10px;font-size:12px;text-align:left;">' + r.errors.map(escapeHtml).join('<br>') + '</div>';
+        }
+        showCustomAlert(msg, 'Save to Drive');
       }).withFailureHandler(e => {
         overlay.style.display = 'none';
         showCustomAlert('Error: ' + escapeHtml(e.message), 'Drive Error');
-      }).apiGetFilesForDriveExport(p.projectUid, p.jobUids, p.projectName, p.targetLangs, p.jobMapping);
-    });
-  });
-}
-
-function base64ToBlob_(base64, mimeType) {
-  const byteChars = atob(base64);
-  const byteNumbers = new Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-  return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
-}
-
-function findOrCreateDriveFolder_(token, name, parentId, cb) {
-  // Diese Funktion kam mit PR #8 - und ab da lud die Maske nicht mehr. Der
-  // Prozessor, der die Seite fuer den document.write zusammenbaut, zerlegt sich
-  // an Apostroph-Literalen in dieser Funktion; der Schreibvorgang bricht ab und
-  // im Frame bleibt nur Apps Scripts Bootstrap-Dokument stehen. Deshalb kommt
-  // hier kein einziges Apostroph-Zeichen mehr direkt im Quelltext vor.
-  const APOS = String.fromCharCode(39);
-  const safeName = String(name).split(APOS).join("\\" + APOS);
-  const q = "name=" + APOS + safeName + APOS +
-    " and mimeType=" + APOS + "application/vnd.google-apps.folder" + APOS +
-    " and trashed=false" +
-    (parentId ? " and " + APOS + parentId + APOS + " in parents"
-              : " and " + APOS + "root" + APOS + " in parents");
-
-  fetch('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {
-    headers: { Authorization: 'Bearer ' + token }
-  }).then(r => { if (r.status === 401) driveSaveAccessToken_ = null; return r.json(); }).then(data => {
-    if (data.files && data.files.length) { cb(data.files[0].id); return; }
-    const metadata = { name: name, mimeType: 'application/vnd.google-apps.folder' };
-    if (parentId) metadata.parents = [parentId];
-    fetch('https://www.googleapis.com/drive/v3/files', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify(metadata)
-    }).then(r => r.json()).then(f => cb(f.id, f.id ? null : (f.error && f.error.message)))
-      .catch(e => cb(null, e.message));
-  }).catch(e => cb(null, e.message));
-}
-
-function uploadFileToDrive_(token, folderId, file, convertToGoogle, cb) {
-  const useGoogleFormat = convertToGoogle && file.canConvertToGoogle && file.googleMimeType;
-  const metadata = { name: file.fileName, parents: [folderId] };
-  if (useGoogleFormat) metadata.mimeType = file.googleMimeType;
-
-  const blob = base64ToBlob_(file.base64, file.mimeType);
-  const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  form.append('file', blob);
-
-  fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token },
-    body: form
-  }).then(r => { if (r.status === 401) driveSaveAccessToken_ = null; return r.json(); }).then(res => {
-    if (res.id) cb(true); else cb(false, res.error && res.error.message);
-  }).catch(e => cb(false, e.message));
-}
-
-function uploadFilesToDrive_(token, files, projectName, convertToGoogle, overlay, title) {
-  findOrCreateDriveFolder_(token, 'Translation Services', null, function (rootId, err) {
-    if (!rootId) { overlay.style.display = 'none'; showCustomAlert('Could not access Google Drive: ' + escapeHtml(err || ''), 'Drive Error'); return; }
-    findOrCreateDriveFolder_(token, projectName || 'Project', rootId, function (projectFolderId, err2) {
-      if (!projectFolderId) { overlay.style.display = 'none'; showCustomAlert('Could not create Drive folder: ' + escapeHtml(err2 || ''), 'Drive Error'); return; }
-
-      let idx = 0;
-      let successCount = 0;
-      const errors = [];
-
-      function next() {
-        if (idx >= files.length) {
-          overlay.style.display = 'none';
-          const folderUrl = 'https://drive.google.com/drive/folders/' + projectFolderId;
-          let msg = '\u2713 Saved ' + successCount + ' of ' + files.length + ' file(s) to Google Drive.';
-          msg += '<div style="margin-top:15px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive ?</a></div>';
-          if (errors.length) {
-            msg += '<div style="color:#c62828;font-weight:bold;margin-top:15px;">Errors:</div>';
-            msg += '<div style="background:#fff3f3;border:1px solid #ffcdd2;padding:10px;font-size:12px;text-align:left;">' + errors.map(escapeHtml).join('<br>') + '</div>';
-          }
-          showCustomAlert(msg, 'Save to Drive');
-          return;
-        }
-        const f = files[idx];
-        title.innerText = 'Uploading ' + (idx + 1) + '/' + files.length + '...\n(' + f.fileName + ')';
-        uploadFileToDrive_(token, projectFolderId, f, convertToGoogle, function (ok, err) {
-          if (ok) successCount++; else errors.push(f.fileName + ': ' + err);
-          idx++;
-          next();
-        });
-      }
-      next();
+      }).apiSaveProjectToDrive(p.projectUid, p.jobUids, p.projectName, p.targetLangs, p.jobMapping, convertToGoogle);
     });
   });
 }
