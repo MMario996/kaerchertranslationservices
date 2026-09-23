@@ -60,7 +60,7 @@ function pivotLinksReadAll_() {
 
 function apiGetPivotTemplateLinks() {
   var caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  if (!isAdmin_(caller) && !isAdminLightWithAccess_(caller, "pivot")) return { success: false, error: "Not authorized. Admin only." };
   try {
     return { success: true, links: pivotLinksReadAll_() };
   } catch (e) {
@@ -70,7 +70,7 @@ function apiGetPivotTemplateLinks() {
 
 function apiAddPivotTemplateLink(parentTemplateUid, childTemplateUid) {
   var caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  if (!isAdmin_(caller) && !isAdminLightWithAccess_(caller, "pivot")) return { success: false, error: "Not authorized. Admin only." };
 
   var parentUid = String(parentTemplateUid || "").trim();
   var childUid  = String(childTemplateUid || "").trim();
@@ -104,7 +104,7 @@ function apiAddPivotTemplateLink(parentTemplateUid, childTemplateUid) {
 
 function apiRemovePivotTemplateLink(parentTemplateUid, childTemplateUid) {
   var caller = getUserEmail_();
-  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  if (!isAdmin_(caller) && !isAdminLightWithAccess_(caller, "pivot")) return { success: false, error: "Not authorized. Admin only." };
 
   var parentUid = String(parentTemplateUid || "").trim();
   var childUid  = String(childTemplateUid || "").trim();

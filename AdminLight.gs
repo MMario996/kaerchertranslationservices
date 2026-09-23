@@ -7,7 +7,7 @@
  * Spalten: Email | Subtabs (z.B. "users,templates")
  */
 var ADMIN_LIGHT_SHEET_NAME_ = "Whitelist_AdminLight";
-var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages"];
+var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages", "pivot"];
 
 function getAdminLightSubtabs_(email) {
   if (!email) return [];
