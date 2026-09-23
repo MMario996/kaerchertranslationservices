@@ -152,7 +152,18 @@ function apiCreateProjectAndUpload(payload) {
         phraseSetProjectSingleSelectFieldByName_(projectUid, "Review", campusReviewType);
       }
       if (pivotTargetLangs.length) {
-        phraseSetProjectMultiSelectFieldByName_(projectUid, "Pivot languages", pivotTargetLangs);
+        // Das Custom Field "Pivot languages" nutzt eigene Options-Codes (z.B. "DE", "EN"),
+        // die nicht mit unseren Phrase-Sprachcodes (z.B. "de", "en_gb") uebereinstimmen -
+        // siehe PivotLanguageMap.gs. Unbekannte Sprachen werden uebersprungen und geloggt,
+        // statt die ganze Einreichung zu blockieren.
+        const langMap = pivotLangMapAsObject_();
+        const mappedPivotValues = pivotTargetLangs.map(l => langMap[String(l).toLowerCase()]).filter(Boolean);
+        if (mappedPivotValues.length) {
+          phraseSetProjectMultiSelectFieldByName_(projectUid, "Pivot languages", mappedPivotValues);
+        } else {
+          console.warn("Pivot: keine der gewaehlten Sprachen (" + pivotTargetLangs.join(", ") +
+            ") hat ein Mapping auf einen Custom-Field-Wert (Admin -> Pivot Templates -> Sprachen-Mapping).");
+        }
       }
       overallProjectUids.push(projectUid);
       console.log("\u2022 Project created:", projectUid);
