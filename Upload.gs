@@ -359,8 +359,8 @@ function apiCreateProjectAndUpload(payload) {
 
 // --- B: Job Notes via Phrase Conversations API --------------------------------
 
-function apiAddJobNote(projectUid, jobUidRaw, noteText) {
-  const caller = getUserEmail_();
+function apiAddJobNote(projectUid, jobUidRaw, noteText, callerOverride) {
+  const caller = callerOverride || getUserEmail_();
 
   let jobUid = jobUidRaw;
   if (Array.isArray(jobUid)) jobUid = jobUid[0];
@@ -731,9 +731,7 @@ function onMessage(e) {
   };
 }
 
-function onAppCommand(e) {
-  return { text: "✅ *Translation-Services* – Read-only notification bot.\n\n🌐 " + PORTAL_URL_ };
-}
+// onAppCommand(e) ist jetzt in ChatCommands.gs definiert (Slash-Command-Router).
 
 function onRemovedFromSpace(e) { return; }
 

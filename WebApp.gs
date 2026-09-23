@@ -298,8 +298,8 @@ function apiShareProject(projectUid, shareWithEmail) {
    CANCEL PROJECT
    ========================================================================== */
 
-function apiCancelProject(projectUid) {
-  const caller = getUserEmail_().toLowerCase();
+function apiCancelProject(projectUid, callerOverride) {
+  const caller = (callerOverride || getUserEmail_()).toLowerCase();
   const isAdm  = isAdmin_(caller);
   try {
     const sh   = getQueueSheet_();
@@ -754,8 +754,8 @@ function apiSetChatPreference(enabled) {
    DUE DATE UPDATE
    ========================================================================== */
 
-function apiUpdateDueDate(projectUid, newDateIso) {
-  const caller = getUserEmail_().toLowerCase();
+function apiUpdateDueDate(projectUid, newDateIso, callerOverride) {
+  const caller = (callerOverride || getUserEmail_()).toLowerCase();
 
   if (!projectUid) return { success: false, error: "Project UID missing." };
   if (!newDateIso) return { success: false, error: "New date missing." };
@@ -847,6 +847,85 @@ function apiUpdateDueDate(projectUid, newDateIso) {
 
   } catch(e) {
     console.error("\u2717 apiUpdateDueDate failed:", e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+function apiUpdateProjectName(projectUid, newName, callerOverride) {
+  const caller = (callerOverride || getUserEmail_()).toLowerCase();
+
+  if (!projectUid) return { success: false, error: "Project UID missing." };
+  newName = String(newName || "").trim();
+  if (!newName) return { success: false, error: "New project name missing." };
+
+  try {
+    const sh   = getQueueSheet_();
+    const data = sh.getDataRange().getValues();
+    let rowIdx = -1, owner = "", sharedWith = "", oldName = "", threadId = "";
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][2]).trim() !== projectUid) continue;
+      owner      = String(data[i][1]).toLowerCase().trim();
+      sharedWith = String(data[i][17] || "").toLowerCase();
+      oldName    = String(data[i][11] || data[i][4] || projectUid).trim();
+      threadId   = String(data[i][19] || "").trim();
+      rowIdx     = i;
+      break;
+    }
+
+    if (rowIdx === -1) return { success: false, error: "Project not found." };
+
+    const isOwner  = owner === caller;
+    const isShared = sharedWith.split(/[,;]+/).map(s => s.trim()).includes(caller);
+    if (!isAdmin_(caller) && !isOwner && !isShared) {
+      return { success: false, error: "Not authorized." };
+    }
+
+    let phraseWarning = null;
+    try {
+      const phraseUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
+      const phraseRes = UrlFetchApp.fetch(phraseUrl, {
+        method:      "patch",
+        contentType: "application/json",
+        headers:     { Authorization: getPhraseAuthHeader_() },
+        payload:     JSON.stringify({ name: newName }),
+        muteHttpExceptions: true
+      });
+      const code = phraseRes.getResponseCode();
+      if (code >= 400) {
+        phraseWarning = "Phrase update failed (HTTP " + code + "): " + phraseRes.getContentText().substring(0, 200);
+      }
+    } catch(phraseErr) {
+      phraseWarning = "Phrase unreachable: " + phraseErr.message;
+    }
+
+    sh.getRange(rowIdx + 1, 12).setValue(newName);
+
+    const phraseProjectUrl = "https://cloud.memsource.com/web/project/show/" + encodeURIComponent(projectUid);
+    const chatMsg = "\u270f\ufe0f *Project renamed*\n\n" +
+      "\u2022 *Old name:* " + oldName + "\n" +
+      "\u2022 *New name:* " + newName + "\n" +
+      "\u2022 *Updated by:* " + caller + "\n\n" +
+      "\ud83c\udf10 *Open in Phrase TMS:* " + phraseProjectUrl;
+
+    if (threadId) {
+      try { sendThreadReply_(owner, threadId, chatMsg); } catch(e) {
+        try { sendPrivateMessage_(owner, chatMsg); } catch(e2) {}
+      }
+    } else {
+      try { sendPrivateMessage_(owner, chatMsg); } catch(e) {}
+    }
+
+    const sharedThreads = _parseSharedThreads_(String(data[rowIdx][20] || "").trim());
+    _notifySharedUsers_(sharedWith, sharedThreads, chatMsg, caller);
+
+    logAuditEvent_(caller, "PROJECT_RENAME",
+      "Renamed '" + oldName + "' \u2192 '" + newName + "' (" + projectUid + ")");
+
+    return { success: true, oldName, newName, phraseWarning: phraseWarning || null };
+
+  } catch(e) {
+    console.error("\u2717 apiUpdateProjectName failed:", e.message);
     return { success: false, error: e.message };
   }
 }

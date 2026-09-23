@@ -143,9 +143,12 @@ function autoSyncProjectStatuses_() {
             // Owner benachrichtigen
             if (threadMsgName) {
               try { sendThreadReply_(rowUser, threadMsgName, replyText); } catch(e) {
+                console.warn("⚠ Completion thread reply failed for " + projectUid +
+                  " (thread " + threadMsgName + "): " + e.message + " - falling back to new DM.");
                 try { sendPrivateMessage_(rowUser, replyText); } catch(e2) {}
               }
             } else {
+              console.warn("⚠ Completion notification: row " + projectUid + " has no stored threadMsgName - sending as new DM instead of thread reply.");
               try { sendPrivateMessage_(rowUser, replyText); } catch(e) {}
             }
 
