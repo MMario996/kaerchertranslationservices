@@ -15,23 +15,35 @@
  * dortigen SCORM-spezifischen index.html-Guard/404-Fallback - die bestehende
  * SCORM-Funktion bleibt unangetastet.
  *
+ * BILD-EXTRAKTION: SpreadsheetApp.OverGridImage hat KEIN getBlob() (live
+ * getestet -> "img.getBlob is not a function"). Apps Script bietet darueber
+ * keinen Weg an die Roh-Bytes eines ueber Zellen liegenden Bildes. Deshalb
+ * wird das Sheet stattdessen kurz als XLSX exportiert (Drive-Export-Endpoint,
+ * mit dem ohnehin vorhandenen Spreadsheets-OAuth-Scope), das XLSX als ZIP
+ * entpackt und Bilder + Zeilen-Anker direkt aus den OOXML-Drawing-XMLs
+ * (xl/drawings/drawing*.xml + zugehoerige .rels) gelesen - das ist dieselbe
+ * Struktur, die auch die echte, hochgeladene .xlsx-Datei hat, das Ergebnis
+ * ist also identisch zu einer direkten .xlsx-Verarbeitung.
+ *
  * Ablauf:
- *  1. apiHostSheetImagesForContextNotes() liest die ueber Zellen "schwebenden"
- *     Bilder aus einem Google Sheet (SpreadsheetApp getImages() - deshalb
- *     muss die Quelle ein Google Sheet sein, keine reine .xlsx-Datei; eine
- *     hochgeladene .xlsx laesst sich dafuer einmalig in Sheets importieren).
+ *  1. apiHostSheetImagesForContextNotes() exportiert das Google Sheet als
+ *     XLSX, extrahiert daraus Bilder + deren Zeilen-Anker.
  *  2. Jedes Bild wird unter einem eigenen, nicht erratbaren Pfad
  *     (context-images/{zufaelliges Token}/...) auf Firebase Hosting
  *     veroeffentlicht.
  *  3. Die oeffentliche URL wird in dieselbe Zeile, gewaehlte Spalte des
- *     Sheets zurueckgeschrieben.
+ *     LIVE Google Sheets zurueckgeschrieben (SpreadsheetApp, unabhaengig
+ *     vom XLSX-Export).
  */
 
 var IMAGE_HOSTING_FOLDER_PREFIX_ = "context-images";
+var XDR_NS_ = XmlService.getNamespace("xdr", "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing");
+var XDRA_NS_ = XmlService.getNamespace("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+var XDRR_NS_ = XmlService.getNamespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
 
 /**
  * @param {string} spreadsheetId Google-Sheet-ID (aus der Sheet-URL)
- * @param {string} [sheetName]   Tabellenblatt-Name; leer = erstes Blatt
+ * @param {string} [sheetName]   Tabellenblatt-Name; leer = erstes Blatt (Tab-Reihenfolge)
  * @param {string} siteId        Firebase-Hosting-Site-ID (z.B. "kaercher-course-preview")
  * @param {number} [urlColumn]   1-basierte Zielspalte fuer die URLs; leer = naechste freie Spalte
  * @return {Object} {success, count, column, results:[{row, imageUrl}], error}
@@ -45,44 +57,41 @@ function apiHostSheetImagesForContextNotes(spreadsheetId, sheetName, siteId, url
 
   try {
     var ss = SpreadsheetApp.openById(spreadsheetId);
-    var sheet = sheetName ? ss.getSheetByName(sheetName) : ss.getSheets()[0];
-    if (!sheet) return { success: false, error: "Sheet '" + sheetName + "' not found." };
+    var targetSheet = sheetName ? ss.getSheetByName(sheetName) : ss.getSheets()[0];
+    if (!targetSheet) return { success: false, error: "Sheet '" + sheetName + "' not found." };
 
-    var images = sheet.getImages();
+    var xlsxBlob = _exportSpreadsheetAsXlsx_(spreadsheetId);
+    var images = _xlsxExtractImagesForSheet_(xlsxBlob, targetSheet.getName());
     if (!images.length) {
-      return { success: false, error: "No embedded (over-cell) images found on sheet '" + sheet.getName() + "'." };
+      return { success: false, error: "No embedded images found for sheet '" + targetSheet.getName() + "'." };
     }
 
     var folderToken = Utilities.getUuid().replace(/-/g, "").substring(0, 12);
     var pathPrefix = IMAGE_HOSTING_FOLDER_PREFIX_ + "/" + folderToken;
 
     var fileEntries = [];
-    var rowForImage = [];
     images.forEach(function (img, idx) {
-      var row = img.getAnchorCell().getRow();
-      var blob = img.getBlob();
-      var ext = _imgExtFromContentType_(blob.getContentType());
-      var fileName = "row" + row + "_" + (idx + 1) + ext;
-      fileEntries.push({ path: fileName, blob: blob });
-      rowForImage.push({ row: row, fileName: fileName });
+      var ext = _imgExtFromContentType_(img.blob.getContentType());
+      img.fileName = "row" + img.row + "_" + (idx + 1) + ext;
+      fileEntries.push({ path: img.fileName, blob: img.blob });
     });
 
     var accessToken = getFirebaseAccessToken_();
     var deployResult = _deployBlobsToFirebaseHostingPlain_(accessToken, siteId, fileEntries, pathPrefix);
 
-    var col = urlColumn || (sheet.getLastColumn() + 1);
-    var headerCell = sheet.getRange(1, col);
+    var col = urlColumn || (targetSheet.getLastColumn() + 1);
+    var headerCell = targetSheet.getRange(1, col);
     if (!String(headerCell.getValue() || "").trim()) headerCell.setValue("Screenshot URL");
 
     var results = [];
-    rowForImage.forEach(function (entry) {
-      var url = "https://" + siteId + ".web.app/" + pathPrefix + "/" + entry.fileName;
-      sheet.getRange(entry.row, col).setValue(url);
-      results.push({ row: entry.row, imageUrl: url });
+    images.forEach(function (img) {
+      var url = "https://" + siteId + ".web.app/" + pathPrefix + "/" + img.fileName;
+      targetSheet.getRange(img.row, col).setValue(url);
+      results.push({ row: img.row, imageUrl: url });
     });
 
     logAuditEvent_(caller, "IMAGE_CONTEXT_HOSTING",
-      "Hosted " + results.length + " image(s) from sheet " + spreadsheetId + " (" + sheet.getName() + ") -> column " + col);
+      "Hosted " + results.length + " image(s) from sheet " + spreadsheetId + " (" + targetSheet.getName() + ") -> column " + col);
 
     return { success: true, count: results.length, column: col, results: results, deploy: deployResult };
   } catch (e) {
@@ -97,6 +106,142 @@ function _imgExtFromContentType_(ct) {
   if (ct.indexOf("gif")  !== -1) return ".gif";
   if (ct.indexOf("webp") !== -1) return ".webp";
   return ".png";
+}
+
+function _exportSpreadsheetAsXlsx_(spreadsheetId) {
+  var url = "https://docs.google.com/spreadsheets/d/" + encodeURIComponent(spreadsheetId) + "/export?format=xlsx";
+  var res = UrlFetchApp.fetch(url, {
+    headers:             { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+    muteHttpExceptions:  true
+  });
+  if (res.getResponseCode() >= 300) {
+    throw new Error("Could not export spreadsheet as XLSX (HTTP " + res.getResponseCode() + ").");
+  }
+  return res.getBlob().setContentType("application/zip");
+}
+
+/**
+ * Extrahiert alle ueber Zellen verankerten Bilder EINES Tabellenblatts aus
+ * den Rohdaten einer .xlsx-Datei, inkl. 1-basierter Zeilennummer.
+ * @param {Blob} xlsxBlob
+ * @param {string} sheetName Name des Tabs, wie er im Google Sheet steht.
+ * @return {Array<{row:number, blob:Blob}>}
+ */
+function _xlsxExtractImagesForSheet_(xlsxBlob, sheetName) {
+  var files = Utilities.unzip(xlsxBlob);
+  var byName = {};
+  files.forEach(function (f) { byName[f.getName()] = f; });
+
+  var worksheetFile = _xlsxFindWorksheetFileForName_(byName, sheetName);
+  if (!worksheetFile) return [];
+
+  var sheetFileName = worksheetFile.getName(); // "xl/worksheets/sheetN.xml"
+  var sheetIndexMatch = sheetFileName.match(/sheet(\d+)\.xml$/);
+  if (!sheetIndexMatch) return [];
+  var sheetIndex = sheetIndexMatch[1];
+
+  var sheetRelsFile = byName["xl/worksheets/_rels/sheet" + sheetIndex + ".xml.rels"];
+  if (!sheetRelsFile) return []; // kein Drawing fuer dieses Blatt verknuepft
+
+  var sheetRelsRoot = XmlService.parse(sheetRelsFile.getDataAsString()).getRootElement();
+  var relNs = sheetRelsRoot.getNamespace();
+  var drawingRel = sheetRelsRoot.getChildren("Relationship", relNs).filter(function (r) {
+    return /\/drawing$/.test(r.getAttribute("Type").getValue());
+  })[0];
+  if (!drawingRel) return [];
+
+  var drawingTarget = drawingRel.getAttribute("Target").getValue(); // z.B. "../drawings/drawing1.xml"
+  var drawingPath = _xlsxResolveRelativePath_("xl/worksheets/", drawingTarget);
+  var drawingFile = byName[drawingPath];
+  if (!drawingFile) return [];
+
+  var drawingIndexMatch = drawingPath.match(/drawing(\d+)\.xml$/);
+  var drawingIndex = drawingIndexMatch ? drawingIndexMatch[1] : "1";
+  var drawingRelsFile = byName["xl/drawings/_rels/drawing" + drawingIndex + ".xml.rels"];
+
+  var ridToMedia = {};
+  if (drawingRelsFile) {
+    var drRelsRoot = XmlService.parse(drawingRelsFile.getDataAsString()).getRootElement();
+    var drRelNs = drRelsRoot.getNamespace();
+    drRelsRoot.getChildren("Relationship", drRelNs).forEach(function (r) {
+      var target = r.getAttribute("Target").getValue();
+      ridToMedia[r.getAttribute("Id").getValue()] = _xlsxResolveRelativePath_("xl/drawings/", target);
+    });
+  }
+
+  var drawRoot = XmlService.parse(drawingFile.getDataAsString()).getRootElement();
+  var anchors = drawRoot.getChildren("twoCellAnchor", XDR_NS_)
+    .concat(drawRoot.getChildren("oneCellAnchor", XDR_NS_));
+
+  var results = [];
+  anchors.forEach(function (anchor) {
+    var from = anchor.getChild("from", XDR_NS_);
+    if (!from) return;
+    var rowEl = from.getChild("row", XDR_NS_);
+    var row0 = rowEl ? parseInt(rowEl.getText(), 10) : 0;
+
+    var pic = anchor.getChild("pic", XDR_NS_);
+    if (!pic) return;
+    var blipFill = pic.getChild("blipFill", XDR_NS_);
+    if (!blipFill) return;
+    var blip = blipFill.getChild("blip", XDRA_NS_);
+    if (!blip) return;
+    var embedAttr = blip.getAttribute("embed", XDRR_NS_);
+    if (!embedAttr) return;
+
+    var mediaPath = ridToMedia[embedAttr.getValue()];
+    if (!mediaPath || !byName[mediaPath]) return;
+
+    results.push({ row: row0 + 1, blob: byName[mediaPath].copyBlob() });
+  });
+
+  return results;
+}
+
+/** Findet die xl/worksheets/sheetN.xml-Datei, die zum gegebenen Tab-Namen gehoert. */
+function _xlsxFindWorksheetFileForName_(byName, sheetName) {
+  var workbookFile = byName["xl/workbook.xml"];
+  var workbookRelsFile = byName["xl/_rels/workbook.xml.rels"];
+  if (!workbookFile || !workbookRelsFile) return null;
+
+  var wbRoot = XmlService.parse(workbookFile.getDataAsString()).getRootElement();
+  var wbNs = wbRoot.getNamespace();
+  var rNs = XmlService.getNamespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+  var sheetsEl = wbRoot.getChild("sheets", wbNs);
+  if (!sheetsEl) return null;
+
+  var sheetEl = sheetsEl.getChildren("sheet", wbNs).filter(function (s) {
+    return s.getAttribute("name").getValue() === sheetName;
+  })[0];
+  if (!sheetEl) sheetEl = sheetsEl.getChildren("sheet", wbNs)[0]; // Fallback: erstes Blatt
+  if (!sheetEl) return null;
+
+  var rIdAttr = sheetEl.getAttribute("id", rNs);
+  if (!rIdAttr) return null;
+  var rId = rIdAttr.getValue();
+
+  var relsRoot = XmlService.parse(workbookRelsFile.getDataAsString()).getRootElement();
+  var relNs = relsRoot.getNamespace();
+  var rel = relsRoot.getChildren("Relationship", relNs).filter(function (r) {
+    return r.getAttribute("Id").getValue() === rId;
+  })[0];
+  if (!rel) return null;
+
+  var target = rel.getAttribute("Target").getValue(); // z.B. "worksheets/sheet1.xml"
+  var path = _xlsxResolveRelativePath_("xl/", target);
+  return byName[path] || null;
+}
+
+/** Loest ein relatives OOXML-Target (z.B. "../media/image1.png") gegen ein Basisverzeichnis auf. */
+function _xlsxResolveRelativePath_(baseDir, target) {
+  var parts = baseDir.replace(/\/$/, "").split("/").concat(target.split("/"));
+  var resolved = [];
+  parts.forEach(function (p) {
+    if (p === "" || p === ".") return;
+    if (p === "..") resolved.pop();
+    else resolved.push(p);
+  });
+  return resolved.join("/");
 }
 
 /**
