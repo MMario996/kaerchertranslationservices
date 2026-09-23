@@ -192,9 +192,12 @@ function pivotHandleStatusChange_(sh, rowNum, row, newStatus, currentStatus) {
 
   if (threadMsgName) {
     try { sendThreadReply_(rowUser, threadMsgName, msg); } catch (e) {
+      console.warn("⚠ Pivot parent-completion thread reply failed for " + projectUid +
+        " (thread " + threadMsgName + "): " + e.message + " - falling back to new DM.");
       try { sendPrivateMessage_(rowUser, msg); } catch (e2) {}
     }
   } else {
+    console.warn("⚠ Pivot parent-completion: row " + projectUid + " has no stored threadMsgName - sending as new DM instead of thread reply.");
     try { sendPrivateMessage_(rowUser, msg); } catch (e) {}
   }
   _notifySharedUsers_(sharedWith, sharedThreads, msg);
@@ -442,9 +445,12 @@ function pivotHandleChildCompletion_(sh, childRowNum, childRow, newStatus, curre
 
     if (threadMsgName) {
       try { sendThreadReply_(rowUser, threadMsgName, msg); } catch (e) {
+        console.warn("⚠ Pivot child-completion thread reply failed for " + parentUid +
+          " (thread " + threadMsgName + "): " + e.message + " - falling back to new DM.");
         try { sendPrivateMessage_(rowUser, msg); } catch (e2) {}
       }
     } else {
+      console.warn("⚠ Pivot child-completion: parent row " + parentUid + " has no stored threadMsgName - sending as new DM instead of thread reply.");
       try { sendPrivateMessage_(rowUser, msg); } catch (e) {}
     }
     _notifySharedUsers_(sharedWith, sharedThreads, msg);
