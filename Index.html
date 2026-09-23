@@ -4192,6 +4192,44 @@ function loadAdminContent_(silent) {
     .apiGetAdminContent();
 }
 
+let _pivotAdminContentLoaded_ = false;
+let _pivotAdminContentLoading_ = false;
+
+/**
+ * Laedt den Inhalt des "Pivot Templates"-Admin-Subtabs nach (Markup +
+ * JavaScript), erst wenn dieser Subtab zum ersten Mal geoeffnet wird -
+ * exakt dasselbe Lazy-Load-Muster wie loadAdminContent_() selbst, hier
+ * noch eine Ebene tiefer, weil der Pivot-Inhalt den kombinierten
+ * Admin-Payload sonst an die (schon einmal bei GuideContent.html erlebte)
+ * Truncation-Grenze gebracht hat.
+ * @param {Function} [callback] wird nach erfolgreichem (oder bereits
+ *   erfolgtem) Laden aufgerufen.
+ */
+function loadPivotAdminContent_(callback) {
+  if (_pivotAdminContentLoaded_) { if (callback) callback(); return; }
+  if (_pivotAdminContentLoading_) return;
+  _pivotAdminContentLoading_ = true;
+
+  const host = document.getElementById('admin-subtab-pivot');
+  if (host) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      _pivotAdminContentLoading_ = false;
+      if (host) host.innerHTML = res.html;
+      const el = document.createElement('script');
+      el.text = res.js;
+      document.head.appendChild(el);
+      _pivotAdminContentLoaded_ = true;
+      if (callback) callback();
+    })
+    .withFailureHandler(function(err) {
+      _pivotAdminContentLoading_ = false;
+      if (host) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Pivot-Templates-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetPivotAdminContent();
+}
+
 function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(el => { el.style.display='none'; el.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
