@@ -1,71 +1,117 @@
 /**
  * ChatCommands.gs
  * Google Chat "App Commands" (Slash Commands) fuer Translation-Services.
- * Wird von doPost() (Upload.gs) bei event.type === "APP_COMMAND" aufgerufen.
+ * Registriert als Trigger "App command" -> onAppCommand in der Google Chat
+ * API Konfiguration (Cloud Console), Verbindungstyp "Apps Script" +
+ * Deployment ID.
  *
- * HINWEIS zum Routing: Die Befehlsliste (/AssignLinguist, /ChangeDueDate, ...)
- * ist extern in der Google Chat API Konfiguration (Cloud Console) hinterlegt,
- * NICHT im appsscript.json-Manifest ("chat": {} ist hier leer) - die
- * numerische appCommandId ist von hier aus also nicht bekannt. Geroutet wird
- * daher ueber den Befehlsnamen, den der Nutzer tatsaechlich eingetippt hat
- * (event.message.text / event.message.argumentText), nicht ueber
- * appCommandMetadata.appCommandId.
+ * EVENT-SCHEMA: Die aktuelle Workspace-Add-ons-Doku (nicht das aeltere 2021er
+ * Chat-Bot-Schema mit event.message.slashCommand.commandId) legt die
+ * Befehls-ID unter event.appCommandPayload.appCommandMetadata.appCommandId
+ * ab (Zahl, siehe Command-IDs in der Chat-API-Konfiguration: 1=ChangeProject-
+ * Name, 2=ChangeDueDate, 3=ChangeRevisor, 4=ProjectStatus, 5=AssignLinguist,
+ * 6=CloseProject, 7=TermSearch, 8=QuoteStatus, 9=NotifyVendor, 10=JobStats).
+ * Routing laeuft primaer ueber diese Zahl; der getippte Befehlsname dient nur
+ * als Fallback, falls appCommandId aus irgendeinem Grund fehlt.
+ *
+ * Die Antwort wird ueber CardService (newChatResponseBuilder) gebaut statt
+ * als rohes {text:...}-Objekt, damit Apps Script sie fuer die aktuelle
+ * Add-on-Antwortstruktur korrekt serialisiert.
  *
  * Alle mutierenden Befehle pruefen Admin/Owner/Shared-Zugriff genauso wie die
  * entsprechenden Portal-Aktionen (Queue-Sheet: Owner/SharedWith) und nutzen
  * dafuer denselben Autorisierungscode - dafuer haben apiUpdateDueDate(),
  * apiCancelProject() und apiAddJobNote() einen optionalen callerOverride-
  * Parameter bekommen (Session.getActiveUser() liefert bei einem von Chat
- * ausgeloesten doPost() KEINE nutzbare Identitaet, siehe getUserContext_).
+ * ausgeloesten Aufruf KEINE nutzbare Identitaet, siehe getUserContext_).
  */
 
-var APP_COMMAND_HANDLERS_ = {
-  "projectstatus":     cmdProjectStatus_,
-  "jobstats":          cmdJobStats_,
-  "changeduedate":     cmdChangeDueDate_,
+var APP_COMMAND_ID_MAP_ = {
+  1:  cmdChangeProjectName_,
+  2:  cmdChangeDueDate_,
+  3:  cmdChangeRevisor_,
+  4:  cmdProjectStatus_,
+  5:  cmdAssignLinguist_,
+  6:  cmdCloseProject_,
+  7:  cmdTermSearch_,
+  8:  cmdQuoteStatus_,
+  9:  cmdNotifyVendor_,
+  10: cmdJobStats_
+};
+
+var APP_COMMAND_NAME_MAP_ = {
   "changeprojectname": cmdChangeProjectName_,
-  "closeproject":      cmdCloseProject_,
-  "assignlinguist":    cmdAssignLinguist_,
+  "changeduedate":     cmdChangeDueDate_,
   "changerevisor":     cmdChangeRevisor_,
-  "notifyvendor":      cmdNotifyVendor_,
+  "projectstatus":     cmdProjectStatus_,
+  "assignlinguist":    cmdAssignLinguist_,
+  "closeproject":      cmdCloseProject_,
+  "termsearch":        cmdTermSearch_,
   "quotestatus":       cmdQuoteStatus_,
-  "termsearch":        cmdTermSearch_
+  "notifyvendor":      cmdNotifyVendor_,
+  "jobstats":          cmdJobStats_
 };
 
 function onAppCommand(e) {
   try {
+    console.log("• onAppCommand raw event: " + JSON.stringify(e));
+
     var ctx       = rememberChatUserFromEvent_(e);
-    var userEmail = normalizeEmail_(ctx.userEmail || (e.user && e.user.email) || "");
+    var userEmail = normalizeEmail_(
+      ctx.userEmail ||
+      (e.user && e.user.email) ||
+      (e.chat && e.chat.user && e.chat.user.email) ||
+      (e.common && e.common.user && e.common.user.email) ||
+      ""
+    );
     if (!userEmail) {
-      return { text: "⚠️ I couldn't determine your email. Please open the bot directly in Google Chat." };
+      return _chatTextResponse_("⚠️ I couldn't determine your email. Please open the bot directly in Google Chat.");
     }
 
-    var raw     = String((e.message && e.message.text) || "").trim();
-    var argText = (e.message && typeof e.message.argumentText === "string") ? e.message.argumentText.trim() : "";
+    var payload = e.appCommandPayload || (e.chat && e.chat.appCommandPayload) || {};
+    var meta    = payload.appCommandMetadata || {};
+    var msg     = payload.message || {};
 
-    var m       = raw.match(/^\/?(\S+)/);
-    var cmdName = m ? m[1].toLowerCase() : "";
-    var args    = argText || raw.replace(/^\/?\S+\s*/, "").trim();
+    var appCommandId = meta.appCommandId;
+    var handler = (appCommandId != null) ? APP_COMMAND_ID_MAP_[appCommandId] : null;
 
-    console.log("• App Command: /" + cmdName + " | args: \"" + args + "\" | user: " + userEmail);
+    // Argumenttext kann je nach Event-Variante an unterschiedlichen Stellen stehen.
+    var argText =
+      (typeof msg.argumentText === "string" && msg.argumentText) ||
+      (e.message && typeof e.message.argumentText === "string" && e.message.argumentText) ||
+      "";
+    var rawText = String(msg.text || (e.message && e.message.text) || "").trim();
 
-    var handler = APP_COMMAND_HANDLERS_[cmdName];
+    // Fallback ohne appCommandId (aelteres Event-Schema): ueber getippten Namen routen.
     if (!handler) {
-      return { text: _appCommandHelpText_() };
+      var m = rawText.match(/^\/?(\S+)/);
+      var cmdName = m ? m[1].toLowerCase() : "";
+      handler = APP_COMMAND_NAME_MAP_[cmdName];
+      if (!argText) argText = rawText.replace(/^\/?\S+\s*/, "").trim();
     }
 
-    var replyText = handler(args, userEmail);
-    return { text: replyText };
+    console.log("• App Command: appCommandId=" + appCommandId + " | args: \"" + argText + "\" | user: " + userEmail);
+
+    if (!handler) {
+      return _chatTextResponse_(_appCommandHelpText_());
+    }
+
+    var replyText = handler(argText.trim(), userEmail);
+    return _chatTextResponse_(replyText);
 
   } catch (err) {
     console.error("onAppCommand error:", err.message);
-    return { text: "⚠️ Something went wrong: " + err.message };
+    return _chatTextResponse_("⚠️ Something went wrong: " + err.message);
   }
+}
+
+function _chatTextResponse_(text) {
+  return CardService.newChatResponseBuilder().setText(String(text || "")).build();
 }
 
 function _appCommandHelpText_() {
   return "Available commands:\n" +
-    Object.keys(APP_COMMAND_HANDLERS_).map(function(c) { return "• /" + c; }).join("\n") +
+    Object.keys(APP_COMMAND_NAME_MAP_).map(function(c) { return "• /" + c; }).join("\n") +
     "\n\nUse the Project UID (\"Phrase ID\" in My Projects) to identify a project.";
 }
 
