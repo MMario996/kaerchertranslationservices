@@ -64,6 +64,10 @@ function apiCreateProjectAndUpload(payload) {
   // eine eigene Notiz des Einreichers darf diesen Marker nicht verdraengen.
   const isPivot   = isPivotTemplateName_(payload.templateName || "");
   const noteToSend = isPivot ? pivotBuildNote_(note) : note;
+  // Vom separaten "Translation"-Sprachwaehler im Formular (siehe apiGetPivotChildLanguageOptions) -
+  // geht NICHT in targetLangs/job creation ein, sondern nur ins Custom Field "Pivot languages",
+  // das der Phrase-Orchestrator fuer die Child-Projekt-Erstellung liest.
+  const pivotTargetLangs = isPivot && Array.isArray(payload.pivotTargetLangs) ? payload.pivotTargetLangs : [];
 
   if (!templateUid && !payload.targetUidMap)    return { ok: false, error: "Template missing." };
   if (!projectName)                             return { ok: false, error: "Project name missing." };
@@ -146,6 +150,9 @@ function apiCreateProjectAndUpload(payload) {
       if (setRealOwner) phraseSetProjectOwner_(projectUid, userEmail);
       if (portalType === "articulate" && campusReviewType) {
         phraseSetProjectSingleSelectFieldByName_(projectUid, "Review", campusReviewType);
+      }
+      if (pivotTargetLangs.length) {
+        phraseSetProjectMultiSelectFieldByName_(projectUid, "Pivot languages", pivotTargetLangs);
       }
       overallProjectUids.push(projectUid);
       console.log("\u2022 Project created:", projectUid);

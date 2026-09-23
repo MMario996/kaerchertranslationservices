@@ -450,6 +450,118 @@ function phraseSetProjectSingleSelectFieldByName_(projectUid, fieldName, optionV
 }
 
 /**
+ * Wie phraseSetProjectSingleSelectFieldByName_, aber fuer MULTI_SELECT-Felder
+ * mit mehreren gleichzeitig gesetzten Optionen (z.B. "Pivot languages") -
+ * nimmt ein Array von Options-Texten statt eines einzelnen. Options, die auf
+ * Phrase-Seite nicht gefunden werden, werden uebersprungen (geloggt), statt
+ * das Setzen der uebrigen zu blockieren. Non-blocking: Fehler werden nur
+ * geloggt, nie geworfen.
+ */
+function phraseSetProjectMultiSelectFieldByName_(projectUid, fieldName, optionValues) {
+  if (!projectUid || !fieldName || !Array.isArray(optionValues) || !optionValues.length) return;
+
+  try {
+    var cfDefs = phraseGetCustomFieldDefinitionsMap_(); // { uid: name }
+    var fieldUid = null;
+    for (var uid in cfDefs) {
+      if (cfDefs[uid] === fieldName) { fieldUid = uid; break; }
+    }
+    if (!fieldUid) {
+      cfDefs = phraseGetCustomFieldDefinitionsMap_(true);
+      for (var uid2 in cfDefs) {
+        if (cfDefs[uid2] === fieldName) { fieldUid = uid2; break; }
+      }
+    }
+    if (!fieldUid) {
+      console.warn("phraseSetProjectMultiSelectFieldByName_: Custom Field '" + fieldName + "' nicht gefunden.");
+      return;
+    }
+
+    var optDefs = phraseGetCustomFieldOptionsMap_(fieldUid);
+    var missing = optionValues.filter(function (v) { return !optDefs[v]; });
+    if (missing.length) optDefs = phraseGetCustomFieldOptionsMap_(fieldUid, true);
+
+    var selectedOptions = [];
+    optionValues.forEach(function (v) {
+      var optionUid = optDefs[v];
+      if (optionUid) selectedOptions.push({ uid: optionUid });
+      else console.warn("phraseSetProjectMultiSelectFieldByName_: Option '" + v + "' auf Feld '" + fieldName + "' nicht gefunden.");
+    });
+    if (!selectedOptions.length) return;
+
+    var getUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields?pageSize=50");
+    var getRes = phraseFetchJson_(getUrl, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var instances = (getRes && Array.isArray(getRes.content)) ? getRes.content : (Array.isArray(getRes) ? getRes : []);
+
+    var instanceUid = null;
+    for (var i = 0; i < instances.length; i++) {
+      var instFieldUid = instances[i].customField && instances[i].customField.uid;
+      if (instFieldUid === fieldUid) { instanceUid = instances[i].uid; break; }
+    }
+
+    var putUrl = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/customFields");
+    var putPayload = instanceUid
+      ? { updateInstances: [{ customFieldInstance: { uid: instanceUid }, customField: { uid: fieldUid }, selectedOptions: selectedOptions }] }
+      : { addInstances: [{ customField: { uid: fieldUid }, selectedOptions: selectedOptions }] };
+
+    var putRes = UrlFetchApp.fetch(putUrl, {
+      method: "put",
+      contentType: "application/json",
+      headers: { Authorization: getPhraseAuthHeader_() },
+      payload: JSON.stringify(putPayload),
+      muteHttpExceptions: true
+    });
+
+    var putCode = putRes.getResponseCode();
+    if (putCode >= 400) {
+      console.warn("phraseSetProjectMultiSelectFieldByName_ PUT HTTP " + putCode + " (" + fieldName + "): " + putRes.getContentText().substring(0, 200));
+    } else {
+      console.log("Custom Field gesetzt: " + fieldName + " = [" + optionValues.join(", ") + "] (" + projectUid + ")");
+    }
+  } catch (e) {
+    console.warn("phraseSetProjectMultiSelectFieldByName_ fehlgeschlagen (" + fieldName + "): " + e.message);
+  }
+}
+
+/**
+ * Liefert Stammdaten eines Projekt-Templates (u.a. sourceLang, targetLangs)
+ * direkt von Phrase - GET /api2/v1/projectTemplates/{uid}. Gecacht (6h,
+ * gleiches Muster wie phraseGetCustomFieldOptionsMap_), da dies vor allem
+ * fuer die Pivot-Sprachauswahl im Upload-Formular bei jeder Template-
+ * Auswahl abgefragt wird.
+ * @return {?{uid:string, name:string, sourceLang:string, targetLangs:string[]}} null bei Fehler/nicht gefunden
+ */
+function phraseGetProjectTemplateDetails_(templateUid, forceRefresh) {
+  var uid = String(templateUid || "").trim();
+  if (!uid) return null;
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "phrase_tmpl_details_" + uid;
+  if (!forceRefresh) {
+    var cached = cache.get(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+  }
+
+  try {
+    var url = phraseApiUrlV1_("/projectTemplates/" + encodeURIComponent(uid));
+    var res = phraseFetchJson_(url, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var details = {
+      uid:         res.uid || uid,
+      name:        res.templateName || res.name || "",
+      sourceLang:  res.sourceLang || "",
+      targetLangs: Array.isArray(res.targetLangs) ? res.targetLangs : []
+    };
+    try { cache.put(cacheKey, JSON.stringify(details), 21600); } catch (e) {}
+    return details;
+  } catch (e) {
+    console.warn("phraseGetProjectTemplateDetails_ fehlgeschlagen (" + uid + "): " + e.message);
+    return null;
+  }
+}
+
+/**
  * Setzt ein JOB-basiertes Custom Field anhand des Feldnamens (z.B. "SCORM
  * File-URL"). Gleiches GET-dann-PUT-Muster wie phraseSetProjectCustomFieldByName_,
  * nur auf Job- statt Projekt-Ebene:
