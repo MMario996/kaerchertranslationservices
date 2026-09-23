@@ -74,14 +74,6 @@ function apiCreateProjectAndUpload(payload) {
   const mainFiles = payload.mainFiles || payload.allMainFiles || [];
   if (!Array.isArray(mainFiles) || mainFiles.length === 0) return { ok: false, error: "Main file missing." };
 
-  // Phrase-Ticket #243154-Workaround: bei "[CH]"-Templates Screenshots aus
-  // per Drive ausgewaehlten Google Sheets extern hosten und die URL-Spalte
-  // VOR dem Export/Upload direkt ins Sheet schreiben (siehe ImageContextHosting.gs).
-  // No-op fuer alle anderen Templates; Fehler blockieren die Einreichung nie.
-  try { maybeInjectContextImageNotes_(mainFiles, payload.templateName); } catch (e) {
-    console.warn("⚠ maybeInjectContextImageNotes_ failed:", e.message);
-  }
-
   const refFiles = [...(payload.refFiles || [])];
   const refDriveIds = Array.isArray(payload.refDriveIds) ? payload.refDriveIds : [];
   refDriveIds.forEach(id => {
