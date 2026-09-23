@@ -42,6 +42,22 @@ function apiGetAdminContent() {
   };
 }
 
+/**
+ * Wie apiGetAdminContent(), aber nur fuer den "Pivot Templates"-Subtab -
+ * eigens ausgelagert, weil der kombinierte AdminConsole.html+AdminScript.html-
+ * Payload mit dem Pivot-Inhalt an dieselbe ~144KB-Grenze kam, die schon
+ * GuideContent.html frueher mitten im <script>-Block abgeschnitten hat (siehe
+ * apiGetGuideContent() oben). Wird erst beim ersten Oeffnen des Subtabs
+ * nachgeladen (loadPivotAdminContent_() in Index.html).
+ */
+function apiGetPivotAdminContent() {
+  return {
+    html: HtmlService.createHtmlOutputFromFile("PivotAdminConsole").getContent(),
+    js:   HtmlService.createHtmlOutputFromFile("PivotAdminScript").getContent()
+           .replace(/^\s*<script>/, "").replace(/<\/script>\s*$/, "")
+  };
+}
+
 function apiHandleUpload(payload) {
   payload = payload || {};
 
