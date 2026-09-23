@@ -114,6 +114,81 @@ function _hostSheetImagesForContextNotes_(spreadsheetId, sheetName, siteId, urlC
   }
 }
 
+/**
+ * Wie _hostSheetImagesForContextNotes_(), aber fuer ALLE Tabellenblaetter
+ * eines Spreadsheets auf einmal, mit EINER gemeinsamen Zielspalte fuer alle
+ * Blaetter. Noetig, weil Phrases "Identify context note column" eine
+ * einzige Einstellung pro Multilingual-Excel-Import ist und damit fuer
+ * jedes Blatt gleichermassen gilt - jedes Blatt seine eigene "naechste
+ * freie Spalte" waehlen zu lassen wuerde das kaputt machen, sobald die
+ * Blaetter unterschiedlich breit sind.
+ * @return {Object} {success, count, column, columnLetter, results:[{sheet, row, imageUrl}], error}
+ */
+function _hostAllSheetsImagesForContextNotes_(spreadsheetId, siteId, auditEmail) {
+  if (!spreadsheetId) return { success: false, error: "spreadsheetId missing." };
+  if (!siteId) return { success: false, error: "siteId missing." };
+
+  try {
+    var ss = SpreadsheetApp.openById(spreadsheetId);
+    var sheets = ss.getSheets();
+    var xlsxBlob = _exportSpreadsheetAsXlsx_(spreadsheetId);
+
+    var perSheetImages = {}; // sheetName -> [{row, blob}]
+    var maxLastColumn = 0;
+    sheets.forEach(function (sh) {
+      maxLastColumn = Math.max(maxLastColumn, sh.getLastColumn());
+      var imgs = _xlsxExtractImagesForSheet_(xlsxBlob, sh.getName());
+      if (imgs.length) perSheetImages[sh.getName()] = imgs;
+    });
+
+    var sheetNamesWithImages = Object.keys(perSheetImages);
+    var totalImages = sheetNamesWithImages.reduce(function (sum, k) { return sum + perSheetImages[k].length; }, 0);
+    if (!totalImages) {
+      return { success: false, error: "No embedded images found in any sheet of this spreadsheet." };
+    }
+
+    var col = maxLastColumn + 1;
+    var colLetter = _columnToLetter_(col);
+
+    var folderToken = Utilities.getUuid().replace(/-/g, "").substring(0, 12);
+    var pathPrefix = IMAGE_HOSTING_FOLDER_PREFIX_ + "/" + folderToken;
+
+    var fileEntries = [];
+    var idx = 0;
+    sheetNamesWithImages.forEach(function (sheetName) {
+      perSheetImages[sheetName].forEach(function (img) {
+        idx++;
+        var ext = _imgExtFromContentType_(img.blob.getContentType());
+        img.fileName = "img" + idx + "_row" + img.row + ext; // Sheet-Name kann Sonderzeichen enthalten -> Index statt Name im Pfad
+        fileEntries.push({ path: img.fileName, blob: img.blob });
+      });
+    });
+
+    var accessToken = getFirebaseAccessToken_();
+    var deployResult = _deployBlobsToFirebaseHostingPlain_(accessToken, siteId, fileEntries, pathPrefix);
+
+    var results = [];
+    sheetNamesWithImages.forEach(function (sheetName) {
+      var sh = ss.getSheetByName(sheetName);
+      var headerCell = sh.getRange(1, col);
+      if (!String(headerCell.getValue() || "").trim()) headerCell.setValue("Screenshot URL");
+      perSheetImages[sheetName].forEach(function (img) {
+        var url = "https://" + siteId + ".web.app/" + pathPrefix + "/" + img.fileName;
+        sh.getRange(img.row, col).setValue(url);
+        results.push({ sheet: sheetName, row: img.row, imageUrl: url });
+      });
+    });
+
+    logAuditEvent_(auditEmail || getUserEmail_(), "IMAGE_CONTEXT_HOSTING",
+      "Hosted " + results.length + " image(s) across " + sheetNamesWithImages.length +
+      " sheet(s) of " + spreadsheetId + " -> column " + colLetter);
+
+    return { success: true, count: results.length, column: col, columnLetter: colLetter, results: results, deploy: deployResult };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 /** 1-basierte Spaltennummer -> Buchstabe(n), z.B. 9 -> "I", 27 -> "AA" (wie Phrase's "Identify ... column"-Felder es erwarten). */
 function _columnToLetter_(col) {
   var letter = "";
@@ -355,12 +430,12 @@ function maybeInjectContextImageNotes_(mainFiles, templateName) {
       var driveFile = DriveApp.getFileById(meta.fileId);
       if (driveFile.getMimeType() !== MimeType.GOOGLE_SHEETS) return; // PC-Uploads/fertige .xlsx bleiben unveraendert
 
-      var result = _hostSheetImagesForContextNotes_(
-        meta.fileId, null, CONTEXT_IMAGE_FIREBASE_SITE_, null, "system:" + (meta.fileName || meta.fileId)
+      var result = _hostAllSheetsImagesForContextNotes_(
+        meta.fileId, CONTEXT_IMAGE_FIREBASE_SITE_, "system:" + (meta.fileName || meta.fileId)
       );
       if (result.success) {
         console.log("• Context images auto-hosted for '" + driveFile.getName() + "': " +
-          result.count + " image(s) → column " + result.columnLetter);
+          result.count + " image(s) across all sheets → column " + result.columnLetter);
       } else {
         console.log("• Context-image auto-injection skipped for '" + driveFile.getName() + "': " + result.error);
       }
