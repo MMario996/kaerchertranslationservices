@@ -90,13 +90,26 @@ function apiHostSheetImagesForContextNotes(spreadsheetId, sheetName, siteId, url
       results.push({ row: img.row, imageUrl: url });
     });
 
-    logAuditEvent_(caller, "IMAGE_CONTEXT_HOSTING",
-      "Hosted " + results.length + " image(s) from sheet " + spreadsheetId + " (" + targetSheet.getName() + ") -> column " + col);
+    var colLetter = _columnToLetter_(col);
 
-    return { success: true, count: results.length, column: col, results: results, deploy: deployResult };
+    logAuditEvent_(caller, "IMAGE_CONTEXT_HOSTING",
+      "Hosted " + results.length + " image(s) from sheet " + spreadsheetId + " (" + targetSheet.getName() + ") -> column " + colLetter);
+
+    return { success: true, count: results.length, column: col, columnLetter: colLetter, results: results, deploy: deployResult };
   } catch (e) {
     return { success: false, error: e.message };
   }
+}
+
+/** 1-basierte Spaltennummer -> Buchstabe(n), z.B. 9 -> "I", 27 -> "AA" (wie Phrase's "Identify ... column"-Felder es erwarten). */
+function _columnToLetter_(col) {
+  var letter = "";
+  while (col > 0) {
+    var rem = (col - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    col = Math.floor((col - 1) / 26);
+  }
+  return letter;
 }
 
 function _imgExtFromContentType_(ct) {
