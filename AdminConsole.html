@@ -130,12 +130,18 @@
                     <div id="help-drivesave" class="admin-help-panel">
                         <span class="help-impact impact-low">Low impact &#8211; opt-in feature per user</span>
                         <p>Lets users save translated files directly into their own Google "My Drive" (with the option to convert Word/Excel/PowerPoint files to Google Docs/Sheets/Slides), instead of only downloading to their computer.</p>
-                        <p>This requires a one-time <strong>OAuth Client ID</strong> (type "Web application") created in the Google Cloud Console project linked to this script, with this portal's URL added under "Authorized JavaScript origins". Paste that Client ID below.</p>
+                        <p>This requires a one-time <strong>OAuth Client ID + Client Secret</strong> (type "Web application") created in the Google Cloud Console project linked to this script (Apps Script editor &rarr; Project Settings &rarr; "Google Cloud Platform (GCP) Project" shows which one). Under "Authorized redirect URIs" add <code>https://script.google.com/macros/d/{SCRIPT_ID}/usercallback</code> (Script ID from Project Settings) &ndash; <strong>not</strong> "Authorized JavaScript origins" (that path doesn't work for this app, see DriveSaveConfig.gs). Paste the Client ID and Secret below.</p>
                     </div>
                     <div class="form-row">
                         <label>OAuth Client ID</label>
                         <div style="display:flex; gap:10px;">
                             <input type="text" id="adminDriveClientId" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>OAuth Client Secret</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="password" id="adminDriveClientSecret" placeholder="Leave empty to keep the currently saved secret">
                             <button class="btn btn-black" style="width:auto; padding:0 20px; height:48px;" onclick="saveAdminDriveClientId()">Save</button>
                         </div>
                         <div id="adminDriveClientIdStatus" style="font-size:11px;color:#888;margin-top:6px;"></div>
