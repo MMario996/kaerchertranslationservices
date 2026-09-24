@@ -347,7 +347,7 @@ function cmdNotifyVendor_(args, userEmail) {
   var noteText = message || "Reminder: please check this job in Phrase TMS.";
   var res = apiAddJobNote(projectUid, jobUid, noteText, userEmail);
   if (!res.success) return "⚠️ " + res.error;
-  return "✅ Reminder note sent on job " + jobUid + ".";
+  return "✅ Reminder added to the project note (visible to the linguists in Phrase TMS).";
 }
 
 // ============================================================================

@@ -377,48 +377,41 @@ function apiCreateProjectAndUpload(payload) {
 
 // --- B: Job Notes via Phrase Conversations API --------------------------------
 
+/**
+ * Haengt eine Notiz an die Projektnotiz (Phrase-Feld "note") an - dort sehen
+ * Uebersetzer sie. (Frueher ging das als Job-"Conversation"; die v3-API
+ * verlangt dafuer inzwischen "references" und die Notiz landete nicht im
+ * Notizfeld.) jobUidRaw wird nur noch aus Kompatibilitaet angenommen
+ * (ChatCommands.gs ruft mit Job-UID auf).
+ */
 function apiAddJobNote(projectUid, jobUidRaw, noteText, callerOverride) {
   const caller = String(callerOverride || getUserEmail_()).toLowerCase().trim();
   projectUid = String(projectUid || "").trim();
-  if (!noteText || !String(noteText).trim()) return { success: false, error: "Note text is required." };
+  const text = String(noteText || "").trim();
+  if (!text) return { success: false, error: "Note text is required." };
 
   const row = noteFindQueueRow_(projectUid);
   if (!row || !noteCallerMayEdit_(row, caller)) return { success: false, error: "Not authorized." };
 
-  // Ohne explizite Job-UID (z.B. Pivot-Translation-Schritt, den Phrase selbst
-  // anlegt) geht die Nachricht an alle Jobs des Projekts - also an jeden
-  // Uebersetzer, egal fuer welche Sprache.
-  let jobUids = noteNormalizeJobUids_(jobUidRaw);
-  if (!jobUids.length) jobUids = noteListProjectJobs_(projectUid).map(j => j.uid);
-  if (!jobUids.length) return { success: false, error: "No jobs found in this project yet." };
-
   try {
-    const existingNotes = String(row.values[22] || "").trim();
-    const noteEntry = new Date().toISOString().slice(0, 16) + " [" + caller + "]: " + noteText;
-    row.sheet.getRange(row.rowNum, 23).setValue(existingNotes ? existingNotes + "\n" + noteEntry : noteEntry);
+    const current = noteReadProjectNote_(projectUid);
+    const combined = current.note ? current.note + "\n\n" + text : text;
+    const res = noteWriteProjectNote_(projectUid, combined, current.hadMarker);
+    if (!res.success) return res;
+
+    try {
+      const existingNotes = String(row.values[22] || "").trim();
+      const noteEntry = new Date().toISOString().slice(0, 16) + " [" + caller + "]: " + text;
+      row.sheet.getRange(row.rowNum, 23).setValue(existingNotes ? existingNotes + "\n" + noteEntry : noteEntry);
+    } catch (e) {
+      console.warn("Queue note log failed:", e.message);
+    }
+    logAuditEvent_(caller, "JOB_NOTE", "Note appended to project note of " + projectUid);
+    return { success: true, note: res.note };
   } catch (e) {
-    console.warn("Queue note log failed:", e.message);
+    console.error("✗ Project note append failed:", e.message);
+    return { success: false, error: e.message };
   }
-
-  const requests = jobUids.map(uid => ({
-    url:                phraseApiUrlV3_("/jobs/" + encodeURIComponent(uid) + "/conversations/plains"),
-    method:             "post",
-    contentType:        "application/json",
-    headers:            { Authorization: getPhraseAuthHeader_() },
-    payload:            JSON.stringify({ refs: [], comments: [{ text: String(noteText).trim() }] }),
-    muteHttpExceptions: true
-  }));
-  const responses = UrlFetchApp.fetchAll(requests);
-  const failed = responses.filter(r => r.getResponseCode() >= 400);
-  if (failed.length === responses.length) {
-    const msg = failed[0].getContentText().substring(0, 200);
-    console.error("✗ Phrase job note failed:", msg);
-    return { success: false, error: "Phrase: HTTP " + failed[0].getResponseCode() + " " + msg };
-  }
-
-  console.log("• Job note added to " + (responses.length - failed.length) + " job(s) in project " + projectUid);
-  logAuditEvent_(caller, "JOB_NOTE", "Note added to " + (responses.length - failed.length) + " job(s) in project " + projectUid);
-  return { success: true, jobs: responses.length - failed.length, failedJobs: failed.length };
 }
 
 /**
@@ -481,11 +474,8 @@ function apiGetProjectNote(projectUid) {
   const row = noteFindQueueRow_(projectUid);
   if (!row || !noteCallerMayView_(row, caller)) return { success: false, error: "Not authorized." };
   try {
-    const proj = phraseFetchJson_(phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)), {
-      method: "get", headers: { Authorization: getPhraseAuthHeader_() }
-    });
-    const raw = String((proj && proj.note) || "");
-    return { success: true, note: noteStripPivotMarker_(raw), canEdit: noteCallerMayEdit_(row, caller) };
+    const current = noteReadProjectNote_(projectUid);
+    return { success: true, note: current.note, canEdit: noteCallerMayEdit_(row, caller) };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -498,27 +488,38 @@ function apiUpdateProjectNote(projectUid, newNote) {
   const row = noteFindQueueRow_(projectUid);
   if (!row || !noteCallerMayEdit_(row, caller)) return { success: false, error: "Not authorized." };
   try {
-    const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
-    const proj = phraseFetchJson_(url, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
-    const hadMarker = String((proj && proj.note) || "").indexOf(PIVOT_NOTE_MARKER_) !== -1;
-    let note = String(newNote || "").trim();
-    if (hadMarker) note = pivotBuildNote_(note);
-
-    const res = UrlFetchApp.fetch(url, {
-      method:             "patch",
-      contentType:        "application/json",
-      headers:            { Authorization: getPhraseAuthHeader_() },
-      payload:            JSON.stringify({ note: note }),
-      muteHttpExceptions: true
-    });
-    if (res.getResponseCode() >= 400) {
-      return { success: false, error: "Phrase: HTTP " + res.getResponseCode() + " " + res.getContentText().substring(0, 200) };
-    }
-    logAuditEvent_(caller, "PROJECT_NOTE", "Project note updated for " + projectUid);
-    return { success: true, note: noteStripPivotMarker_(note) };
+    const current = noteReadProjectNote_(projectUid);
+    const res = noteWriteProjectNote_(projectUid, String(newNote || "").trim(), current.hadMarker);
+    if (res.success) logAuditEvent_(caller, "PROJECT_NOTE", "Project note updated for " + projectUid);
+    return res;
   } catch (e) {
     return { success: false, error: e.message };
   }
+}
+
+/** Liest die Projektnotiz; liefert sie ohne Pivot-Marker plus ob einer drin war. */
+function noteReadProjectNote_(projectUid) {
+  const proj = phraseFetchJson_(phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)), {
+    method: "get", headers: { Authorization: getPhraseAuthHeader_() }
+  });
+  const raw = String((proj && proj.note) || "");
+  return { note: noteStripPivotMarker_(raw), hadMarker: raw.indexOf(PIVOT_NOTE_MARKER_) !== -1 };
+}
+
+/** PATCH /api2/v1/projects/{uid} mit { note } (PatchProjectDto). */
+function noteWriteProjectNote_(projectUid, note, keepPivotMarker) {
+  const payloadNote = keepPivotMarker ? pivotBuildNote_(note) : note;
+  const res = UrlFetchApp.fetch(phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)), {
+    method:             "patch",
+    contentType:        "application/json",
+    headers:            { Authorization: getPhraseAuthHeader_() },
+    payload:            JSON.stringify({ note: payloadNote }),
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() >= 400) {
+    return { success: false, error: "Phrase: HTTP " + res.getResponseCode() + " " + res.getContentText().substring(0, 200) };
+  }
+  return { success: true, note: noteStripPivotMarker_(payloadNote) };
 }
 
 // --- Notiz-Helfer -------------------------------------------------------------
