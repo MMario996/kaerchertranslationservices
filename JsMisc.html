@@ -253,7 +253,7 @@
 
 
 
-    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager', custompages: 'Eigene Reiter', pivot: 'Pivot Templates' };
+    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager', custompages: 'Eigene Reiter', pivot: 'Pivot Templates', tests: 'Tests' };
 
 
 
@@ -633,4 +633,35 @@ function extractDriveFileName_(url) {
 // --- WATCHER CONFIG ------------------------------------------------------------
 
 var _watcherConfig = [];
+
+// --- Admin: Selbsttests (Subtab "Tests", siehe SelfTests.gs) --------------------
+function runSelfTests_() {
+  const box = document.getElementById('selfTestResults');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:30px;"><div class="loader"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.authorized) { box.innerHTML = '<div class="dl-errors">Not authorized.</div>'; return; }
+    const icon = { ok: 'check_circle', warning: 'warning', error: 'error' };
+    const groups = {};
+    res.results.forEach(r => (groups[r.group] = groups[r.group] || []).push(r));
+    const sum = res.summary || {};
+    let html = `<div class="selftest-summary">
+        <span class="st-pill st-ok"><span class="material-icons-outlined">check_circle</span>${sum.ok || 0} OK</span>
+        <span class="st-pill st-warning"><span class="material-icons-outlined">warning</span>${sum.warning || 0} Hinweise</span>
+        <span class="st-pill st-error"><span class="material-icons-outlined">error</span>${sum.error || 0} Fehler</span>
+        <span class="st-time">${escapeHtml(new Date(res.timestamp).toLocaleString())}</span>
+      </div>`;
+    Object.keys(groups).forEach(g => {
+      html += `<h4 class="selftest-group">${escapeHtml(g)}</h4><div class="selftest-list">` + groups[g].map(r => `
+        <div class="selftest-row st-${escapeHtml(r.status)}">
+          <span class="material-icons-outlined">${icon[r.status] || 'help'}</span>
+          <div class="st-body"><div class="st-name">${escapeHtml(r.name)}</div><div class="st-msg">${escapeHtml(r.message)}</div></div>
+          <span class="st-ms">${r.ms} ms</span>
+        </div>`).join('') + '</div>';
+    });
+    box.innerHTML = html;
+  }).withFailureHandler(e => {
+    box.innerHTML = '<div class="dl-errors">' + escapeHtml(e.message) + '</div>';
+  }).apiRunSelfTests();
+}
 </script>
