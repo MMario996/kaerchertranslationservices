@@ -579,34 +579,34 @@
         .cal-cell.has-items .cal-count { background: #000; color: var(--primary-yellow); }
       }
 
-      /* ===== Dokumentation: Projektuebersicht (einklappbar, volle Breite) ===== */
-      .step-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-right: 10px; background: #000; color: var(--primary-yellow); font-size: 14px; font-weight: 800; border-radius: 50%; vertical-align: middle; flex-shrink: 0; }
-      .doc-ov { background: #fff; border: 1px solid var(--border-light); border-top: 5px solid #000; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-      .doc-ov-head { display: flex; align-items: center; gap: 16px; padding: 14px 18px; cursor: pointer; flex-wrap: wrap; }
-      .doc-ov-head:hover { background: #fcfcfc; }
-      .doc-ov-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; text-transform: uppercase; }
-      .doc-ov-summary { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-      .doc-ov-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: #f6f6f6; border-left: 4px solid #999; font-size: 12.5px; font-weight: 700; text-transform: uppercase; color: #555; }
-      .doc-ov-pill b { color: #000; font-size: 14px; }
-      .doc-ov-pill.empty { opacity: 0.5; }
-      .doc-ov-actions { display: flex; gap: 6px; }
-      .doc-ov-actions .cal-btn { text-decoration: none; color: #333; }
-      .doc-ov-toggle { display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 14px; background: #000; color: var(--primary-yellow); border: none; cursor: pointer; font-size: 13px; font-weight: 800; text-transform: uppercase; }
-      .doc-ov-body { padding: 0 18px 18px; border-top: 1px solid #eee; }
-      .doc-ov-actions .material-icons-outlined, .cal-btn .material-icons-outlined { font-size: 20px; }
+      /* ===== Dokumentation ===== */
+      .cal-btn .material-icons-outlined { font-size: 20px; }
       .doc-board-column { min-width: 240px; }
       .doc-board-project-head { align-items: flex-start; }
       .doc-board-project-name { white-space: normal; word-break: break-word; line-height: 1.35; }
       .doc-board-project-badges { max-width: 45%; flex-wrap: wrap; justify-content: flex-end; overflow: visible; }
-      .doc-ov-body.collapsed { display: none; }
-      .doc-ov-filters { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 14px 0; }
-      .doc-ov-filters input, .doc-ov-filters select { width: 100% !important; min-width: 0 !important; }
-      @media (max-width: 900px) { .doc-ov-filters { grid-template-columns: 1fr 1fr; } }
-      @media (max-width: 700px) {
-        .doc-ov-filters { grid-template-columns: 1fr; }
-        .doc-ov-summary { order: 5; flex-basis: 100%; }
-        .doc-ov-toggle { margin-left: auto; }
-      }
+      .docsub-btn { display: inline-flex; align-items: center; gap: 8px; }
+      .docsub-btn .material-icons-outlined { font-size: 20px; }
+      .folder-selected { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px dashed #ccc; background: #fafafa; color: #888; font-size: 15px; margin-bottom: 12px; }
+      .folder-selected.has-folder { border: 2px solid #000; background: #fffbe0; color: #000; font-weight: 700; }
+      .folder-selected .material-icons-outlined { font-size: 22px; }
+      .folder-picker { border: 1px solid #ddd; background: #fff; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .folder-search { display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid #eee; }
+      .folder-search .material-icons-outlined { color: #999; }
+      .folder-search input { border: none !important; padding: 12px 0; font-size: 15px; background: transparent; }
+      .folder-search input:focus { background: transparent; }
+      .folder-list { max-height: 260px; min-height: 120px; overflow-y: auto; }
+      .folder-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; background: #fff; border: none; border-bottom: 1px solid #f3f3f3; text-align: left; cursor: pointer; font-size: 14px; color: #333; font-family: inherit; }
+      .folder-row:hover { background: #fffbe6; }
+      .folder-row .material-icons-outlined { color: #f4b400; font-size: 20px; }
+      .folder-row.selected { background: #fffbe0; font-weight: 700; box-shadow: inset 4px 0 0 #000; }
+      .folder-row.selected .material-icons-outlined { color: #2e7d32; }
+      .folder-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .doc-job-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+      .docimport-validation-table { font-size: 14px !important; }
+      .docimport-validation-table th { font-size: 12px !important; }
+      .doc-job-badge { font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border: 1px solid; }
+      #historyView.scope-doc #syncStatusBtn, #historyView.scope-doc #ownershipFilter option[value="shared"] { display: none; }
     </style>
   </head>
   <body>
@@ -879,7 +879,9 @@
 
         <div class="dl-block">
           <div class="dl-label" data-i18n="dl_where">Where to?</div>
-          <div class="dl-options dl-options-2">
+          <div class="dl-options dl-options-2" id="dlTargetOptions">
+            <label class="dl-option" id="dlTargetDocOpt" style="display:none;"><input type="radio" name="dlTarget" value="docfolder" onchange="updateDownloadDialog_()">
+              <span class="material-icons-outlined">drive_folder_upload</span><span><strong>Drive-Projektordner</strong><br><small>Fertige Sprachen zurück in die Sprachunterordner schreiben</small></span></label>
             <label class="dl-option"><input type="radio" name="dlTarget" value="computer" checked onchange="updateDownloadDialog_()">
               <span class="material-icons-outlined">computer</span><span data-i18n="dl_to_computer"><strong>This computer</strong><br><small>Single file or ZIP</small></span></label>
             <label class="dl-option" id="dlTargetDriveOpt"><input type="radio" name="dlTarget" value="drive" onchange="updateDownloadDialog_()">
@@ -1088,91 +1090,20 @@
 
       <div id="tab-documentation" class="tab-content" style="display:none">
         <div class="docsub-nav">
-          <button class="docsub-btn active" id="docsubBtn-import" onclick="switchDocSubtab('import')">Import</button>
-          <button class="docsub-btn" id="docsubBtn-export" onclick="switchDocSubtab('export')">Export</button>
+          <button class="docsub-btn active" id="docsubBtn-import" onclick="switchDocSubtab('import')"><span class="material-icons-outlined">upload_file</span> Import</button>
+          <button class="docsub-btn" id="docsubBtn-projects" onclick="switchDocSubtab('projects')"><span class="material-icons-outlined">folder_open</span> <span data-i18n="nav_history">My Projects</span></button>
         </div>
-        <div id="docsub-export" style="display:none;">
-        <div class="card">
-          <div class="section-title">Projekte exportieren</div>
-          <div style="font-size:12px;color:#888;margin-bottom:15px;line-height:1.6;">
-            Alle Phrase-Projekte mit Client <strong>AKW</strong>, Domain <strong>Technical Content</strong>,
-            Subdomain <strong>Professional</strong> und Business Unit <strong>MAT</strong>.
-            Nur Dateien mit Status <strong>COMPLETED</strong> werden zurückgeschrieben in die passenden
-            Sprachunterordner (werden bei Bedarf automatisch angelegt).
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:15px;">
-            <input type="text" id="docExportFilter" placeholder="🔍 Projektname..." oninput="docExportRenderProjects_()"
-                   style="flex:1;min-width:180px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
-            <select id="docExportLangFilter" onchange="docExportRenderProjects_()"
-                    style="height:40px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;min-width:140px;">
-              <option value="">Alle Sprachen</option>
-            </select>
-            <select id="docExportStatusFilter" onchange="docExportRenderProjects_()"
-                    style="height:40px;padding:0 10px;font-size:13px;border:1px solid #ccc;background:#fff;min-width:140px;">
-              <option value="">Alle Status</option>
-            </select>
-            <input type="text" id="docExportIaFilter" placeholder="🔍 IA Number..." oninput="docExportRenderProjects_()"
-                   style="width:150px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
-            <input type="text" id="docExportOwnerFilter" placeholder="🔍 Einreicher..." oninput="docExportRenderProjects_()"
-                   style="width:150px;height:40px;padding:0 12px;font-size:13px;border:1px solid #ccc;box-sizing:border-box;">
-            <button type="button" class="btn-refresh" onclick="docExportLoadEligibleProjects_()">
-              <i class="material-icons-outlined">refresh</i> Aktualisieren
-            </button>
-          </div>
-          <div id="docExportProjectsContainer">
-            <div style="text-align:center;padding:30px;color:#888;">Klicke auf "Aktualisieren" um Projekte zu laden.</div>
-          </div>
-        </div>
-      </div>
+
+        <div id="docsub-projects" style="display:none;"></div>
+
         <div id="docsub-import">
-        <div id="docOverviewPanel" class="doc-ov">
-          <div class="doc-ov-head" onclick="toggleDocSidebar()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDocSidebar();}">
-            <div class="doc-ov-title">
-              <span class="material-icons-outlined">view_kanban</span>
-              <span>Projektübersicht</span>
-            </div>
-            <div id="docOverviewSummary" class="doc-ov-summary"></div>
-            <div class="doc-ov-actions" onclick="event.stopPropagation()">
-              <button type="button" class="cal-btn" onclick="loadDocBoard('sidebar')" title="Aktualisieren"><span class="material-icons-outlined">refresh</span></button>
-              <button type="button" class="cal-btn" onclick="openSheetModal()" title="Vollbild"><span class="material-icons-outlined">fullscreen</span></button>
-              <a class="cal-btn" href="https://docs.google.com/spreadsheets/d/1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs/edit?gid=279576563#gid=279576563" target="_blank" title="Google Sheet öffnen"><span class="material-icons-outlined">open_in_new</span></a>
-            </div>
-            <button type="button" id="docShowInfoBtn" class="doc-ov-toggle" onclick="event.stopPropagation();toggleDocSidebar()">
-              <span id="docOverviewToggleText">Einblenden</span><span class="material-icons-outlined" id="docOverviewChevron">expand_more</span>
-            </button>
-          </div>
-          <div id="docSidebar" class="doc-ov-body collapsed">
-<div class="doc-ov-filters">              <div style="display:contents;">
-                <input type="text" id="docBoardFilter_sidebar" placeholder="🔍 Projektname..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:120px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
-                <select id="docBoardLangFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
-                        style="height:42px;padding:0 8px;font-size:14px;border:1px solid #ccc;background:#fff;">
-                  <option value="">Alle Sprachen</option>
-                </select>
-              </div>
-              <div style="display:contents;">
-                <select id="docBoardStatusFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
-                        style="height:42px;padding:0 8px;font-size:14px;border:1px solid #ccc;background:#fff;">
-                  <option value="">Alle Status</option>
-                </select>
-                <input type="text" id="docBoardIaFilter_sidebar" placeholder="🔍 IA Number..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:80px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
-                <input type="text" id="docBoardOwnerFilter_sidebar" placeholder="🔍 Einreicher..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:80px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
-              </div>
-</div>
-            <div id="docBoardContainer"></div>
-          </div>
-        </div>
-        <div>
-          <div id="doc-form-container">
-            <form id="projectForm_docimport">
-              <div class="card-grid">
-                <div class="card">
-                  <div class="section-title"><span class="step-num">1</span>Template &amp; Quellsprache</div>
-                  <div class="form-row">
-                    <label>Template <span class="required">*</span></label>
-                    <div class="tmpl-dropdown-wrapper" id="tmplWrapper_docimport">
+          <form id="projectForm_docimport">
+            <div class="card-grid">
+              <div class="card">
+                <div class="section-title">Project Info <span style="font-size:12px;color:#888;">(Documentation)</span></div>
+                <div class="form-row">
+                  <label>Template <span class="required">*</span></label>
+                  <div class="tmpl-dropdown-wrapper" id="tmplWrapper_docimport">
                       <div class="tmpl-dropdown-trigger" id="tmplTrigger_docimport" onclick="openTemplateDropdown_('_docimport')">
                         <span class="tmpl-dropdown-trigger-text" id="tmplTriggerText_docimport" style="color:#999;">Select Template Type</span>
                         <span class="tmpl-dropdown-arrow">&#9662;</span>
@@ -1183,8 +1114,9 @@
                       </div>
                       <select id="templateUid_docimport" required style="display:none;"><option disabled selected value="">Select Template Type</option></select>
                     </div>
-                  </div>
-                  <div class="form-row">
+                </div>
+                <div class="form-row" style="display:flex; gap:20px;">
+                  <div style="flex:1; position:relative;">
                     <label>Source Language <span class="required">*</span></label>
                     <div style="position:relative;">
                       <select id="sourceLang_docimport" disabled required style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;"></select>
@@ -1195,80 +1127,72 @@
                       <div id="sourceLangOverlay_docimport" class="input-overlay" onclick="checkTemplateSelected('docimport', 'source')"></div>
                     </div>
                   </div>
-                  <div style="display:none;">
-                    <div class="form-row">
-                      <label>Project Name <span class="required">*</span></label>
-                      <input type="text" id="projectName_docimport" placeholder="Wird nach Ordnerauswahl automatisch vorbefüllt, kann angepasst werden...">
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="card">
-                  <div class="section-title"><span class="step-num">2</span>Projektdaten &amp; Referenz</div>
-                  <div class="form-row">
+                  <div style="flex:1;">
                     <label>IA Number <span class="required">*</span></label>
                     <input type="text" id="iaNumber_docimport" placeholder="z.B. 123456" pattern="[0-9]+" inputmode="numeric">
                   </div>
-                  <div class="form-row">
-                    <label>Due Date <span class="required">*</span></label>
-                    <input type="date" id="dateDue_docimport" required>
-                    <div id="docImportExpressNotice" style="display:none;margin-top:8px;padding:10px 12px;background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;font-size:12px;color:#7a4a00;">
+                </div>
+                <div style="display:none;">
+                  <input type="text" id="projectName_docimport" placeholder="Wird nach Ordnerauswahl automatisch vorbefüllt, kann angepasst werden...">
+                </div>
+              </div>
+
+              <div class="card" id="settingsCard_docimport">
+                <div class="section-title" data-i18n="lbl_settings">Settings</div>
+                <div class="form-row">
+                  <label>Due Date <span class="required">*</span></label>
+                  <input type="date" id="dateDue_docimport" required>
+                  <div id="docImportExpressNotice" style="display:none;margin-top:8px;padding:10px 12px;background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;font-size:12px;color:#7a4a00;">
                       <div>Express-Vorlage: Das Due Date muss innerhalb der nächsten 72 Stunden liegen.</div>
                       <label style="display:block;margin-top:8px;font-weight:600;cursor:pointer;">
                         <input type="checkbox" id="docImportExpressConfirmCb"> Ich bestätige den 15%-Express-Aufschlag.
                       </label>
                     </div>
-                  </div>
-                  <div class="form-row">
-                    <label>Note</label>
-                    <textarea id="note_docimport" rows="4"></textarea>
-                  </div>
-                  <div class="form-row">
-                    <label>Referenzdatei (Pflichtfeld: PDF, XLSX, JPG) <span class="required">*</span></label>
-                    <div class="upload-actions">
-                      <button type="button" class="btn btn-secondary" onclick="handlePcUploadClick('ref', '_docimport')"><i class="material-icons-outlined">computer</i> PC Upload</button>
-                      <button type="button" class="btn btn-secondary" onclick="handleDriveClick('ref', '_docimport')"><i class="material-icons-outlined">add_to_drive</i> Drive</button>
-                      <button type="button" class="btn btn-secondary" onclick="handleDriveLinkClick('ref', '_docimport')" title="Google Drive Link einfügen (Editor-Rechte erforderlich)"><i class="material-icons-outlined">link</i> Drive Link</button>
-                    </div>
-                    <input type="file" id="refFilePC_docimport" accept=".pdf,.xlsx,.jpg,.jpeg" multiple style="display:none;">
-                    <div id="refListContainer_docimport" class="file-list-container refListContainerStyle" style="display:none;"></div>
-                  </div>
                 </div>
-                <div class="card" style="border-top:5px solid var(--primary-yellow); grid-column: 1 / -1;">
-                  <details id="docImportFolderDetails" open>
-                    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;">
-                      <span class="section-title" style="margin:0;border:none;padding:0;display:flex;align-items:center;gap:8px;">
-                        <span class="step-num">3</span>Drive-Ordner (Sprachunterordner) <span class="required">*</span>
-                        <span id="docImportErrorBadge" style="display:none;background:#d93025;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">! Problem</span>
-                      </span>
-                      <span class="material-icons-outlined" id="docImportChevron" style="color:#999;">expand_more</span>
-                    </summary>
-                    <div style="padding-top:15px;">
-                      <div class="tmpl-dropdown-wrapper" id="docImportFolderWrapper">
-                        <div class="tmpl-dropdown-trigger" id="docImportFolderTrigger" onclick="openDocImportFolderDropdown_()">
-                          <span class="tmpl-dropdown-trigger-text" id="docImportFolderTriggerText" style="color:#999;">Ordner auswählen...</span>
-                          <span class="tmpl-dropdown-arrow">&#9662;</span>
-                        </div>
-                        <div class="tmpl-dropdown-panel" id="docImportFolderPanel">
-                          <input type="text" class="tmpl-search-input" id="docImportFolderSearch" placeholder="🔍 Ordner suchen..." oninput="onDocImportFolderSearchInput_()" onclick="event.stopPropagation()">
-                          <div class="tmpl-options-list" id="docImportFolderOptionsList"></div>
-                        </div>
-                      </div>
-                      <div style="font-size:11px;color:#888;margin-top:6px;">Buchstaben eingeben, um die Unterordner des konfigurierten Drive-Roots zu filtern.</div>
-                      <div id="docImportDuplicateWarning" style="display:none;margin-top:12px;padding:10px 14px;background:#fff8e1;border:1px solid #f9c74f;border-radius:6px;font-size:12px;color:#7a5b00;"></div>
-                      <div id="docImportValidationContainer" style="margin-top:15px;"></div>
-                    </div>
-                  </details>
+                <div class="form-row" id="noteRow_docimport">
+                  <label data-i18n="lbl_note">Note</label>
+                  <textarea id="note_docimport" rows="4"></textarea>
                 </div>
               </div>
-              <div style="margin-top:40px; margin-bottom:60px; text-align:right;">
-                <button type="submit" id="submitBtn_docimport" class="btn btn-primary" style="width:auto; padding:0 50px;">
-                  IMPORT STARTEN <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>
-                </button>
+
+              <div class="card" style="border-top:5px solid var(--primary-yellow);">
+                <div class="section-title" style="display:flex;align-items:center;gap:8px;">
+                  Drive-Ordner (Sprachunterordner) <span class="required">*</span>
+                  <span id="docImportErrorBadge" style="display:none;background:#d93025;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">! Problem</span>
+                </div>
+                <div id="docImportFolderTrigger" class="folder-selected">
+                  <span class="material-icons-outlined">folder</span>
+                  <span id="docImportFolderTriggerText">Noch kein Ordner ausgewählt</span>
+                </div>
+                <div id="docImportFolderPanel" class="folder-picker">
+                  <div class="folder-search">
+                    <span class="material-icons-outlined">search</span>
+                    <input type="search" id="docImportFolderSearch" placeholder="Projektordner suchen..." oninput="onDocImportFolderSearchInput_()" autocomplete="off">
+                  </div>
+                  <div id="docImportFolderOptionsList" class="folder-list"></div>
+                </div>
+                <div id="docImportDuplicateWarning" style="display:none;margin-top:12px;padding:10px 14px;background:#fff8e1;border:1px solid #f9c74f;font-size:13px;color:#7a5b00;"></div>
+                <div id="docImportValidationContainer" style="margin-top:12px;"></div>
               </div>
-            </form>
-          </div>
-        </div>
+
+              <div class="card" id="refFilesCard_docimport">
+                <div class="section-title">Referenzdateien <span class="required">*</span> <span style="font-size:12px;color:#888;text-transform:none;">(PDF, XLSX, JPG)</span></div>
+                <div class="upload-actions">
+                  <button type="button" class="btn btn-secondary" onclick="handlePcUploadClick('ref', '_docimport')"><i class="material-icons-outlined">computer</i> <span data-i18n="btn_pc_upload">PC Upload</span></button>
+                  <button type="button" class="btn btn-secondary" onclick="handleDriveClick('ref', '_docimport')"><i class="material-icons-outlined">add_to_drive</i> <span data-i18n="btn_drive">Drive</span></button>
+                  <button type="button" class="btn btn-secondary" onclick="handleDriveLinkClick('ref', '_docimport')" title="Google Drive Link einfügen (Editor-Rechte erforderlich)"><i class="material-icons-outlined">link</i> Drive Link</button>
+                </div>
+                <input type="file" id="refFilePC_docimport" accept=".pdf,.xlsx,.jpg,.jpeg" multiple style="display:none;">
+                <div class="dropzone" id="refDrop_docimport" data-drop-type="ref" onclick="handlePcUploadClick('ref', '_docimport')"><span class="material-icons-outlined">upload_file</span><span data-i18n="dz_hint">Drag files here or click to select</span></div>
+                <div id="refListContainer_docimport" class="file-list-container refListContainerStyle" style="display:none;"></div>
+              </div>
+            </div>
+            <div style="margin-top:40px; margin-bottom:60px; text-align:right;">
+              <button type="submit" id="submitBtn_docimport" class="btn btn-primary" style="width:auto; padding:0 50px;">
+                IMPORT STARTEN <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
       <div id="tab-history" class="tab-content" style="display:none">
@@ -4647,15 +4571,9 @@ function switchTab(tabName) {
     try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (e) {}
   }
   if(tabName === 'guide' || tabName === 'help') loadGuideContent_();
-  if(tabName === 'history')   loadMyProjects();
+  if(tabName === 'history')   { mountHistoryView_('tab-history', 'all'); loadMyProjects(); }
   if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
-  if(tabName === 'documentation') {
-    let ovOpen = false;
-    try { ovOpen = localStorage.getItem('docOverviewOpen') === '1'; } catch (e) {}
-    toggleDocSidebar(ovOpen);
-    loadDocBoard('sidebar');
-    docImportPreloadFolders_();
-  }
+  if(tabName === 'documentation') switchDocSubtab(docSubtab_);
   if(tabName === 'dashboard') renderDashboard();
   if(tabName === 'admin')     loadAdminContent_(false);
   if(tabName === 'health')    loadHealthCheck();
@@ -4670,97 +4588,121 @@ function toggleMarketingSidebar() {
   if (sb.classList.contains('collapsed')) { sb.classList.remove('collapsed'); btn.style.display='none'; }
   else { sb.classList.add('collapsed'); btn.style.display='inline-flex'; }
 }
-function toggleDocSidebar(forceOpen) {
-  const body = document.getElementById('docSidebar');
-  if (!body) return;
-  const open = forceOpen === undefined ? body.classList.contains('collapsed') : !!forceOpen;
-  body.classList.toggle('collapsed', !open);
-  document.getElementById('docOverviewPanel').classList.toggle('open', open);
-  document.getElementById('docOverviewToggleText').textContent = open ? 'Ausblenden' : 'Einblenden';
-  document.getElementById('docOverviewChevron').textContent = open ? 'expand_less' : 'expand_more';
-  try { localStorage.setItem('docOverviewOpen', open ? '1' : '0'); } catch (e) {}
-}
+// --- Dokumentation: Import / Meine Projekte ------------------------------------
+// "Meine Projekte" ist hier dieselbe Ansicht wie im Hauptreiter (Tabelle,
+// Status-Chips, Archiv, Kalender, Download-Dialog, Notizen). Statt sie zu
+// duplizieren, wird der Inhalt von #tab-history in den jeweils aktiven Reiter
+// verschoben und die Datenquelle umgeschaltet (historyScope_).
+let historyScope_ = 'all';
+let docSubtab_ = 'import';
 
-/** Kompakte Statuszaehler im (auch eingeklappten) Kopf der Projektuebersicht. */
-function renderDocOverviewSummary_() {
-  const el = document.getElementById('docOverviewSummary');
-  if (!el) return;
-  const projects = _docQueueData_['sidebar'] || [];
-  const cols = docQueueGroupByColumns_(projects);
-  el.innerHTML = cols.map(c => {
-    const color = DOC_QUEUE_STATUS_COLORS_[c.name] || '#888';
-    return `<span class="doc-ov-pill${c.projects.length ? '' : ' empty'}" style="border-left-color:${color};">${escapeHtml(c.name)} <b>${c.projects.length}</b></span>`;
-  }).join('');
+function mountHistoryView_(hostId, scope) {
+  let view = document.getElementById('historyView');
+  if (!view) {
+    const tab = document.getElementById('tab-history');
+    view = document.createElement('div');
+    view.id = 'historyView';
+    while (tab.firstChild) view.appendChild(tab.firstChild);
+    tab.appendChild(view);
+  }
+  const host = document.getElementById(hostId);
+  if (host && view.parentNode !== host) host.appendChild(view);
+  if (historyScope_ !== scope) {
+    historyScope_ = scope;
+    globalProjects = [];
+    historyStatusFilter_ = 'all';
+    historyShowArchive_ = false;
+    const archBtn = document.getElementById('archiveToggleBtn');
+    if (archBtn) { archBtn.classList.remove('active'); archBtn.innerHTML = '<i class="material-icons-outlined">archive</i> Show Archive'; }
+    const tbody = document.querySelector('#projectsTable tbody');
+    if (tbody) tbody.innerHTML = '';
+  }
+  view.classList.toggle('scope-doc', scope === 'doc');
 }
 
 function switchDocSubtab(name) {
-  const isImport = name === 'import';
+  docSubtab_ = name === 'projects' ? 'projects' : 'import';
+  const isImport = docSubtab_ === 'import';
   document.getElementById('docsub-import').style.display = isImport ? 'block' : 'none';
-  document.getElementById('docsub-export').style.display = isImport ? 'none' : 'block';
+  document.getElementById('docsub-projects').style.display = isImport ? 'none' : 'block';
   document.getElementById('docsubBtn-import').classList.toggle('active', isImport);
-  document.getElementById('docsubBtn-export').classList.toggle('active', !isImport);
-  if (isImport) docImportPreloadFolders_();
-  if (!isImport && !(_docQueueData_['export'] && _docQueueData_['export'].length)) loadDocBoard('export');
+  document.getElementById('docsubBtn-projects').classList.toggle('active', !isImport);
+  if (isImport) { docImportPreloadFolders_(); return; }
+  mountHistoryView_('docsub-projects', 'doc');
+  loadMyProjects();
 }
-// --- DOCUMENTATION EXPORT ? dünne Wrapper auf die gemeinsame Queue-Engine ??
-function docExportLoadEligibleProjects_() { loadDocBoard('export'); }
-function docExportRenderProjects_() { filterDocBoardCards('export'); }
 
-function docExportStartFor_(projectUid, projectName) {
-  const projects = _docQueueData_['export'] || [];
-  const p = projects.find(x => x.projectUid === projectUid);
-  if (!p) return;
-  const completedJobs = (p.jobs || []).filter(j => j.status === 'COMPLETED');
-  if (!completedJobs.length) { showCustomAlert('Keine fertigen (COMPLETED) Dateien zum Export.', 'Hinweis'); return; }
-  
-  showCustomConfirm('Export für "' + projectName + '" starten? ' + completedJobs.length + ' Datei(en) werden nach Drive geschrieben.', function() {
-    const overlay = document.getElementById('downloadOverlay');
-    const titleEl = document.getElementById('downloadOverlayTitle');
-    overlay.style.display = 'flex';
+/** Sprach-Badges pro Job (Farbe = Job-Status) fuer Dokumentationsprojekte. */
+function docJobBadges_(p) {
+  const colors = { COMPLETED: '#2e7d32', DELIVERED: '#2e7d32', NOTIFIED: '#2e7d32', CANCELLED: '#c62828', ERROR: '#c62828' };
+  const jobs = p.docJobs || [];
+  if (!jobs.length) return '-';
+  return '<span class="doc-job-badges">' + jobs.map(j => {
+    const c = colors[j.status] || '#b08d00';
+    return `<span class="doc-job-badge" style="color:${c};border-color:${c}66;background:${c}14;" title="${escapeHtml((j.fileName || '') + ' – ' + j.status)}">${escapeHtml(j.targetLang || '?')}</span>`;
+  }).join('') + '</span>';
+}
 
-    let currentIdx = 0;
-    let successCount = 0;
-    let errors = [];
-    let folderUrl = "";
-
-    function processNext() {
-      if (currentIdx >= completedJobs.length) {
-        overlay.style.display = 'none';
-        let msg = '<div style="font-size:14px; font-weight:bold; margin-bottom:10px;">' + successCount + ' von ' + completedJobs.length + ' Datei(en) erfolgreich exportiert.</div>';
-        if (folderUrl) msg += '<div style="margin-bottom:15px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Ordner in Drive öffnen ?</a></div>';
-        if (errors.length) {
-          msg += '<div style="color:#c62828; font-weight:bold; margin-bottom:5px;">Fehler bei folgenden Dateien:</div>';
-          msg += '<div style="background:#fff3f3; border:1px solid #ffcdd2; padding:10px; font-size:12px; font-family:monospace; color:#c62828; max-height:200px; overflow-y:auto; text-align:left;">' + errors.join('<br><br>') + '</div>';
-        }
-        showCustomAlert(msg, 'Export abgeschlossen');
-        return;
-      }
-
-      const job = completedJobs[currentIdx];
-      titleEl.innerText = 'Lade Datei ' + (currentIdx + 1) + ' von ' + completedJobs.length + '...\n(' + job.targetLang + ')';
-
+function docArchiveFromHistory_(projectUid, projectName) {
+  showCustomConfirm(
+    'Projekt "' + projectName + '" archivieren?\n\nAlle Zeilen werden ins Archive-Sheet verschoben und der Einreicher erhält eine "Translation Complete"-Nachricht in Google Chat.',
+    function() {
+      setDownloadProgress_('Archiviere "' + projectName + '"...', '');
       google.script.run
-        .withSuccessHandler(res => {
-          if (res.success) {
-            successCount++;
-            if (res.folderUrl) folderUrl = res.folderUrl;
-          } else {
-            errors.push('<strong>' + job.targetLang + '</strong>: ' + res.error);
-          }
-          currentIdx++;
-          processNext();
+        .withSuccessHandler(function(res) {
+          hideDownloadProgress_();
+          if (!res.success) { showCustomAlert('Fehler: ' + escapeHtml(res.error), 'Fehler'); return; }
+          showToast_('✓ ' + res.archivedRows + ' Zeile(n) archiviert' + (res.notified ? ', Einreicher benachrichtigt' : ''), 'ok');
+          loadMyProjects();
         })
-        .withFailureHandler(err => {
-          errors.push('<strong>' + job.targetLang + '</strong>: ' + err.message);
-          currentIdx++;
-          processNext();
+        .withFailureHandler(function(err) {
+          hideDownloadProgress_();
+          showCustomAlert('Fehler: ' + escapeHtml(err.message), 'Fehler');
         })
-        .apiExportSingleJobToDrive(projectUid, projectName, job);
+        .apiArchiveDocQueueProject(projectUid, projectName);
+    },
+    'Archivieren bestätigen'
+  );
+}
+
+/**
+ * Schreibt die fertigen Sprachen eines Dokumentationsprojekts zurueck in den
+ * Drive-Projektordner (Sprachunterordner) - frueher der Reiter "Export".
+ */
+function exportDocProjectToFolder_(p) {
+  const jobs = (p.docJobs || []).filter(j => j.status === 'COMPLETED' && j.jobUid);
+  if (!jobs.length) { showCustomAlert('Keine fertigen (COMPLETED) Dateien zum Zurückschreiben.', 'Hinweis'); return; }
+  let idx = 0, ok = 0, folderUrl = '';
+  const errors = [];
+  const next = () => {
+    if (idx >= jobs.length) {
+      hideDownloadProgress_();
+      if (ok && !errors.length) {
+        showToast_('✓ ' + ok + ' Datei(en) in den Projektordner geschrieben', 'ok', folderUrl ? { href: folderUrl, label: 'Ordner öffnen' } : null);
+      } else {
+        let msg = ok + ' von ' + jobs.length + ' Datei(en) geschrieben.';
+        if (folderUrl) msg += '<div style="margin-top:12px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">Ordner in Drive öffnen →</a></div>';
+        if (errors.length) msg += '<div class="dl-errors">' + errors.join('<br>') + '</div>';
+        showCustomAlert(msg, 'Zurückschreiben');
+      }
+      loadMyProjects();
+      return;
     }
-
-    processNext();
-
-  }, 'Export bestätigen');
+    const job = jobs[idx];
+    setDownloadProgress_('Schreibe Datei ' + (idx + 1) + ' von ' + jobs.length + ' (' + job.targetLang + ')', 'Die Übersetzung wird in den passenden Sprachunterordner geschrieben.');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.success) { ok++; if (res.folderUrl) folderUrl = res.folderUrl; }
+        else errors.push('<strong>' + escapeHtml(job.targetLang) + '</strong>: ' + escapeHtml(res.error));
+        idx++; next();
+      })
+      .withFailureHandler(err => {
+        errors.push('<strong>' + escapeHtml(job.targetLang) + '</strong>: ' + escapeHtml(err.message));
+        idx++; next();
+      })
+      .apiExportSingleJobToDrive(p.projectUid, p.projectName, { jobUid: job.jobUid, targetLang: job.targetLang, fileName: job.fileName, status: job.status });
+  };
+  next();
 }
 
 let _docImportDriveTree_ = null;
@@ -4811,6 +4753,7 @@ function docImportSetupRefFileListener_() {
     this.value = "";
     renderFileList('ref', '_docimport');
   });
+  setupDropzone_('ref', '_docimport');
 }
 
 function docImportOnTemplateChange_() {
@@ -4864,22 +4807,8 @@ function docImportValidateDueDate_() {
 }
 
 function openDocImportFolderDropdown_() {
-  const panel = document.getElementById('docImportFolderPanel');
-  const trigger = document.getElementById('docImportFolderTrigger');
-  if (!panel) return;
-  const isOpen = panel.classList.contains('open');
-  document.querySelectorAll('.tmpl-dropdown-panel.open').forEach(p => p.classList.remove('open'));
-  document.querySelectorAll('.tmpl-dropdown-trigger.open').forEach(t => t.classList.remove('open'));
-  if (!isOpen) {
-    panel.classList.add('open');
-    if (trigger) trigger.classList.add('open');
-    const input = document.getElementById('docImportFolderSearch');
-    if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
-    // Cache sofort anzeigen (kein Warten auf den Server), im Hintergrund trotzdem
-    // aktualisieren, damit die Liste immer die aktuellen Projekte zeigt.
-    if (_docImportFolderCache_) renderDocImportFolderList_(_docImportFolderCache_);
-    docImportSearchFolders_('');
-  }
+  const input = document.getElementById('docImportFolderSearch');
+  if (input) input.focus();
 }
 
 function onDocImportFolderSearchInput_() {
@@ -4896,7 +4825,9 @@ function renderDocImportFolderList_(folders) {
     return;
   }
   list.innerHTML = folders.map(f =>
-    `<div class="tmpl-option" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>${escapeHtml(f.name)}</div>`
+    `<button type="button" class="folder-row${f.id === _docImportSelectedFolderId_ ? ' selected' : ''}" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>
+       <span class="material-icons-outlined">${f.id === _docImportSelectedFolderId_ ? 'check_circle' : 'folder'}</span><span class="folder-row-name">${escapeHtml(f.name)}</span>
+     </button>`
   ).join('');
 }
 
@@ -4926,6 +4857,13 @@ function docImportSearchFolders_(query) {
 // sichtbar wird - damit die Auswahl beim öffnen sofort aktuell ist, statt
 // erst nach Klick auf "Ordner auswählen" nachzuladen.
 function docImportPreloadFolders_() {
+  if (_docImportFolderCache_) {
+    const searchInput = document.getElementById('docImportFolderSearch');
+    if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
+  } else {
+    const list = document.getElementById('docImportFolderOptionsList');
+    if (list && !list.innerHTML) list.innerHTML = '<div class="tmpl-option-empty">Ordner werden geladen...</div>';
+  }
   if (_docImportFolderCacheLoading_) return;
   _docImportFolderCacheLoading_ = true;
   google.script.run
@@ -4933,11 +4871,8 @@ function docImportPreloadFolders_() {
       _docImportFolderCacheLoading_ = false;
       if (!res.success) return;
       _docImportFolderCache_ = res.folders || [];
-      const panel = document.getElementById('docImportFolderPanel');
-      if (panel && panel.classList.contains('open')) {
-        const searchInput = document.getElementById('docImportFolderSearch');
-        if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
-      }
+      const searchInput = document.getElementById('docImportFolderSearch');
+      if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
     })
     .withFailureHandler(() => { _docImportFolderCacheLoading_ = false; })
     .apiSearchDocDriveFolders('');
@@ -4950,11 +4885,14 @@ function selectDocImportFolder_(folderId, folderName) {
   _docImportDuplicateHistory_ = [];
 
   const triggerText = document.getElementById('docImportFolderTriggerText');
-  if (triggerText) { triggerText.textContent = folderName; triggerText.style.color = '#333'; }
-  const panel = document.getElementById('docImportFolderPanel');
+  if (triggerText) triggerText.textContent = folderName;
   const trigger = document.getElementById('docImportFolderTrigger');
-  if (panel) panel.classList.remove('open');
-  if (trigger) trigger.classList.remove('open');
+  if (trigger) trigger.classList.add('has-folder');
+  document.querySelectorAll('#docImportFolderOptionsList .folder-row').forEach(b => {
+    const on = b.querySelector('.folder-row-name').textContent === folderName;
+    b.classList.toggle('selected', on);
+    b.querySelector('.material-icons-outlined').textContent = on ? 'check_circle' : 'folder';
+  });
 
   const pName = document.getElementById('projectName_docimport');
   if (pName && !pName.value.trim()) pName.value = folderName;
@@ -5980,7 +5918,7 @@ function loadMyProjects() {
   }).withFailureHandler(e=>{
     document.getElementById('historyLoading').style.display='none';
     document.getElementById('noProjectsMsg').innerHTML=`Error: ${e.message}`;document.getElementById('noProjectsMsg').style.display='block';
-  }).apiGetMyProjects();
+  })[historyScope_ === 'doc' ? 'apiGetDocProjectsForHistory' : 'apiGetMyProjects']();
 }
 
 function fillTable(projects) {
@@ -6014,7 +5952,9 @@ function fillTable(projects) {
       ?`<div style="width:36px;display:inline-block;"></div>`
       :`<button class="btn-icon danger" title="Cancel Project" onclick="cancelProject('${p.projectUid}','${p.projectName}')"><span class="material-icons-outlined">delete</span></button>`;
 
-    const dlBtn=['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status)
+    // Dokumentationsprojekte: Download, sobald mindestens eine Sprache fertig ist.
+    const docDone = p.docProject && (p.docJobs || []).some(j => ['COMPLETED','DELIVERED','NOTIFIED'].includes(j.status));
+    const dlBtn=(['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) || docDone)
       ?`<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
       :'-';
 
@@ -6032,17 +5972,20 @@ function fillTable(projects) {
     tr.innerHTML=`<td>${nameCell}</td>
       <td><a href="${p.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS">${p.projectUid} <span class="material-icons-outlined" style="font-size:12px">open_in_new</span></a></td>
       <td style="font-size:11px;">${p.uploadDate||"-"}</td><td>${p.sourceLang}</td>
-      <td><span style="font-size:11px;">${p.targetLang||"-"}</span></td>
+      <td>${p.docProject ? docJobBadges_(p) : `<span style="font-size:11px;">${p.targetLang||"-"}</span>`}</td>
       <td><span class="status-badge status-${p.status}">${p.status}</span></td>
       <td>${due}</td><td>${shText}</td>
       <td style="text-align:center;">${dlBtn}</td>
       <td style="text-align:center">
          <button class="btn-icon" onclick="showTimeline('${p.projectUid}')" title="Timeline & Status"><span class="material-icons-outlined">timeline</span></button>
+         ${p.docProject ? `
+         <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}')" title="Notes"><span class="material-icons-outlined">edit_note</span></button>
+         <button class="btn-icon" onclick="docArchiveFromHistory_('${escapeJs(p.projectUid)}','${escapeJs(p.projectName)}')" title="Archivieren (ins Archive-Sheet, Einreicher wird benachrichtigt)"><span class="material-icons-outlined">archive</span></button>` : `
          <button class="btn-icon" onclick="shareProject('${p.projectUid}')" title="Share with Colleague"><span class="material-icons-outlined">share</span></button>
          <button class="btn-icon" onclick="cloneProject('${p.projectUid}')" title="Clone / Duplicate Project"><span class="material-icons-outlined">content_copy</span></button>
          <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}')" title="Notes"><span class="material-icons-outlined">edit_note</span></button>
          ${['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status) ? '<div style="width:36px;display:inline-block;"></div>' : `<button class="btn-icon" onclick="openDueDateModal('${p.projectUid}','${p.projectName}','${p.dueDate||''}')" title="Update Due Date"><span class="material-icons-outlined">edit_calendar</span></button>`}
-         ${cnlBtn}
+         ${cnlBtn}`}
       </td>`;
     applyMobileLabels_(tr);
     t.appendChild(tr);
@@ -6177,7 +6120,7 @@ function globalSearch() {
 
   if (q) {
       filtered = filtered.filter(p =>
-        ['projectName','status','sourceLang','targetLang','uploadDate','projectUid','templateName', 'sharedWith', 'owner']
+        ['projectName','status','sourceLang','targetLang','uploadDate','projectUid','templateName', 'sharedWith', 'owner', 'iaNumber']
           .some(k => (p[k]||'').toLowerCase().includes(q))
         || (p.dueDate ? new Date(p.dueDate).toLocaleDateString().toLowerCase().includes(q) : false)
       );
@@ -6528,9 +6471,13 @@ function openSaveToDriveModal(projectUid, preselectPart) {
   const part = !childReady ? 'source' : (preselectPart || 'both');
   document.querySelector('input[name="saveToDrivePart"][value="' + part + '"]').checked = true;
 
+  const isDoc = !!p.docProject;
+  document.getElementById('dlTargetDocOpt').style.display = isDoc ? '' : 'none';
+  document.getElementById('dlTargetOptions').className = 'dl-options ' + (isDoc ? 'dl-options-3' : 'dl-options-2');
   let lastTarget = 'computer';
-  try { lastTarget = localStorage.getItem('dlLastTarget') || 'computer'; } catch (e) {}
-  document.querySelector('input[name="dlTarget"][value="' + (lastTarget === 'drive' ? 'drive' : 'computer') + '"]').checked = true;
+  try { lastTarget = localStorage.getItem(isDoc ? 'dlLastTargetDoc' : 'dlLastTarget') || (isDoc ? 'docfolder' : 'computer'); } catch (e) {}
+  if (lastTarget === 'docfolder' && !isDoc) lastTarget = 'computer';
+  document.querySelector('input[name="dlTarget"][value="' + (['drive','docfolder'].includes(lastTarget) ? lastTarget : 'computer') + '"]').checked = true;
   document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
   updateDownloadDialog_();
   document.getElementById('saveToDriveModal').style.display = 'flex';
@@ -6548,11 +6495,14 @@ function openSaveToDriveModal(projectUid, preselectPart) {
 
 function updateDownloadDialog_() {
   const toDrive = document.querySelector('input[name="dlTarget"][value="drive"]').checked;
+  const toDocFolder = document.querySelector('input[name="dlTarget"][value="docfolder"]').checked;
   document.getElementById('saveToDriveFormatChoice').style.display = toDrive ? 'block' : 'none';
-  document.getElementById('dlConfirmIcon').textContent = toDrive ? 'add_to_drive' : 'download';
-  document.getElementById('dlConfirmLabel').textContent = toDrive
-    ? (t_i18n_(currentLang, 'sd_btn_save') || 'Save to Drive')
-    : (t_i18n_(currentLang, 'dl_btn_download') || 'Download');
+  document.getElementById('dlConfirmIcon').textContent = toDocFolder ? 'drive_folder_upload' : (toDrive ? 'add_to_drive' : 'download');
+  document.getElementById('dlConfirmLabel').textContent = toDocFolder
+    ? 'In Projektordner schreiben'
+    : toDrive
+      ? (t_i18n_(currentLang, 'sd_btn_save') || 'Save to Drive')
+      : (t_i18n_(currentLang, 'dl_btn_download') || 'Download');
 }
 
 function closeSaveToDriveModal() {
@@ -6595,8 +6545,10 @@ function hideDownloadProgress_() {
 function confirmDownloadDialog() {
   const p = driveSavePendingProject_;
   if (!p) return;
-  const toDrive = document.querySelector('input[name="dlTarget"][value="drive"]').checked;
-  try { localStorage.setItem('dlLastTarget', toDrive ? 'drive' : 'computer'); } catch (e) {}
+  const target = (document.querySelector('input[name="dlTarget"]:checked') || {}).value || 'computer';
+  const toDrive = target === 'drive';
+  try { localStorage.setItem(p.docProject ? 'dlLastTargetDoc' : 'dlLastTarget', target); } catch (e) {}
+  if (target === 'docfolder') { closeSaveToDriveModal(); exportDocProjectToFolder_(p); return; }
   const parts = getSelectedDownloadParts_(p);
   if (toDrive) confirmSaveToGoogleDrive(parts);
   else { closeSaveToDriveModal(); downloadPartsToComputer_(p, parts); }
@@ -7509,7 +7461,6 @@ function closeJobNoteModal() {
           _docQueueData_[target] = res.projects || [];
           docQueuePopulateFilters_(target);
           renderDocBoard(target);
-          if (target === 'sidebar') renderDocOverviewSummary_();
         })
         .withFailureHandler(function(err) {
           container.innerHTML = '<div style="padding:20px;color:#d93025;font-size:12px;">Fehler: ' + escapeHtml(err.message) + '</div>';

@@ -399,7 +399,7 @@ function apiAddJobNote(projectUid, jobUidRaw, noteText, callerOverride) {
     const res = noteWriteProjectNote_(projectUid, combined, current.hadMarker);
     if (!res.success) return res;
 
-    try {
+    if (!row.doc) try {
       const existingNotes = String(row.values[22] || "").trim();
       const noteEntry = new Date().toISOString().slice(0, 16) + " [" + caller + "]: " + text;
       row.sheet.getRange(row.rowNum, 23).setValue(existingNotes ? existingNotes + "\n" + noteEntry : noteEntry);
@@ -530,6 +530,10 @@ function noteFindQueueRow_(projectUid) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][2]).trim() === projectUid) return { sheet: sh, rowNum: i + 1, values: data[i] };
   }
+  // Dokumentationsprojekte stehen in einem eigenen Queue-Sheet (DocQueue.gs).
+  // Fuer die Berechtigung reicht dort der Einreicher (Index 1 wie im Haupt-Queue).
+  const doc = docQueueFindProjectOwner_(projectUid);
+  if (doc) return { doc: true, sheet: null, rowNum: -1, values: ["", doc.owner] };
   return null;
 }
 
