@@ -242,7 +242,8 @@ function _deduplicateBlobNames_(blobs) {
 function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileName, targetLang, mimeType, jobMapping) {
   if (!Array.isArray(jobUids)) jobUids = [jobUids];
   jobUids = jobUids.filter(j => j && String(j).trim());
-  if (jobUids.length === 0) return { success: false, error: "No job UIDs provided" };
+  // Keine Job-UIDs (z.B. Pivot-Translation-Schritt, den Phrase selbst anlegt):
+  // phraseGetJobsForMaxLevel_ holt die Jobs direkt aus dem Projekt.
 
   if (jobMapping && typeof jobMapping === "string") {
     try { jobMapping = JSON.parse(jobMapping); } catch(e) { jobMapping = null; }
