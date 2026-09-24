@@ -406,6 +406,39 @@
         #projectsTable tr.empty-row { border: none; background: transparent; box-shadow: none; }
         form[id^="projectForm_"] > div:last-child { position: sticky; bottom: 0; z-index: 5; background: linear-gradient(rgba(246,246,247,0), #f6f6f7 35%); padding-top: 20px; padding-bottom: 10px; margin-bottom: 0 !important; }
       }
+
+      /* ===== Notizen-Dialog ===== */
+      .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .note-modal { background: #fff; width: 560px; max-width: 94vw; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; border-top: 6px solid var(--primary-yellow); padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); box-sizing: border-box; }
+      .note-modal-head { display: flex; justify-content: space-between; align-items: center; }
+      .note-modal-head h3 { margin: 0; font-size: 15px; text-transform: uppercase; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+      .note-close { background: none; border: none; cursor: pointer; color: #999; }
+      .note-close:hover { color: var(--primary-black); }
+      .note-project-name { font-size: 13px; color: #666; margin: 4px 0 14px; word-break: break-word; }
+      .note-section { border: 1px solid #eee; border-left: 4px solid var(--primary-yellow); background: #fafafa; padding: 14px; margin-bottom: 14px; }
+      .note-section:last-child { border-left-color: #999; margin-bottom: 0; }
+      .note-section-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
+      .note-section-title .material-icons-outlined { font-size: 18px; }
+      .note-hint { font-size: 11px; color: #888; margin-bottom: 8px; }
+      .note-section textarea { font-size: 14px; padding: 10px; resize: vertical; min-height: 70px; }
+      .note-section textarea:disabled { background: #f3f3f3; color: #777; }
+      .note-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+      .note-status { font-size: 12px; color: #888; margin-right: auto; }
+      .note-status.ok { color: #2e7d32; font-weight: 700; }
+      .note-status.err { color: #c62828; }
+      .note-list { max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #e8e8e8; padding: 8px; margin-top: 8px; }
+      .note-item { padding: 8px 6px; border-bottom: 1px solid #f0f0f0; }
+      .note-item:last-child { border-bottom: none; }
+      .note-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: #888; margin-bottom: 4px; flex-wrap: wrap; }
+      .note-meta strong { color: #333; }
+      .note-langs { background: #fff8c4; color: #5d4037; padding: 1px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+      .note-text { font-size: 13px; color: #333; white-space: pre-wrap; word-break: break-word; }
+      .note-empty { color: #888; padding: 6px; font-style: italic; font-size: 12px; }
+      .note-empty.err { color: #c62828; font-style: normal; }
+      @media (max-width: 700px) {
+        .note-actions { flex-wrap: wrap; }
+        .note-actions .btn { width: 100% !important; }
+      }
     </style>
   </head>
   <body>
@@ -792,22 +825,34 @@
     </div>
 
     <div id="jobNoteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:5600;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
-      <div style="background:#fff;width:500px;max-height:85vh;display:flex;flex-direction:column;border-top:6px solid var(--primary-yellow);padding:25px;box-shadow:0 20px 50px rgba(0,0,0,0.2);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-shrink:0;">
-          <h3 style="margin:0;font-size:15px;text-transform:uppercase;font-weight:800;">
-            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;font-size:18px;">edit_note</span>
+      <div class="note-modal">
+        <div class="note-modal-head">
+          <h3>
+            <span class="material-icons-outlined">edit_note</span>
             <span data-i18n="jn_title">Notes for Translator</span>
           </h3>
-          <button onclick="closeJobNoteModal()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
+          <button onclick="closeJobNoteModal()" class="note-close" title="Close"><span class="material-icons-outlined">close</span></button>
         </div>
-        <div style="font-size:12px;color:#888;margin-bottom:10px;flex-shrink:0;" data-i18n="jn_existing">Existing notes (from Phrase TMS):</div>
-        <div id="jobNotesList" style="flex:1;overflow-y:auto;margin-bottom:15px;border:1px solid #eee;padding:10px;background:#fafafa;min-height:60px;max-height:200px;font-size:12px;"></div>
-        <div style="flex-shrink:0;">
-          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;" data-i18n="jn_add_label">Add new note:</label>
-          <textarea id="jobNoteText" rows="4" data-i18n-placeholder="jn_placeholder" placeholder="Write a note for the translator..." style="width:100%;box-sizing:border-box;padding:10px;font-size:13px;border:1px solid #ccc;font-family:inherit;resize:vertical;"></textarea>
-          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
-            <button class="btn btn-secondary" style="height:38px;" data-i18n="btn_cancel" onclick="closeJobNoteModal()">Cancel</button>
-            <button id="jobNoteSubmitBtn" class="btn btn-primary" style="height:38px;width:auto;padding:0 25px;" data-i18n="jn_btn_send" onclick="submitJobNote()">Send Note</button>
+        <div id="jobNoteProjectName" class="note-project-name"></div>
+
+        <div class="note-section">
+          <div class="note-section-title"><span class="material-icons-outlined">sticky_note_2</span><span data-i18n="jn_project_note">Project note</span></div>
+          <div class="note-hint" data-i18n="jn_project_note_hint">The note entered when the project was created. Translators see it in Phrase TMS.</div>
+          <textarea id="projectNoteText" rows="4" disabled placeholder="..."></textarea>
+          <div class="note-actions">
+            <span id="projectNoteStatus" class="note-status"></span>
+            <button id="projectNoteSaveBtn" class="btn btn-primary" style="height:38px;width:auto;padding:0 22px;" onclick="saveProjectNote()" disabled data-i18n="jn_btn_save_note">Save note</button>
+          </div>
+        </div>
+
+        <div class="note-section">
+          <div class="note-section-title"><span class="material-icons-outlined">forum</span><span data-i18n="jn_existing">Messages to translators (Phrase TMS)</span></div>
+          <div id="jobNotesList" class="note-list"></div>
+          <label for="jobNoteText" style="font-size:12px;font-weight:700;display:block;margin:12px 0 6px;" data-i18n="jn_add_label">Add new note:</label>
+          <textarea id="jobNoteText" rows="3" data-i18n-placeholder="jn_placeholder" placeholder="Write a note for the translator..."></textarea>
+          <div class="note-actions">
+            <span class="note-hint" style="margin:0;" data-i18n="jn_send_hint">Sent to all jobs (languages) of this project.</span>
+            <button id="jobNoteSubmitBtn" class="btn btn-black" style="height:38px;width:auto;padding:0 22px;" data-i18n="jn_btn_send" onclick="submitJobNote()">Send Note</button>
           </div>
         </div>
       </div>
@@ -1882,7 +1927,7 @@ const i18n = {
     "dd_btn_save":        "Speichern &amp; Benachrichtigen",
     "dd_saved_msg":       "&#10003; Fälligkeitsdatum aktualisiert!",
     "jn_title":           "Notizen für Übersetzer",
-    "jn_existing":        "Bestehende Notizen (aus Phrase TMS):",
+    "jn_existing":        "Nachrichten an Übersetzer (Phrase TMS)",
     "jn_add_label":       "Neue Notiz hinzufügen:",
     "jn_placeholder":     "Notiz für den Übersetzer schreiben...",
     "jn_btn_send":        "Notiz senden",
@@ -1909,6 +1954,15 @@ const i18n = {
     "hs_empty":           "Keine Projekte für diese Auswahl.",
     "hs_empty_archive":   "Keine archivierten Projekte.",
     "hs_archive_hint":    "Archiv: abgeschlossene Projekte älter als 30 Tage",
+    "jn_project_note":    "Projektnotiz",
+    "jn_project_note_hint": "Die beim Anlegen eingegebene Notiz. Übersetzer sehen sie in Phrase TMS.",
+    "jn_btn_save_note":   "Notiz speichern",
+    "jn_send_hint":       "Wird an alle Jobs (Sprachen) dieses Projekts gesendet.",
+    "jn_no_notes":        "Noch keine Nachrichten.",
+    "jn_loading":         "Wird geladen...",
+    "jn_saving":          "Wird gespeichert...",
+    "jn_saved":           "Gespeichert",
+    "jn_readonly":        "Nur lesen",
     "prefs_title":        "Einstellungen",
     "prefs_chat_title":   "Google Chat-Benachrichtigungen",
     "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
@@ -2047,7 +2101,7 @@ const i18n = {
     "dd_btn_save":        "Save &amp; Notify",
     "dd_saved_msg":       "&#10003; Due date updated!",
     "jn_title":           "Notes for Translator",
-    "jn_existing":        "Existing notes (from Phrase TMS):",
+    "jn_existing":        "Messages to translators (Phrase TMS)",
     "jn_add_label":       "Add new note:",
     "jn_placeholder":     "Write a note for the translator...",
     "jn_btn_send":        "Send Note",
@@ -2074,6 +2128,15 @@ const i18n = {
     "hs_empty":           "No projects match this selection.",
     "hs_empty_archive":   "No archived projects.",
     "hs_archive_hint":    "Archive: finished projects older than 30 days",
+    "jn_project_note":    "Project note",
+    "jn_project_note_hint": "The note entered when the project was created. Translators see it in Phrase TMS.",
+    "jn_btn_save_note":   "Save note",
+    "jn_send_hint":       "Sent to all jobs (languages) of this project.",
+    "jn_no_notes":        "No messages yet.",
+    "jn_loading":         "Loading...",
+    "jn_saving":          "Saving...",
+    "jn_saved":           "Saved",
+    "jn_readonly":        "Read only",
     "prefs_title":        "Preferences",
     "prefs_chat_title":   "Google Chat Notifications",
     "prefs_chat_desc":    "Receive a direct message when your project is created.",
@@ -5773,7 +5836,7 @@ function fillTable(projects) {
          <button class="btn-icon" onclick="showTimeline('${p.projectUid}')" title="Timeline & Status"><span class="material-icons-outlined">timeline</span></button>
          <button class="btn-icon" onclick="shareProject('${p.projectUid}')" title="Share with Colleague"><span class="material-icons-outlined">share</span></button>
          <button class="btn-icon" onclick="cloneProject('${p.projectUid}')" title="Clone / Duplicate Project"><span class="material-icons-outlined">content_copy</span></button>
-         <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}',${JSON.stringify(p.jobUids||[])})" title="Add Note to Translator"><span class="material-icons-outlined">edit_note</span></button>
+         <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}')" title="Notes"><span class="material-icons-outlined">edit_note</span></button>
          ${['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status) ? '<div style="width:36px;display:inline-block;"></div>' : `<button class="btn-icon" onclick="openDueDateModal('${p.projectUid}','${p.projectName}','${p.dueDate||''}')" title="Update Due Date"><span class="material-icons-outlined">edit_calendar</span></button>`}
          ${cnlBtn}
       </td>`;
@@ -6385,56 +6448,119 @@ function confirmSaveToGoogleDrive() {
 
 let currentNoteProjectUid = null;
 let currentNoteJobUids = [];
+let currentNoteOriginal_ = '';
 
-function openJobNoteModal(projectUid, jobUids) {
-      currentNoteProjectUid = projectUid;
-      currentNoteJobUids = jobUids || [];
+function openJobNoteModal(projectUid) {
+  const p = globalProjects.find(x => x.projectUid === projectUid) || {};
+  currentNoteProjectUid = projectUid;
+  currentNoteJobUids = Array.isArray(p.jobUids) ? p.jobUids : [];
+  currentNoteOriginal_ = '';
+  document.getElementById('jobNoteProjectName').textContent = p.projectName || projectUid;
+  document.getElementById('jobNoteText').value = '';
+
+  const noteTa = document.getElementById('projectNoteText');
+  const saveBtn = document.getElementById('projectNoteSaveBtn');
+  const status = document.getElementById('projectNoteStatus');
+  noteTa.value = ''; noteTa.disabled = true; saveBtn.disabled = true;
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_loading') || 'Loading...';
+  noteTa.oninput = () => { saveBtn.disabled = noteTa.value.trim() === currentNoteOriginal_.trim(); status.textContent = ''; };
+
+  document.getElementById('jobNoteModal').style.display = 'flex';
+
+  google.script.run.withSuccessHandler(res => {
+    if (currentNoteProjectUid !== projectUid) return;
+    if (!res || !res.success) {
+      status.className = 'note-status err';
+      status.textContent = 'Error: ' + ((res && res.error) || 'unknown');
+      return;
+    }
+    currentNoteOriginal_ = res.note || '';
+    noteTa.value = currentNoteOriginal_;
+    noteTa.disabled = !res.canEdit;
+    status.textContent = res.canEdit ? '' : (t_i18n_(currentLang, 'jn_readonly') || 'Read only');
+  }).withFailureHandler(e => {
+    status.className = 'note-status err';
+    status.textContent = 'Error: ' + e.message;
+  }).apiGetProjectNote(projectUid);
+
+  loadJobNotes_(projectUid);
+}
+
+function loadJobNotes_(projectUid) {
+  const list = document.getElementById('jobNotesList');
+  list.innerHTML = '<div style="text-align:center;padding:10px;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto;"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (currentNoteProjectUid !== projectUid) return;
+    if (!res || !res.success) { list.innerHTML = `<div class="note-empty err">Error loading notes: ${escapeHtml(res && res.error)}</div>`; return; }
+    if (!res.notes || !res.notes.length) { list.innerHTML = `<div class="note-empty">${escapeHtml(t_i18n_(currentLang, 'jn_no_notes') || 'No notes yet.')}</div>`; return; }
+    list.innerHTML = res.notes.map(n => {
+      const d = n.created ? new Date(n.created) : null;
+      const when = d && !isNaN(d.getTime()) ? d.toLocaleString() : '';
+      const langs = (n.langs || []).length ? `<span class="note-langs">${escapeHtml(n.langs.join(', '))}</span>` : '';
+      return `<div class="note-item">
+          <div class="note-meta"><strong>${escapeHtml(n.author)}</strong>${langs}<span style="margin-left:auto;">${escapeHtml(when)}</span></div>
+          <div class="note-text">${escapeHtml(n.text)}</div>
+        </div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
+  }).withFailureHandler(e => {
+    list.innerHTML = `<div class="note-empty err">Error: ${escapeHtml(e.message)}</div>`;
+  }).apiGetJobNotes(projectUid, currentNoteJobUids);
+}
+
+function saveProjectNote() {
+  const noteTa = document.getElementById('projectNoteText');
+  const btn = document.getElementById('projectNoteSaveBtn');
+  const status = document.getElementById('projectNoteStatus');
+  const projectUid = currentNoteProjectUid;
+  btn.disabled = true; noteTa.disabled = true;
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_saving') || 'Saving...';
+  google.script.run.withSuccessHandler(res => {
+    noteTa.disabled = false;
+    if (res && res.success) {
+      currentNoteOriginal_ = res.note || '';
+      noteTa.value = currentNoteOriginal_;
+      status.className = 'note-status ok';
+      status.textContent = '✓ ' + (t_i18n_(currentLang, 'jn_saved') || 'Saved');
+    } else {
+      btn.disabled = false;
+      status.className = 'note-status err';
+      status.textContent = '✗ ' + ((res && res.error) || 'Error');
+    }
+  }).withFailureHandler(e => {
+    noteTa.disabled = false; btn.disabled = false;
+    status.className = 'note-status err';
+    status.textContent = '✗ ' + e.message;
+  }).apiUpdateProjectNote(projectUid, noteTa.value);
+}
+
+function closeJobNoteModal() {
+  document.getElementById('jobNoteModal').style.display = 'none';
+  currentNoteProjectUid = null;
+}
+
+function submitJobNote() {
+  const text = document.getElementById('jobNoteText').value.trim();
+  if (!text) { showCustomAlert("Please enter a note."); return; }
+
+  const btn = document.getElementById('jobNoteSubmitBtn');
+  const label = btn.innerHTML;
+  const projectUid = currentNoteProjectUid;
+  btn.disabled = true; btn.innerText = "Sending...";
+
+  google.script.run.withSuccessHandler(res => {
+    btn.disabled = false; btn.innerHTML = label;
+    if (res.success) {
       document.getElementById('jobNoteText').value = '';
-      document.getElementById('jobNotesList').innerHTML = '<div style="text-align:center;padding:10px;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto;"></div></div>';
-      document.getElementById('jobNoteModal').style.display = 'flex';
-      
-      google.script.run.withSuccessHandler(res => {
-        const list = document.getElementById('jobNotesList');
-        if (!res.success) { list.innerHTML = `<div style="color:#d93025;padding:5px;">Error loading notes: ${escapeHtml(res.error)}</div>`; return; }
-        if (!res.notes || res.notes.length === 0) { list.innerHTML = '<div style="color:#888;padding:5px;font-style:italic;">No notes yet.</div>'; return; }
-        
-        list.innerHTML = res.notes.map(n => `
-          <div style="border-bottom:1px solid #ddd;padding-bottom:8px;margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:4px;text-transform:uppercase;">
-              <strong>${escapeHtml(n.createdBy)}</strong><span>${new Date(n.dateCreated).toLocaleString()}</span>
-            </div>
-            <div style="color:#333;white-space:pre-wrap;">${escapeHtml(n.text)}</div>
-          </div>
-        `).join('');
-      }).withFailureHandler(e => {
-        document.getElementById('jobNotesList').innerHTML = `<div style="color:#d93025;padding:5px;">Error: ${escapeHtml(e.message)}</div>`;
-      }).apiGetJobNotes(projectUid, currentNoteJobUids[0]);
+      if (currentNoteProjectUid === projectUid) loadJobNotes_(projectUid);
+    } else {
+      showCustomAlert("✗ Failed to add note: " + escapeHtml(res.error), "Error");
     }
-
-    function closeJobNoteModal() {
-      document.getElementById('jobNoteModal').style.display = 'none';
-    }
-
-    function submitJobNote() {
-      const text = document.getElementById('jobNoteText').value.trim();
-      if (!text) { showCustomAlert("Please enter a note."); return; }
-      
-      const btn = document.getElementById('jobNoteSubmitBtn');
-      btn.disabled = true; btn.innerText = "Sending...";
-      
-      google.script.run.withSuccessHandler(res => {
-        btn.disabled = false; btn.innerText = "Send Note";
-        if (res.success) {
-          showCustomAlert("\u2713 Note added successfully.");
-          closeJobNoteModal();
-        } else {
-          showCustomAlert("\u2717 Failed to add note: " + res.error, "Error");
-        }
-      }).withFailureHandler(e => {
-        btn.disabled = false; btn.innerText = "Send Note";
-        showCustomAlert("Error: " + e.message, "Error");
-      }).apiAddJobNote(currentNoteProjectUid, currentNoteJobUids, text);
-    }
+  }).withFailureHandler(e => {
+    btn.disabled = false; btn.innerHTML = label;
+    showCustomAlert("Error: " + escapeHtml(e.message), "Error");
+  }).apiAddJobNote(projectUid, currentNoteJobUids, text);
+}
 
     let currentDueDateUid = null;
     function openDueDateModal(uid, name, currentDate) {
