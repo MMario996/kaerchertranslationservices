@@ -149,8 +149,15 @@ function apiGetDriveAuthUrl() {
  * Holt die Zieldateien des Projekts (wie apiGetFilesForDriveExport es schon
  * fuer den frueheren clientseitigen Ansatz tat) und laedt sie direkt vom
  * Server aus in "Meine Ablage" des aufrufenden Nutzers hoch.
+ *
+ * options (optional):
+ *   folderName    - Name des Projektordners (Standard: projectName). Bei
+ *                   Pivot-Projekten der Name des Parents, damit Source-Check
+ *                   und Translation im selben Projektordner landen.
+ *   subFolderName - Unterordner im Projektordner (z.B. "Source-Check").
  */
-function apiSaveProjectToDrive(projectUid, jobUids, projectName, targetLangs, jobMapping, convertToGoogle) {
+function apiSaveProjectToDrive(projectUid, jobUids, projectName, targetLangs, jobMapping, convertToGoogle, options) {
+  options = options || {};
   var service = getDriveSaveOAuthService_();
   if (!service.hasAccess()) {
     return { success: false, needsAuth: true, error: "Not authorized for Google Drive yet." };
@@ -162,13 +169,18 @@ function apiSaveProjectToDrive(projectUid, jobUids, projectName, targetLangs, jo
 
   try {
     var rootId = _driveFindOrCreateFolder_(token, "Translation Services", null);
-    var projectFolderId = _driveFindOrCreateFolder_(token, projectName || "Project", rootId);
+    var projectFolderId = _driveFindOrCreateFolder_(token, options.folderName || projectName || "Project", rootId);
+    var targetFolderId = options.subFolderName
+      ? _driveFindOrCreateFolder_(token, options.subFolderName, projectFolderId)
+      : projectFolderId;
 
     var successCount = 0;
-    var errors = [];
+    var errors = (filesResult.errors || []).map(function (e) {
+      return (e.targetLang || e.jobUid) + ": " + e.error;
+    });
     filesResult.files.forEach(function (f) {
       try {
-        _driveUploadFile_(token, projectFolderId, f, convertToGoogle);
+        _driveUploadFile_(token, targetFolderId, f, convertToGoogle);
         successCount++;
       } catch (e) {
         errors.push(f.fileName + ": " + e.message);
@@ -179,7 +191,8 @@ function apiSaveProjectToDrive(projectUid, jobUids, projectName, targetLangs, jo
       success:   true,
       uploaded:  successCount,
       total:     filesResult.files.length,
-      folderUrl: "https://drive.google.com/drive/folders/" + projectFolderId,
+      folderUrl: "https://drive.google.com/drive/folders/" + targetFolderId,
+      parentFolderUrl: "https://drive.google.com/drive/folders/" + projectFolderId,
       errors:    errors
     };
   } catch (e) {

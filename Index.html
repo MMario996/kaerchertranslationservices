@@ -557,7 +557,24 @@
         </div>
         <p style="font-size:13px;color:#666;margin-top:0;" data-i18n="sd_desc">The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.</p>
 
-        <div id="saveToDriveFormatChoice" style="display:none;margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
+        <div id="saveToDrivePartChoice" style="display:none;margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="sd_part_label">Which files should be saved?</div>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
+            <input type="radio" name="saveToDrivePart" value="both" checked style="margin-top:3px;">
+            <span data-i18n="sd_part_both"><strong>Both</strong> (Source-Check and Translation)</span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
+            <input type="radio" name="saveToDrivePart" value="source" style="margin-top:3px;">
+            <span data-i18n="sd_part_source"><strong>Source-Check only</strong></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="radio" name="saveToDrivePart" value="target" style="margin-top:3px;">
+            <span data-i18n="sd_part_target"><strong>Translation only</strong></span>
+          </label>
+          <div id="saveToDrivePartHint" style="display:none;font-size:11px;color:#888;margin-top:8px;" data-i18n="sd_part_pending">The Translation step is not finished yet &#8211; only the Source-Check can be saved for now.</div>
+        </div>
+
+        <div id="saveToDriveFormatChoice" style="margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="sd_format_label">Save Word / Excel / PowerPoint files as:</div>
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
             <input type="radio" name="saveToDriveFormat" value="office" checked style="margin-top:3px;">
@@ -1769,6 +1786,11 @@ const i18n = {
     "sd_format_hint":     "Andere Dateitypen (PDF, IDML, XML, TXT, HTML, ...) werden immer unverändert gespeichert – eine Google-Format-Konvertierung wird nur beim Speichern in Drive angeboten.",
     "sd_not_configured":  "Das Speichern in Google Drive ist für dieses Portal noch nicht eingerichtet. Bitte wenden Sie sich an einen Administrator.",
     "sd_btn_save":        "In Drive speichern",
+    "sd_part_label":      "Welche Dateien sollen gespeichert werden?",
+    "sd_part_both":       "<strong>Beide</strong> (Source-Check und Translation)",
+    "sd_part_source":     "<strong>Nur Source-Check</strong>",
+    "sd_part_target":     "<strong>Nur Translation</strong>",
+    "sd_part_pending":    "Der Translation-Schritt ist noch nicht fertig – vorerst kann nur der Source-Check gespeichert werden.",
     "prefs_title":        "Einstellungen",
     "prefs_chat_title":   "Google Chat-Benachrichtigungen",
     "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
@@ -1921,6 +1943,11 @@ const i18n = {
     "sd_format_hint":     "Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is – Google format conversion is only offered when saving into Drive.",
     "sd_not_configured":  "Saving to Google Drive is not set up yet for this portal. Please contact an administrator.",
     "sd_btn_save":        "Save to Drive",
+    "sd_part_label":      "Which files should be saved?",
+    "sd_part_both":       "<strong>Both</strong> (Source-Check and Translation)",
+    "sd_part_source":     "<strong>Source-Check only</strong>",
+    "sd_part_target":     "<strong>Translation only</strong>",
+    "sd_part_pending":    "The Translation step is not finished yet – only the Source-Check can be saved for now.",
     "prefs_title":        "Preferences",
     "prefs_chat_title":   "Google Chat Notifications",
     "prefs_chat_desc":    "Receive a direct message when your project is created.",
@@ -5944,9 +5971,32 @@ function openSaveToDriveModal(projectUid) {
     notConfigured.style.display = isConfigured ? 'none' : 'block';
     confirmBtn.style.display = isConfigured ? 'inline-block' : 'none';
 
-    document.querySelector('input[name="saveToDriveFormat"][value="office"]').checked = true;
+    // Pivot-Projekt (Source-Check + Translation): Auswahl anbieten, welcher
+    // Schritt gespeichert werden soll. Das Child ist erst waehlbar, wenn es
+    // selbst fertig ist.
+    const partChoice = document.getElementById('saveToDrivePartChoice');
+    const partHint = document.getElementById('saveToDrivePartHint');
+    const child = getPivotChildOf_(p);
+    const childReady = isDriveSavable_(child);
+    partChoice.style.display = p.pivotRole === 'PARENT' ? 'block' : 'none';
+    partHint.style.display = childReady ? 'none' : 'block';
+    ['both', 'target'].forEach(v => {
+      document.querySelector('input[name="saveToDrivePart"][value="' + v + '"]').disabled = !childReady;
+    });
+    document.querySelector('input[name="saveToDrivePart"][value="' + (childReady ? 'both' : 'source') + '"]').checked = true;
+
+    document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
     document.getElementById('saveToDriveModal').style.display = 'flex';
   });
+}
+
+function getPivotChildOf_(p) {
+  if (!p || p.pivotRole !== 'PARENT') return null;
+  return globalProjects.find(x => x.pivotRole === 'CHILD' && x.pivotLink === p.projectUid) || null;
+}
+
+function isDriveSavable_(p) {
+  return !!(p && ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) && p.jobUids && p.jobUids.length);
 }
 
 function closeSaveToDriveModal() {
@@ -6033,23 +6083,58 @@ function confirmSaveToGoogleDrive() {
       }
 
       title.innerText = 'Saving files to Google Drive...';
-      google.script.run.withSuccessHandler(r => {
+
+      // Bei Pivot-Projekten landen Source-Check und Translation jeweils in
+      // einem eigenen Unterordner des Projektordners (Name des Parents).
+      const parts = [];
+      const child = getPivotChildOf_(p);
+      if (p.pivotRole === 'PARENT') {
+        const part = (document.querySelector('input[name="saveToDrivePart"]:checked') || {}).value || 'source';
+        if (part !== 'target') parts.push({ proj: p, subFolder: 'Source-Check' });
+        if (part !== 'source' && isDriveSavable_(child)) parts.push({ proj: child, subFolder: 'Translation' });
+      } else {
+        parts.push({ proj: p, subFolder: null });
+      }
+
+      const agg = { uploaded: 0, total: 0, errors: [], folderUrl: null };
+      const finish = () => {
         overlay.style.display = 'none';
-        if (!r.success) {
-          showCustomAlert('Error: ' + escapeHtml(r.error), 'Drive Error');
+        if (!agg.folderUrl) {
+          showCustomAlert('Error: ' + escapeHtml(agg.errors.join('\n') || 'Nothing to save.'), 'Drive Error');
           return;
         }
-        let msg = '\u2713 Saved ' + r.uploaded + ' of ' + r.total + ' file(s) to Google Drive.';
-        msg += '<div style="margin-top:15px;"><a href="' + r.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive \u2192</a></div>';
-        if (r.errors && r.errors.length) {
+        let msg = '\u2713 Saved ' + agg.uploaded + ' of ' + agg.total + ' file(s) to Google Drive.';
+        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive \u2192</a></div>';
+        if (agg.errors.length) {
           msg += '<div style="color:#c62828;font-weight:bold;margin-top:15px;">Errors:</div>';
-          msg += '<div style="background:#fff3f3;border:1px solid #ffcdd2;padding:10px;font-size:12px;text-align:left;">' + r.errors.map(escapeHtml).join('<br>') + '</div>';
+          msg += '<div style="background:#fff3f3;border:1px solid #ffcdd2;padding:10px;font-size:12px;text-align:left;">' + agg.errors.map(escapeHtml).join('<br>') + '</div>';
         }
         showCustomAlert(msg, 'Save to Drive');
-      }).withFailureHandler(e => {
-        overlay.style.display = 'none';
-        showCustomAlert('Error: ' + escapeHtml(e.message), 'Drive Error');
-      }).apiSaveProjectToDrive(p.projectUid, p.jobUids, p.projectName, p.targetLangs, p.jobMapping, convertToGoogle);
+      };
+
+      // Nacheinander statt in einem Serveraufruf, damit jeder Schritt sein
+      // eigenes Apps-Script-Zeitlimit hat.
+      const saveNext = idx => {
+        if (idx >= parts.length) { finish(); return; }
+        const part = parts[idx];
+        const prefix = part.subFolder ? part.subFolder + ': ' : '';
+        google.script.run.withSuccessHandler(r => {
+          if (r.success) {
+            agg.uploaded += r.uploaded;
+            agg.total += r.total;
+            agg.folderUrl = r.parentFolderUrl || r.folderUrl;
+            (r.errors || []).forEach(e => agg.errors.push(prefix + e));
+          } else {
+            agg.errors.push(prefix + r.error);
+          }
+          saveNext(idx + 1);
+        }).withFailureHandler(e => {
+          agg.errors.push(prefix + e.message);
+          saveNext(idx + 1);
+        }).apiSaveProjectToDrive(part.proj.projectUid, part.proj.jobUids, part.proj.projectName, part.proj.targetLangs, part.proj.jobMapping, convertToGoogle,
+          { folderName: p.projectName, subFolderName: part.subFolder });
+      };
+      saveNext(0);
     });
   });
 }
