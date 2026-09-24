@@ -1005,6 +1005,12 @@ function readQueueRows_() {
     const templateName = pick(row, ["templatename","template name","template"], null);
     const pivotRole  = pick(row, ["pivot role"], null);
     const pivotLink  = pick(row, ["pivot link"], null);
+    // Spalte V: letzter Download (recordDownloadTimestamp_), fuer das Archiv.
+    const downloadedAtRaw = pick(row, ["downloaded at","downloadedat","last download","download date"], 21);
+    const downloadedAt = (() => {
+      const d = downloadedAtRaw instanceof Date ? downloadedAtRaw : (downloadedAtRaw ? new Date(downloadedAtRaw) : null);
+      return d && !isNaN(d.getTime()) ? d.toISOString() : "";
+    })();
 
     const jobMappingRaw = pick(row, ["jobmapping"], 20);
     const jobMapping = (() => {
@@ -1058,7 +1064,8 @@ function readQueueRows_() {
       sharedWith:   String(sharedWith || "").trim(),
       jobMapping:   jobMapping,
       pivotRole:    String(pivotRole || "").trim(),
-      pivotLink:    String(pivotLink || "").trim()
+      pivotLink:    String(pivotLink || "").trim(),
+      downloadedAt: downloadedAt
     });
   }
 
