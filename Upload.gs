@@ -378,91 +378,203 @@ function apiCreateProjectAndUpload(payload) {
 // --- B: Job Notes via Phrase Conversations API --------------------------------
 
 function apiAddJobNote(projectUid, jobUidRaw, noteText, callerOverride) {
-  const caller = callerOverride || getUserEmail_();
-
-  let jobUid = jobUidRaw;
-  if (Array.isArray(jobUid)) jobUid = jobUid[0];
-  if (typeof jobUid !== "string") jobUid = String(jobUid || "").trim();
-  jobUid = jobUid.replace(/[\[\]"]/g, "").trim();
-
-  if (!jobUid) return { success: false, error: "No valid job UID provided." };
+  const caller = String(callerOverride || getUserEmail_()).toLowerCase().trim();
+  projectUid = String(projectUid || "").trim();
   if (!noteText || !String(noteText).trim()) return { success: false, error: "Note text is required." };
 
+  const row = noteFindQueueRow_(projectUid);
+  if (!row || !noteCallerMayEdit_(row, caller)) return { success: false, error: "Not authorized." };
+
+  // Ohne explizite Job-UID (z.B. Pivot-Translation-Schritt, den Phrase selbst
+  // anlegt) geht die Nachricht an alle Jobs des Projekts - also an jeden
+  // Uebersetzer, egal fuer welche Sprache.
+  let jobUids = noteNormalizeJobUids_(jobUidRaw);
+  if (!jobUids.length) jobUids = noteListProjectJobs_(projectUid).map(j => j.uid);
+  if (!jobUids.length) return { success: false, error: "No jobs found in this project yet." };
+
   try {
-    const sh   = getQueueSheet_();
-    const data = sh.getDataRange().getValues();
-    let authorized = false;
-
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][2]).trim() === projectUid) {
-        const owner      = String(data[i][1]).toLowerCase().trim();
-        const sharedWith = String(data[i][17] || "").toLowerCase();
-        if (isAdmin_(caller) || owner === caller || sharedWith.includes(caller)) {
-          authorized = true;
-          const existingNotes = String(data[i][22] || "").trim();
-          const noteEntry = new Date().toISOString().slice(0, 16) + " [" + caller + "]: " + noteText;
-          const newNotes  = existingNotes ? existingNotes + "\n" + noteEntry : noteEntry;
-          sh.getRange(i + 1, 23).setValue(newNotes);
-        }
-        break;
-      }
-    }
-
-    if (!authorized) return { success: false, error: "Not authorized." };
-
+    const existingNotes = String(row.values[22] || "").trim();
+    const noteEntry = new Date().toISOString().slice(0, 16) + " [" + caller + "]: " + noteText;
+    row.sheet.getRange(row.rowNum, 23).setValue(existingNotes ? existingNotes + "\n" + noteEntry : noteEntry);
   } catch (e) {
-    console.warn("Queue lookup failed:", e.message);
+    console.warn("Queue note log failed:", e.message);
   }
 
+  const requests = jobUids.map(uid => ({
+    url:                phraseApiUrlV3_("/jobs/" + encodeURIComponent(uid) + "/conversations/plains"),
+    method:             "post",
+    contentType:        "application/json",
+    headers:            { Authorization: getPhraseAuthHeader_() },
+    payload:            JSON.stringify({ refs: [], comments: [{ text: String(noteText).trim() }] }),
+    muteHttpExceptions: true
+  }));
+  const responses = UrlFetchApp.fetchAll(requests);
+  const failed = responses.filter(r => r.getResponseCode() >= 400);
+  if (failed.length === responses.length) {
+    const msg = failed[0].getContentText().substring(0, 200);
+    console.error("✗ Phrase job note failed:", msg);
+    return { success: false, error: "Phrase: HTTP " + failed[0].getResponseCode() + " " + msg };
+  }
+
+  console.log("• Job note added to " + (responses.length - failed.length) + " job(s) in project " + projectUid);
+  logAuditEvent_(caller, "JOB_NOTE", "Note added to " + (responses.length - failed.length) + " job(s) in project " + projectUid);
+  return { success: true, jobs: responses.length - failed.length, failedJobs: failed.length };
+}
+
+/**
+ * Liefert die Nachrichten (Phrase "plain conversations") aller Jobs eines
+ * Projekts - flach, chronologisch, mit Autor und Zielsprache. jobUidRaw ist
+ * optional; ohne werden die Jobs direkt aus Phrase geholt.
+ */
+function apiGetJobNotes(projectUid, jobUidRaw) {
+  projectUid = String(projectUid || "").trim();
   try {
-    const url = phraseApiUrlV3_("/jobs/" + encodeURIComponent(jobUid) + "/conversations/plains");
-    const result = phraseFetchJson_(url, {
-      method:      "post",
-      contentType: "application/json",
-      headers:     { Authorization: getPhraseAuthHeader_() },
-      payload:     JSON.stringify({
-        refs:     [],
-        comments: [{ text: String(noteText).trim() }]
-      })
+    let jobs = noteNormalizeJobUids_(jobUidRaw).map(uid => ({ uid: uid, targetLang: "" }));
+    const listed = noteListProjectJobs_(projectUid);
+    if (!jobs.length) jobs = listed;
+    else jobs.forEach(j => { const m = listed.find(x => x.uid === j.uid); if (m) j.targetLang = m.targetLang; });
+    jobs = jobs.slice(0, 30);
+    if (!jobs.length) return { success: true, notes: [] };
+
+    const responses = UrlFetchApp.fetchAll(jobs.map(j => ({
+      url:                phraseApiUrlV1_("/jobs/" + encodeURIComponent(j.uid) + "/conversations/plains"),
+      method:             "get",
+      headers:            { Authorization: getPhraseAuthHeader_() },
+      muteHttpExceptions: true
+    })));
+
+    const notes = [];
+    const seen = {};
+    responses.forEach((res, idx) => {
+      if (res.getResponseCode() >= 400) return;
+      let data;
+      try { data = JSON.parse(res.getContentText() || "{}"); } catch (e) { return; }
+      const convs = Array.isArray(data) ? data : (data.conversations || data.content || []);
+      convs.forEach(c => {
+        (c.comments || []).forEach(cm => {
+          const text = String(cm.text || "").trim();
+          if (!text) return;
+          const created = cm.dateCreated || cm.dateModified || c.dateCreated || "";
+          const author  = notePersonName_(cm.createdBy || c.createdBy || c.author);
+          // Dieselbe Nachricht an mehrere Jobs nur einmal anzeigen, dafuer mit allen Sprachen.
+          const key = author + "|" + text + "|" + String(created).slice(0, 16);
+          if (seen[key]) {
+            if (jobs[idx].targetLang && seen[key].langs.indexOf(jobs[idx].targetLang) === -1) seen[key].langs.push(jobs[idx].targetLang);
+            return;
+          }
+          seen[key] = { author: author, created: created, text: text, langs: jobs[idx].targetLang ? [jobs[idx].targetLang] : [] };
+          notes.push(seen[key]);
+        });
+      });
     });
-
-    console.log("\u2022 Job note added to Phrase:", jobUid);
-    logAuditEvent_(caller, "JOB_NOTE", "Note added to job " + jobUid + " in project " + projectUid);
-    return { success: true, conversationId: result && result.id };
-
+    notes.sort((a, b) => String(a.created).localeCompare(String(b.created)));
+    return { success: true, notes: notes };
   } catch (e) {
-    console.error("\u2717 Phrase job note failed:", e.message);
+    return { success: false, error: e.message, notes: [] };
+  }
+}
+
+/** Projektnotiz aus Phrase (die beim Anlegen eingegebene "Notiz"). */
+function apiGetProjectNote(projectUid) {
+  projectUid = String(projectUid || "").trim();
+  const caller = String(getUserEmail_()).toLowerCase().trim();
+  const row = noteFindQueueRow_(projectUid);
+  if (!row || !noteCallerMayView_(row, caller)) return { success: false, error: "Not authorized." };
+  try {
+    const proj = phraseFetchJson_(phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)), {
+      method: "get", headers: { Authorization: getPhraseAuthHeader_() }
+    });
+    const raw = String((proj && proj.note) || "");
+    return { success: true, note: noteStripPivotMarker_(raw), canEdit: noteCallerMayEdit_(row, caller) };
+  } catch (e) {
     return { success: false, error: e.message };
   }
 }
 
-function apiGetJobNotes(projectUid, jobUidRaw) {
-  let jobUid = jobUidRaw;
-  if (Array.isArray(jobUid)) jobUid = jobUid[0];
-  if (typeof jobUid !== "string") jobUid = String(jobUid || "").trim();
-  jobUid = jobUid.replace(/[\[\]"]/g, "").trim();
-
-  if (!jobUid) return { success: false, error: "No valid job UID.", notes: [] };
-
+/** Aendert die Projektnotiz in Phrase. Der Pivot-Marker bleibt erhalten. */
+function apiUpdateProjectNote(projectUid, newNote) {
+  projectUid = String(projectUid || "").trim();
+  const caller = String(getUserEmail_()).toLowerCase().trim();
+  const row = noteFindQueueRow_(projectUid);
+  if (!row || !noteCallerMayEdit_(row, caller)) return { success: false, error: "Not authorized." };
   try {
-    const url    = phraseApiUrlV1_("/jobs/" + encodeURIComponent(jobUid) + "/conversations/plains");
-    const result = phraseFetchJson_(url, {
-      method:  "get",
-      headers: { Authorization: getPhraseAuthHeader_() }
+    const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
+    const proj = phraseFetchJson_(url, { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    const hadMarker = String((proj && proj.note) || "").indexOf(PIVOT_NOTE_MARKER_) !== -1;
+    let note = String(newNote || "").trim();
+    if (hadMarker) note = pivotBuildNote_(note);
+
+    const res = UrlFetchApp.fetch(url, {
+      method:             "patch",
+      contentType:        "application/json",
+      headers:            { Authorization: getPhraseAuthHeader_() },
+      payload:            JSON.stringify({ note: note }),
+      muteHttpExceptions: true
     });
-
-    const conversations = result && result.content ? result.content : (Array.isArray(result) ? result : []);
-    const notes = conversations.map(c => ({
-      id:       c.id,
-      created:  c.dateCreated,
-      author:   c.author && (c.author.fullName || c.author.email) || "Unknown",
-      comments: (c.comments || []).map(cm => cm.text || "").filter(Boolean)
-    }));
-
-    return { success: true, notes };
+    if (res.getResponseCode() >= 400) {
+      return { success: false, error: "Phrase: HTTP " + res.getResponseCode() + " " + res.getContentText().substring(0, 200) };
+    }
+    logAuditEvent_(caller, "PROJECT_NOTE", "Project note updated for " + projectUid);
+    return { success: true, note: noteStripPivotMarker_(note) };
   } catch (e) {
-    return { success: false, error: e.message, notes: [] };
+    return { success: false, error: e.message };
   }
+}
+
+// --- Notiz-Helfer -------------------------------------------------------------
+
+function noteFindQueueRow_(projectUid) {
+  const sh = getQueueSheet_();
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][2]).trim() === projectUid) return { sheet: sh, rowNum: i + 1, values: data[i] };
+  }
+  return null;
+}
+
+function noteCallerMayEdit_(row, caller) {
+  const owner      = String(row.values[1] || "").toLowerCase().trim();
+  const sharedWith = String(row.values[17] || "").toLowerCase();
+  return isAdmin_(caller) || owner === caller || sharedWith.split(/[;,]+/).map(s => s.trim()).indexOf(caller) !== -1;
+}
+
+function noteCallerMayView_(row, caller) {
+  if (noteCallerMayEdit_(row, caller)) return true;
+  // WOMA-Team sieht Projekte seiner Kollegen (siehe apiGetMyProjects).
+  try { return isWomaUser_(caller) && isWomaUser_(String(row.values[1] || "").toLowerCase().trim()); } catch (e) { return false; }
+}
+
+function noteNormalizeJobUids_(raw) {
+  let arr = raw;
+  if (!Array.isArray(arr)) {
+    const str = String(raw || "").trim();
+    if (!str) return [];
+    try { arr = str[0] === "[" ? JSON.parse(str) : str.split(/[,;]+/); } catch (e) { arr = str.split(/[,;]+/); }
+  }
+  return arr.map(x => String(x || "").replace(/[\[\]"]/g, "").trim()).filter(Boolean);
+}
+
+function noteListProjectJobs_(projectUid) {
+  try {
+    const res = phraseFetchJson_(
+      phraseApiUrlV2_("/projects/" + encodeURIComponent(projectUid) + "/jobs?pageSize=50&pageNumber=0"),
+      { method: "get", headers: { Authorization: getPhraseAuthHeader_() } }
+    );
+    return ((res && res.content) || []).map(j => ({ uid: String(j.uid || ""), targetLang: String(j.targetLang || "") })).filter(j => j.uid);
+  } catch (e) {
+    console.warn("noteListProjectJobs_ failed:", e.message);
+    return [];
+  }
+}
+
+function noteStripPivotMarker_(note) {
+  return String(note || "").replace(PIVOT_NOTE_MARKER_, "").trim();
+}
+
+function notePersonName_(p) {
+  if (!p) return "Unknown";
+  const full = [p.firstName, p.lastName].filter(Boolean).join(" ").trim();
+  return p.fullName || full || p.userName || p.email || "Unknown";
 }
 
 function phraseApiUrlV3_(path) {
