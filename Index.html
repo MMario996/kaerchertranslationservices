@@ -439,6 +439,174 @@
         .note-actions { flex-wrap: wrap; }
         .note-actions .btn { width: 100% !important; }
       }
+
+      /* ===== Download-Dialog, Fortschritt, Toasts ===== */
+      .dl-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 5600; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); padding: 16px; box-sizing: border-box; }
+      .dl-modal { background: #fff; width: 680px; max-width: 100%; max-height: 92vh; overflow-y: auto; border-top: 6px solid var(--primary-yellow); padding: 30px 32px; box-shadow: 0 24px 60px rgba(0,0,0,0.25); box-sizing: border-box; }
+      .dl-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+      .dl-head h3 { margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+      .dl-head h3 .material-icons-outlined { font-size: 26px; }
+      .dl-project { font-size: 15px; color: #666; margin-top: 6px; word-break: break-word; }
+      .dl-close { background: none; border: none; cursor: pointer; color: #999; padding: 4px; }
+      .dl-close:hover { color: #000; }
+      .dl-block { margin-bottom: 20px; }
+      .dl-label { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px; color: #333; }
+      .dl-options { display: grid; gap: 10px; }
+      .dl-options-2 { grid-template-columns: 1fr 1fr; }
+      .dl-options-3 { grid-template-columns: repeat(3, 1fr); }
+      .dl-option { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0; padding: 16px; border: 2px solid #e2e2e2; background: #fff; cursor: pointer; font-size: 14px; font-weight: 400; line-height: 1.4; color: #333; transition: border-color 0.15s, background 0.15s; }
+      .dl-option:hover { border-color: #999; }
+      .dl-option input[type="radio"] { position: absolute; top: 14px; right: 14px; margin: 0; }
+      .dl-option > .material-icons-outlined { font-size: 28px; color: #777; }
+      .dl-option small { color: #888; font-size: 12.5px; }
+      .dl-option:has(input:checked) { border-color: var(--primary-black); background: #fffbe0; box-shadow: inset 0 0 0 1px var(--primary-black); }
+      .dl-option:has(input:checked) > .material-icons-outlined { color: #000; }
+      .dl-option.disabled { opacity: 0.45; cursor: not-allowed; }
+      .dl-hint { font-size: 13px; color: #777; margin-top: 8px; line-height: 1.5; }
+      .dl-hint-warn { background: #fff3f3; border: 1px solid #ffcdd2; color: #c62828; padding: 10px 12px; }
+      .dl-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
+      .dl-foot .btn i { margin-right: 8px; }
+      .dl-progress { background: #fff; padding: 36px 44px; text-align: center; width: 440px; max-width: 100%; border-top: 6px solid var(--primary-yellow); box-shadow: 0 24px 60px rgba(0,0,0,0.25); box-sizing: border-box; }
+      .dl-progress h3 { margin: 0 0 8px; font-size: 18px; }
+      .dl-progress p { margin: 0; color: #777; font-size: 14px; line-height: 1.5; }
+      .dl-errors { margin-top: 14px; background: #fff3f3; border: 1px solid #ffcdd2; color: #c62828; padding: 10px 12px; font-size: 13px; text-align: left; }
+      .btn-download { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--primary-black); background: var(--primary-yellow); color: #000; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+      .btn-download:hover { background: #e6d500; }
+      .btn-download .material-icons-outlined { font-size: 18px; }
+      .toast-host { position: fixed; right: 20px; bottom: 20px; z-index: 7000; display: flex; flex-direction: column; gap: 10px; max-width: calc(100vw - 40px); }
+      .toast { display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 460px; background: #111; color: #fff; padding: 12px 12px 12px 16px; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-left: 5px solid var(--primary-yellow); animation: toastIn 0.25s ease-out; transition: opacity 0.4s, transform 0.4s; }
+      .toast-ok { border-left-color: #8bc34a; }
+      .toast-ok > .material-icons-outlined:first-child { color: #8bc34a; }
+      .toast-err { border-left-color: #e57373; }
+      .toast-msg { flex: 1; }
+      .toast a { color: var(--primary-yellow); font-weight: 700; text-decoration: none; white-space: nowrap; }
+      .toast button { background: none; border: none; color: #aaa; cursor: pointer; padding: 2px; display: flex; }
+      .toast-hide { opacity: 0; transform: translateY(10px); }
+      @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      @media (max-width: 700px) {
+        .dl-modal { padding: 22px 18px; }
+        .dl-options-2, .dl-options-3 { grid-template-columns: 1fr; }
+        .dl-option { flex-direction: row; align-items: center; padding: 12px 44px 12px 12px; }
+        .dl-foot .btn { flex: 1 1 0 !important; }
+        .btn-download-label { display: none; }
+        .toast-host { left: 12px; right: 12px; bottom: 12px; }
+        .toast { min-width: 0; max-width: none; }
+      }
+
+      /* ===== Lesbarkeit: Mindestschriftgroessen =====
+         Viele Bereiche sind mit Inline-Styles in 9-12px gebaut; eingebettet in
+         Google Sites wirkt das winzig. Hier ein Boden fuer alle Stellen, ohne
+         jede einzelne Inline-Angabe anzufassen. */
+      body { font-size: 15px; }
+      [style*="font-size:9px"], [style*="font-size: 9px"] { font-size: 11.5px !important; }
+      [style*="font-size:10px"], [style*="font-size: 10px"] { font-size: 12px !important; }
+      [style*="font-size:11px"], [style*="font-size: 11px"] { font-size: 13px !important; }
+      [style*="font-size:12px"], [style*="font-size: 12px"] { font-size: 13.5px !important; }
+      [style*="font-size:13px"], [style*="font-size: 13px"] { font-size: 14px !important; }
+      .tab-btn { font-size: 14px; }
+      .history-table { font-size: 14px; }
+      .history-table th { font-size: 12.5px; }
+      .status-badge { font-size: 11.5px; }
+      .filter-input { font-size: 13px; }
+      label { font-size: 14.5px; }
+      .doc-board-col-header { font-size: 13px; }
+      .doc-board-col-count, .doc-board-mini-badge, .doc-board-badge-more { font-size: 11px; }
+      .doc-board-project-name { font-size: 14px; }
+      .doc-board-file-row, .doc-board-meta-box { font-size: 13px; }
+      .doc-board-card { font-size: 13.5px; }
+      .doc-board-card-file { font-size: 12px; }
+      .docsub-btn { font-size: 14px; }
+      .btn-refresh { font-size: 13px; }
+
+      /* ===== Kalender ===== */
+      .cal-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+      .cal-nav { display: flex; align-items: center; gap: 6px; }
+      .cal-btn { height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #d5d5d5; cursor: pointer; font-size: 13px; font-weight: 800; text-transform: uppercase; padding: 0 10px; }
+      .cal-btn:hover { border-color: #000; }
+      .cal-title { font-size: 20px; font-weight: 800; margin-left: 10px; text-transform: capitalize; }
+      .cal-views { display: flex; border: 1px solid #d5d5d5; }
+      .cal-view-btn { height: 40px; padding: 0 18px; background: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 800; text-transform: uppercase; color: #555; }
+      .cal-view-btn.active { background: #000; color: var(--primary-yellow); }
+      .cal-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #666; margin-bottom: 12px; }
+      .cal-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+      .cal-dot { width: 12px; height: 12px; display: inline-block; }
+      .cal-dot.cal-open { background: var(--primary-yellow); } .cal-dot.cal-done { background: #8bc34a; }
+      .cal-dot.cal-cancelled { background: #e57373; } .cal-dot.cal-overdue { background: #c62828; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+      .cal-head { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #777; padding: 6px 8px; }
+      .cal-cell { min-height: 128px; background: #fff; border: 1px solid #e6e6e6; padding: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; min-width: 0; transition: border-color 0.15s; }
+      .cal-cell:hover { border-color: #999; }
+      .cal-outside { background: #fafafa; }
+      .cal-outside .cal-daynum { color: #bbb; }
+      .cal-daynum { display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; color: #333; margin-bottom: 2px; }
+      .cal-is-today .cal-daynum { color: #000; }
+      .cal-cell.cal-is-today { border: 2px solid #000; }
+      .cal-is-today .cal-daynum::before { content: ""; }
+      .cal-count { font-size: 11px; background: #f0f0f0; color: #555; padding: 1px 7px; border-radius: 10px; font-weight: 700; }
+      .cal-chip { display: block; width: 100%; text-align: left; border: none; border-left: 4px solid #ccc; background: #f5f5f5; padding: 4px 6px; font-size: 13px; line-height: 1.3; color: #222; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font-family: inherit; }
+      .cal-chip:hover, .cal-card:hover { filter: brightness(0.96); }
+      .cal-chip.cal-open, .cal-card.cal-open { border-left-color: #e6c200; background: #fffbe0; }
+      .cal-chip.cal-done, .cal-card.cal-done { border-left-color: #8bc34a; background: #f1f8e9; }
+      .cal-chip.cal-cancelled, .cal-card.cal-cancelled { border-left-color: #e57373; background: #ffebee; color: #888; }
+      .cal-chip.cal-overdue, .cal-card.cal-overdue { border-left-color: #c62828; background: #ffebee; font-weight: 700; }
+      .cal-more { background: none; border: none; padding: 2px 0; text-align: left; font-size: 12.5px; font-weight: 700; color: #1a73e8; cursor: pointer; }
+      .cal-week { gap: 8px; }
+      .cal-wday { background: #fff; border: 1px solid #e6e6e6; min-height: 420px; display: flex; flex-direction: column; min-width: 0; }
+      .cal-wday.cal-is-today { border: 2px solid #000; }
+      .cal-wday-head { padding: 10px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: 800; text-transform: uppercase; color: #555; }
+      .cal-wday-date { font-size: 17px; color: #111; text-transform: none; }
+      .cal-is-today .cal-wday-head { background: var(--primary-yellow); color: #000; }
+      .cal-wday-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+      .cal-card { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; border: none; border-left: 4px solid #ccc; padding: 8px 10px; cursor: pointer; font-family: inherit; }
+      .cal-card-name { font-size: 14px; font-weight: 700; color: #222; line-height: 1.3; word-break: break-word; }
+      .cal-card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .cal-card .status-badge { min-width: 0; }
+      .cal-card-langs { font-size: 12px; color: #666; }
+      .cal-empty { color: #ccc; text-align: center; padding: 10px; }
+      @media (max-width: 900px) {
+        .cal-week { grid-template-columns: 1fr; }
+        .cal-wday { min-height: 0; }
+        .cal-wday-head { flex-direction: row; justify-content: space-between; align-items: baseline; }
+      }
+      @media (max-width: 700px) {
+        .cal-title { font-size: 16px; width: 100%; margin: 6px 0 0; order: 5; }
+        .cal-nav { flex-wrap: wrap; }
+        .cal-grid.cal-month { gap: 2px; }
+        .cal-head { font-size: 11px; padding: 4px 2px; text-align: center; }
+        .cal-cell { min-height: 58px; padding: 4px; }
+        .cal-cell .cal-chip, .cal-cell .cal-more { display: none; }
+        .cal-daynum { font-size: 13px; flex-direction: column; gap: 2px; }
+        .cal-cell.has-items .cal-count { background: #000; color: var(--primary-yellow); }
+      }
+
+      /* ===== Dokumentation: Projektuebersicht (einklappbar, volle Breite) ===== */
+      .step-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-right: 10px; background: #000; color: var(--primary-yellow); font-size: 14px; font-weight: 800; border-radius: 50%; vertical-align: middle; flex-shrink: 0; }
+      .doc-ov { background: #fff; border: 1px solid var(--border-light); border-top: 5px solid #000; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+      .doc-ov-head { display: flex; align-items: center; gap: 16px; padding: 14px 18px; cursor: pointer; flex-wrap: wrap; }
+      .doc-ov-head:hover { background: #fcfcfc; }
+      .doc-ov-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+      .doc-ov-summary { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+      .doc-ov-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: #f6f6f6; border-left: 4px solid #999; font-size: 12.5px; font-weight: 700; text-transform: uppercase; color: #555; }
+      .doc-ov-pill b { color: #000; font-size: 14px; }
+      .doc-ov-pill.empty { opacity: 0.5; }
+      .doc-ov-actions { display: flex; gap: 6px; }
+      .doc-ov-actions .cal-btn { text-decoration: none; color: #333; }
+      .doc-ov-toggle { display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 14px; background: #000; color: var(--primary-yellow); border: none; cursor: pointer; font-size: 13px; font-weight: 800; text-transform: uppercase; }
+      .doc-ov-body { padding: 0 18px 18px; border-top: 1px solid #eee; }
+      .doc-ov-actions .material-icons-outlined, .cal-btn .material-icons-outlined { font-size: 20px; }
+      .doc-board-column { min-width: 240px; }
+      .doc-board-project-head { align-items: flex-start; }
+      .doc-board-project-name { white-space: normal; word-break: break-word; line-height: 1.35; }
+      .doc-board-project-badges { max-width: 45%; flex-wrap: wrap; justify-content: flex-end; overflow: visible; }
+      .doc-ov-body.collapsed { display: none; }
+      .doc-ov-filters { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 14px 0; }
+      .doc-ov-filters input, .doc-ov-filters select { width: 100% !important; min-width: 0 !important; }
+      @media (max-width: 900px) { .doc-ov-filters { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 700px) {
+        .doc-ov-filters { grid-template-columns: 1fr; }
+        .doc-ov-summary { order: 5; flex-basis: 100%; }
+        .doc-ov-toggle { margin-left: auto; }
+      }
     </style>
   </head>
   <body>
@@ -677,61 +845,67 @@
        </div>
     </div>
     
-    <div id="downloadOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:5000; display:none; align-items:center; justify-content:center;">
-        <div style="text-align:center; background:white; padding:30px; border:1px solid #ccc; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
-            <div class="loader"></div>
+    <div id="downloadOverlay" class="dl-backdrop" style="z-index:5000; display:none;">
+        <div class="dl-progress">
+            <div class="loader" style="margin:0 auto 18px;"></div>
             <h3 id="downloadOverlayTitle">Processing...</h3>
-            <p>Please wait.</p>
+            <p id="downloadOverlaySub">Files are being fetched from Phrase TMS &#8211; this can take a moment.</p>
         </div>
     </div>
+    <div id="toastHost" class="toast-host" aria-live="polite"></div>
     
-    <div id="saveToDriveModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:5600;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
-      <div style="background:#fff;width:460px;max-width:92vw;border-top:6px solid var(--primary-yellow);padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.2);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-          <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;display:flex;align-items:center;gap:8px;">
-            <span class="material-icons-outlined" style="color:#1a73e8;">add_to_drive</span> <span data-i18n="sd_title">Save to Google Drive</span>
-          </h3>
-          <button onclick="closeSaveToDriveModal()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
-        </div>
-        <p style="font-size:13px;color:#666;margin-top:0;" data-i18n="sd_desc">The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.</p>
-
-        <div id="saveToDrivePartChoice" style="display:none;margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
-          <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="sd_part_label">Which files should be saved?</div>
-          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
-            <input type="radio" name="saveToDrivePart" value="both" checked style="margin-top:3px;">
-            <span data-i18n="sd_part_both"><strong>Both</strong> (Source-Check and Translation)</span>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
-            <input type="radio" name="saveToDrivePart" value="source" style="margin-top:3px;">
-            <span data-i18n="sd_part_source"><strong>Source-Check only</strong></span>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="saveToDrivePart" value="target" style="margin-top:3px;">
-            <span data-i18n="sd_part_target"><strong>Translation only</strong></span>
-          </label>
-          <div id="saveToDrivePartHint" style="display:none;font-size:11px;color:#888;margin-top:8px;" data-i18n="sd_part_pending">The Translation step is not finished yet &#8211; only the Source-Check can be saved for now.</div>
+    <div id="saveToDriveModal" class="dl-backdrop" style="display:none;">
+      <div class="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dlModalTitle">
+        <div class="dl-head">
+          <div>
+            <h3 id="dlModalTitle"><span class="material-icons-outlined">download</span><span data-i18n="dl_title">Download files</span></h3>
+            <div id="dlModalProject" class="dl-project"></div>
+          </div>
+          <button class="dl-close" onclick="closeSaveToDriveModal()" title="Close"><span class="material-icons-outlined">close</span></button>
         </div>
 
-        <div id="saveToDriveFormatChoice" style="margin:15px 0;background:#f9f9f9;padding:14px;border-left:4px solid var(--primary-yellow);">
-          <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="sd_format_label">Save Word / Excel / PowerPoint files as:</div>
-          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
-            <input type="radio" name="saveToDriveFormat" value="office" checked style="margin-top:3px;">
-            <span data-i18n="sd_format_office"><strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)</span>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="saveToDriveFormat" value="google" style="margin-top:3px;">
-            <span data-i18n="sd_format_google"><strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)</span>
-          </label>
-          <div style="font-size:11px;color:#888;margin-top:8px;" data-i18n="sd_format_hint">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is &#8211; Google format conversion is only offered when saving into Drive.</div>
+        <div id="saveToDrivePartChoice" class="dl-block" style="display:none;">
+          <div class="dl-label" data-i18n="sd_part_label">Which files should be saved?</div>
+          <div class="dl-options dl-options-3">
+            <label class="dl-option"><input type="radio" name="saveToDrivePart" value="both" checked>
+              <span class="material-icons-outlined">library_books</span><span data-i18n="sd_part_both"><strong>Both</strong> (Source-Check and Translation)</span></label>
+            <label class="dl-option"><input type="radio" name="saveToDrivePart" value="source">
+              <span class="material-icons-outlined">fact_check</span><span data-i18n="sd_part_source"><strong>Source-Check only</strong></span></label>
+            <label class="dl-option"><input type="radio" name="saveToDrivePart" value="target">
+              <span class="material-icons-outlined">translate</span><span data-i18n="sd_part_target"><strong>Translation only</strong></span></label>
+          </div>
+          <div id="saveToDrivePartHint" class="dl-hint" style="display:none;" data-i18n="sd_part_pending">The Translation step is not finished yet &#8211; only the Source-Check can be saved for now.</div>
         </div>
 
-        <div id="saveToDriveNotConfigured" style="display:none;font-size:13px;background:#fff3f3;border:1px solid #ffcdd2;color:#c62828;padding:12px;margin:15px 0;" data-i18n="sd_not_configured">
-          Saving to Google Drive is not set up yet for this portal. Please contact an administrator.
+        <div class="dl-block">
+          <div class="dl-label" data-i18n="dl_where">Where to?</div>
+          <div class="dl-options dl-options-2">
+            <label class="dl-option"><input type="radio" name="dlTarget" value="computer" checked onchange="updateDownloadDialog_()">
+              <span class="material-icons-outlined">computer</span><span data-i18n="dl_to_computer"><strong>This computer</strong><br><small>Single file or ZIP</small></span></label>
+            <label class="dl-option" id="dlTargetDriveOpt"><input type="radio" name="dlTarget" value="drive" onchange="updateDownloadDialog_()">
+              <span class="material-icons-outlined">add_to_drive</span><span data-i18n="dl_to_drive"><strong>Google Drive</strong><br><small>Folder &quot;Translation Services&quot; in My Drive</small></span></label>
+          </div>
+          <div id="saveToDriveNotConfigured" class="dl-hint dl-hint-warn" style="display:none;" data-i18n="sd_not_configured">
+            Saving to Google Drive is not set up yet for this portal. Please contact an administrator.
+          </div>
         </div>
 
-        <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closeSaveToDriveModal()">Cancel</button>
-          <button id="saveToDriveConfirmBtn" class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="sd_btn_save" onclick="confirmSaveToGoogleDrive()">Save to Drive</button>
+        <div id="saveToDriveFormatChoice" class="dl-block" style="display:none;">
+          <div class="dl-label" data-i18n="sd_format_label">Save Word / Excel / PowerPoint files as:</div>
+          <div class="dl-options dl-options-2">
+            <label class="dl-option"><input type="radio" name="saveToDriveFormat" value="google" checked>
+              <span class="material-icons-outlined">auto_awesome</span><span data-i18n="sd_format_google"><strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)</span></label>
+            <label class="dl-option"><input type="radio" name="saveToDriveFormat" value="office">
+              <span class="material-icons-outlined">description</span><span data-i18n="sd_format_office"><strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)</span></label>
+          </div>
+          <div class="dl-hint" data-i18n="sd_format_hint">Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is &#8211; Google format conversion is only offered when saving into Drive.</div>
+        </div>
+
+        <div class="dl-foot">
+          <button class="btn btn-secondary" style="height:46px;flex:0 1 auto;padding:0 24px;" data-i18n="btn_cancel" onclick="closeSaveToDriveModal()">Cancel</button>
+          <button id="saveToDriveConfirmBtn" class="btn btn-primary" style="height:46px;width:auto;padding:0 28px;" onclick="confirmDownloadDialog()">
+            <i class="material-icons-outlined" id="dlConfirmIcon">download</i><span id="dlConfirmLabel">Download</span>
+          </button>
         </div>
       </div>
     </div>
@@ -838,23 +1012,13 @@
         <div class="note-section">
           <div class="note-section-title"><span class="material-icons-outlined">sticky_note_2</span><span data-i18n="jn_project_note">Project note</span></div>
           <div class="note-hint" data-i18n="jn_project_note_hint">The note entered when the project was created. Translators see it in Phrase TMS.</div>
-          <textarea id="projectNoteText" rows="4" disabled placeholder="..."></textarea>
+          <textarea id="projectNoteText" rows="8" disabled placeholder="..."></textarea>
           <div class="note-actions">
             <span id="projectNoteStatus" class="note-status"></span>
             <button id="projectNoteSaveBtn" class="btn btn-primary" style="height:38px;width:auto;padding:0 22px;" onclick="saveProjectNote()" disabled data-i18n="jn_btn_save_note">Save note</button>
           </div>
         </div>
 
-        <div class="note-section">
-          <div class="note-section-title"><span class="material-icons-outlined">forum</span><span data-i18n="jn_existing">Messages to translators (Phrase TMS)</span></div>
-          <div id="jobNotesList" class="note-list"></div>
-          <label for="jobNoteText" style="font-size:12px;font-weight:700;display:block;margin:12px 0 6px;" data-i18n="jn_add_label">Add new note:</label>
-          <textarea id="jobNoteText" rows="3" data-i18n-placeholder="jn_placeholder" placeholder="Write a note for the translator..."></textarea>
-          <div class="note-actions">
-            <span class="note-hint" style="margin:0;" data-i18n="jn_send_hint">Sent to all jobs (languages) of this project.</span>
-            <button id="jobNoteSubmitBtn" class="btn btn-black" style="height:38px;width:auto;padding:0 22px;" data-i18n="jn_btn_send" onclick="submitJobNote()">Send Note</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -961,15 +1125,51 @@
         </div>
       </div>
         <div id="docsub-import">
-        <div class="split-wrapper">
-          <div class="split-main" id="doc-form-container">
-            <button id="docShowInfoBtn" class="btn-open-sidebar" onclick="toggleDocSidebar()">
-              <span class="material-icons-outlined">info</span> Show project overview
+        <div id="docOverviewPanel" class="doc-ov">
+          <div class="doc-ov-head" onclick="toggleDocSidebar()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDocSidebar();}">
+            <div class="doc-ov-title">
+              <span class="material-icons-outlined">view_kanban</span>
+              <span>Projektübersicht</span>
+            </div>
+            <div id="docOverviewSummary" class="doc-ov-summary"></div>
+            <div class="doc-ov-actions" onclick="event.stopPropagation()">
+              <button type="button" class="cal-btn" onclick="loadDocBoard('sidebar')" title="Aktualisieren"><span class="material-icons-outlined">refresh</span></button>
+              <button type="button" class="cal-btn" onclick="openSheetModal()" title="Vollbild"><span class="material-icons-outlined">fullscreen</span></button>
+              <a class="cal-btn" href="https://docs.google.com/spreadsheets/d/1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs/edit?gid=279576563#gid=279576563" target="_blank" title="Google Sheet öffnen"><span class="material-icons-outlined">open_in_new</span></a>
+            </div>
+            <button type="button" id="docShowInfoBtn" class="doc-ov-toggle" onclick="event.stopPropagation();toggleDocSidebar()">
+              <span id="docOverviewToggleText">Einblenden</span><span class="material-icons-outlined" id="docOverviewChevron">expand_more</span>
             </button>
+          </div>
+          <div id="docSidebar" class="doc-ov-body collapsed">
+<div class="doc-ov-filters">              <div style="display:contents;">
+                <input type="text" id="docBoardFilter_sidebar" placeholder="🔍 Projektname..." oninput="filterDocBoardCards('sidebar')"
+                       style="flex:1;min-width:120px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
+                <select id="docBoardLangFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
+                        style="height:42px;padding:0 8px;font-size:14px;border:1px solid #ccc;background:#fff;">
+                  <option value="">Alle Sprachen</option>
+                </select>
+              </div>
+              <div style="display:contents;">
+                <select id="docBoardStatusFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
+                        style="height:42px;padding:0 8px;font-size:14px;border:1px solid #ccc;background:#fff;">
+                  <option value="">Alle Status</option>
+                </select>
+                <input type="text" id="docBoardIaFilter_sidebar" placeholder="🔍 IA Number..." oninput="filterDocBoardCards('sidebar')"
+                       style="flex:1;min-width:80px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
+                <input type="text" id="docBoardOwnerFilter_sidebar" placeholder="🔍 Einreicher..." oninput="filterDocBoardCards('sidebar')"
+                       style="flex:1;min-width:80px;height:42px;padding:0 10px;font-size:14px;border:1px solid #ccc;box-sizing:border-box;">
+              </div>
+</div>
+            <div id="docBoardContainer"></div>
+          </div>
+        </div>
+        <div>
+          <div id="doc-form-container">
             <form id="projectForm_docimport">
               <div class="card-grid">
                 <div class="card">
-                  <div class="section-title">Projekt Info (Documentation Import)</div>
+                  <div class="section-title"><span class="step-num">1</span>Template &amp; Quellsprache</div>
                   <div class="form-row">
                     <label>Template <span class="required">*</span></label>
                     <div class="tmpl-dropdown-wrapper" id="tmplWrapper_docimport">
@@ -1004,7 +1204,7 @@
                 </div>
                 
                 <div class="card">
-                  <div class="section-title">Project Overview</div>
+                  <div class="section-title"><span class="step-num">2</span>Projektdaten &amp; Referenz</div>
                   <div class="form-row">
                     <label>IA Number <span class="required">*</span></label>
                     <input type="text" id="iaNumber_docimport" placeholder="z.B. 123456" pattern="[0-9]+" inputmode="numeric">
@@ -1038,7 +1238,7 @@
                   <details id="docImportFolderDetails" open>
                     <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;">
                       <span class="section-title" style="margin:0;border:none;padding:0;display:flex;align-items:center;gap:8px;">
-                        Drive-Ordner (Sprachunterordner) <span class="required">*</span>
+                        <span class="step-num">3</span>Drive-Ordner (Sprachunterordner) <span class="required">*</span>
                         <span id="docImportErrorBadge" style="display:none;background:#d93025;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;">! Problem</span>
                       </span>
                       <span class="material-icons-outlined" id="docImportChevron" style="color:#999;">expand_more</span>
@@ -1068,52 +1268,6 @@
               </div>
             </form>
           </div>
-          <div id="docSidebar" class="split-sidebar">
-            <div class="sidebar-content">
-              <div class="sidebar-header" style="justify-content: flex-end;">
-                <button class="btn-close-sidebar" onclick="toggleDocSidebar()" title="Hide Info">
-                  <span class="material-icons-outlined">close</span>
-                </button>
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
-                <button onclick="openSheetModal()"
-                  style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;background:#000;border:none;padding:6px 14px;cursor:pointer;border-radius:2px;">
-                  <span class="material-icons-outlined" style="font-size:15px;">fullscreen</span> Vollbild
-                </button>
-                <button onclick="loadDocBoard('sidebar')" title="Aktualisieren"
-                  style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333;background:#f5f5f5;border:1px solid #ddd;padding:6px 10px;cursor:pointer;border-radius:2px;">
-                  <span class="material-icons-outlined" style="font-size:15px;">refresh</span>
-                </button>
-                <a href="https://docs.google.com/spreadsheets/d/1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs/edit?gid=279576563#gid=279576563"
-                  target="_blank"
-                  style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333;text-decoration:none;background:#f5f5f5;border:1px solid #ddd;padding:5px 12px;border-radius:2px;">
-                  <span class="material-icons-outlined" style="font-size:15px;">open_in_new</span> Google öffnen
-                </a>
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                <input type="text" id="docBoardFilter_sidebar" placeholder="🔍 Projektname..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:120px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
-                <select id="docBoardLangFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
-                        style="height:36px;padding:0 8px;font-size:12px;border:1px solid #ccc;background:#fff;">
-                  <option value="">Alle Sprachen</option>
-                </select>
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-                <select id="docBoardStatusFilter_sidebar" onchange="filterDocBoardCards('sidebar')"
-                        style="height:36px;padding:0 8px;font-size:12px;border:1px solid #ccc;background:#fff;">
-                  <option value="">Alle Status</option>
-                </select>
-                <input type="text" id="docBoardIaFilter_sidebar" placeholder="🔍 IA Number..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:80px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
-                <input type="text" id="docBoardOwnerFilter_sidebar" placeholder="🔍 Einreicher..." oninput="filterDocBoardCards('sidebar')"
-                       style="flex:1;min-width:80px;height:36px;padding:0 10px;font-size:12px;border:1px solid #ccc;box-sizing:border-box;">
-              </div>
-              <div id="docBoardContainer"></div>
-              <div style="font-size:11px;color:#888;margin-top:8px;text-align:center;">
-                Live-Board aus dem Projekt-Sheet. Klicken Sie auf "Vollbild" für die grosse Ansicht.
-              </div>
-            </div>
-          </div> 
         </div>
         </div>
       </div>
@@ -1182,16 +1336,25 @@
              <div id="noProjectsMsg" style="text-align:center; padding:60px; color:#666; display:none; font-size:16px;">No projects found.</div>
          </div>
          <div id="calendarView" style="display:none; margin-top:10px;">
-           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-             <button onclick="calPrev()" title="Previous month"
-                     style="border:none;background:none;cursor:pointer;padding:8px 16px;color:#666;font-size:30px;line-height:1;border-radius:8px;"
-                    onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">&#8249;</button>
-              <strong id="calTitle" style="font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:#333;min-width:140px;text-align:center;display:inline-block;"></strong>
-              <button onclick="calNext()" title="Next month"
-                      style="border:none;background:none;cursor:pointer;padding:8px 16px;color:#666;font-size:30px;line-height:1;border-radius:8px;"
-                      onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">&#8250;</button>
+           <div class="cal-toolbar">
+             <div class="cal-nav">
+               <button type="button" class="cal-btn" onclick="calPrev()" title="Previous"><span class="material-icons-outlined">chevron_left</span></button>
+               <button type="button" class="cal-btn cal-today" onclick="calToday()" data-i18n="cal_today">Today</button>
+               <button type="button" class="cal-btn" onclick="calNext()" title="Next"><span class="material-icons-outlined">chevron_right</span></button>
+               <strong id="calTitle" class="cal-title"></strong>
+             </div>
+             <div class="cal-views">
+               <button type="button" id="calViewMonth" class="cal-view-btn active" onclick="setCalView('month')" data-i18n="cal_month">Month</button>
+               <button type="button" id="calViewWeek" class="cal-view-btn" onclick="setCalView('week')" data-i18n="cal_week">Week</button>
+             </div>
            </div>
-           <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+           <div class="cal-legend">
+             <span><i class="cal-dot cal-open"></i><span data-i18n="hs_open">Open</span></span>
+             <span><i class="cal-dot cal-done"></i><span data-i18n="hs_done">Done</span></span>
+             <span><i class="cal-dot cal-cancelled"></i><span data-i18n="hs_cancelled">Cancelled</span></span>
+             <span><i class="cal-dot cal-overdue"></i><span data-i18n="cal_overdue">Overdue</span></span>
+           </div>
+           <div id="calGrid"></div>
          </div>
       </div>
 
@@ -1963,6 +2126,16 @@ const i18n = {
     "jn_saving":          "Wird gespeichert...",
     "jn_saved":           "Gespeichert",
     "jn_readonly":        "Nur lesen",
+    "dl_title":           "Dateien herunterladen",
+    "dl_where":           "Wohin?",
+    "dl_to_computer":     "<strong>Dieser Computer</strong><br><small>Einzelne Datei oder ZIP</small>",
+    "dl_to_drive":        "<strong>Google Drive</strong><br><small>Ordner „Translation Services“ in Meine Ablage</small>",
+    "dl_btn_download":    "Herunterladen",
+    "cal_today":          "Heute",
+    "cal_month":          "Monat",
+    "cal_week":           "Woche",
+    "cal_overdue":        "Überfällig",
+    "cal_more":           "weitere",
     "prefs_title":        "Einstellungen",
     "prefs_chat_title":   "Google Chat-Benachrichtigungen",
     "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
@@ -2137,6 +2310,16 @@ const i18n = {
     "jn_saving":          "Saving...",
     "jn_saved":           "Saved",
     "jn_readonly":        "Read only",
+    "dl_title":           "Download files",
+    "dl_where":           "Where to?",
+    "dl_to_computer":     "<strong>This computer</strong><br><small>Single file or ZIP</small>",
+    "dl_to_drive":        "<strong>Google Drive</strong><br><small>Folder \"Translation Services\" in My Drive</small>",
+    "dl_btn_download":    "Download",
+    "cal_today":          "Today",
+    "cal_month":          "Month",
+    "cal_week":           "Week",
+    "cal_overdue":        "Overdue",
+    "cal_more":           "more",
     "prefs_title":        "Preferences",
     "prefs_chat_title":   "Google Chat Notifications",
     "prefs_chat_desc":    "Receive a direct message when your project is created.",
@@ -2260,6 +2443,7 @@ function setGlobalLang(lang) {
   });
   // Status-Chips / Leerzustand in "Meine Projekte" in der neuen Sprache neu zeichnen.
   if (globalProjects && globalProjects.length) globalSearch();
+  if (typeof currentHistoryView !== 'undefined' && currentHistoryView === 'calendar') renderCalendar(globalProjects);
 }
 
 document.addEventListener("DOMContentLoaded", () => { setGlobalLang(currentLang); });
@@ -4465,7 +4649,13 @@ function switchTab(tabName) {
   if(tabName === 'guide' || tabName === 'help') loadGuideContent_();
   if(tabName === 'history')   loadMyProjects();
   if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
-  if(tabName === 'documentation') { loadDocBoard('sidebar'); docImportPreloadFolders_(); }
+  if(tabName === 'documentation') {
+    let ovOpen = false;
+    try { ovOpen = localStorage.getItem('docOverviewOpen') === '1'; } catch (e) {}
+    toggleDocSidebar(ovOpen);
+    loadDocBoard('sidebar');
+    docImportPreloadFolders_();
+  }
   if(tabName === 'dashboard') renderDashboard();
   if(tabName === 'admin')     loadAdminContent_(false);
   if(tabName === 'health')    loadHealthCheck();
@@ -4480,12 +4670,27 @@ function toggleMarketingSidebar() {
   if (sb.classList.contains('collapsed')) { sb.classList.remove('collapsed'); btn.style.display='none'; }
   else { sb.classList.add('collapsed'); btn.style.display='inline-flex'; }
 }
-function toggleDocSidebar() {
- const sb = document.getElementById('docSidebar');
- const btn = document.getElementById('docShowInfoBtn');
- if (!sb) return;
- if (sb.classList.contains('collapsed')) { sb.classList.remove('collapsed'); btn.style.display='none'; loadDocBoard('sidebar'); }
- else { sb.classList.add('collapsed'); btn.style.display='inline-flex'; }
+function toggleDocSidebar(forceOpen) {
+  const body = document.getElementById('docSidebar');
+  if (!body) return;
+  const open = forceOpen === undefined ? body.classList.contains('collapsed') : !!forceOpen;
+  body.classList.toggle('collapsed', !open);
+  document.getElementById('docOverviewPanel').classList.toggle('open', open);
+  document.getElementById('docOverviewToggleText').textContent = open ? 'Ausblenden' : 'Einblenden';
+  document.getElementById('docOverviewChevron').textContent = open ? 'expand_less' : 'expand_more';
+  try { localStorage.setItem('docOverviewOpen', open ? '1' : '0'); } catch (e) {}
+}
+
+/** Kompakte Statuszaehler im (auch eingeklappten) Kopf der Projektuebersicht. */
+function renderDocOverviewSummary_() {
+  const el = document.getElementById('docOverviewSummary');
+  if (!el) return;
+  const projects = _docQueueData_['sidebar'] || [];
+  const cols = docQueueGroupByColumns_(projects);
+  el.innerHTML = cols.map(c => {
+    const color = DOC_QUEUE_STATUS_COLORS_[c.name] || '#888';
+    return `<span class="doc-ov-pill${c.projects.length ? '' : ' empty'}" style="border-left-color:${color};">${escapeHtml(c.name)} <b>${c.projects.length}</b></span>`;
+  }).join('');
 }
 
 function switchDocSubtab(name) {
@@ -5810,8 +6015,7 @@ function fillTable(projects) {
       :`<button class="btn-icon danger" title="Cancel Project" onclick="cancelProject('${p.projectUid}','${p.projectName}')"><span class="material-icons-outlined">delete</span></button>`;
 
     const dlBtn=['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status)
-      ?`<button class="btn-icon" title="Download Translation" onclick="smartDownloadFiles('${p.projectUid}')"><span class="material-icons-outlined">cloud_download</span></button>
-        <button class="btn-icon" title="Save to Google Drive (My Drive)" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">add_to_drive</span></button>`
+      ?`<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
       :'-';
 
     const isPivotParent = p.pivotRole === 'PARENT';
@@ -5928,8 +6132,7 @@ function buildPivotDetailRow_(groupId, parent, child) {
       </div>`;
     }
     const dlBtn = ['NOTIFIED','COMPLETED','DELIVERED'].includes(proj.status)
-      ? `<button class="btn-icon" title="Download" onclick="smartDownloadFiles('${proj.projectUid}')"><span class="material-icons-outlined" style="font-size:18px;">cloud_download</span></button>
-         <button class="btn-icon" title="Save to Google Drive (My Drive)" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined" style="font-size:18px;">add_to_drive</span></button>`
+      ? `<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
       : '';
     return `<div style="padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:10px;border-top:1px solid #e8e8e8;">
       <strong style="min-width:90px;">${label}:</strong>
@@ -6013,7 +6216,8 @@ function syncProjectStatuses() {
 }
 
 let currentHistoryView = 'table';
-let calYear, calMonth;
+let calView_ = 'month';
+let calCursor_ = null;
 function switchHistoryView(mode) {
   currentHistoryView = mode;
   document.getElementById('btnViewTable').style.background    = mode==='table'    ? 'var(--primary-black)' : '#f5f5f5';
@@ -6023,51 +6227,132 @@ function switchHistoryView(mode) {
   document.querySelector('#projectsTable').closest('div[style*="overflow-x"]').style.display = mode==='table' ? '' : 'none';
   document.getElementById('calendarView').style.display = mode==='calendar' ? 'block' : 'none';
   if (mode === 'calendar') {
-    const now = new Date();
-    if (!calYear) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+    if (!calCursor_) calCursor_ = new Date();
+    if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches && !calCursor_._touched) calView_ = 'week';
     renderCalendar(globalProjects);
   }
 }
 
-function renderCalendar(projects) {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calTitle').innerText = months[calMonth] + ' ' + calYear;
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-  const days = ['Sun','Mon','Tue','Wed','Wed','Thu','Fri','Sat'];
-  days.forEach(d => {
-    const h = document.createElement('div');
-    h.style.cssText = 'text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;padding:6px;color:#888;';
-    h.innerText = d;
-    grid.appendChild(h);
+// --- Kalender (Monat / Woche) --------------------------------------------------
+function calLocale_() {
+  return { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', es: 'es-ES', pt: 'pt-BR', zh: 'zh-CN' }[currentLang] || 'en-GB';
+}
+function calDayKey_(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function calStartOfWeek_(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Montag als Wochenstart
+  return x;
+}
+function calProjectsByDay_(projects) {
+  const map = {};
+  projects.forEach(p => {
+    if (!p.dueDate) return;
+    const d = new Date(p.dueDate);
+    if (isNaN(d.getTime())) return;
+    (map[calDayKey_(d)] = map[calDayKey_(d)] || []).push(p);
   });
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  for (let i = 0; i < firstDay; i++) {
-    grid.appendChild(Object.assign(document.createElement('div'), {style:'min-height:80px;'}));
+  Object.keys(map).forEach(k => map[k].sort((a, b) => String(a.projectName).localeCompare(String(b.projectName))));
+  return map;
+}
+function calChipClass_(p) {
+  const g = statusGroup_(p.status);
+  return g === 'open' && dueClass_(p) === 'due-overdue' ? 'cal-overdue' : 'cal-' + g;
+}
+function calChipHtml_(p, detailed) {
+  const title = escapeHtml(p.projectName) + ' – ' + escapeHtml(p.status || '');
+  if (!detailed) {
+    return `<button type="button" class="cal-chip ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">${escapeHtml(p.projectName)}</button>`;
   }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const cell = document.createElement('div');
-    cell.style.cssText = 'min-height:80px;border:1px solid #eee;padding:4px;background:#fff;font-size:12px;';
-    const today = new Date(); const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
-    cell.innerHTML = `<div style="font-weight:${isToday?'800':'600'};color:${isToday?'var(--primary-black)':'#333'};${isToday?'background:var(--primary-yellow);display:inline-block;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;':''}margin-bottom:4px;">${d}</div>`;
-    const cellDate = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    projects.filter(p => p.dueDate && p.dueDate.startsWith(cellDate)).forEach(p => {
-      const statusColors = { COMPLETED:'#c8e6c9', DELIVERED:'#c8e6c9', NOTIFIED:'#c8e6c9', CANCELLED:'#ffcdd2', ERROR:'#ffcdd2' };
-      const bg = statusColors[p.status] || '#fff9c4';
-      const chip = document.createElement('div');
-      chip.style.cssText = `background:${bg};padding:2px 5px;border-radius:3px;font-size:10px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;`;
-      chip.title = p.projectName;
-      chip.innerText = p.projectName;
-      chip.onclick = () => showTimeline(p.projectUid);
-      cell.appendChild(chip);
-    });
-    grid.appendChild(cell);
-  }
+  return `<button type="button" class="cal-card ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">
+      <span class="cal-card-name">${escapeHtml(p.projectName)}</span>
+      <span class="cal-card-meta"><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status || '-')}</span>
+      ${p.targetLang ? `<span class="cal-card-langs">${escapeHtml(p.targetLang)}</span>` : ''}</span>
+    </button>`;
 }
 
-function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(globalProjects); }
-function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(globalProjects); }
+function renderCalendar(projects) {
+  if (!calCursor_) calCursor_ = new Date();
+  const loc = calLocale_();
+  const grid = document.getElementById('calGrid');
+  const byDay = calProjectsByDay_((projects || []).filter(p => p.pivotRole !== 'CHILD'));
+  const todayKey = calDayKey_(new Date());
+  document.getElementById('calViewMonth').classList.toggle('active', calView_ === 'month');
+  document.getElementById('calViewWeek').classList.toggle('active', calView_ === 'week');
+
+  const weekStart = calStartOfWeek_(calView_ === 'month' ? new Date(calCursor_.getFullYear(), calCursor_.getMonth(), 1) : calCursor_);
+  const headers = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    headers.push(d.toLocaleDateString(loc, { weekday: calView_ === 'month' ? 'short' : 'long' }));
+  }
+
+  let html = '';
+  if (calView_ === 'month') {
+    document.getElementById('calTitle').innerText = calCursor_.toLocaleDateString(loc, { month: 'long', year: 'numeric' });
+    const lastOfMonth = new Date(calCursor_.getFullYear(), calCursor_.getMonth() + 1, 0);
+    const end = calStartOfWeek_(lastOfMonth); end.setDate(end.getDate() + 6);
+    html += '<div class="cal-grid cal-month">' + headers.map(h => `<div class="cal-head">${escapeHtml(h)}</div>`).join('');
+    for (let d = new Date(weekStart); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = calDayKey_(d);
+      const items = byDay[key] || [];
+      const outside = d.getMonth() !== calCursor_.getMonth();
+      const shown = items.slice(0, 3);
+      const more = items.length - shown.length;
+      html += `<div class="cal-cell${outside ? ' cal-outside' : ''}${key === todayKey ? ' cal-is-today' : ''}${items.length ? ' has-items' : ''}" onclick="calOpenWeek('${key}', event)">
+          <div class="cal-daynum">${d.getDate()}${items.length ? `<span class="cal-count">${items.length}</span>` : ''}</div>
+          ${shown.map(p => calChipHtml_(p, false)).join('')}
+          ${more > 0 ? `<button type="button" class="cal-more" onclick="calOpenWeek('${key}', event, true)">+${more} ${escapeHtml(t_i18n_(currentLang, 'cal_more') || 'more')}</button>` : ''}
+        </div>`;
+    }
+    html += '</div>';
+  } else {
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    document.getElementById('calTitle').innerText =
+      weekStart.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) + ' – ' +
+      weekEnd.toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+    html += '<div class="cal-grid cal-week">';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const key = calDayKey_(d);
+      const items = byDay[key] || [];
+      html += `<div class="cal-wday${key === todayKey ? ' cal-is-today' : ''}">
+          <div class="cal-wday-head"><span>${escapeHtml(headers[i])}</span><span class="cal-wday-date">${d.toLocaleDateString(loc, { day: 'numeric', month: 'short' })}</span></div>
+          <div class="cal-wday-body">${items.length ? items.map(p => calChipHtml_(p, true)).join('') : '<div class="cal-empty">–</div>'}</div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function setCalView(view) {
+  calView_ = view;
+  if (calCursor_) calCursor_._touched = true;
+  renderCalendar(globalProjects);
+}
+function calOpenWeek(key, ev, force) {
+  if (ev && !force && ev.target.closest('.cal-chip')) return;
+  if (ev) ev.stopPropagation();
+  const [y, m, d] = key.split('-').map(Number);
+  calCursor_ = new Date(y, m - 1, d);
+  calCursor_._touched = true;
+  calView_ = 'week';
+  renderCalendar(globalProjects);
+}
+function calShift_(dir) {
+  if (!calCursor_) calCursor_ = new Date();
+  const c = new Date(calCursor_);
+  if (calView_ === 'month') { c.setDate(1); c.setMonth(c.getMonth() + dir); }
+  else c.setDate(c.getDate() + 7 * dir);
+  c._touched = true;
+  calCursor_ = c;
+  renderCalendar(globalProjects);
+}
+function calPrev() { calShift_(-1); }
+function calNext() { calShift_(1); }
+function calToday() { calCursor_ = new Date(); calCursor_._touched = true; renderCalendar(globalProjects); }
 
 function showTimeline(uid) {
   const p = globalProjects.find(x => x.projectUid === uid);
@@ -6207,49 +6492,11 @@ function renderDashboard() {
   }).apiGetDashboardStats();
 }
 
-function smartDownloadFiles(projectUid) {
-      const p = globalProjects.find(x => x.projectUid === projectUid);
-      if(!p) return;
-      const o = document.getElementById('downloadOverlay');
-      o.style.display = 'flex';
-      document.getElementById('downloadOverlayTitle').innerText = "Preparing Download...";
-      
-      if (p.jobUids && p.jobUids.length > 0) {
-        google.script.run.withSuccessHandler(r => {
-          o.style.display = 'none';
-          if(r.success) {
-            saveBase64AsFile(r.base64, r.mimeType, r.fileName);
-            showCustomAlert(`\u2713 Downloaded ${r.downloadedCount} of ${r.totalJobs} files.\n${r.errors && r.errors.length ? "\nErrors:\n"+r.errors.join("\n") : ""}`);
-            loadMyProjects();
-          } else {
-            showCustomAlert("Error: " + r.error, "Download Error");
-          }
-        }).withFailureHandler(e => {
-          o.style.display = 'none';
-          showCustomAlert("Error: " + e.message, "Download Error");
-        }).apiSmartDownload(projectUid, p.jobUids, p.projectName, p.targetLangs, null, null, null, p.jobMapping); 
-      } else {
-        google.script.run.withSuccessHandler(r => {
-          o.style.display = 'none';
-          if(r.ok) {
-            saveBase64AsFile(r.base64, r.mimeType, r.fileName);
-            loadMyProjects();
-          } else {
-            showCustomAlert("Error: " + r.error, "Download Error");
-          }
-        }).withFailureHandler(e => {
-          o.style.display = 'none';
-          showCustomAlert("Error: " + e.message, "Download Error");
-        }).apiDownloadTargetFile(projectUid, "");
-      }
-    }
-
-// --- Save to Google Drive (My Drive) ----------------------------------------
-// Der Upload laeuft komplett serverseitig (Apps-Script-OAuth2-Bibliothek,
-// pro Nutzer autorisiert) - der Browser bekommt keine Access Tokens mehr zu
-// Gesicht. Ein rein clientseitiger Ansatz (Google Identity Services) scheitert
-// hier strukturell, weil diese Web-App in einem von Google gesperrten
-// *.googleusercontent.com-Sandbox-Iframe laeuft; Details siehe DriveSaveConfig.gs.
+// --- Download-Dialog: Computer oder Google Drive ------------------------------
+// Ein Button pro Projekt oeffnet den Dialog. Bei Pivot-Projekten waehlt man
+// Source-Check / Translation / beide; Ziel ist dieser Computer (Datei/ZIP)
+// oder "Meine Ablage" (serverseitiger Upload, siehe DriveSaveConfig.gs - ein
+// rein clientseitiger Ansatz scheitert im Apps-Script-Sandbox-Iframe).
 var driveSaveConfigCache_ = null;
 var driveSavePendingProject_ = null;
 
@@ -6265,33 +6512,52 @@ function openSaveToDriveModal(projectUid, preselectPart) {
   const p = globalProjects.find(x => x.projectUid === projectUid);
   if (!p) return;
   driveSavePendingProject_ = p;
+  document.getElementById('dlModalProject').textContent = p.projectName || projectUid;
+
+  const partChoice = document.getElementById('saveToDrivePartChoice');
+  const partHint = document.getElementById('saveToDrivePartHint');
+  const child = getPivotChildOf_(p);
+  const childReady = isDriveSavable_(child);
+  partChoice.style.display = p.pivotRole === 'PARENT' ? 'block' : 'none';
+  partHint.style.display = childReady ? 'none' : 'block';
+  ['both', 'target'].forEach(v => {
+    const inp = document.querySelector('input[name="saveToDrivePart"][value="' + v + '"]');
+    inp.disabled = !childReady;
+    inp.closest('.dl-option').classList.toggle('disabled', !childReady);
+  });
+  const part = !childReady ? 'source' : (preselectPart || 'both');
+  document.querySelector('input[name="saveToDrivePart"][value="' + part + '"]').checked = true;
+
+  let lastTarget = 'computer';
+  try { lastTarget = localStorage.getItem('dlLastTarget') || 'computer'; } catch (e) {}
+  document.querySelector('input[name="dlTarget"][value="' + (lastTarget === 'drive' ? 'drive' : 'computer') + '"]').checked = true;
+  document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
+  updateDownloadDialog_();
+  document.getElementById('saveToDriveModal').style.display = 'flex';
 
   ensureDriveSaveConfig_(cfg => {
-    const notConfigured = document.getElementById('saveToDriveNotConfigured');
-    const confirmBtn = document.getElementById('saveToDriveConfirmBtn');
-
-    const isConfigured = !!(cfg && cfg.configured);
-    notConfigured.style.display = isConfigured ? 'none' : 'block';
-    confirmBtn.style.display = isConfigured ? 'inline-block' : 'none';
-
-    // Pivot-Projekt (Source-Check + Translation): Auswahl anbieten, welcher
-    // Schritt gespeichert werden soll. Das Child ist erst waehlbar, wenn es
-    // selbst fertig ist.
-    const partChoice = document.getElementById('saveToDrivePartChoice');
-    const partHint = document.getElementById('saveToDrivePartHint');
-    const child = getPivotChildOf_(p);
-    const childReady = isDriveSavable_(child);
-    partChoice.style.display = p.pivotRole === 'PARENT' ? 'block' : 'none';
-    partHint.style.display = childReady ? 'none' : 'block';
-    ['both', 'target'].forEach(v => {
-      document.querySelector('input[name="saveToDrivePart"][value="' + v + '"]').disabled = !childReady;
-    });
-    const part = !childReady ? 'source' : (preselectPart || 'both');
-    document.querySelector('input[name="saveToDrivePart"][value="' + part + '"]').checked = true;
-
-    document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
-    document.getElementById('saveToDriveModal').style.display = 'flex';
+    const ok = !!(cfg && cfg.configured);
+    const driveInp = document.querySelector('input[name="dlTarget"][value="drive"]');
+    driveInp.disabled = !ok;
+    document.getElementById('dlTargetDriveOpt').classList.toggle('disabled', !ok);
+    document.getElementById('saveToDriveNotConfigured').style.display = ok ? 'none' : 'block';
+    if (!ok && driveInp.checked) document.querySelector('input[name="dlTarget"][value="computer"]').checked = true;
+    updateDownloadDialog_();
   });
+}
+
+function updateDownloadDialog_() {
+  const toDrive = document.querySelector('input[name="dlTarget"][value="drive"]').checked;
+  document.getElementById('saveToDriveFormatChoice').style.display = toDrive ? 'block' : 'none';
+  document.getElementById('dlConfirmIcon').textContent = toDrive ? 'add_to_drive' : 'download';
+  document.getElementById('dlConfirmLabel').textContent = toDrive
+    ? (t_i18n_(currentLang, 'sd_btn_save') || 'Save to Drive')
+    : (t_i18n_(currentLang, 'dl_btn_download') || 'Download');
+}
+
+function closeSaveToDriveModal() {
+  document.getElementById('saveToDriveModal').style.display = 'none';
+  driveSavePendingProject_ = null;
 }
 
 function getPivotChildOf_(p) {
@@ -6299,16 +6565,81 @@ function getPivotChildOf_(p) {
   return globalProjects.find(x => x.pivotRole === 'CHILD' && x.pivotLink === p.projectUid) || null;
 }
 
-// Job-UIDs sind hier bewusst keine Voraussetzung: Pivot-Children legt Phrase
-// selbst an, deren Queue-Zeile hat daher keine gespeicherten Job-UIDs - der
-// Server laedt die Jobs dann direkt aus Phrase nach.
+// Job-UIDs sind bewusst keine Voraussetzung: Pivot-Children legt Phrase selbst
+// an, deren Queue-Zeile hat keine Job-UIDs - der Server holt die Jobs dann aus Phrase.
 function isDriveSavable_(p) {
   return !!(p && ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status));
 }
 
-function closeSaveToDriveModal() {
-  document.getElementById('saveToDriveModal').style.display = 'none';
-  driveSavePendingProject_ = null;
+/** Welche (Teil-)Projekte sollen geladen werden? [{proj, subFolder, label}] */
+function getSelectedDownloadParts_(p) {
+  if (p.pivotRole !== 'PARENT') return [{ proj: p, subFolder: null, label: '' }];
+  const child = getPivotChildOf_(p);
+  const part = (document.querySelector('input[name="saveToDrivePart"]:checked') || {}).value || 'source';
+  const parts = [];
+  if (part !== 'target') parts.push({ proj: p, subFolder: 'Source-Check', label: 'Source-Check' });
+  if (part !== 'source' && isDriveSavable_(child)) parts.push({ proj: child, subFolder: 'Translation', label: 'Translation' });
+  return parts;
+}
+
+function setDownloadProgress_(title, sub) {
+  document.getElementById('downloadOverlayTitle').innerText = title;
+  const subEl = document.getElementById('downloadOverlaySub');
+  if (subEl && sub !== undefined) subEl.innerText = sub;
+  document.getElementById('downloadOverlay').style.display = 'flex';
+}
+function hideDownloadProgress_() {
+  document.getElementById('downloadOverlay').style.display = 'none';
+}
+
+function confirmDownloadDialog() {
+  const p = driveSavePendingProject_;
+  if (!p) return;
+  const toDrive = document.querySelector('input[name="dlTarget"][value="drive"]').checked;
+  try { localStorage.setItem('dlLastTarget', toDrive ? 'drive' : 'computer'); } catch (e) {}
+  const parts = getSelectedDownloadParts_(p);
+  if (toDrive) confirmSaveToGoogleDrive(parts);
+  else { closeSaveToDriveModal(); downloadPartsToComputer_(p, parts); }
+}
+
+/** Laedt die Teile nacheinander herunter (jeder Teil eigene Datei/ZIP). */
+function downloadPartsToComputer_(p, parts) {
+  const agg = { files: 0, jobs: 0, errors: [] };
+  const next = idx => {
+    if (idx >= parts.length) {
+      hideDownloadProgress_();
+      loadMyProjects();
+      if (agg.files && !agg.errors.length) {
+        showToast_('✓ ' + (agg.jobs > 1 ? agg.jobs + ' files downloaded' : 'Download complete'), 'ok');
+      } else if (agg.files) {
+        showCustomAlert('✓ ' + agg.jobs + ' file(s) downloaded.<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>', 'Download');
+      } else {
+        showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to download.') + '</div>', 'Download Error');
+      }
+      return;
+    }
+    const part = parts[idx];
+    const prefix = part.label ? part.label + ': ' : '';
+    setDownloadProgress_(
+      parts.length > 1 ? `Preparing download (${idx + 1}/${parts.length}) – ${part.label}` : 'Preparing download...',
+      'Files are being fetched from Phrase TMS – this can take a moment.'
+    );
+    google.script.run.withSuccessHandler(r => {
+      if (r && r.success) {
+        saveBase64AsFile(r.base64, r.mimeType, r.fileName);
+        agg.files++;
+        agg.jobs += r.downloadedCount || 1;
+        (r.errors || []).forEach(e => agg.errors.push(prefix + (typeof e === 'string' ? e : (e.targetLang || e.jobUid || '') + ': ' + e.error)));
+      } else {
+        agg.errors.push(prefix + ((r && r.error) || 'unknown error'));
+      }
+      next(idx + 1);
+    }).withFailureHandler(e => {
+      agg.errors.push(prefix + e.message);
+      next(idx + 1);
+    }).apiSmartDownload(part.proj.projectUid, part.proj.jobUids || [], part.proj.projectName, part.proj.targetLangs, null, null, null, part.proj.jobMapping);
+  };
+  next(0);
 }
 
 /**
@@ -6361,12 +6692,12 @@ function ensureDriveAuthorized_(authPopup, cb) {
   }).apiCheckDriveAuthStatus();
 }
 
-function confirmSaveToGoogleDrive() {
+function confirmSaveToGoogleDrive(parts) {
   const p = driveSavePendingProject_;
   if (!p) return;
   const convertToGoogle = document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked;
 
-  // Noch synchron im Klick auf "Save to Drive" oeffnen (siehe ensureDriveAuthorized_).
+  // Noch synchron im Klick oeffnen (siehe ensureDriveAuthorized_).
   const authPopup = window.open('about:blank', 'driveAuth', 'width=520,height=680');
 
   ensureDriveSaveConfig_(cfg => {
@@ -6377,54 +6708,41 @@ function confirmSaveToGoogleDrive() {
     }
 
     closeSaveToDriveModal();
-    const overlay = document.getElementById('downloadOverlay');
-    const title = document.getElementById('downloadOverlayTitle');
-    overlay.style.display = 'flex';
-    title.innerText = 'Checking Google Drive access...';
+    setDownloadProgress_('Checking Google Drive access...', '');
 
     ensureDriveAuthorized_(authPopup, (authorized, err) => {
       if (!authorized) {
-        overlay.style.display = 'none';
+        hideDownloadProgress_();
         showCustomAlert('Could not get Google Drive access: ' + escapeHtml(err || 'permission denied'), 'Drive Error');
         return;
       }
 
-      title.innerText = 'Saving files to Google Drive...';
-
-      // Bei Pivot-Projekten landen Source-Check und Translation jeweils in
-      // einem eigenen Unterordner des Projektordners (Name des Parents).
-      const parts = [];
-      const child = getPivotChildOf_(p);
-      if (p.pivotRole === 'PARENT') {
-        const part = (document.querySelector('input[name="saveToDrivePart"]:checked') || {}).value || 'source';
-        if (part !== 'target') parts.push({ proj: p, subFolder: 'Source-Check' });
-        if (part !== 'source' && isDriveSavable_(child)) parts.push({ proj: child, subFolder: 'Translation' });
-      } else {
-        parts.push({ proj: p, subFolder: null });
-      }
-
       const agg = { uploaded: 0, total: 0, errors: [], folderUrl: null };
       const finish = () => {
-        overlay.style.display = 'none';
+        hideDownloadProgress_();
         if (!agg.folderUrl) {
-          showCustomAlert('Error: ' + escapeHtml(agg.errors.join('\n') || 'Nothing to save.'), 'Drive Error');
+          showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to save.') + '</div>', 'Drive Error');
           return;
         }
-        let msg = '\u2713 Saved ' + agg.uploaded + ' of ' + agg.total + ' file(s) to Google Drive.';
-        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive \u2192</a></div>';
-        if (agg.errors.length) {
-          msg += '<div style="color:#c62828;font-weight:bold;margin-top:15px;">Errors:</div>';
-          msg += '<div style="background:#fff3f3;border:1px solid #ffcdd2;padding:10px;font-size:12px;text-align:left;">' + agg.errors.map(escapeHtml).join('<br>') + '</div>';
+        if (!agg.errors.length) {
+          showToast_('✓ ' + agg.uploaded + ' file(s) saved to Google Drive', 'ok', { href: agg.folderUrl, label: 'Open folder' });
+          return;
         }
+        let msg = '✓ Saved ' + agg.uploaded + ' of ' + agg.total + ' file(s) to Google Drive.';
+        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive →</a></div>';
+        msg += '<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>';
         showCustomAlert(msg, 'Save to Drive');
       };
 
-      // Nacheinander statt in einem Serveraufruf, damit jeder Schritt sein
-      // eigenes Apps-Script-Zeitlimit hat.
+      // Nacheinander, damit jeder Teil sein eigenes Apps-Script-Zeitlimit hat.
       const saveNext = idx => {
         if (idx >= parts.length) { finish(); return; }
         const part = parts[idx];
-        const prefix = part.subFolder ? part.subFolder + ': ' : '';
+        const prefix = part.label ? part.label + ': ' : '';
+        setDownloadProgress_(
+          parts.length > 1 ? `Saving to Google Drive (${idx + 1}/${parts.length}) – ${part.label}` : 'Saving files to Google Drive...',
+          convertToGoogle ? 'Word / Excel / PowerPoint files are converted to Google Docs / Sheets / Slides.' : ''
+        );
         google.script.run.withSuccessHandler(r => {
           if (r.success) {
             agg.uploaded += r.uploaded;
@@ -6446,17 +6764,28 @@ function confirmSaveToGoogleDrive() {
   });
 }
 
+/** Kurze Erfolgsmeldung unten rechts statt eines blockierenden Dialogs. */
+function showToast_(message, type, link) {
+  const host = document.getElementById('toastHost');
+  if (!host) { showCustomAlert(escapeHtml(message)); return; }
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.innerHTML = '<span class="material-icons-outlined">' + (type === 'err' ? 'error' : 'check_circle') + '</span>' +
+    '<span class="toast-msg">' + escapeHtml(message) + '</span>' +
+    (link ? '<a href="' + link.href + '" target="_blank">' + escapeHtml(link.label) + '</a>' : '') +
+    '<button type="button" title="Close" onclick="this.parentNode.remove()"><span class="material-icons-outlined">close</span></button>';
+  host.appendChild(el);
+  setTimeout(() => { el.classList.add('toast-hide'); setTimeout(() => el.remove(), 400); }, link ? 9000 : 5000);
+}
+
 let currentNoteProjectUid = null;
-let currentNoteJobUids = [];
 let currentNoteOriginal_ = '';
 
 function openJobNoteModal(projectUid) {
   const p = globalProjects.find(x => x.projectUid === projectUid) || {};
   currentNoteProjectUid = projectUid;
-  currentNoteJobUids = Array.isArray(p.jobUids) ? p.jobUids : [];
   currentNoteOriginal_ = '';
   document.getElementById('jobNoteProjectName').textContent = p.projectName || projectUid;
-  document.getElementById('jobNoteText').value = '';
 
   const noteTa = document.getElementById('projectNoteText');
   const saveBtn = document.getElementById('projectNoteSaveBtn');
@@ -6482,30 +6811,6 @@ function openJobNoteModal(projectUid) {
     status.className = 'note-status err';
     status.textContent = 'Error: ' + e.message;
   }).apiGetProjectNote(projectUid);
-
-  loadJobNotes_(projectUid);
-}
-
-function loadJobNotes_(projectUid) {
-  const list = document.getElementById('jobNotesList');
-  list.innerHTML = '<div style="text-align:center;padding:10px;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto;"></div></div>';
-  google.script.run.withSuccessHandler(res => {
-    if (currentNoteProjectUid !== projectUid) return;
-    if (!res || !res.success) { list.innerHTML = `<div class="note-empty err">Error loading notes: ${escapeHtml(res && res.error)}</div>`; return; }
-    if (!res.notes || !res.notes.length) { list.innerHTML = `<div class="note-empty">${escapeHtml(t_i18n_(currentLang, 'jn_no_notes') || 'No notes yet.')}</div>`; return; }
-    list.innerHTML = res.notes.map(n => {
-      const d = n.created ? new Date(n.created) : null;
-      const when = d && !isNaN(d.getTime()) ? d.toLocaleString() : '';
-      const langs = (n.langs || []).length ? `<span class="note-langs">${escapeHtml(n.langs.join(', '))}</span>` : '';
-      return `<div class="note-item">
-          <div class="note-meta"><strong>${escapeHtml(n.author)}</strong>${langs}<span style="margin-left:auto;">${escapeHtml(when)}</span></div>
-          <div class="note-text">${escapeHtml(n.text)}</div>
-        </div>`;
-    }).join('');
-    list.scrollTop = list.scrollHeight;
-  }).withFailureHandler(e => {
-    list.innerHTML = `<div class="note-empty err">Error: ${escapeHtml(e.message)}</div>`;
-  }).apiGetJobNotes(projectUid, currentNoteJobUids);
 }
 
 function saveProjectNote() {
@@ -6539,28 +6844,6 @@ function closeJobNoteModal() {
   currentNoteProjectUid = null;
 }
 
-function submitJobNote() {
-  const text = document.getElementById('jobNoteText').value.trim();
-  if (!text) { showCustomAlert("Please enter a note."); return; }
-
-  const btn = document.getElementById('jobNoteSubmitBtn');
-  const label = btn.innerHTML;
-  const projectUid = currentNoteProjectUid;
-  btn.disabled = true; btn.innerText = "Sending...";
-
-  google.script.run.withSuccessHandler(res => {
-    btn.disabled = false; btn.innerHTML = label;
-    if (res.success) {
-      document.getElementById('jobNoteText').value = '';
-      if (currentNoteProjectUid === projectUid) loadJobNotes_(projectUid);
-    } else {
-      showCustomAlert("✗ Failed to add note: " + escapeHtml(res.error), "Error");
-    }
-  }).withFailureHandler(e => {
-    btn.disabled = false; btn.innerHTML = label;
-    showCustomAlert("Error: " + escapeHtml(e.message), "Error");
-  }).apiAddJobNote(projectUid, currentNoteJobUids, text);
-}
 
     let currentDueDateUid = null;
     function openDueDateModal(uid, name, currentDate) {
@@ -7226,6 +7509,7 @@ function submitJobNote() {
           _docQueueData_[target] = res.projects || [];
           docQueuePopulateFilters_(target);
           renderDocBoard(target);
+          if (target === 'sidebar') renderDocOverviewSummary_();
         })
         .withFailureHandler(function(err) {
           container.innerHTML = '<div style="padding:20px;color:#d93025;font-size:12px;">Fehler: ' + escapeHtml(err.message) + '</div>';
@@ -7311,7 +7595,7 @@ function submitJobNote() {
       }
 
       var byColumn = docQueueGroupByColumns_(filtered);
-      var maxH = target === 'export' ? '65vh' : (target === 'modal' ? 'calc(90vh - 150px)' : '420px');
+      var maxH = target === 'export' ? '65vh' : (target === 'modal' ? 'calc(90vh - 150px)' : '55vh');
       var html = '<div class="doc-board-wrapper">';
       byColumn.forEach(function(col) {
         var color = DOC_QUEUE_STATUS_COLORS_[col.name] || '#888';
