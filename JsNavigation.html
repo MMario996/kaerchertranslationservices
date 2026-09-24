@@ -1,0 +1,155 @@
+<script>
+// JsNavigation.html - eingebunden in Index.html via include() (WebApp.gs)
+
+// --- GUIDE / FAQ LAZY LOADING -------------------------------------------------
+// Guide- und FAQ-Texte (6 Sprachen, ~144 KB) liegen in GuideContent.html und
+// werden erst beim ersten Oeffnen des jeweiligen Tabs nachgeladen. Solange sie
+// fest in Index.html standen, war das ausgelieferte Dokument zu gross und wurde
+// von Apps Script abgeschnitten - die Seite blieb komplett weiss.
+var _guideContentLoaded_  = false;
+var _guideContentLoading_ = false;
+
+function loadGuideContent_() {
+  if (_guideContentLoaded_ || _guideContentLoading_) return;
+  _guideContentLoading_ = true;
+
+  const gHost = document.getElementById('guideContentHost');
+  const fHost = document.getElementById('faqContentHost');
+  if (gHost) gHost.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(html) {
+      _guideContentLoading_ = false;
+      _guideContentLoaded_  = true;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      if (gHost) gHost.innerHTML = '';
+      if (fHost) fHost.innerHTML = '';
+      // appendChild verschiebt die Knoten, daher vorher eine statische Kopie ziehen.
+      Array.prototype.slice.call(tmp.children).forEach(function(el) {
+        if (el.id && el.id.indexOf('faq-text-') === 0) { if (fHost) fHost.appendChild(el); }
+        else if (gHost) gHost.appendChild(el);
+      });
+      setGlobalLang(currentLang);
+    })
+    .withFailureHandler(function(err) {
+      _guideContentLoading_ = false;
+      if (gHost) gHost.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Inhalt konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetGuideContent();
+}
+
+// --- ADMIN-BEREICH LAZY LOADING -----------------------------------------------
+// Markup und JavaScript des Admin-Bereichs (~113 KB) liegen in AdminConsole.html
+// und AdminScript.html. Beides betrifft nur Admins, wurde aber jedem Nutzer
+// ausgeliefert und hat das Startdokument unnoetig aufgeblaeht.
+var _adminContentLoaded_  = false;
+var _adminContentLoading_ = false;
+var _adminWantsShow_      = false;
+
+// silent=true: Vorabladen im Hintergrund, ohne Spinner und ohne den Tab zu
+// initialisieren. Wird kurz nach dem Start fuer Admins angestossen, damit der
+// Klick auf "Admin" spaeter ohne Wartezeit auskommt.
+function loadAdminContent_(silent) {
+  if (_adminContentLoaded_)  { if (!silent) applyAdminAccessRestrictions_(); return; }
+  if (!silent) _adminWantsShow_ = true;
+  if (_adminContentLoading_) return;
+  _adminContentLoading_ = true;
+
+  const host = document.getElementById('adminContentHost');
+  if (host && !silent) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      _adminContentLoading_ = false;
+      if (host) host.innerHTML = res.html;
+      // Per innerHTML eingefuegte <script>-Bloecke werden nicht ausgefuehrt,
+      // daher das JS als eigenes Element anhaengen. Es laeuft im globalen
+      // Scope und sieht damit die Globals aus Index.html.
+      const el = document.createElement('script');
+      el.text = res.js;
+      document.head.appendChild(el);
+      _adminContentLoaded_ = true;
+      // Beim Vorabladen nicht initialisieren - applyAdminAccessRestrictions_()
+      // stoesst loadAdminDashboardData() mit rund einem Dutzend Serveraufrufen an.
+      if (_adminWantsShow_ || !silent) applyAdminAccessRestrictions_();
+    })
+    .withFailureHandler(function(err) {
+      _adminContentLoading_ = false;
+      if (host && _adminWantsShow_) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Admin-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetAdminContent();
+}
+
+let _pivotAdminContentLoaded_ = false;
+let _pivotAdminContentLoading_ = false;
+
+/**
+ * Laedt den Inhalt des "Pivot Templates"-Admin-Subtabs nach (Markup +
+ * JavaScript), erst wenn dieser Subtab zum ersten Mal geoeffnet wird -
+ * exakt dasselbe Lazy-Load-Muster wie loadAdminContent_() selbst, hier
+ * noch eine Ebene tiefer, weil der Pivot-Inhalt den kombinierten
+ * Admin-Payload sonst an die (schon einmal bei GuideContent.html erlebte)
+ * Truncation-Grenze gebracht hat.
+ * @param {Function} [callback] wird nach erfolgreichem (oder bereits
+ *   erfolgtem) Laden aufgerufen.
+ */
+function loadPivotAdminContent_(callback) {
+  if (_pivotAdminContentLoaded_) { if (callback) callback(); return; }
+  if (_pivotAdminContentLoading_) return;
+  _pivotAdminContentLoading_ = true;
+
+  const host = document.getElementById('admin-subtab-pivot');
+  if (host) host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      _pivotAdminContentLoading_ = false;
+      if (host) host.innerHTML = res.html;
+      const el = document.createElement('script');
+      el.text = res.js;
+      document.head.appendChild(el);
+      _pivotAdminContentLoaded_ = true;
+      if (callback) callback();
+    })
+    .withFailureHandler(function(err) {
+      _pivotAdminContentLoading_ = false;
+      if (host) host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">Pivot-Templates-Bereich konnte nicht geladen werden: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetPivotAdminContent();
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => { el.style.display='none'; el.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('tab-' + tabName);
+  if(target) { target.style.display='block'; target.classList.add('active'); }
+  if (!['history','dashboard','guide','help','admin','health','articulate'].includes(tabName)) {
+    resetAppAndCloseOverlay();
+    activeTabId = tabName;
+  }
+  const btn = document.getElementById('btn-nav-' + tabName) || document.getElementById('btn-' + tabName);
+  if(btn) {
+    btn.classList.add('active');
+    try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (e) {}
+  }
+  if (isPortalTab_(tabName)) { try { localStorage.setItem('lastPortalTab', tabName); } catch (e) {} }
+  updatePortalNav_(tabName);
+  if(tabName === 'guide' || tabName === 'help') loadGuideContent_();
+  if(tabName === 'history')   { mountHistoryView_('tab-history', 'all'); loadMyProjects(); }
+  if(tabName === 'articulate') { loadArticulateProjects(); loadArtPickerProjects(); }
+  if(tabName === 'documentation') switchDocSubtab(docSubtab_);
+  if(tabName === 'dashboard') renderDashboard();
+  if(tabName === 'admin')     loadAdminContent_(false);
+  if(tabName === 'health')    loadHealthCheck();
+}
+
+function showInstruction() { document.getElementById('instructionModal').style.display='flex'; }
+function closeInstruction() { document.getElementById('instructionModal').style.display='none'; }
+function goToGuide() { closeInstruction(); switchTab('guide'); }
+function toggleMarketingSidebar() {
+  const sb = document.getElementById('marketingSidebar');
+  const btn = document.getElementById('marketingShowInfoBtn');
+  if (sb.classList.contains('collapsed')) { sb.classList.remove('collapsed'); btn.style.display='none'; }
+  else { sb.classList.add('collapsed'); btn.style.display='inline-flex'; }
+}</script>

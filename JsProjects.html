@@ -1,0 +1,801 @@
+<script>
+// JsProjects.html - eingebunden in Index.html via include() (WebApp.gs)
+
+function loadMyProjects() {
+  const t=document.querySelector('#projectsTable tbody'); t.innerHTML='';
+  document.getElementById('historyLoading').style.display='block'; document.getElementById('noProjectsMsg').style.display='none';
+  google.script.run.withSuccessHandler(r=>{
+    document.getElementById('historyLoading').style.display='none';
+    if(r.error){document.getElementById('noProjectsMsg').innerHTML=`Error: ${r.error}`;document.getElementById('noProjectsMsg').style.display='block';return;}
+    globalProjects=r.projects||r;
+    if(!globalProjects.length){document.getElementById('noProjectsMsg').innerHTML=escapeHtml(tr_('hs_empty', 'No projects found.'));document.getElementById('noProjectsMsg').style.display='block';return;}
+    fillTable(globalProjects);
+    if (currentHistoryView === 'calendar') renderCalendar(globalProjects);
+  }).withFailureHandler(e=>{
+    document.getElementById('historyLoading').style.display='none';
+    document.getElementById('noProjectsMsg').innerHTML=`Error: ${e.message}`;document.getElementById('noProjectsMsg').style.display='block';
+  })[historyScope_ === 'doc' ? 'apiGetDocProjectsForHistory' : 'apiGetMyProjects']();
+}
+
+function fillTable(projects) {
+  const t=document.querySelector('#projectsTable tbody'); t.innerHTML='';
+  if(!projects.length){t.innerHTML='<tr><td colspan="10" style="text-align:center;padding:15px;">No records.</td></tr>';return;}
+
+  // Pivot (Job-based-Trigger) Parent-Child-Projekte: das Child bekommt eine
+  // eigene Queue-Zeile (fuer Status/Download), soll aber nicht als
+  // eigenstaendige Zeile in der Liste auftauchen, sondern im aufklappbaren
+  // Container seines Parent-Projekts.
+  const childByParentUid = {};
+  projects.forEach(p => { if (p.pivotRole==='CHILD' && p.pivotLink) childByParentUid[p.pivotLink]=p; });
+  const inView = projects.filter(p => p.pivotRole !== 'CHILD' && isArchived_(p) === historyShowArchive_);
+  renderStatusChips_(inView);
+  const topLevel = inView.filter(p => historyStatusFilter_ === 'all' || statusGroup_(p.status) === historyStatusFilter_);
+
+  if(!topLevel.length){t.innerHTML=`<tr class="empty-row"><td colspan="10"><div class="empty-state"><span class="material-icons-outlined">${historyShowArchive_?'inventory_2':'search_off'}</span><div>${escapeHtml(t_i18n_(currentLang, historyShowArchive_?'hs_empty_archive':'hs_empty'))}</div></div></td></tr>`;return;}
+
+  topLevel.forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.className = 'row-' + statusGroup_(p.status);
+    let due=p.dueDate?`<span class="${dueClass_(p)}">${new Date(p.dueDate).toLocaleDateString()}</span>`:"-";
+    let shText=p.isShared?(p.owner===configData.currentUser
+      ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">Shared with<br>${p.sharedWith}</span>`
+      :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">Shared by<br>${p.owner}</span>`
+    ):(p.groupShared
+      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">WOMA Team<br>${p.owner}</span>`
+      :"-");
+
+    const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
+      ?`<div style="width:36px;display:inline-block;"></div>`
+      :`<button class="btn-icon danger" title="Cancel Project" onclick="cancelProject('${p.projectUid}','${p.projectName}')"><span class="material-icons-outlined">delete</span></button>`;
+
+    // Dokumentationsprojekte: Download, sobald mindestens eine Sprache fertig ist.
+    const docDone = p.docProject && (p.docJobs || []).some(j => ['COMPLETED','DELIVERED','NOTIFIED'].includes(j.status));
+    const dlBtn=(['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) || docDone)
+      ?`<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
+      :'-';
+
+    const isPivotParent = p.pivotRole === 'PARENT';
+    const pivotChild = isPivotParent ? childByParentUid[p.projectUid] : null;
+    const pivotGroupId = isPivotParent ? 'pivotGroup_' + String(p.projectUid).replace(/[^a-zA-Z0-9]/g,'') : '';
+    const nameCell = isPivotParent
+      ? `<span class="pivot-toggle" onclick="togglePivotGroup('${pivotGroupId}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Parent-Child project – click to expand">
+           <span class="material-icons-outlined pivot-caret" style="font-size:16px;transition:transform .15s;">chevron_right</span>
+           <span class="material-icons-outlined" style="font-size:15px;color:#888;">account_tree</span>
+           <strong>${p.projectName}</strong>
+         </span>`
+      : `<button type="button" class="project-name-link" onclick="openProjectDetail_('${escapeJs(p.projectUid)}')">${escapeHtml(p.projectName)}</button>`;
+
+    tr.innerHTML=`<td>${nameCell}</td>
+      <td><a href="${p.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS">${p.projectUid} <span class="material-icons-outlined" style="font-size:12px">open_in_new</span></a></td>
+      <td style="font-size:11px;">${p.uploadDate||"-"}</td><td>${p.sourceLang}</td>
+      <td>${p.docProject ? docJobBadges_(p) : `<span style="font-size:11px;">${p.targetLang||"-"}</span>`}</td>
+      <td><span class="status-badge status-${p.status}">${p.status}</span></td>
+      <td>${due}</td><td>${shText}</td>
+      <td style="text-align:center;">${dlBtn}</td>
+      <td style="text-align:center">
+         <button class="btn-icon" onclick="openProjectDetail_('${escapeJs(p.projectUid)}')" title="${escapeHtml(tr_('pd_details', 'Details'))}"><span class="material-icons-outlined">info</span></button>
+         <button class="btn-icon" onclick="showTimeline('${p.projectUid}')" title="Timeline & Status"><span class="material-icons-outlined">timeline</span></button>
+         ${p.docProject ? `
+         <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}')" title="Notes"><span class="material-icons-outlined">edit_note</span></button>
+         <button class="btn-icon" onclick="docArchiveFromHistory_('${escapeJs(p.projectUid)}','${escapeJs(p.projectName)}')" title="${escapeHtml(tr_('pd_archive', 'Archive'))}"><span class="material-icons-outlined">archive</span></button>` : `
+         <button class="btn-icon" onclick="shareProject('${p.projectUid}')" title="Share with Colleague"><span class="material-icons-outlined">share</span></button>
+         <button class="btn-icon" onclick="cloneProject('${p.projectUid}')" title="Clone / Duplicate Project"><span class="material-icons-outlined">content_copy</span></button>
+         <button class="btn-icon" onclick="openJobNoteModal('${p.projectUid}')" title="Notes"><span class="material-icons-outlined">edit_note</span></button>
+         ${['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status) ? '<div style="width:36px;display:inline-block;"></div>' : `<button class="btn-icon" onclick="openDueDateModal('${p.projectUid}','${p.projectName}','${p.dueDate||''}')" title="Update Due Date"><span class="material-icons-outlined">edit_calendar</span></button>`}
+         ${cnlBtn}`}
+      </td>`;
+    applyMobileLabels_(tr);
+    t.appendChild(tr);
+
+    if (isPivotParent) t.appendChild(buildPivotDetailRow_(pivotGroupId, p, pivotChild));
+  });
+}
+
+// --- Meine Projekte: Status-Chips, Archiv, Fristen, Mobile-Karten ----------
+let historyStatusFilter_ = 'all';
+let historyShowArchive_ = false;
+const HISTORY_COL_KEYS_ = [['th_name','Project'], [null,'Phrase ID'], ['th_uploaded','Uploaded'], ['th_source','Source'], ['th_targets','Target'], ['th_status','Status'], ['th_due','Due'], ['th_shared','Shared'], ['dl_btn_download','Download'], ['th_actions','Actions']];
+const ARCHIVE_AFTER_DAYS_ = 30;
+
+function statusGroup_(status) {
+  const s = String(status || '').toUpperCase();
+  if (['COMPLETED','DELIVERED','NOTIFIED'].includes(s)) return 'done';
+  if (['CANCELLED','CANCELED','REJECTED','ERROR'].includes(s)) return 'cancelled';
+  return 'open';
+}
+
+// Archiv = abgeschlossen/abgebrochen und seit ARCHIVE_AFTER_DAYS_ Tagen ruhig
+// (letzter Download, sonst Upload-Datum). Offene Projekte nie im Archiv.
+function isArchived_(p) {
+  if (statusGroup_(p.status) === 'open') return false;
+  const ref = new Date(p.downloadedAt || p.timestamp || p.uploadDate || 0);
+  if (isNaN(ref.getTime()) || ref.getTime() === 0) return false;
+  return (Date.now() - ref.getTime()) > ARCHIVE_AFTER_DAYS_ * 86400000;
+}
+
+function dueClass_(p) {
+  if (statusGroup_(p.status) !== 'open' || !p.dueDate) return '';
+  const d = new Date(p.dueDate);
+  if (isNaN(d.getTime())) return '';
+  const hours = (d.getTime() - Date.now()) / 3600000;
+  if (hours < 0) return 'due-overdue';
+  if (hours < 48) return 'due-soon';
+  return '';
+}
+
+function applyMobileLabels_(tr) {
+  Array.from(tr.children).forEach((td, i) => { const k = HISTORY_COL_KEYS_[i]; if (k) td.setAttribute('data-label', k[0] ? tr_(k[0], k[1]) : k[1]); });
+}
+
+function renderStatusChips_(projects) {
+  const box = document.getElementById('statusChips');
+  if (!box) return;
+  const counts = { all: projects.length, open: 0, done: 0, cancelled: 0 };
+  projects.forEach(p => counts[statusGroup_(p.status)]++);
+  const chip = (key, icon) =>
+    `<button type="button" class="status-chip chip-${key}${historyStatusFilter_ === key ? ' active' : ''}" onclick="setHistoryStatusFilter('${key}')">
+       <span class="material-icons-outlined">${icon}</span>${escapeHtml(t_i18n_(currentLang, 'hs_' + key))}<span class="chip-count">${counts[key]}</span>
+     </button>`;
+  box.innerHTML = chip('all', 'apps') + chip('open', 'pending') + chip('done', 'task_alt') + chip('cancelled', 'block')
+    + (historyShowArchive_ ? `<span class="archive-hint"><span class="material-icons-outlined">inventory_2</span>${escapeHtml(t_i18n_(currentLang, 'hs_archive_hint'))}</span>` : '');
+}
+
+function setHistoryStatusFilter(key) {
+  historyStatusFilter_ = key;
+  globalSearch();
+}
+
+function toggleArchiveView() {
+  historyShowArchive_ = !historyShowArchive_;
+  const btn = document.getElementById('archiveToggleBtn');
+  if (btn) {
+    btn.classList.toggle('active', historyShowArchive_);
+    btn.innerHTML = historyShowArchive_
+      ? '<i class="material-icons-outlined">unarchive</i> <span data-i18n="hs_hide_archive">' + escapeHtml(tr_('hs_hide_archive', 'Hide Archive')) + '</span>'
+      : '<i class="material-icons-outlined">archive</i> <span data-i18n="hs_show_archive">' + escapeHtml(tr_('hs_show_archive', 'Show Archive')) + '</span>';
+  }
+  historyStatusFilter_ = 'all';
+  globalSearch();
+}
+
+function buildPivotDetailRow_(groupId, parent, child) {
+  const tr = document.createElement('tr');
+  tr.id = groupId;
+  tr.style.display = 'none';
+  tr.className = 'pivot-detail-row';
+
+  const step = (label, proj, part) => {
+    if (!proj) {
+      return `<div style="padding:9px 14px;font-size:12px;color:#888;border-top:1px solid #e8e8e8;">
+        <span class="material-icons-outlined" style="font-size:14px;vertical-align:-3px;">hourglass_empty</span>
+        <strong>${label}:</strong> will be created automatically once the previous step is done
+      </div>`;
+    }
+    const dlBtn = ['NOTIFIED','COMPLETED','DELIVERED'].includes(proj.status)
+      ? `<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
+      : '';
+    return `<div style="padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:10px;border-top:1px solid #e8e8e8;">
+      <strong style="min-width:90px;">${label}:</strong>
+      <span>${proj.projectName}</span>
+      <span class="status-badge status-${proj.status}" style="font-size:10px;">${proj.status}</span>
+      <a href="${proj.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS"><span class="material-icons-outlined" style="font-size:14px;vertical-align:-2px;">open_in_new</span></a>
+      <span style="margin-left:auto;">${dlBtn}</span>
+    </div>`;
+  };
+
+  // Klare optische Abgrenzung zur naechsten Projektzeile: linker Akzentrahmen
+  // (Gruppen-Zugehoerigkeit), dickerer unterer Rahmen + Schatten (Abschluss
+  // des Containers) statt nur einem duennen Trennstrich.
+  tr.innerHTML = `<td colspan="10" style="background:#fafafa;padding:0 0 10px 0;border-left:3px solid var(--primary-yellow,#FFED00);border-bottom:3px solid #ddd;box-shadow:inset 0 -6px 6px -6px rgba(0,0,0,0.08);">
+    ${step('Source-Check', parent, 'source')}
+    ${step('Translation', child, 'target')}
+  </td>`;
+  return tr;
+}
+
+function togglePivotGroup(groupId) {
+  const row = document.getElementById(groupId);
+  if (!row) return;
+  const expanded = row.style.display !== 'none';
+  row.style.display = expanded ? 'none' : '';
+  const caret = row.previousElementSibling && row.previousElementSibling.querySelector('.pivot-caret');
+  if (caret) caret.style.transform = expanded ? '' : 'rotate(90deg)';
+}
+
+function globalSearch() {
+  const q = document.getElementById('globalSearchInput').value.toLowerCase();
+  const filterVal = document.getElementById('ownershipFilter') ? document.getElementById('ownershipFilter').value : 'all';
+  const currentUser = configData.currentUser.toLowerCase();
+  
+  let filtered = globalProjects;
+
+  if (filterVal === 'own') {
+      filtered = filtered.filter(p => p.owner === currentUser);
+  } else if (filterVal === 'shared') {
+      filtered = filtered.filter(p => p.owner !== currentUser && ((p.sharedWith || '').toLowerCase().includes(currentUser) || p.groupShared));
+  }
+
+  if (q) {
+      filtered = filtered.filter(p =>
+        ['projectName','status','sourceLang','targetLang','uploadDate','projectUid','templateName', 'sharedWith', 'owner', 'iaNumber']
+          .some(k => (p[k]||'').toLowerCase().includes(q))
+        || (p.dueDate ? new Date(p.dueDate).toLocaleDateString().toLowerCase().includes(q) : false)
+      );
+  }
+  
+  fillTable(filtered);
+}
+
+function exportProjectsCSV() {
+  const headers = ['Project Name','Phrase ID','Upload Date','Source','Target','Status','Due Date','Template'];
+  const rows = globalProjects.map(p => [
+    p.projectName, p.projectUid, p.uploadDate, p.sourceLang, p.targetLang,
+    p.status, p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '', p.templateName || ''
+  ].map(v => `"${(v||'').replace(/"/g,'""')}"`));
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'projects_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function syncProjectStatuses() {
+  const btn = document.getElementById('syncStatusBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Syncing...';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
+      showCustomAlert(r.success ? `\u2713 ${r.updated} project(s) updated.` : '\u2717 ' + r.message, "Status Sync");
+      if (r.success && r.updated > 0) loadMyProjects();
+    })
+    .withFailureHandler(e => {
+      btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
+      showCustomAlert('Error: ' + e.message, "Error");
+    })
+    .apiSyncProjectStatuses();
+}
+
+let currentHistoryView = 'table';
+let calView_ = 'month';
+let calCursor_ = null;
+function switchHistoryView(mode) {
+  currentHistoryView = mode;
+  document.getElementById('btnViewTable').style.background    = mode==='table'    ? 'var(--primary-black)' : '#f5f5f5';
+  document.getElementById('btnViewTable').style.color         = mode==='table'    ? 'var(--primary-yellow)' : '#666';
+  document.getElementById('btnViewCalendar').style.background = mode==='calendar' ? 'var(--primary-black)' : '#f5f5f5';
+  document.getElementById('btnViewCalendar').style.color      = mode==='calendar' ? 'var(--primary-yellow)' : '#666';
+  document.querySelector('#projectsTable').closest('div[style*="overflow-x"]').style.display = mode==='table' ? '' : 'none';
+  document.getElementById('calendarView').style.display = mode==='calendar' ? 'block' : 'none';
+  if (mode === 'calendar') {
+    if (!calCursor_) calCursor_ = new Date();
+    if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches && !calCursor_._touched) calView_ = 'week';
+    renderCalendar(globalProjects);
+  }
+}
+
+// --- Kalender (Monat / Woche) --------------------------------------------------
+function calLocale_() {
+  return { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', es: 'es-ES', pt: 'pt-BR', zh: 'zh-CN' }[currentLang] || 'en-GB';
+}
+function calDayKey_(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function calStartOfWeek_(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Montag als Wochenstart
+  return x;
+}
+function calProjectsByDay_(projects) {
+  const map = {};
+  projects.forEach(p => {
+    if (!p.dueDate) return;
+    const d = new Date(p.dueDate);
+    if (isNaN(d.getTime())) return;
+    (map[calDayKey_(d)] = map[calDayKey_(d)] || []).push(p);
+  });
+  Object.keys(map).forEach(k => map[k].sort((a, b) => String(a.projectName).localeCompare(String(b.projectName))));
+  return map;
+}
+function calChipClass_(p) {
+  const g = statusGroup_(p.status);
+  return g === 'open' && dueClass_(p) === 'due-overdue' ? 'cal-overdue' : 'cal-' + g;
+}
+function calChipHtml_(p, detailed) {
+  const title = escapeHtml(p.projectName) + ' – ' + escapeHtml(p.status || '');
+  if (!detailed) {
+    return `<button type="button" class="cal-chip ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">${escapeHtml(p.projectName)}</button>`;
+  }
+  return `<button type="button" class="cal-card ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">
+      <span class="cal-card-name">${escapeHtml(p.projectName)}</span>
+      <span class="cal-card-meta"><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status || '-')}</span>
+      ${p.targetLang ? `<span class="cal-card-langs">${escapeHtml(p.targetLang)}</span>` : ''}</span>
+    </button>`;
+}
+
+function renderCalendar(projects) {
+  if (!calCursor_) calCursor_ = new Date();
+  const loc = calLocale_();
+  const grid = document.getElementById('calGrid');
+  const byDay = calProjectsByDay_((projects || []).filter(p => p.pivotRole !== 'CHILD'));
+  const todayKey = calDayKey_(new Date());
+  document.getElementById('calViewMonth').classList.toggle('active', calView_ === 'month');
+  document.getElementById('calViewWeek').classList.toggle('active', calView_ === 'week');
+
+  const weekStart = calStartOfWeek_(calView_ === 'month' ? new Date(calCursor_.getFullYear(), calCursor_.getMonth(), 1) : calCursor_);
+  const headers = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    headers.push(d.toLocaleDateString(loc, { weekday: calView_ === 'month' ? 'short' : 'long' }));
+  }
+
+  let html = '';
+  if (calView_ === 'month') {
+    document.getElementById('calTitle').innerText = calCursor_.toLocaleDateString(loc, { month: 'long', year: 'numeric' });
+    const lastOfMonth = new Date(calCursor_.getFullYear(), calCursor_.getMonth() + 1, 0);
+    const end = calStartOfWeek_(lastOfMonth); end.setDate(end.getDate() + 6);
+    html += '<div class="cal-grid cal-month">' + headers.map(h => `<div class="cal-head">${escapeHtml(h)}</div>`).join('');
+    for (let d = new Date(weekStart); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = calDayKey_(d);
+      const items = byDay[key] || [];
+      const outside = d.getMonth() !== calCursor_.getMonth();
+      const shown = items.slice(0, 3);
+      const more = items.length - shown.length;
+      html += `<div class="cal-cell${outside ? ' cal-outside' : ''}${key === todayKey ? ' cal-is-today' : ''}${items.length ? ' has-items' : ''}" onclick="calOpenWeek('${key}', event)">
+          <div class="cal-daynum">${d.getDate()}${items.length ? `<span class="cal-count">${items.length}</span>` : ''}</div>
+          ${shown.map(p => calChipHtml_(p, false)).join('')}
+          ${more > 0 ? `<button type="button" class="cal-more" onclick="calOpenWeek('${key}', event, true)">+${more} ${escapeHtml(t_i18n_(currentLang, 'cal_more') || 'more')}</button>` : ''}
+        </div>`;
+    }
+    html += '</div>';
+  } else {
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    document.getElementById('calTitle').innerText =
+      weekStart.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) + ' – ' +
+      weekEnd.toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+    html += '<div class="cal-grid cal-week">';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const key = calDayKey_(d);
+      const items = byDay[key] || [];
+      html += `<div class="cal-wday${key === todayKey ? ' cal-is-today' : ''}">
+          <div class="cal-wday-head"><span>${escapeHtml(headers[i])}</span><span class="cal-wday-date">${d.toLocaleDateString(loc, { day: 'numeric', month: 'short' })}</span></div>
+          <div class="cal-wday-body">${items.length ? items.map(p => calChipHtml_(p, true)).join('') : '<div class="cal-empty">–</div>'}</div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function setCalView(view) {
+  calView_ = view;
+  if (calCursor_) calCursor_._touched = true;
+  renderCalendar(globalProjects);
+}
+function calOpenWeek(key, ev, force) {
+  if (ev && !force && ev.target.closest('.cal-chip')) return;
+  if (ev) ev.stopPropagation();
+  const [y, m, d] = key.split('-').map(Number);
+  calCursor_ = new Date(y, m - 1, d);
+  calCursor_._touched = true;
+  calView_ = 'week';
+  renderCalendar(globalProjects);
+}
+function calShift_(dir) {
+  if (!calCursor_) calCursor_ = new Date();
+  const c = new Date(calCursor_);
+  if (calView_ === 'month') { c.setDate(1); c.setMonth(c.getMonth() + dir); }
+  else c.setDate(c.getDate() + 7 * dir);
+  c._touched = true;
+  calCursor_ = c;
+  renderCalendar(globalProjects);
+}
+function calPrev() { calShift_(-1); }
+function calNext() { calShift_(1); }
+function calToday() { calCursor_ = new Date(); calCursor_._touched = true; renderCalendar(globalProjects); }
+
+function showTimeline(uid) {
+  const p = globalProjects.find(x => x.projectUid === uid);
+  if (!p) return;
+  document.getElementById('timelineTitle').innerText = p.projectName;
+  const statusOrder = ['NEW','QUEUED_UPLOAD','UPLOADED','ASSIGNED','ACCEPTED','COMPLETED','NOTIFIED','DELIVERED'];
+  const currentIdx = statusOrder.indexOf(p.status);
+  const steps = statusOrder.map((s, i) => {
+    const done = i <= currentIdx;
+    const active = i === currentIdx;
+    return `<div style="display:flex;align-items:center;gap:15px;margin-bottom:12px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${active?'var(--primary-yellow)':done?'#4CAF50':'#eee'};
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">
+        ${done&&!active?'\u2713':active?'\u231B':'\u25CB'}
+      </div>
+      <div style="font-weight:${active?'800':'500'};font-size:13px;color:${done?'#222':'#aaa'};text-transform:uppercase;letter-spacing:0.5px;">${s}</div>
+    </div>`;
+  }).join('<div style="width:2px;height:10px;background:#eee;margin-left:15px;margin-bottom:4px;"></div>');
+  document.getElementById('timelineBody').innerHTML = `
+    ${steps}
+    <div style="margin-top:20px;border-top:1px solid #eee;padding-top:15px;font-size:12px;color:#666;">
+      <div><strong>${escapeHtml(tr_('th_uploaded', 'Upload Date'))}:</strong> ${p.uploadDate||'-'}</div>
+      <div><strong>${escapeHtml(tr_('th_due', 'Due Date'))}:</strong> ${p.dueDate?new Date(p.dueDate).toLocaleDateString():'-'}</div>
+      <div style="margin-top:8px;"><a href="${p.phraseUrl}" target="_blank" style="color:#333;font-weight:700;">${escapeHtml(tr_('hs_open_phrase', 'Open in Phrase TMS'))} \u2192</a></div>
+    </div>`;
+  document.getElementById('timelineModal').style.display = 'flex';
+}
+function closeTimeline() { document.getElementById('timelineModal').style.display = 'none'; }
+
+// --- Tastatur & Barrierefreiheit ------------------------------------------------
+// Esc schliesst den obersten offenen Dialog. Reihenfolge = Stapelung (oben zuerst).
+// Fortschrittsanzeigen (downloadOverlay, Upload-Overlay) bleiben bewusst offen.
+const ESC_CLOSERS_ = [
+  ['customDialogOverlay', 'closeCustomDialog'],
+  ['dueDateModal', 'closeDueDateModal'],
+  ['saveToDriveModal', 'closeSaveToDriveModal'],
+  ['jobNoteModal', 'closeJobNoteModal'],
+  ['projectDrawer', 'closeProjectDetail_'],
+  ['timelineModal', 'closeTimeline'],
+  ['driveModal', 'closeDriveModal'],
+  ['slidesModal', 'closeSlidesModal'],
+  ['logsModal', 'closeLogsModal'],
+  ['preferencesModal', 'closePreferences'],
+  ['articulateTableModal', 'closeArticulateTableModal'],
+  ['instructionModal', 'closeInstruction'],
+  ['chatWelcomeModal', 'closeChatWelcome']
+];
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  for (const [id, fn] of ESC_CLOSERS_) {
+    const el = document.getElementById(id);
+    if (el && el.style.display && el.style.display !== 'none' && typeof window[fn] === 'function') {
+      e.preventDefault();
+      window[fn]();
+      return;
+    }
+  }
+  // Offene Auswahllisten (Template, Sprachen) schliessen.
+  document.querySelectorAll('.tmpl-dropdown-panel.open, .multiselect-options.open').forEach(p => p.classList.remove('open'));
+});
+
+// Symbol-Buttons ohne Text bekommen ihren Tooltip als aria-label - auch fuer
+// spaeter per innerHTML erzeugte Zeilen (Tabelle, Dialoge).
+function applyAriaLabels_(root) {
+  (root || document).querySelectorAll('button[title]:not([aria-label]), a[title]:not([aria-label])').forEach(el => {
+    if (!el.textContent.replace(/\s+/g, '').length || el.querySelector('.material-icons-outlined') && el.textContent.trim().split(/\s+/).length <= 1) {
+      el.setAttribute('aria-label', el.getAttribute('title'));
+    }
+  });  // Symbol-Ligaturen ("download", "close" ...) nicht vorlesen.
+  (root || document).querySelectorAll('.material-icons-outlined:not([aria-hidden]), .material-icons:not([aria-hidden])').forEach(i => i.setAttribute('aria-hidden', 'true'));
+}
+document.addEventListener('DOMContentLoaded', function() {
+  applyAriaLabels_(document);
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; applyAriaLabels_(document); });
+  }).observe(document.body, { childList: true, subtree: true });
+});
+
+/** Kurzform fuer Uebersetzungen mit Fallback-Text. */
+function tr_(key, fallback) {
+  return t_i18n_(currentLang, key) || fallback || key;
+}
+
+// --- Projekt-Detailansicht (Seitenpanel) ---------------------------------------
+// Zusaetzliche Ansicht zu den Symbolen in der Zeile: alle Infos und Aktionen
+// eines Projekts an einem Ort.
+const PD_STATUS_ORDER_ = ['NEW','UPLOADED','ASSIGNED','ACCEPTED','COMPLETED','DELIVERED'];
+let pdCurrentUid_ = null;
+
+function pdStepsHtml_(status) {
+  const s = String(status || '').toUpperCase();
+  if (statusGroup_(s) === 'cancelled') {
+    return `<div class="pd-cancelled"><span class="material-icons-outlined">block</span>${escapeHtml(s)}</div>`;
+  }
+  let idx = PD_STATUS_ORDER_.indexOf(s === 'NOTIFIED' ? 'DELIVERED' : s === 'QUEUED_UPLOAD' ? 'NEW' : s);
+  if (idx === -1) idx = 0;
+  return '<ol class="pd-steps">' + PD_STATUS_ORDER_.map((st, i) =>
+    `<li class="${i < idx ? 'done' : i === idx ? 'current' : ''}"><span class="pd-dot">${i < idx ? '\u2713' : ''}</span><span>${st}</span></li>`
+  ).join('') + '</ol>';
+}
+
+function pdRow_(label, valueHtml) {
+  return `<div class="pd-row"><span class="pd-label">${escapeHtml(label)}</span><span class="pd-value">${valueHtml || '\u2013'}</span></div>`;
+}
+
+function openProjectDetail_(uid) {
+  const p = globalProjects.find(x => x.projectUid === uid);
+  if (!p) return;
+  pdCurrentUid_ = uid;
+  const group = statusGroup_(p.status);
+  const done = ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) ||
+    (p.docProject && (p.docJobs || []).some(j => ['COMPLETED','DELIVERED','NOTIFIED'].includes(j.status)));
+  const child = getPivotChildOf_(p);
+
+  document.getElementById('drawerTitle').textContent = p.projectName || uid;
+  document.getElementById('drawerStatus').innerHTML = `<span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status || '-')}</span>`;
+
+  const a = [];
+  if (done) a.push(`<button class="btn-download" onclick="openSaveToDriveModal('${escapeJs(uid)}')"><span class="material-icons-outlined">download</span>${escapeHtml(tr_('dl_btn_download', 'Download'))}</button>`);
+  a.push(`<button class="pd-action" onclick="openJobNoteModal('${escapeJs(uid)}')"><span class="material-icons-outlined">edit_note</span>${escapeHtml(tr_('pd_note', 'Note'))}</button>`);
+  if (!p.docProject) {
+    a.push(`<button class="pd-action" onclick="shareProject('${escapeJs(uid)}')"><span class="material-icons-outlined">share</span>${escapeHtml(tr_('pd_share', 'Share'))}</button>`);
+    a.push(`<button class="pd-action" onclick="cloneProject('${escapeJs(uid)}')"><span class="material-icons-outlined">content_copy</span>${escapeHtml(tr_('pd_clone', 'Clone'))}</button>`);
+    if (group === 'open') {
+      a.push(`<button class="pd-action" onclick="openDueDateModal('${escapeJs(uid)}','${escapeJs(p.projectName)}','${escapeJs(p.dueDate || '')}')"><span class="material-icons-outlined">edit_calendar</span>${escapeHtml(tr_('pd_due', 'Due date'))}</button>`);
+      a.push(`<button class="pd-action danger" onclick="closeProjectDetail_();cancelProject('${escapeJs(uid)}','${escapeJs(p.projectName)}')"><span class="material-icons-outlined">delete</span>${escapeHtml(tr_('pd_cancel', 'Cancel project'))}</button>`);
+    }
+  } else {
+    a.push(`<button class="pd-action" onclick="closeProjectDetail_();docArchiveFromHistory_('${escapeJs(uid)}','${escapeJs(p.projectName)}')"><span class="material-icons-outlined">archive</span>${escapeHtml(tr_('pd_archive', 'Archive'))}</button>`);
+  }
+  if (p.phraseUrl) a.push(`<a class="pd-action" href="${p.phraseUrl}" target="_blank"><span class="material-icons-outlined">open_in_new</span>Phrase TMS</a>`);
+  document.getElementById('drawerActions').innerHTML = a.join('');
+
+  const due = p.dueDate ? `<span class="${dueClass_(p)}">${escapeHtml(new Date(p.dueDate).toLocaleString())}</span>` : '';
+  const langs = p.docProject ? docJobBadges_(p) : escapeHtml(p.targetLang || '');
+  let html = '<section class="pd-section">' + pdStepsHtml_(p.status) + '</section>';
+  html += '<section class="pd-section"><h4>' + escapeHtml(tr_('pd_facts', 'Project')) + '</h4>' +
+    pdRow_('Phrase ID', p.projectUid ? `<a href="${p.phraseUrl}" target="_blank">${escapeHtml(p.projectUid)}</a>` : '') +
+    pdRow_(tr_('pd_uploaded', 'Uploaded'), escapeHtml(p.uploadDate || '')) +
+    pdRow_(tr_('pd_due', 'Due date'), due) +
+    (p.templateName ? pdRow_('Template', escapeHtml(p.templateName)) : '') +
+    pdRow_(tr_('pd_targets', 'Target languages'), langs) +
+    (p.iaNumber ? pdRow_('IA Number', escapeHtml(p.iaNumber)) : '') +
+    pdRow_(tr_('pd_owner', 'Owner'), escapeHtml(p.owner || '')) +
+    (p.sharedWith ? pdRow_(tr_('pd_shared', 'Shared with'), escapeHtml(p.sharedWith)) : '') +
+    (p.downloadedAt ? pdRow_(tr_('pd_downloaded', 'Last download'), escapeHtml(new Date(p.downloadedAt).toLocaleString())) : '') +
+    '</section>';
+  if (p.pivotRole === 'PARENT') {
+    html += '<section class="pd-section"><h4>Source-Check \u2192 Translation</h4>' +
+      pdRow_('Source-Check', `<span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>`) +
+      pdRow_('Translation', child ? `<span class="status-badge status-${escapeHtml(child.status)}">${escapeHtml(child.status)}</span>` : escapeHtml(tr_('pd_pending_child', 'will be created automatically'))) +
+      '</section>';
+  }
+  if (p.docProject && (p.docJobs || []).length) {
+    html += '<section class="pd-section"><h4>' + escapeHtml(tr_('pd_files', 'Files')) + '</h4>' +
+      p.docJobs.map(j => pdRow_(j.targetLang || '?', `<span class="pd-file">${escapeHtml(j.fileName || '')}</span> <span class="status-badge status-${escapeHtml(j.status)}">${escapeHtml(j.status)}</span>`)).join('') +
+      '</section>';
+  }
+  html += `<section class="pd-section"><h4>${escapeHtml(tr_('pd_note', 'Note'))}
+      <button class="pd-link" onclick="openJobNoteModal('${escapeJs(uid)}')">${escapeHtml(tr_('pd_edit', 'Edit'))}</button></h4>
+      <div id="drawerNote" class="pd-note"><span class="pd-muted">${escapeHtml(tr_('jn_loading', 'Loading...'))}</span></div></section>`;
+  document.getElementById('drawerBody').innerHTML = html;
+  document.getElementById('projectDrawer').style.display = 'flex';
+
+  google.script.run.withSuccessHandler(res => {
+    if (pdCurrentUid_ !== uid) return;
+    const el = document.getElementById('drawerNote');
+    if (!el) return;
+    el.innerHTML = (res && res.success)
+      ? (res.note ? escapeHtml(res.note) : `<span class="pd-muted">${escapeHtml(tr_('pd_no_note', 'No note'))}</span>`)
+      : `<span class="pd-muted">${escapeHtml((res && res.error) || '')}</span>`;
+  }).withFailureHandler(e => {
+    const el = document.getElementById('drawerNote');
+    if (el) el.innerHTML = `<span class="pd-muted">${escapeHtml(e.message)}</span>`;
+  }).apiGetProjectNote(uid);
+}
+
+function closeProjectDetail_() {
+  document.getElementById('projectDrawer').style.display = 'none';
+  pdCurrentUid_ = null;
+}
+
+function shareProject(uid) {
+  showCustomPrompt("Enter email to share with:", "", function(e) {
+    if(e && e.includes('@')) {
+      const o = document.getElementById('downloadOverlay');
+      o.style.display = 'flex';
+      document.getElementById('downloadOverlayTitle').innerText = "Sharing...";
+      google.script.run.withSuccessHandler(r => {
+        o.style.display = 'none';
+        if(r.success) showCustomAlert("Shared successfully!");
+        else showCustomAlert(r.error, "Error");
+      }).apiShareProject(uid, e);
+    } else if(e) {
+      showCustomAlert("Invalid email address.", "Error");
+    }
+  }, "Share Project");
+}
+
+function cloneProject(uid) {
+  const p = globalProjects.find(x => x.projectUid === uid);
+  if(!p) return;
+
+  let targetSuffix = activePortals[0]; 
+  const cleanTabName = targetSuffix.replace('_', '');
+  switchTab(cleanTabName);
+
+  const pName = document.getElementById('projectName'+targetSuffix);
+  if(pName) pName.value = p.projectName + " (Clone)";
+
+  const dateInput = document.getElementById('dateDue'+targetSuffix);
+  if(dateInput && p.dueDate) {
+      try { 
+        dateInput.value = new Date(p.dueDate).toISOString().split('T')[0]; 
+      } catch(e){}
+  }
+
+  showCustomAlert(i18n[currentLang]['alert_clone']);
+}
+
+function cancelProject(uid, n) {
+  showCustomConfirm(`Cancel project "${n}"?`, function() {
+    const o = document.getElementById('downloadOverlay');
+    o.style.display = 'flex';
+    document.getElementById('downloadOverlayTitle').innerText = "Cancelling...";
+    google.script.run.withSuccessHandler(r => {
+      o.style.display = 'none';
+      if(r.success) loadMyProjects();
+      else showCustomAlert(r.error, "Error");
+    }).apiCancelProject(uid);
+  }, "Cancel Project");
+}
+
+function filterProjects(){const i=document.querySelectorAll('.filter-input');const f={pn:i[0].value.toLowerCase(),ud:i[1].value.toLowerCase(),st:i[2].value.toLowerCase(),dd:i[3].value.toLowerCase()};fillTable(globalProjects.filter(p=>(p.projectName||"").toLowerCase().includes(f.pn)&&(p.uploadDate||"").toLowerCase().includes(f.ud)&&(p.status||"").toLowerCase().includes(f.st)&&(p.dueDate?new Date(p.dueDate).toLocaleDateString().toLowerCase():"").includes(f.dd)));}
+function sortProjects(c){currentSort.direction=(currentSort.column===c&&currentSort.direction==='asc')?'desc':'asc';currentSort.column=c;globalProjects.sort((a,b)=>{let va=a[c]||"",vb=b[c]||"";if(c==='uploadDate'){va=a.timestamp||"";vb=b.timestamp||"";}return(va<vb?-1:(va>vb?1:0))*(currentSort.direction==='asc'?1:-1);});filterProjects();}
+function saveBase64AsFile(b,m,f){const l=document.createElement('a');l.href='data:'+m+';base64,'+b;l.download=f;document.body.appendChild(l);l.click();document.body.removeChild(l);}
+
+function loadHealthCheck() {
+  const content = document.getElementById('healthContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div><p>Running checks...</p></div>';
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.authorized) {
+        content.innerHTML = '<div style="padding:20px;color:#d93025;">\u2022 Not authorized.</div>';
+        return;
+      }
+      const cards = res.checks.map(c => {
+        const colors = { ok: '#4CAF50', warning: '#ff9800', error: '#d93025' };
+        const icons  = { ok: 'check_circle', warning: 'warning', error: 'error' };
+        const col = colors[c.status] || '#888';
+        const ico = icons[c.status]  || 'help';
+        return `
+          <div style="background:#fff;border:1px solid #eee;border-left:5px solid ${col};padding:16px 20px;display:flex;align-items:center;gap:15px;">
+            <span class="material-icons-outlined" style="color:${col};font-size:28px;">${ico}</span>
+            <div>
+              <div style="font-weight:800;font-size:13px;text-transform:uppercase;color:#333;">${escapeHtml(c.name)}</div>
+              <div style="font-size:12px;color:#666;margin-top:4px;">${escapeHtml(c.message)}</div>
+            </div>
+          </div>`;
+      }).join('');
+      content.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px;">' + cards + '</div>';
+    })
+    .withFailureHandler(err => {
+      content.innerHTML = '<div style="padding:20px;color:#d93025;text-align:center;">Error running health check: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiRunHealthCheck();
+}
+
+// --- Dashboard (Admins) --------------------------------------------------------
+// Rechnet clientseitig aus den Projektzeilen (apiGetMyProjects liefert Admins
+// alle Projekte), damit der Zeitraum-Filter ohne weiteren Serveraufruf geht.
+let dashProjects_ = null;
+let dashRangeDays_ = 365;
+
+function renderDashboard() {
+  document.getElementById('dashLoading').style.display = 'block';
+  document.getElementById('dashContent').style.display = 'none';
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('dashLoading').style.display = 'none';
+    if (!r || r.error) {
+      document.getElementById('dashContent').style.display = 'block';
+      document.getElementById('dashKpis').innerHTML = '<div class="dl-errors">' + escapeHtml((r && r.error) || 'Error') + '</div>';
+      return;
+    }
+    dashProjects_ = (r.projects || r).filter(p => p.pivotRole !== 'CHILD');
+    drawDashboard_();
+  }).withFailureHandler(e => {
+    document.getElementById('dashLoading').style.display = 'none';
+    showCustomAlert('Error: ' + escapeHtml(e.message), 'Dashboard');
+  }).apiGetMyProjects();
+}
+
+function setDashRange_(days) {
+  dashRangeDays_ = days;
+  document.querySelectorAll('#tab-dashboard [data-range]').forEach(b => b.classList.toggle('active', Number(b.dataset.range) === days));
+  if (dashProjects_) drawDashboard_();
+}
+
+function dashDate_(p) {
+  const d = new Date(p.timestamp || p.uploadDate || 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function drawDashboard_() {
+  const now = Date.now();
+  const from = dashRangeDays_ ? now - dashRangeDays_ * 86400000 : 0;
+  const list = dashProjects_.filter(p => { const d = dashDate_(p); return d && d.getTime() >= from; });
+
+  let open = 0, done = 0, cancelled = 0, overdue = 0, onTime = 0, withDue = 0;
+  const leadDays = [];
+  list.forEach(p => {
+    const g = statusGroup_(p.status);
+    if (g === 'open') { open++; if (dueClass_(p) === 'due-overdue') overdue++; }
+    else if (g === 'done') {
+      done++;
+      const due = p.dueDate ? new Date(p.dueDate) : null;
+      const dl = p.downloadedAt ? new Date(p.downloadedAt) : null;
+      if (due && !isNaN(due) && dl && !isNaN(dl)) { withDue++; if (dl <= due) onTime++; }
+      const up = dashDate_(p);
+      if (up && dl && !isNaN(dl) && dl > up) leadDays.push((dl - up) / 86400000);
+    } else cancelled++;
+  });
+  const avgLead = leadDays.length ? leadDays.reduce((a, b) => a + b, 0) / leadDays.length : null;
+
+  const kpi = (label, value, sub, cls) =>
+    `<div class="dash-kpi ${cls || ''}"><div class="dash-kpi-val">${value}</div><div class="dash-kpi-label">${escapeHtml(label)}</div>${sub ? `<div class="dash-kpi-sub">${escapeHtml(sub)}</div>` : ''}</div>`;
+  document.getElementById('dashKpis').innerHTML =
+    kpi(tr_('db_total', 'Projects'), list.length) +
+    kpi(tr_('hs_open', 'Open'), open, '', 'k-open') +
+    kpi(tr_('hs_done', 'Done'), done, '', 'k-done') +
+    kpi(tr_('cal_overdue', 'Overdue'), overdue, tr_('db_overdue_sub', 'open and past due date'), overdue ? 'k-bad' : '') +
+    kpi(tr_('db_ontime', 'On time'), withDue ? Math.round(onTime / withDue * 100) + ' %' : '–', withDue ? onTime + ' / ' + withDue : tr_('db_no_data', 'no data yet')) +
+    kpi(tr_('db_lead', 'Avg. time to download'), avgLead === null ? '–' : avgLead.toLocaleString(calLocale_(), { maximumFractionDigits: 1 }) + ' ' + tr_('db_days', 'days'), tr_('db_lead_sub', 'upload to first download'));
+
+  // Projekte pro Monat (bei 30/90 Tagen: pro Woche)
+  const byWeek = dashRangeDays_ && dashRangeDays_ <= 90;
+  const buckets = [];
+  const loc = calLocale_();
+  if (byWeek) {
+    const start = calStartOfWeek_(new Date(from));
+    for (let d = new Date(start); d.getTime() <= now; d.setDate(d.getDate() + 7)) {
+      buckets.push({ key: calDayKey_(d), label: d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }), n: 0 });
+    }
+    list.forEach(p => { const k = calDayKey_(calStartOfWeek_(dashDate_(p))); const b = buckets.find(x => x.key === k); if (b) b.n++; });
+  } else {
+    const first = list.reduce((m, p) => Math.min(m, dashDate_(p).getTime()), now);
+    const start = new Date(dashRangeDays_ ? from : first); start.setDate(1);
+    for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d.getTime() <= now; d.setMonth(d.getMonth() + 1)) {
+      buckets.push({ key: d.getFullYear() + '-' + d.getMonth(), label: d.toLocaleDateString(loc, { month: 'short', year: '2-digit' }), n: 0 });
+    }
+    list.forEach(p => { const d = dashDate_(p); const b = buckets.find(x => x.key === d.getFullYear() + '-' + d.getMonth()); if (b) b.n++; });
+  }
+  document.getElementById('dashMonthly').innerHTML = dashColumnChart_(buckets.slice(-24));
+
+  document.getElementById('dashStatus').innerHTML = dashBarList_([
+    { label: tr_('hs_open', 'Open'), n: open, cls: 'bar-open' },
+    { label: tr_('hs_done', 'Done'), n: done, cls: 'bar-done' },
+    { label: tr_('hs_cancelled', 'Cancelled'), n: cancelled, cls: 'bar-cancelled' }
+  ], list.length);
+
+  const langCount = {};
+  list.forEach(p => (p.targetLangs && p.targetLangs.length ? p.targetLangs : String(p.targetLang || '').split(/[,;]\s*/))
+    .filter(Boolean).forEach(l => { const k = l.trim().toLowerCase(); langCount[k] = (langCount[k] || 0) + 1; }));
+  document.getElementById('dashLangs').innerHTML = dashBarList_(dashTop_(langCount, 8, k => (typeof getPrettyLangName === 'function' ? getPrettyLangName(k) : k)));
+
+  const tplCount = {};
+  list.forEach(p => { const k = (p.templateName || '').trim(); if (k) tplCount[k] = (tplCount[k] || 0) + 1; });
+  document.getElementById('dashTemplates').innerHTML = dashBarList_(dashTop_(tplCount, 10));
+
+  document.getElementById('dashContent').style.display = 'block';
+}
+
+function dashTop_(counts, n, labelFn) {
+  return Object.keys(counts).map(k => ({ label: labelFn ? labelFn(k) : k, n: counts[k] }))
+    .sort((a, b) => b.n - a.n).slice(0, n);
+}
+
+/** Waagerechte Balken mit Beschriftung und Wert (kein Farb-Only). */
+function dashBarList_(rows, total) {
+  if (!rows.length || !rows.some(r => r.n)) return `<div class="cal-empty">${escapeHtml(tr_('db_no_data', 'no data yet'))}</div>`;
+  const max = Math.max.apply(null, rows.map(r => r.n)) || 1;
+  return '<div class="dash-bars">' + rows.map(r => {
+    const pct = total ? ` <span class="dash-pct">(${Math.round(r.n / total * 100)} %)</span>` : '';
+    return `<div class="dash-bar-row" title="${escapeHtml(r.label)}: ${r.n}">
+        <span class="dash-bar-label">${escapeHtml(r.label)}</span>
+        <span class="dash-bar-track"><span class="dash-bar ${r.cls || ''}" style="width:${Math.max(2, r.n / max * 100)}%"></span></span>
+        <span class="dash-bar-val">${r.n}${pct}</span>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+/** Saeulen pro Monat/Woche; Wert erscheint beim Hover, der hoechste ist beschriftet. */
+function dashColumnChart_(buckets) {
+  if (!buckets.length || !buckets.some(b => b.n)) return `<div class="cal-empty">${escapeHtml(tr_('db_no_data', 'no data yet'))}</div>`;
+  const max = Math.max.apply(null, buckets.map(b => b.n)) || 1;
+  const every = Math.ceil(buckets.length / 12);
+  return '<div class="dash-cols">' + buckets.map((b, i) =>
+    `<div class="dash-col" tabindex="0" aria-label="${escapeHtml(b.label)}: ${b.n}">
+       <span class="dash-col-tip">${escapeHtml(b.label)}: <b>${b.n}</b></span>
+       <span class="dash-col-bar${b.n === max ? ' is-max' : ''}" style="height:${b.n ? Math.max(3, b.n / max * 100) : 0}%">${b.n === max ? `<em>${b.n}</em>` : ''}</span>
+       <span class="dash-col-label">${i % every === 0 ? escapeHtml(b.label) : ''}</span>
+     </div>`).join('') + '</div>';
+}</script>

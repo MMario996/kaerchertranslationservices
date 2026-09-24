@@ -1,0 +1,866 @@
+<script>
+// JsCampus.html - eingebunden in Index.html via include() (WebApp.gs)
+
+/* ==========================================================================
+   ARTICULATE PREVIEW
+   ========================================================================== */
+
+var articulateProjects = [];
+var articulateProgressTimer = null;
+var artPickerProjects = [];
+var artPickerJobs = [];
+
+function t_(key, fallback) {
+  try {
+    if (i18n && i18n[currentLang] && i18n[currentLang][key]) return i18n[currentLang][key];
+  } catch (e) {}
+  return fallback || key;
+}
+
+function toggleArticulateSidebar() {
+  var sb = document.getElementById('articulateSidebar');
+  var btn = document.getElementById('articulateShowSidebarBtn');
+  if (!sb) return;
+  sb.classList.toggle('collapsed');
+  if (btn) btn.style.display = sb.classList.contains('collapsed') ? 'inline-flex' : 'none';
+}
+
+function toggleArticulateFullscreen() {
+  var sb = document.getElementById('articulateSidebar');
+  var btn = document.getElementById('articulateFullscreenBtn');
+  if (!sb) return;
+  var isFs = sb.classList.toggle('fullscreen-mode');
+  document.body.style.overflow = isFs ? 'hidden' : '';
+  if (btn) {
+    btn.title = isFs ? 'Vollbild verlassen' : 'Vollbild';
+    var icon = btn.querySelector('.material-icons-outlined');
+    if (icon) icon.textContent = isFs ? 'close_fullscreen' : 'open_in_full';
+  }
+}
+
+function openArticulateHelp() {
+  var html =
+    '<div style="text-align:left;font-size:13px;line-height:1.65;color:#333;">' +
+
+    '<p style="margin:0 0 14px;">Der Preview-Generator zeigt dir, wie ein Rise-Kurs mit den ' +
+    '<strong>aktuell in Phrase übersetzten Texten</strong> aussehen würde \u2013 ohne dass du auf die ' +
+    'fertige Übersetzung warten musst. Ideal, um schon während der Übersetzung mal reinzuschauen ' +
+    'oder einem Reviewer den Zwischenstand zu zeigen.</p>' +
+
+    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Einen einzelnen Kurs erzeugen</h4>' +
+    '<ol style="margin:0 0 14px;padding-left:18px;">' +
+      '<li style="margin-bottom:6px;"><strong>Projekt wählen</strong> \u2013 das Phrase-Projekt, in dem der Übersetzungsjob liegt.</li>' +
+      '<li style="margin-bottom:6px;"><strong>Job wählen</strong> \u2013 die konkrete Übersetzungsdatei (i. d. R. eine Sprache).</li>' +
+      '<li style="margin-bottom:6px;"><strong>Drive-Ordner</strong> einfügen \u2013 das ist der Ordner mit dem <em>entpackten</em> ' +
+      'SCORM-Export des Rise-Kurses (muss einen Unterordner "scormcontent" enthalten \u2013 als ZIP funktioniert es nicht).</li>' +
+      '<li style="margin-bottom:6px;">Kursname und Zielsprache prüfen, dann auf <strong>"? Eingaben prüfen"</strong> klicken. ' +
+      'Hier siehst du sofort, ob alles gefunden wurde und ob der Job wirklich zu diesem Kurs passt.</li>' +
+      '<li><strong>"? Preview erzeugen"</strong> klicken \u2013 die Preview öffnet sich nach kurzer Wartezeit automatisch.</li>' +
+    '</ol>' +
+
+    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Mehrere Jobs auf einmal (Batch)</h4>' +
+    '<p style="margin:0 0 10px;">Hat ein Projekt mehrere Jobs \u2013 etwa mehrere Zielsprachen oder mehrere ' +
+    'Kurse in einem Projekt \u2013 musst du nicht jeden einzeln durchklicken:</p>' +
+    '<ol style="margin:0 0 14px;padding-left:18px;">' +
+      '<li style="margin-bottom:6px;">Projekt wählen, dann auf <strong>"? Alle Jobs im Projekt batch-patchen"</strong> klicken. ' +
+      'Es erscheint eine Zeile pro Job, alle sind vorausgewählt.</li>' +
+      '<li style="margin-bottom:6px;">Jedem Job den passenden Drive-Ordner zuordnen. Wenn alle Jobs zum ' +
+      '<em>selben</em> Kurs gehören (z. B. mehrere Sprachen), kannst du oben einmal den Ordner-Link eintragen \u2013 ' +
+      'er wird automatisch für alle leeren, angehakten Zeilen übernommen.</li>' +
+      '<li style="margin-bottom:6px;">Auf <strong>"? Alle prüfen"</strong> klicken, <em>bevor</em> du startest. ' +
+      'Das prüft für jede Zeile, ob der Job wirklich zum zugeordneten Ordner passt, und zeigt dir das Ergebnis direkt ' +
+      'darunter an \u2013 grün heißt "passt", rot heißt "hier stimmt vermutlich die Zuordnung nicht, bitte Ordner-Link ' +
+      'nochmal prüfen".</li>' +
+      '<li style="margin-bottom:6px;">Nicht benötigte Jobs kannst du einfach abhaken.</li>' +
+      '<li><strong>"? Ausgewählte Kurse starten"</strong> \u2013 die Kurse werden nacheinander erzeugt, jede Zeile zeigt ' +
+      'ihren eigenen Fortschritt (? angelegt \u2013 \u2013 wird erzeugt \u2013 \u2013 fertig).</li>' +
+    '</ol>' +
+
+    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Nach der Erzeugung</h4>' +
+    '<p style="margin:0 0 10px;">Jeder erzeugte Kurs erscheint unter "Gespeicherte Kurse". Von dort kannst du:</p>' +
+    '<ul style="margin:0 0 14px;padding-left:18px;">' +
+      '<li style="margin-bottom:6px;">die Preview jederzeit erneut erzeugen (z. B. wenn die Übersetzung weiter fortgeschritten ist),</li>' +
+      '<li style="margin-bottom:6px;">über das Kopier-Symbol den Link direkt an einen Reviewer weitergeben \u2013 der braucht dafür ' +
+      'keinen Zugang zum Portal oder zu Phrase,</li>' +
+      '<li>und bekommst bei jeder neuen Version automatisch eine Nachricht im ursprünglichen Google-Chat-Thread.</li>' +
+    '</ul>' +
+
+    '<div style="background:#fff3e0;border:1px solid #ffe0b2;padding:10px 12px;font-size:12px;color:#e65100;">' +
+    '\u2022 Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext \u2013 du kannst die Preview also ' +
+    'auch mitten in der Übersetzung schon anschauen. Videos werden aus Geschwindigkeitsgründen weggelassen, ' +
+    'das Vorschaubild bleibt aber sichtbar.' +
+    '</div>' +
+
+    '</div>';
+
+  document.getElementById('customDialogTitle').innerText = 'Wie funktioniert der Preview-Generator?';
+  document.getElementById('customDialogMessage').innerHTML = html;
+  document.getElementById('customDialogInput').style.display = 'none';
+  document.getElementById('customDialogCancelBtn').style.display = 'none';
+  document.getElementById('customDialogConfirmBtn').innerText = 'Verstanden';
+  customDialogCallback = null;
+  document.getElementById('customDialogOverlay').style.display = 'flex';
+}
+
+/* ---------- Dynamische Dropdowns: Projekt -> Job/Sprache ---------- */
+
+function loadArtPickerProjects() {
+  var sel = document.getElementById('artQuickProject');
+  if (!sel) return;
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">' + t_('art_sel_project_loading', 'Lade Projekte...') + '</option>';
+
+  google.script.run
+    .withSuccessHandler(function (projects) {
+      artPickerProjects = projects || [];
+      sel.innerHTML = '<option value="">' + t_('art_sel_project', 'Projekt wählen...') + '</option>' +
+        artPickerProjects.map(function (p) {
+          return '<option value="' + escapeHtmlJs(p.uid) + '">' + escapeHtmlJs(p.name) + '</option>';
+        }).join('');
+      sel.disabled = false;
+    })
+    .withFailureHandler(function (err) {
+      sel.innerHTML = '<option value="">\u26A0 ' + escapeHtmlJs(err.message) + '</option>';
+    })
+    .apiArtPickerListProjects();
+}
+
+function artPickerOnProjectChange() {
+  var projSel = document.getElementById('artQuickProject');
+  var jobSel  = document.getElementById('artQuickJob');
+  var langSel = document.getElementById('artQuickLang');
+  var nameEl  = document.getElementById('artQuickName');
+  var uid = projSel.value;
+
+  jobSel.innerHTML = '<option value="">' + t_('art_sel_job', 'Zuerst Projekt wählen...') + '</option>';
+  jobSel.disabled = true;
+  langSel.innerHTML = '<option value="">\u2013</option>';
+  langSel.disabled = true;
+
+  if (!uid) return;
+
+  var project = artPickerProjects.filter(function (p) { return p.uid === uid; })[0];
+  if (project) {
+    if (!nameEl.value || nameEl.dataset.autofilled === '1') {
+      nameEl.value = project.name;
+      nameEl.dataset.autofilled = '1';
+    }
+    var langs = project.targetLangs || [];
+    langSel.innerHTML = '<option value="">' + t_('art_sel_lang', 'Sprache wählen...') + '</option>' +
+      langs.map(function (l) { return '<option value="' + escapeHtmlJs(l) + '">' + escapeHtmlJs(l) + '</option>'; }).join('');
+    langSel.disabled = langs.length === 0;
+  }
+
+  jobSel.innerHTML = '<option value="">' + t_('art_loading', 'Lade Kurse...') + '</option>';
+
+  google.script.run
+    .withSuccessHandler(function (jobs) {
+      artPickerJobs = jobs || [];
+      jobSel.innerHTML = '<option value="">' + t_('art_sel_job_pick', 'Job wählen...') + '</option>' +
+        artPickerJobs.map(function (j) {
+          return '<option value="' + escapeHtmlJs(j.uid) + '" data-lang="' + escapeHtmlJs(j.targetLang) + '">' +
+            escapeHtmlJs(j.filename) + ' (' + escapeHtmlJs(j.targetLang) + ')</option>';
+        }).join('');
+      jobSel.disabled = artPickerJobs.length === 0;
+    })
+    .withFailureHandler(function (err) {
+      jobSel.innerHTML = '<option value="">\u26A0 ' + escapeHtmlJs(err.message) + '</option>';
+    })
+    .apiArtPickerListJobs(uid);
+}
+
+function artPickerOnJobChange() {
+  var jobSel = document.getElementById('artQuickJob');
+  var langSel = document.getElementById('artQuickLang');
+  var opt = jobSel.options[jobSel.selectedIndex];
+  var lang = opt ? opt.getAttribute('data-lang') : '';
+  if (lang && langSel.querySelector('option[value="' + lang + '"]')) {
+    langSel.value = lang;
+  }
+}
+
+/* ---------- Liste gespeicherter Kurse ---------- */
+
+function loadArticulateProjects() {
+  var loading = document.getElementById('articulateLoading');
+  var list = document.getElementById('articulateList');
+  var empty = document.getElementById('noArticulateMsg');
+  if (!loading) return;
+
+  loading.style.display = 'block';
+  list.innerHTML = '';
+  empty.style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      articulateProjects = (res && res.rows) || [];
+      loading.style.display = 'none';
+      renderArticulateList();
+      if (document.getElementById('articulateTableModal').style.display === 'flex') {
+        renderArticulateTable();
+      }
+    })
+    .withFailureHandler(function (err) {
+      loading.style.display = 'none';
+      list.innerHTML = '<div style="color:#b71c1c;font-size:12px;padding:10px;">' +
+        escapeHtmlJs(err.message) + '</div>';
+    })
+    .apiListArticulateProjectsForUi();
+}
+
+function renderArticulateList() {
+  var list = document.getElementById('articulateList');
+  var empty = document.getElementById('noArticulateMsg');
+  list.innerHTML = '';
+
+  if (!articulateProjects.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  articulateProjects.forEach(function (r) {
+    var isError = r.lastStatus && r.lastStatus.indexOf('ERROR') === 0;
+    var statusColor = isError ? '#b71c1c' : '#2e7d32';
+
+    var div = document.createElement('div');
+    div.style.cssText = 'border:1px solid #eee;background:#fff;padding:10px;margin-bottom:8px;';
+    div.innerHTML =
+      '<div style="font-weight:700;font-size:12px;margin-bottom:2px;">' +
+        escapeHtmlJs(r.courseName) +
+        ' <span style="color:#888;font-weight:400;">(' + escapeHtmlJs(r.targetLang) + ')</span>' +
+      '</div>' +
+      (r.lastStatus
+        ? '<div style="font-size:11px;color:' + statusColor + ';margin-bottom:6px;">' +
+            escapeHtmlJs(r.lastStatus) + '</div>'
+        : '<div style="font-size:11px;color:#999;margin-bottom:6px;">' +
+            t_('art_never_generated', 'Noch nicht erzeugt') + '</div>') +
+      '<div style="display:flex;gap:6px;align-items:center;">' +
+        '<button onclick="runArticulatePreview(\'' + r.id + '\')" ' +
+          'style="border:none;background:#1a73e8;color:#fff;height:30px;padding:0 12px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">' +
+          '<span class="material-icons-outlined" style="font-size:15px;">play_arrow</span>' +
+          t_('art_btn_play', 'Preview') +
+        '</button>' +
+        (r.liveUrl
+          ? '<a href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank" ' +
+            'style="font-size:11px;color:#1a73e8;text-decoration:none;">' +
+            t_('art_btn_open_last', 'Letzte öffnen') + '</a>' +
+            '<button onclick="copyArticulateLink(\'' + escapeHtmlJs(r.liveUrl) + '\')" title="Link für Reviewer kopieren" ' +
+              'style="border:none;background:none;color:#666;cursor:pointer;padding:2px;">' +
+              '<span class="material-icons-outlined" style="font-size:15px;">content_copy</span>' +
+            '</button>'
+          : '') +
+        '<button onclick="deleteArticulateProject(\'' + r.id + '\')" title="' +
+          t_('art_btn_delete', 'Löschen') + '" ' +
+          'style="border:none;background:none;color:#b71c1c;cursor:pointer;margin-left:auto;padding:2px;">' +
+          '<span class="material-icons-outlined" style="font-size:16px;">delete</span>' +
+        '</button>' +
+      '</div>';
+    list.appendChild(div);
+  });
+}
+
+/* ---------- Batch: alle Jobs eines Projekts auf einmal patchen ---------- */
+
+var _articulateBatchJobIds = [];
+
+function openArticulateBatchPanel() {
+  var panel = document.getElementById('articulateBatchPanel');
+  var projSel = document.getElementById('artQuickProject');
+  if (!projSel.value) {
+    showCustomAlert('Bitte zuerst oben ein Projekt auswählen.', 'Hinweis');
+    return;
+  }
+  if (!artPickerJobs.length) {
+    panel.style.display = 'block';
+    panel.innerHTML = '<div style="color:#888;padding:8px;">Keine Jobs in diesem Projekt gefunden.</div>';
+    return;
+  }
+  panel.style.display = 'block';
+
+  var rowsHtml = artPickerJobs.map(function (j, idx) {
+    var defaultName = j.filename.replace(/\.[^.]+$/, '');
+    return (
+      '<div class="art-batch-row" style="display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #f0f0f0;">' +
+        '<input type="checkbox" id="batchCheck_' + idx + '" checked ' +
+          'style="width:16px;height:16px;flex-shrink:0;cursor:pointer;">' +
+        '<div style="flex:1.3;min-width:0;">' +
+          '<div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtmlJs(j.filename) + '">' +
+            escapeHtmlJs(j.filename) +
+          '</div>' +
+          '<div style="font-size:10px;color:#888;">' + escapeHtmlJs(j.targetLang) + '</div>' +
+        '</div>' +
+        '<input type="text" id="batchName_' + idx + '" value="' + escapeHtmlJs(defaultName) + '" placeholder="Kursname" ' +
+          'style="flex:1;min-width:0;height:30px;font-size:11px;padding:0 8px;border:1px solid #ddd;box-sizing:border-box;">' +
+        '<input type="text" id="batchFolder_' + idx + '" class="art-batch-folder" placeholder="Drive-Ordner-Link" ' +
+          'style="flex:1.4;min-width:0;height:30px;font-size:11px;padding:0 8px;border:1px solid #ddd;box-sizing:border-box;">' +
+      '</div>'
+    );
+  }).join('');
+
+  panel.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+      '<div style="font-weight:700;font-size:13px;">\u2022 ' + artPickerJobs.length + ' Jobs im Projekt</div>' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#555;cursor:pointer;">' +
+        '<input type="checkbox" id="batchSelectAll" checked onchange="toggleAllBatchJobs(this.checked)" style="width:16px;height:16px;cursor:pointer;">' +
+        'Alle auswählen' +
+      '</label>' +
+    '</div>' +
+    '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;background:#f5f9ff;border:1px solid #d6e4f7;padding:8px 10px;">' +
+      '<span class="material-icons-outlined" style="font-size:16px;color:#1a73e8;">content_paste</span>' +
+      '<input type="text" id="batchFolderAll" placeholder="Gleichen Drive-Ordner für alle Jobs übernehmen?" ' +
+        'oninput="applyBatchFolderToAll(this.value)" ' +
+        'style="flex:1;height:30px;font-size:11px;padding:0 8px;border:1px solid #ccd8e8;box-sizing:border-box;background:#fff;">' +
+    '</div>' +
+    '<div style="border:1px solid #eee;max-height:280px;overflow-y:auto;">' + rowsHtml + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;">' +
+      '<button type="button" onclick="checkArticulateBatchCompatibility()" ' +
+        'style="flex:1;background:#fff;color:#1a73e8;border:1px solid #1a73e8;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
+        '\uD83D\uDD0D Alle prüfen' +
+      '</button>' +
+      '<button type="button" onclick="startArticulateBatch()" ' +
+        'style="flex:1.4;background:#1a73e8;color:#fff;border:none;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
+        '\u25B6 Ausgewählte Kurse starten' +
+      '</button>' +
+    '</div>' +
+    '<div id="articulateBatchStatus" style="margin-top:10px;"></div>';
+}
+
+function toggleAllBatchJobs(checked) {
+  artPickerJobs.forEach(function (j, idx) {
+    var cb = document.getElementById('batchCheck_' + idx);
+    if (cb) cb.checked = checked;
+  });
+}
+
+function applyBatchFolderToAll(value) {
+  var v = (value || '').trim();
+  if (!v) return;
+  artPickerJobs.forEach(function (j, idx) {
+    var checkEl = document.getElementById('batchCheck_' + idx);
+    var folderEl = document.getElementById('batchFolder_' + idx);
+    if (checkEl && checkEl.checked && folderEl && !folderEl.value.trim()) {
+      folderEl.value = v;
+    }
+  });
+}
+
+function startArticulateBatch() {
+  var projSel = document.getElementById('artQuickProject');
+  var projectUid = projSel.value;
+  var payloads = [];
+  var skippedNoFolder = [];
+
+  artPickerJobs.forEach(function (j, idx) {
+    var checkEl = document.getElementById('batchCheck_' + idx);
+    var folderEl = document.getElementById('batchFolder_' + idx);
+    var nameEl = document.getElementById('batchName_' + idx);
+    if (!checkEl || !checkEl.checked) return;
+    var folder = (folderEl.value || '').trim();
+    if (!folder) { skippedNoFolder.push(j.filename); return; }
+    var name = (nameEl.value || '').trim() || j.filename;
+    payloads.push({
+      courseName: name,
+      targetLang: j.targetLang,
+      projectUidOrUrl: projectUid,
+      jobUidOrUrl: j.uid,
+      driveFolderUrl: folder,
+      firebaseSite: '',
+      _fileLabel: j.filename + ' (' + j.targetLang + ')'
+    });
+  });
+
+  if (!payloads.length) {
+    showCustomAlert(
+      skippedNoFolder.length
+        ? 'Bitte für jeden ausgewählten Job einen Drive-Ordner eintragen (oder oben den gemeinsamen Ordner nutzen).'
+        : 'Bitte mindestens einen Job auswählen.',
+      'Hinweis'
+    );
+    return;
+  }
+  if (skippedNoFolder.length) {
+    showCustomAlert(
+      skippedNoFolder.length + ' ausgewählte(r) Job(s) ohne Drive-Ordner werden übersprungen:\n' +
+      skippedNoFolder.join('\n'),
+      'Hinweis'
+    );
+  }
+
+  var statusEl = document.getElementById('articulateBatchStatus');
+  var etaLowSec = payloads.length * 30, etaHighSec = payloads.length * 90;
+  var etaText = 'ca. ' +
+    (etaHighSec >= 120
+      ? Math.round(etaLowSec / 60) + '\u2013' + Math.round(etaHighSec / 60) + ' Min.'
+      : etaLowSec + '\u2013' + etaHighSec + ' Sek.') +
+    ' für ' + payloads.length + ' Kurse';
+
+  _renderBatchProgressList(payloads, etaText);
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      var results = res.results || [];
+      var ok = [];
+      results.forEach(function (r, i) {
+        _setBatchRowStatus(i, r.success ? 'created' : 'error', r.success ? '' : r.error);
+        if (r.success) ok.push({ id: r.id, index: i });
+      });
+      loadArticulateProjects();
+      if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
+      else if (statusEl) {
+        var summary = document.getElementById('articulateBatchSummary');
+        if (summary) summary.innerText = '\u2022 Keine Kurse konnten angelegt werden.';
+      }
+    })
+    .withFailureHandler(function (err) {
+      var summary = document.getElementById('articulateBatchSummary');
+      if (summary) summary.innerText = '\u2717 ' + err.message;
+    })
+    .apiBatchCreateArticulateProjectsFromUi(payloads);
+}
+
+function checkArticulateBatchCompatibility() {
+  var projSel = document.getElementById('artQuickProject');
+  var projectUid = projSel.value;
+  var toCheck = [];
+
+  artPickerJobs.forEach(function (j, idx) {
+    var checkEl = document.getElementById('batchCheck_' + idx);
+    var folderEl = document.getElementById('batchFolder_' + idx);
+    var row = document.getElementById('batchCheckResult_' + idx);
+    if (!row) {
+      var container = document.getElementById('batchFolder_' + idx).closest('.art-batch-row');
+      if (container) {
+        var resDiv = document.createElement('div');
+        resDiv.id = 'batchCheckResult_' + idx;
+        resDiv.style.cssText = 'width:100%;font-size:10px;padding:2px 0 0 24px;';
+        container.appendChild(resDiv);
+        container.style.flexWrap = 'wrap';
+      }
+    }
+    if (!checkEl || !checkEl.checked) return;
+    var folder = (folderEl.value || '').trim();
+    if (!folder) return;
+    toCheck.push({ idx: idx, targetLang: j.targetLang, jobUid: j.uid, driveFolderUrl: folder });
+  });
+
+  if (!toCheck.length) {
+    showCustomAlert('Bitte zuerst Drive-Ordner für die ausgewählten Jobs ausfüllen.', 'Hinweis');
+    return;
+  }
+
+  toCheck.forEach(function (item) {
+    var resEl = document.getElementById('batchCheckResult_' + item.idx);
+    if (resEl) { resEl.style.color = '#888'; resEl.innerText = '\uD83D\uDD0D prüfe...'; }
+    google.script.run
+      .withSuccessHandler(function (info) {
+        if (!resEl) return;
+        if (info.scormMatchWarning) {
+          resEl.style.color = '#c62828';
+          resEl.innerText = '\u26A0 ' + info.scormMatchWarning;
+        } else if (info.scormMatchRatio !== null) {
+          resEl.style.color = '#2e7d32';
+          resEl.innerText = '\u2713 ' + info.scormMatchRatio + '% übereinstimmung (' +
+            info.scormMatchedSegments + '/' + info.scormTotalSegments + ')';
+        } else {
+          resEl.style.color = '#888';
+          resEl.innerText = '\u2022 Kein Abgleich möglich.';
+        }
+      })
+      .withFailureHandler(function (err) {
+        if (resEl) { resEl.style.color = '#c62828'; resEl.innerText = '\u2717 ' + err.message; }
+      })
+      .apiValidateArticulateInputs({
+        courseName: 'check',
+        targetLang: item.targetLang,
+        projectUidOrUrl: projectUid,
+        jobUidOrUrl: item.jobUid,
+        driveFolderUrl: item.driveFolderUrl
+      });
+  });
+}
+
+function _renderBatchProgressList(payloads, etaText) {
+  var statusEl = document.getElementById('articulateBatchStatus');
+  if (!statusEl) return;
+  statusEl.innerHTML =
+    '<div id="articulateBatchSummary" style="font-size:11px;color:#555;margin-bottom:8px;">\u2022 Lege Kurse an \u2013 ' + etaText + '</div>' +
+    '<div style="border:1px solid #eee;">' +
+      payloads.map(function (p, i) {
+        return (
+          '<div id="batchRow_' + i + '" style="display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;border-bottom:1px solid #f5f5f5;">' +
+            '<span id="batchRowIcon_' + i + '" style="width:16px;text-align:center;">\u00B7</span>' +
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtmlJs(p._fileLabel) + '</span>' +
+            '<span id="batchRowMsg_' + i + '" style="color:#999;"></span>' +
+          '</div>'
+        );
+      }).join('') +
+    '</div>';
+}
+
+function _setBatchRowStatus(i, status, msg) {
+  var icon = document.getElementById('batchRowIcon_' + i);
+  var msgEl = document.getElementById('batchRowMsg_' + i);
+  if (!icon) return;
+  if (status === 'created') icon.innerText = '\u2713';
+  else if (status === 'generating') icon.innerText = '\u231B';
+  else if (status === 'done') icon.innerText = '\u2714';
+  else if (status === 'error') { icon.innerText = '\u2717'; if (msgEl && msg) msgEl.innerText = msg; }
+}
+
+function runArticulateBatchSequential(ok, pos, total) {
+  var summary = document.getElementById('articulateBatchSummary');
+  if (pos >= ok.length) {
+    if (summary) summary.innerText = '\u2713 Batch abgeschlossen (' + ok.length + ' von ' + total + ' Kursen erzeugt).';
+    return;
+  }
+  var current = ok[pos];
+  if (summary) summary.innerText = '\u25B6 Erzeuge Preview ' + (pos + 1) + ' / ' + ok.length + '...';
+  _setBatchRowStatus(current.index, 'generating');
+  runArticulatePreview(current.id, function () {
+    _setBatchRowStatus(current.index, 'done');
+    runArticulateBatchSequential(ok, pos + 1, total);
+  }, false);
+}
+
+/* ---------- Link kopieren für Reviewer ---------- */
+
+function copyArticulateLink(url) {
+  if (!url) { showCustomAlert('Für diesen Kurs wurde noch keine Preview erzeugt.', 'Kein Link'); return; }
+  navigator.clipboard.writeText(url).then(function () {
+    showCustomAlert('\u2713 Link kopiert:\n' + url, 'Kopiert');
+  }).catch(function () {
+    showCustomPrompt('Konnte nicht automatisch kopiert werden \u2013 hier manuell kopieren:', url, function () {}, 'Link');
+  });
+}
+
+function escapeHtmlJs(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ---------- Schnell-Generator ---------- */
+
+function articulateQuickGenerate() {
+  var panel = document.getElementById('artQuickPanel');
+  var payload = {
+    courseName: document.getElementById('artQuickName').value.trim(),
+    targetLang: document.getElementById('artQuickLang').value.trim(),
+    projectUidOrUrl: document.getElementById('artQuickProject').value.trim(),
+    jobUidOrUrl: document.getElementById('artQuickJob').value.trim(),
+    driveFolderUrl: document.getElementById('artQuickFolder').value.trim(),
+    firebaseSite: ''
+  };
+
+  if (!payload.courseName || !payload.targetLang ||
+      !payload.projectUidOrUrl || !payload.jobUidOrUrl || !payload.driveFolderUrl) {
+    panel.style.display = 'block';
+    panel.style.background = '#fff3f3';
+    panel.style.border = '1px solid #ffcdd2';
+    panel.innerHTML = '\u26A0 ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
+    return;
+  }
+
+  panel.style.display = 'block';
+  panel.style.background = '#f5f5f5';
+  panel.style.border = '1px solid #ddd';
+  panel.innerHTML = '\u231B ' + t_('art_saving', 'Kurs wird gespeichert...');
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      panel.innerHTML = '\u2713 ' + t_('art_saved', 'Gespeichert.') + ' ' +
+        t_('art_starting', 'Preview wird erzeugt...');
+      ['artQuickName', 'artQuickFolder']
+        .forEach(function (id) { document.getElementById(id).value = ''; });
+      document.getElementById('artQuickName').dataset.autofilled = '';
+      document.getElementById('artQuickProject').value = '';
+      artPickerOnProjectChange();
+      loadArticulateProjects();
+      runArticulatePreview(res.id);
+    })
+    .withFailureHandler(function (err) {
+      panel.style.background = '#fff3f3';
+      panel.style.border = '1px solid #ffcdd2';
+      panel.innerHTML = '\u2717 ' + escapeHtmlJs(err.message);
+    })
+    .apiCreateArticulateProjectFromUi(payload);
+}
+
+function deleteArticulateProject(id) {
+  if (!confirm(t_('art_confirm_delete', 'Diesen Kurs wirklich löschen?'))) return;
+  google.script.run
+    .withSuccessHandler(function () { loadArticulateProjects(); })
+    .withFailureHandler(function (err) { alert('Fehler: ' + err.message); })
+    .apiDeleteArticulateProjectFromUi(id);
+}
+
+/* ---------- Preview mit Ladebalken ---------- */
+
+var _articulateElapsedTimer = null;
+var _articulateElapsedSeconds = 0;
+function _articulateStartElapsedTimer() {
+  _articulateStopElapsedTimer();
+  _articulateElapsedSeconds = 0;
+  var etaEl = document.getElementById('articulateProgressEta');
+  if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: 0s';
+  _articulateElapsedTimer = setInterval(function () {
+    _articulateElapsedSeconds++;
+    if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: ' + _articulateElapsedSeconds + 's';
+  }, 1000);
+}
+function _articulateStopElapsedTimer() {
+  if (_articulateElapsedTimer) { clearInterval(_articulateElapsedTimer); _articulateElapsedTimer = null; }
+}
+
+function runArticulatePreview(id, onDone, openTab) {
+  if (openTab === undefined) openTab = true;
+  var sessionId = 'sess_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+
+  var modal = document.getElementById('articulateProgressModal');
+  var bar = document.getElementById('articulateProgressBar');
+  var text = document.getElementById('articulateProgressText');
+  var resultBox = document.getElementById('articulateProgressResult');
+
+  bar.style.width = '0%';
+  bar.style.background = 'var(--primary-yellow)';
+  text.innerText = t_('art_preparing', 'Wird vorbereitet...');
+  resultBox.style.display = 'none';
+  resultBox.innerHTML = '';
+  modal.style.display = 'flex';
+
+  _articulateStartElapsedTimer();
+  startArticulateProgressPolling(sessionId);
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      stopArticulateProgressPolling();
+      bar.style.width = '100%';
+      text.innerText = t_('art_done', 'Fertig') + ' \u2013 ' + res.applied + ' ' +
+        t_('art_segments', 'Segmente übersetzt');
+
+      resultBox.style.display = 'block';
+      resultBox.innerHTML =
+        '<a href="' + escapeHtmlJs(res.liveUrl) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">' +
+          '<i class="material-icons-outlined" style="margin-right:8px;">open_in_new</i> ' +
+          t_('art_btn_open_preview', 'Preview öffnen') +
+        '</a>' +
+        '<div style="font-size:11px;color:#888;margin-top:12px;">' +
+          res.uploadedFileCount + ' / ' + res.totalFileCount + ' ' +
+          t_('art_files', 'Dateien') +
+          (res.skippedFiles ? ' \u2013 ' + res.skippedFiles + ' ' +
+            t_('art_skipped', 'übersprungen (Videos)') : '') +
+        '</div>' +
+        '<button class="btn btn-secondary" onclick="closeArticulateProgress()" style="margin-top:12px;width:100%;box-sizing:border-box;">' +
+          t_('art_btn_close', 'Schließen') + '</button>';
+
+      loadArticulateProjects();
+      _articulateStopElapsedTimer();
+      if (openTab) window.open(res.liveUrl, '_blank');
+      if (onDone) onDone();
+    })
+    .withFailureHandler(function (err) {
+      stopArticulateProgressPolling();
+      _articulateStopElapsedTimer();
+      bar.style.width = '100%';
+      bar.style.background = '#d93025';
+      text.innerText = t_('art_error', 'Fehler') + ': ' + err.message;
+      resultBox.style.display = 'block';
+      resultBox.innerHTML =
+        '<button class="btn btn-secondary" onclick="closeArticulateProgress()" style="width:100%;">' +
+        t_('art_btn_close', 'Schließen') + '</button>';
+      loadArticulateProjects();
+      if (onDone) onDone();
+    })
+    .apiRunArticulatePreview(id, sessionId);
+}
+
+function startArticulateProgressPolling(sessionId) {
+  stopArticulateProgressPolling();
+  articulateProgressTimer = setInterval(function () {
+    google.script.run
+      .withSuccessHandler(function (p) {
+        if (!p) return;
+        var bar = document.getElementById('articulateProgressBar');
+        var text = document.getElementById('articulateProgressText');
+        var current = parseInt(bar.style.width, 10) || 0;
+        if (p.percent > current) bar.style.width = p.percent + '%';
+        if (p.message) text.innerText = p.message;
+      })
+      .withFailureHandler(function () { /* Polling-Fehler ignorieren */ })
+      .apiGetPreviewProgress(sessionId);
+  }, 1500);
+}
+
+function stopArticulateProgressPolling() {
+  if (articulateProgressTimer) {
+    clearInterval(articulateProgressTimer);
+    articulateProgressTimer = null;
+  }
+}
+
+function closeArticulateProgress() {
+  stopArticulateProgressPolling();
+  _articulateStopElapsedTimer();
+  document.getElementById('articulateProgressModal').style.display = 'none';
+}
+
+/* ---------- Vollbild-Tabelle ---------- */
+
+function openArticulateTableModal() {
+  document.getElementById('articulateTableModal').style.display = 'flex';
+  renderArticulateTable();
+}
+
+function closeArticulateTableModal() {
+  document.getElementById('articulateTableModal').style.display = 'none';
+}
+
+function renderArticulateTable() {
+  var table = document.getElementById('articulateFullTable');
+  var noMsg = document.getElementById('noArticulateTableMsg');
+  if (!table) return;
+
+  var tbody = table.querySelector('tbody');
+  var searchEl = document.getElementById('articulateTableSearch');
+  var search = (searchEl ? searchEl.value : '').toLowerCase();
+
+  var rows = articulateProjects.filter(function (r) {
+    if (!search) return true;
+    return (r.courseName + ' ' + r.targetLang + ' ' + (r.lastStatus || '') +
+            ' ' + (r.firebasePath || '')).toLowerCase().indexOf(search) !== -1;
+  });
+
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    table.style.display = 'none';
+    noMsg.style.display = 'block';
+    return;
+  }
+  table.style.display = 'table';
+  noMsg.style.display = 'none';
+
+  rows.forEach(function (r) {
+    var isError = r.lastStatus && r.lastStatus.indexOf('ERROR') === 0;
+    var statusHtml = r.lastStatus
+      ? '<span style="color:' + (isError ? '#b71c1c' : '#2e7d32') +
+        ';font-size:12px;">' + escapeHtmlJs(r.lastStatus) + '</span>'
+      : '<span style="color:#999;font-size:12px;">' +
+        t_('art_never_generated', 'Noch nicht erzeugt') + '</span>';
+
+    var phraseHtml = r.phraseUrl
+      ? '<a href="' + escapeHtmlJs(r.phraseUrl) + '" target="_blank" style="color:#1a73e8;font-size:12px;">' +
+        t_('art_link_project', 'Projekt') + ' ?</a>'
+      : '<span style="color:#999;">\u2013</span>';
+
+    var pathHtml = r.liveUrl
+      ? '<a href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank" ' +
+        'style="color:#1a73e8;font-size:11px;font-family:monospace;" ' +
+        'title="' + escapeHtmlJs(r.liveUrl) + '">' +
+        escapeHtmlJs(r.firebasePath || '') + ' ?</a>'
+      : '<span style="color:#999;font-size:11px;font-family:monospace;">' +
+        escapeHtmlJs(r.firebasePath || '\u2013') + '</span>';
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><strong>' + escapeHtmlJs(r.courseName) + '</strong></td>' +
+      '<td>' + escapeHtmlJs(r.targetLang) + '</td>' +
+      '<td>' + phraseHtml + '</td>' +
+      '<td>' + pathHtml + '</td>' +
+      '<td style="font-size:12px;">' +
+        (r.lastDeploy ? escapeHtmlJs(String(r.lastDeploy).substring(0, 16)) : '\u2013') +
+      '</td>' +
+      '<td>' + statusHtml + '</td>' +
+      '<td style="text-align:center;white-space:nowrap;">' +
+        '<button class="btn-icon" onclick="runArticulatePreview(\'' + r.id + '\')" ' +
+          'title="' + t_('art_btn_play', 'Preview') + '">' +
+          '<span class="material-icons-outlined">play_arrow</span></button>' +
+        (r.liveUrl
+          ? '<button class="btn-icon" onclick="copyArticulateLink(\'' + escapeHtmlJs(r.liveUrl) + '\')" title="Link für Reviewer kopieren">' +
+            '<span class="material-icons-outlined">content_copy</span></button>'
+          : '') +
+        '<button class="btn-icon danger" onclick="deleteArticulateProject(\'' + r.id + '\')" ' +
+          'title="' + t_('art_btn_delete', 'Löschen') + '">' +
+          '<span class="material-icons-outlined">delete</span></button>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Eingaben vorab pruefen ---------- */
+
+function articulateValidateInputs() {
+  var panel = document.getElementById('artQuickPanel');
+  var payload = {
+    courseName: document.getElementById('artQuickName').value.trim(),
+    targetLang: document.getElementById('artQuickLang').value.trim(),
+    projectUidOrUrl: document.getElementById('artQuickProject').value.trim(),
+    jobUidOrUrl: document.getElementById('artQuickJob').value.trim(),
+    driveFolderUrl: document.getElementById('artQuickFolder').value.trim()
+  };
+
+  if (!payload.projectUidOrUrl || !payload.jobUidOrUrl || !payload.driveFolderUrl) {
+    panel.style.display = 'block';
+    panel.style.background = '#fff3f3';
+    panel.style.border = '1px solid #ffcdd2';
+    panel.innerHTML = '\u26A0 ' + t_('art_err_fields', 'Bitte alle Felder ausfüllen.');
+    return;
+  }
+
+  panel.style.display = 'block';
+  panel.style.background = '#f5f5f5';
+  panel.style.border = '1px solid #ddd';
+  panel.innerHTML = '\u231B ' + t_('art_checking', 'Prüfe Eingaben gegen Phrase und Drive...');
+
+  google.script.run
+    .withSuccessHandler(function (info) {
+      panel.style.background = '#e8f5e9';
+      panel.style.border = '1px solid #c8e6c9';
+      panel.innerHTML =
+        '<strong>\u2713 ' + t_('art_check_ok', 'Alles gefunden') + '</strong><br>' +
+        '<div style="margin-top:8px;line-height:1.7;">' +
+          '\u2022 ' + t_('art_check_project', 'Projekt') + ': <strong>' +
+            escapeHtmlJs(info.projectName) + '</strong><br>' +
+          '\u2022 ' + t_('art_check_job', 'Job') + ': ' +
+            escapeHtmlJs(info.jobFileName || '\u2013') +
+            ' <span style="color:#888;">(' + escapeHtmlJs(info.jobTargetLang) +
+            ', ' + escapeHtmlJs(info.jobStatus) + ')</span><br>' +
+          '\u2022 ' + t_('art_check_folder', 'Ordner') + ': ' +
+            escapeHtmlJs(info.folderName) +
+            ' <span style="color:#888;">(' + info.fileCount + ' ' +
+            t_('art_check_files', 'Dateien') + ')</span><br>' +
+          '\u2022 ' + t_('art_check_path', 'Pfad') + ': <code style="font-size:11px;">' +
+            escapeHtmlJs(info.firebasePath) + '</code>' +
+        '</div>' +
+        (!info.looksLikeXliff
+          ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' +
+            t_('art_warn_notxliff',
+               'Die Job-Datei sieht nicht nach einer XLIFF aus \u2013 Preview funktioniert nur mit Rise-XLIFF-Jobs.') +
+            '</div>'
+          : '') +
+        (info.jobTargetLang &&
+         payload.targetLang &&
+         info.jobTargetLang.toLowerCase().replace(/[_-]/g, '') !==
+           payload.targetLang.toLowerCase().replace(/[_-]/g, '')
+          ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' +
+            t_('art_warn_langmismatch', 'Deine Eingabe weicht von der Job-Sprache ab') +
+            ': <strong>' + escapeHtmlJs(info.jobTargetLang) + '</strong></div>'
+          : '') +
+        (info.scormMatchWarning
+          ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">\u26A0 ' +
+            escapeHtmlJs(info.scormMatchWarning) + '</div>'
+          : (info.scormMatchRatio !== null
+              ? '<div style="margin-top:8px;color:#2e7d32;">\u2022 Kurs-Abgleich: <strong>' +
+                info.scormMatchRatio + '%</strong> der Textstellen (' +
+                info.scormMatchedSegments + '/' + info.scormTotalSegments +
+                ') passen zu diesem Kurs.</div>'
+              : ''));
+    })
+    .withFailureHandler(function (err) {
+      panel.style.background = '#fff3f3';
+      panel.style.border = '1px solid #ffcdd2';
+      panel.innerHTML = '\u2717 ' + escapeHtmlJs(err.message);
+    })
+    .apiValidateArticulateInputs(payload);
+}</script>

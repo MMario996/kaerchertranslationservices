@@ -1,0 +1,394 @@
+<script>
+// JsDownload.html - eingebunden in Index.html via include() (WebApp.gs)
+
+// --- Download-Dialog: Computer oder Google Drive ------------------------------
+// Ein Button pro Projekt oeffnet den Dialog. Bei Pivot-Projekten waehlt man
+// Source-Check / Translation / beide; Ziel ist dieser Computer (Datei/ZIP)
+// oder "Meine Ablage" (serverseitiger Upload, siehe DriveSaveConfig.gs - ein
+// rein clientseitiger Ansatz scheitert im Apps-Script-Sandbox-Iframe).
+var driveSaveConfigCache_ = null;
+var driveSavePendingProject_ = null;
+
+function ensureDriveSaveConfig_(cb) {
+  if (driveSaveConfigCache_) { cb(driveSaveConfigCache_); return; }
+  google.script.run
+    .withSuccessHandler(r => { driveSaveConfigCache_ = r; cb(r); })
+    .withFailureHandler(() => cb({ success: false, configured: false }))
+    .apiGetDriveSaveConfig();
+}
+
+function openSaveToDriveModal(projectUid, preselectPart) {
+  const p = globalProjects.find(x => x.projectUid === projectUid);
+  if (!p) return;
+  driveSavePendingProject_ = p;
+  document.getElementById('dlModalProject').textContent = p.projectName || projectUid;
+
+  const partChoice = document.getElementById('saveToDrivePartChoice');
+  const partHint = document.getElementById('saveToDrivePartHint');
+  const child = getPivotChildOf_(p);
+  const childReady = isDriveSavable_(child);
+  partChoice.style.display = p.pivotRole === 'PARENT' ? 'block' : 'none';
+  partHint.style.display = childReady ? 'none' : 'block';
+  ['both', 'target'].forEach(v => {
+    const inp = document.querySelector('input[name="saveToDrivePart"][value="' + v + '"]');
+    inp.disabled = !childReady;
+    inp.closest('.dl-option').classList.toggle('disabled', !childReady);
+  });
+  const part = !childReady ? 'source' : (preselectPart || 'both');
+  document.querySelector('input[name="saveToDrivePart"][value="' + part + '"]').checked = true;
+
+  const isDoc = !!p.docProject;
+  document.getElementById('dlTargetDocOpt').style.display = isDoc ? '' : 'none';
+  document.getElementById('dlTargetOptions').className = 'dl-options ' + (isDoc ? 'dl-options-3' : 'dl-options-2');
+  let lastTarget = 'computer';
+  try { lastTarget = localStorage.getItem(isDoc ? 'dlLastTargetDoc' : 'dlLastTarget') || (isDoc ? 'docfolder' : 'computer'); } catch (e) {}
+  if (lastTarget === 'docfolder' && !isDoc) lastTarget = 'computer';
+  document.querySelector('input[name="dlTarget"][value="' + (['drive','docfolder'].includes(lastTarget) ? lastTarget : 'computer') + '"]').checked = true;
+  document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
+  updateDownloadDialog_();
+  document.getElementById('saveToDriveModal').style.display = 'flex';
+
+  ensureDriveSaveConfig_(cfg => {
+    const ok = !!(cfg && cfg.configured);
+    const driveInp = document.querySelector('input[name="dlTarget"][value="drive"]');
+    driveInp.disabled = !ok;
+    document.getElementById('dlTargetDriveOpt').classList.toggle('disabled', !ok);
+    document.getElementById('saveToDriveNotConfigured').style.display = ok ? 'none' : 'block';
+    if (!ok && driveInp.checked) document.querySelector('input[name="dlTarget"][value="computer"]').checked = true;
+    updateDownloadDialog_();
+  });
+}
+
+function updateDownloadDialog_() {
+  const toDrive = document.querySelector('input[name="dlTarget"][value="drive"]').checked;
+  const toDocFolder = document.querySelector('input[name="dlTarget"][value="docfolder"]').checked;
+  document.getElementById('saveToDriveFormatChoice').style.display = toDrive ? 'block' : 'none';
+  document.getElementById('dlConfirmIcon').textContent = toDocFolder ? 'drive_folder_upload' : (toDrive ? 'add_to_drive' : 'download');
+  document.getElementById('dlConfirmLabel').textContent = toDocFolder
+    ? tr_('dl_btn_docfolder', 'Write to project folder')
+    : toDrive
+      ? (t_i18n_(currentLang, 'sd_btn_save') || 'Save to Drive')
+      : (t_i18n_(currentLang, 'dl_btn_download') || 'Download');
+}
+
+function closeSaveToDriveModal() {
+  document.getElementById('saveToDriveModal').style.display = 'none';
+  driveSavePendingProject_ = null;
+}
+
+function getPivotChildOf_(p) {
+  if (!p || p.pivotRole !== 'PARENT') return null;
+  return globalProjects.find(x => x.pivotRole === 'CHILD' && x.pivotLink === p.projectUid) || null;
+}
+
+// Job-UIDs sind bewusst keine Voraussetzung: Pivot-Children legt Phrase selbst
+// an, deren Queue-Zeile hat keine Job-UIDs - der Server holt die Jobs dann aus Phrase.
+function isDriveSavable_(p) {
+  return !!(p && ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status));
+}
+
+/** Welche (Teil-)Projekte sollen geladen werden? [{proj, subFolder, label}] */
+function getSelectedDownloadParts_(p) {
+  if (p.pivotRole !== 'PARENT') return [{ proj: p, subFolder: null, label: '' }];
+  const child = getPivotChildOf_(p);
+  const part = (document.querySelector('input[name="saveToDrivePart"]:checked') || {}).value || 'source';
+  const parts = [];
+  if (part !== 'target') parts.push({ proj: p, subFolder: 'Source-Check', label: 'Source-Check' });
+  if (part !== 'source' && isDriveSavable_(child)) parts.push({ proj: child, subFolder: 'Translation', label: 'Translation' });
+  return parts;
+}
+
+function setDownloadProgress_(title, sub) {
+  document.getElementById('downloadOverlayTitle').innerText = title;
+  const subEl = document.getElementById('downloadOverlaySub');
+  if (subEl && sub !== undefined) subEl.innerText = sub;
+  document.getElementById('downloadOverlay').style.display = 'flex';
+}
+function hideDownloadProgress_() {
+  document.getElementById('downloadOverlay').style.display = 'none';
+}
+
+function confirmDownloadDialog() {
+  const p = driveSavePendingProject_;
+  if (!p) return;
+  const target = (document.querySelector('input[name="dlTarget"]:checked') || {}).value || 'computer';
+  const toDrive = target === 'drive';
+  try { localStorage.setItem(p.docProject ? 'dlLastTargetDoc' : 'dlLastTarget', target); } catch (e) {}
+  if (target === 'docfolder') { closeSaveToDriveModal(); exportDocProjectToFolder_(p); return; }
+  const parts = getSelectedDownloadParts_(p);
+  if (toDrive) confirmSaveToGoogleDrive(parts);
+  else { closeSaveToDriveModal(); downloadPartsToComputer_(p, parts); }
+}
+
+/** Laedt die Teile nacheinander herunter (jeder Teil eigene Datei/ZIP). */
+function downloadPartsToComputer_(p, parts) {
+  const agg = { files: 0, jobs: 0, errors: [] };
+  const next = idx => {
+    if (idx >= parts.length) {
+      hideDownloadProgress_();
+      loadMyProjects();
+      if (agg.files && !agg.errors.length) {
+        showToast_('\u2713 ' + tr_('dl_done', 'Download complete') + (agg.jobs > 1 ? ' (' + agg.jobs + ')' : ''), 'ok');
+      } else if (agg.files) {
+        showCustomAlert('✓ ' + agg.jobs + ' file(s) downloaded.<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>', 'Download');
+      } else {
+        showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to download.') + '</div>', 'Download Error');
+      }
+      return;
+    }
+    const part = parts[idx];
+    const prefix = part.label ? part.label + ': ' : '';
+    setDownloadProgress_(
+      tr_('dl_preparing', 'Preparing download...') + (parts.length > 1 ? ` (${idx + 1}/${parts.length}) \u2013 ${part.label}` : ''),
+      tr_('dl_fetching', 'Files are being fetched from Phrase TMS \u2013 this can take a moment.')
+    );
+    google.script.run.withSuccessHandler(r => {
+      if (r && r.success) {
+        saveBase64AsFile(r.base64, r.mimeType, r.fileName);
+        agg.files++;
+        agg.jobs += r.downloadedCount || 1;
+        (r.errors || []).forEach(e => agg.errors.push(prefix + (typeof e === 'string' ? e : (e.targetLang || e.jobUid || '') + ': ' + e.error)));
+      } else {
+        agg.errors.push(prefix + ((r && r.error) || 'unknown error'));
+      }
+      next(idx + 1);
+    }).withFailureHandler(e => {
+      agg.errors.push(prefix + e.message);
+      next(idx + 1);
+    }).apiSmartDownload(part.proj.projectUid, part.proj.jobUids || [], part.proj.projectName, part.proj.targetLangs, null, null, null, part.proj.jobMapping);
+  };
+  next(0);
+}
+
+/**
+ * Stellt sicher, dass der Nutzer fuer Drive autorisiert ist. Oeffnet dafuer
+ * bei Bedarf ein Autorisierungs-Popup (das direkt, noch synchron im
+ * Klick-Handler als leeres Fenster erzeugt wird - sonst blockieren Browser
+ * es als Popup, weil die eigentliche URL erst asynchron vom Server kommt)
+ * und pollt anschliessend, bis der Callback (siehe DriveSaveConfig.gs) den
+ * Token gespeichert hat.
+ */
+function ensureDriveAuthorized_(authPopup, cb) {
+  google.script.run.withSuccessHandler(status => {
+    if (status && status.authorized) {
+      if (authPopup) authPopup.close();
+      cb(true);
+      return;
+    }
+
+    google.script.run.withSuccessHandler(urlRes => {
+      if (!urlRes || !urlRes.success) {
+        if (authPopup) authPopup.close();
+        cb(false, urlRes && urlRes.error);
+        return;
+      }
+      if (!authPopup || authPopup.closed) {
+        cb(false, 'Popup was blocked. Please allow popups for this site and try again.');
+        return;
+      }
+      authPopup.location.href = urlRes.url;
+
+      let elapsedMs = 0;
+      const timer = setInterval(() => {
+        elapsedMs += 1500;
+        const popupClosed = authPopup.closed;
+        google.script.run.withSuccessHandler(s2 => {
+          if (s2 && s2.authorized) {
+            clearInterval(timer);
+            if (!popupClosed) authPopup.close();
+            cb(true);
+          } else if (popupClosed || elapsedMs > 120000) {
+            clearInterval(timer);
+            cb(false, popupClosed ? 'Authorization window closed.' : 'Authorization timed out.');
+          }
+        }).withFailureHandler(() => {
+          clearInterval(timer);
+          cb(false, 'Could not verify authorization status.');
+        }).apiCheckDriveAuthStatus();
+      }, 1500);
+    }).apiGetDriveAuthUrl();
+  }).apiCheckDriveAuthStatus();
+}
+
+function confirmSaveToGoogleDrive(parts) {
+  const p = driveSavePendingProject_;
+  if (!p) return;
+  const convertToGoogle = document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked;
+
+  // Noch synchron im Klick oeffnen (siehe ensureDriveAuthorized_).
+  const authPopup = window.open('about:blank', 'driveAuth', 'width=520,height=680');
+
+  ensureDriveSaveConfig_(cfg => {
+    if (!cfg || !cfg.configured) {
+      if (authPopup) authPopup.close();
+      showCustomAlert('Saving to Google Drive is not set up yet. Please contact an administrator.', 'Not available');
+      return;
+    }
+
+    closeSaveToDriveModal();
+    setDownloadProgress_(tr_('dl_checking_drive', 'Checking Google Drive access...'), '');
+
+    ensureDriveAuthorized_(authPopup, (authorized, err) => {
+      if (!authorized) {
+        hideDownloadProgress_();
+        showCustomAlert('Could not get Google Drive access: ' + escapeHtml(err || 'permission denied'), 'Drive Error');
+        return;
+      }
+
+      const agg = { uploaded: 0, total: 0, errors: [], folderUrl: null };
+      const finish = () => {
+        hideDownloadProgress_();
+        if (!agg.folderUrl) {
+          showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to save.') + '</div>', 'Drive Error');
+          return;
+        }
+        if (!agg.errors.length) {
+          showToast_('\u2713 ' + tr_('dl_saved_drive', 'Saved to Google Drive') + ' (' + agg.uploaded + ')', 'ok', { href: agg.folderUrl, label: tr_('dl_open_folder', 'Open folder') });
+          return;
+        }
+        let msg = '✓ Saved ' + agg.uploaded + ' of ' + agg.total + ' file(s) to Google Drive.';
+        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive →</a></div>';
+        msg += '<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>';
+        showCustomAlert(msg, 'Save to Drive');
+      };
+
+      // Nacheinander, damit jeder Teil sein eigenes Apps-Script-Zeitlimit hat.
+      const saveNext = idx => {
+        if (idx >= parts.length) { finish(); return; }
+        const part = parts[idx];
+        const prefix = part.label ? part.label + ': ' : '';
+        setDownloadProgress_(
+          tr_('dl_saving_drive', 'Saving files to Google Drive...') + (parts.length > 1 ? ` (${idx + 1}/${parts.length}) \u2013 ${part.label}` : ''),
+          convertToGoogle ? tr_('dl_converting', 'Word / Excel / PowerPoint files are converted to Google Docs / Sheets / Slides.') : ''
+        );
+        google.script.run.withSuccessHandler(r => {
+          if (r.success) {
+            agg.uploaded += r.uploaded;
+            agg.total += r.total;
+            agg.folderUrl = r.parentFolderUrl || r.folderUrl;
+            (r.errors || []).forEach(e => agg.errors.push(prefix + e));
+          } else {
+            agg.errors.push(prefix + r.error);
+          }
+          saveNext(idx + 1);
+        }).withFailureHandler(e => {
+          agg.errors.push(prefix + e.message);
+          saveNext(idx + 1);
+        }).apiSaveProjectToDrive(part.proj.projectUid, part.proj.jobUids || [], part.proj.projectName, part.proj.targetLangs, part.proj.jobMapping, convertToGoogle,
+          { folderName: p.projectName, subFolderName: part.subFolder });
+      };
+      saveNext(0);
+    });
+  });
+}
+
+/** Kurze Erfolgsmeldung unten rechts statt eines blockierenden Dialogs. */
+function showToast_(message, type, link) {
+  const host = document.getElementById('toastHost');
+  if (!host) { showCustomAlert(escapeHtml(message)); return; }
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.innerHTML = '<span class="material-icons-outlined">' + (type === 'err' ? 'error' : 'check_circle') + '</span>' +
+    '<span class="toast-msg">' + escapeHtml(message) + '</span>' +
+    (link ? '<a href="' + link.href + '" target="_blank">' + escapeHtml(link.label) + '</a>' : '') +
+    '<button type="button" title="Close" onclick="this.parentNode.remove()"><span class="material-icons-outlined">close</span></button>';
+  host.appendChild(el);
+  setTimeout(() => { el.classList.add('toast-hide'); setTimeout(() => el.remove(), 400); }, link ? 9000 : 5000);
+}
+
+let currentNoteProjectUid = null;
+let currentNoteOriginal_ = '';
+
+function openJobNoteModal(projectUid) {
+  const p = globalProjects.find(x => x.projectUid === projectUid) || {};
+  currentNoteProjectUid = projectUid;
+  currentNoteOriginal_ = '';
+  document.getElementById('jobNoteProjectName').textContent = p.projectName || projectUid;
+
+  const noteTa = document.getElementById('projectNoteText');
+  const saveBtn = document.getElementById('projectNoteSaveBtn');
+  const status = document.getElementById('projectNoteStatus');
+  noteTa.value = ''; noteTa.disabled = true; saveBtn.disabled = true;
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_loading') || 'Loading...';
+  noteTa.oninput = () => { saveBtn.disabled = noteTa.value.trim() === currentNoteOriginal_.trim(); status.textContent = ''; };
+
+  document.getElementById('jobNoteModal').style.display = 'flex';
+
+  google.script.run.withSuccessHandler(res => {
+    if (currentNoteProjectUid !== projectUid) return;
+    if (!res || !res.success) {
+      status.className = 'note-status err';
+      status.textContent = 'Error: ' + ((res && res.error) || 'unknown');
+      return;
+    }
+    currentNoteOriginal_ = res.note || '';
+    noteTa.value = currentNoteOriginal_;
+    noteTa.disabled = !res.canEdit;
+    status.textContent = res.canEdit ? '' : (t_i18n_(currentLang, 'jn_readonly') || 'Read only');
+  }).withFailureHandler(e => {
+    status.className = 'note-status err';
+    status.textContent = 'Error: ' + e.message;
+  }).apiGetProjectNote(projectUid);
+}
+
+function saveProjectNote() {
+  const noteTa = document.getElementById('projectNoteText');
+  const btn = document.getElementById('projectNoteSaveBtn');
+  const status = document.getElementById('projectNoteStatus');
+  const projectUid = currentNoteProjectUid;
+  btn.disabled = true; noteTa.disabled = true;
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_saving') || 'Saving...';
+  google.script.run.withSuccessHandler(res => {
+    noteTa.disabled = false;
+    if (res && res.success) {
+      currentNoteOriginal_ = res.note || '';
+      noteTa.value = currentNoteOriginal_;
+      status.className = 'note-status ok';
+      status.textContent = '✓ ' + (t_i18n_(currentLang, 'jn_saved') || 'Saved');
+    } else {
+      btn.disabled = false;
+      status.className = 'note-status err';
+      status.textContent = '✗ ' + ((res && res.error) || 'Error');
+    }
+  }).withFailureHandler(e => {
+    noteTa.disabled = false; btn.disabled = false;
+    status.className = 'note-status err';
+    status.textContent = '✗ ' + e.message;
+  }).apiUpdateProjectNote(projectUid, noteTa.value);
+}
+
+function closeJobNoteModal() {
+  document.getElementById('jobNoteModal').style.display = 'none';
+  currentNoteProjectUid = null;
+}
+
+
+    let currentDueDateUid = null;
+    function openDueDateModal(uid, name, currentDate) {
+      currentDueDateUid = uid;
+      document.getElementById('dueDateProjectName').innerText = "Project: " + name;
+      const inp = document.getElementById('dueDateInput');
+      if (currentDate) {
+        try { inp.value = new Date(currentDate).toISOString().split('T')[0]; } catch(e) { inp.value = ""; }
+      } else { inp.value = ""; }
+      document.getElementById('dueDateSaveMsg').style.display = 'none';
+      document.getElementById('dueDateModal').style.display = 'flex';
+    }
+    function closeDueDateModal() { document.getElementById('dueDateModal').style.display = 'none'; }
+    function saveDueDate() {
+      const dateVal = document.getElementById('dueDateInput').value;
+      if (!dateVal) { showCustomAlert("Please select a date."); return; }
+      const fDate = new Date(dateVal + "T12:00:00").toISOString();
+      const btn = document.getElementById('dueDateSaveBtn');
+      btn.disabled = true; btn.innerHTML = "Saving...";
+      google.script.run.withSuccessHandler(r => {
+        btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';
+        if(r.success) {
+          document.getElementById('dueDateSaveMsg').style.display = 'block';
+          setTimeout(() => { closeDueDateModal(); loadMyProjects(); }, 1500);
+        } else { showCustomAlert("Error: " + r.error, "Error"); }
+      }).withFailureHandler(e => {
+        btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';
+        showCustomAlert("Error: " + e.message, "Error");
+      }).apiUpdateDueDate(currentDueDateUid, fDate);
+    }</script>

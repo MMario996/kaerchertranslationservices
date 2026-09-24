@@ -1,0 +1,917 @@
+<script>
+// JsCore.html - eingebunden in Index.html via include() (WebApp.gs)
+
+// --- GLOBALS ------------------------------------------------------------------
+let configData = {};
+let templateGroups = {};
+let selectedGroup = null;
+let finalSelectedUid = null;
+let currentImpersonationEmail = "";
+
+let mainFilesMap = {};
+let refFilesMap  = {};
+let activePortals = [];
+
+let activeTabId     = "request";
+let currentFolderId = "home";
+let currentParentId = null;
+let driveSelectionMode = "main";
+let globalProjects  = [];
+let currentSort     = { column: 'timestamp', direction: 'desc' };
+let _uploadWatchdog_ = null; 
+let _adminLightSubtabs_ = []; 
+
+// --- CUSTOM DIALOG LOGIC ------------------------------------------------------
+let customDialogCallback = null;
+
+function showCustomAlert(message, title = "Hinweis / Info") {
+    document.getElementById('customDialogTitle').innerText = title;
+    document.getElementById('customDialogMessage').innerHTML = message;
+    document.getElementById('customDialogInput').style.display = 'none';
+    document.getElementById('customDialogCancelBtn').style.display = 'none';
+    document.getElementById('customDialogConfirmBtn').innerText = "OK";
+    
+    customDialogCallback = null;
+    document.getElementById('customDialogOverlay').style.display = 'flex';
+}
+
+function showCustomConfirm(message, onConfirmCallback, title = "Bitte bestätigen / Confirm") {
+    document.getElementById('customDialogTitle').innerText = title;
+    document.getElementById('customDialogMessage').innerText = message;
+    document.getElementById('customDialogInput').style.display = 'none';
+    document.getElementById('customDialogCancelBtn').style.display = 'inline-flex';
+    document.getElementById('customDialogConfirmBtn').innerText = "YES / JA";
+    
+    customDialogCallback = onConfirmCallback;
+    document.getElementById('customDialogOverlay').style.display = 'flex';
+}
+
+function showCustomPrompt(message, defaultValue, onConfirmCallback, title = "Eingabe erforderlich / Input required") {
+    document.getElementById('customDialogTitle').innerText = title;
+    document.getElementById('customDialogMessage').innerText = message;
+    
+    const inp = document.getElementById('customDialogInput');
+    inp.style.display = 'block';
+    inp.value = defaultValue || "";
+    
+    document.getElementById('customDialogCancelBtn').style.display = 'inline-flex';
+    document.getElementById('customDialogConfirmBtn').innerText = "OK";
+    
+    customDialogCallback = onConfirmCallback;
+    document.getElementById('customDialogOverlay').style.display = 'flex';
+    setTimeout(() => inp.focus(), 100);
+}
+
+function closeCustomDialog() {
+    document.getElementById('customDialogOverlay').style.display = 'none';
+    customDialogCallback = null;
+}
+
+function confirmCustomDialog() {
+    const inputVal = document.getElementById('customDialogInput').value;
+    const cb = customDialogCallback;
+    closeCustomDialog();
+    if (cb) cb(inputVal);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('customDialogInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmCustomDialog();
+        }
+    });
+});
+
+// --- SPRACHWECHSEL LOGIK (Wörterbuch) ---
+const i18n = {
+  de: {
+    "nav_request":        "Allgemeine Projekte",
+    "nav_marketing":      "Marketing Projekte",
+    "nav_kec":            "KeC Projekte",
+    "nav_documentation": "Dokumentation Projekte",
+    "nav_articulate":     "Campus Projekte",
+    "art_show_generator": "Preview-Generator anzeigen",
+    "art_generator_title":"Preview-Generator",
+    "art_generator_hint": "Erzeugt eine Live-Vorschau des Rise-Kurses mit dem aktuellen Übersetzungsstand aus Phrase.",
+    "art_ph_project":     "Phrase-Projekt-URL oder UID",
+    "art_ph_job":         "Phrase-Job-URL oder UID",
+    "art_ph_folder":      "Drive-Ordner (entpackter SCORM-Export)",
+    "art_ph_name":        "Kursname",
+    "art_ph_lang":        "de-DE",
+    "art_sel_project_loading":"Lade Projekte...",
+    "art_sel_project":    "Projekt wählen...",
+    "art_sel_job":         "Zuerst Projekt wählen...",
+    "art_sel_job_pick":    "Job wählen...",
+    "art_sel_lang":        "Sprache wählen...",
+    "art_btn_generate":   "\u25B6 Preview erzeugen",
+    "art_saved_title":    "Gespeicherte Kurse",
+    "art_loading":        "Lade Kurse...",
+    "art_empty":          "Noch keine Kurse gespeichert.",
+    "art_never_generated":"Noch nicht erzeugt",
+    "art_btn_play":       "Preview",
+    "art_btn_open_last":  "Letzte öffnen",
+    "art_btn_delete":     "Löschen",
+    "art_err_fields":     "Bitte alle Felder ausfüllen.",
+    "art_saving":         "Kurs wird gespeichert...",
+    "art_saved":          "Gespeichert.",
+    "art_starting":       "Preview wird erzeugt...",
+    "art_confirm_delete": "Diesen Kurs wirklich löschen?",
+    "art_progress_title": "Preview wird erstellt",
+    "art_preparing":      "Wird vorbereitet...",
+    "art_done":           "Fertig",
+    "art_segments":       "Segmente übersetzt",
+    "art_files":          "Dateien hochgeladen",
+    "art_skipped":        "übersprungen (Videos)",
+    "art_btn_open_preview":"Preview öffnen",
+    "art_btn_close":      "Schließen",
+    "art_error":          "Fehler",
+    "art_btn_check":      "\uD83D\uDD0D Eingaben prüfen",
+    "art_checking":       "Prüfe Eingaben gegen Phrase und Drive...",
+    "art_check_ok":       "Alles gefunden",
+    "art_check_project":  "Projekt",
+    "art_check_job":      "Job",
+    "art_check_folder":   "Ordner",
+    "art_check_files":    "Dateien",
+    "art_check_path":     "Pfad",
+    "art_ph_search":      "🔍 Suchen...",
+    "art_btn_refresh":    "Aktualisieren",
+    "art_link_project":   "Projekt",
+    "art_col_course":     "Kurs",
+    "art_col_lang":       "Sprache",
+    "art_col_phrase":     "Phrase",
+    "art_col_path":       "Preview-Pfad",
+    "art_col_lastdeploy": "Letzter Deploy",
+    "art_col_status":     "Status",
+    "art_col_actions":    "Aktionen",
+    "art_warn_notxliff":  "Die Job-Datei sieht nicht nach einer XLIFF aus \u2013 die Preview funktioniert nur mit Rise-XLIFF-Jobs.",
+    "art_warn_langmismatch": "Deine Eingabe weicht von der Job-Sprache ab",
+    "nav_history":        "Meine Projekte",
+    "nav_dashboard":      "Dashboard",
+    "nav_guide":          "Anleitung",
+    "nav_help":           "Hilfe & Support",
+    "btn_submit":         'PROJEKT ERSTELLEN <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
+    "lbl_template":       'Template auswählen <span class="required">*</span>',
+    "lbl_projectname":    'Projektname <span class="required">*</span>',
+    "lbl_source":         'Quellsprache <span class="required">*</span>',
+    "lbl_target":         'Zielsprache(n) <span class="required">*</span>',
+    "lbl_duedate":        'Wunschtermin <small style="color:#666; font-weight:normal;">(Optional)</small>',
+    "lbl_note":           'Zusätzliche Notiz',
+    "title_mainfiles":    'Hauptdateien (Zur Übersetzung) <span class="required">*</span>',
+    "title_reffiles":     'Referenzdateien (Optional)',
+    "ph_projectname":     "Wird aus Dateinamen übernommen...",
+    "alert_pdf_block":    "⚠️ ACHTUNG: PDFs können nicht als zu übersetzende Hauptdatei verwendet werden.\n\nBitte laden Sie das offene Originalformat (Word, Excel, InDesign etc.) hoch.",
+    "ph_search_template": "🔍 Template suchen...",
+    "ph_search_language": "🔍 Sprache suchen...",
+    "txt_select_source":  "Quellsprache auswählen",
+    "txt_select_target":  "Zielsprache(n) auswählen",
+    "alert_multifile_name": "\u26A0 Mehrere Dateien ausgewählt. Bitte vergeben Sie den Projektnamen manuell.",
+    "alert_clone":        "\u2713 Projektdaten kopiert.\n\nBitte Template, Sprachen und Dateien neu auswählen.",
+    "opt_all":            "Alle Projekte",
+    "opt_own":            "Meine Projekte",
+    "opt_shared":         "Geteilte Projekte",
+    "lbl_presets":        "Vorlagen",
+    "btn_save_preset":    "Speichern",
+    "btn_del_preset":     "Löschen",
+    "lbl_project_info":   "Projektinfo",
+    "lbl_settings":       "Einstellungen",
+    "lbl_mainfiles_title":"Hauptdateien (Zur Übersetzung)",
+    "lbl_reffiles_title": "Referenzdateien (Optional)",
+    "ph_note_standard":   "...",
+    "ph_note_marketing":  "Angebot bitte an vorname.nachname@karcher.com schicken.",
+    "btn_pc_upload":      "PC Upload",
+    "btn_drive":          "Drive",
+    "opt_select_template":"Template auswählen",
+    "tour_skip":          "Überspringen",
+    "tour_back":          "Zurück",
+    "tour_next":          "Weiter",
+    "tour_done":          "Fertig",
+    "tour_step_of":       "Schritt {n} von {m}",
+    "tour_step_start":    "Hier starten Sie eine neue Anfrage.",
+    "tour_step_template": "Wählen Sie zuerst ein Template. Dies bestimmt den Workflow.",
+    "tour_step_source":   "Wählen Sie die Quellsprache aus.",
+    "tour_step_target":   "Wählen Sie eine oder mehrere Zielsprachen.",
+    "tour_step_projectname": "Geben Sie einen Projektnamen ein (wird meist aus der Datei übernommen).",
+    "tour_step_presets":  "Häufig genutzte Einstellungen können Sie als Vorlage speichern und beim nächsten Mal mit einem Klick wieder laden.",
+    "tour_step_duedate":  "Optional: Wunschtermin für die Fertigstellung festlegen.",
+    "tour_step_note":     "Optional: Zusätzliche Hinweise für die Übersetzer hinterlegen.",
+    "tour_step_mainfiles":"Laden Sie Ihre zu übersetzenden Dateien hier hoch.",
+    "tour_step_reffiles": "Optional: Referenzdateien (z.B. Bilder, Glossare) für zusätzlichen Kontext hochladen.",
+    "tour_step_submit":   "Wenn alles ausgefüllt ist, erstellen Sie hier das Projekt.",
+    "tour_step_myprojects": "In \"Meine Projekte\" finden Sie alle Ihre Anfragen, Status-Updates und fertigen Downloads.",
+    "tour_step_dashboard": "Als Admin sehen Sie hier ein Dashboard mit einer Übersicht über alle Projekte.",
+    "tour_step_preferences": "Hier stellen Sie Ihre Benachrichtigungseinstellungen ein (z.B. Google Chat).",
+    "tour_step_langswitch": "Hier können Sie jederzeit die Sprache der Oberfläche wechseln.",
+    "ad_title":           "Zugriff verweigert",
+    "ad_text":            "Sie haben keine Berechtigung, auf die Translation-Services-App zuzugreifen.<br>Bitte beantragen Sie eine Freischaltung für diese Anwendung.",
+    "ad_btn":             "Zugriff beantragen",
+    "instr_title":        "Workflow erforderlich",
+    "instr_text":         "Damit Ihr Projekt korrekt eingerichtet wird, halten Sie bitte diese Reihenfolge ein:",
+    "instr_step1":        "1. Template auswählen",
+    "instr_step2":        "2. Quellsprache auswählen",
+    "instr_step3":        "3. Zielsprache auswählen",
+    "instr_btn_ok":       "OK, verstanden",
+    "instr_btn_guide":    "Anleitung öffnen",
+    "dd_title":           "Fälligkeitsdatum aktualisieren",
+    "dd_label":           'Neues Fälligkeitsdatum <span style="color:#d93025;">*</span>',
+    "dd_hint":            "&#9888; Das Datum wird in Phrase TMS aktualisiert, alle Projektbeteiligten werden per Google Chat benachrichtigt.",
+    "dd_btn_save":        "Speichern &amp; Benachrichtigen",
+    "dd_saved_msg":       "&#10003; Fälligkeitsdatum aktualisiert!",
+    "jn_title":           "Notizen für Übersetzer",
+    "jn_existing":        "Nachrichten an Übersetzer (Phrase TMS)",
+    "jn_add_label":       "Neue Notiz hinzufügen:",
+    "jn_placeholder":     "Notiz für den Übersetzer schreiben...",
+    "jn_btn_send":        "Notiz senden",
+    "btn_cancel":         "Abbrechen",
+    "btn_save":           "Speichern",
+    "sd_title":           "In Google Drive speichern",
+    "sd_desc":            'Die übersetzte(n) Datei(en) werden in einem Ordner namens <strong>Translation Services</strong> in Ihrem eigenen <strong>Meine Ablage</strong> gespeichert.',
+    "sd_format_label":    "Word-/Excel-/PowerPoint-Dateien speichern als:",
+    "sd_format_office":   '<strong>Original-Microsoft-Format</strong> (.docx / .xlsx / .pptx)',
+    "sd_format_google":   '<strong>In Google-Format konvertieren</strong> (Google Docs / Sheets / Slides)',
+    "sd_format_hint":     "Andere Dateitypen (PDF, IDML, XML, TXT, HTML, ...) werden immer unverändert gespeichert – eine Google-Format-Konvertierung wird nur beim Speichern in Drive angeboten.",
+    "sd_not_configured":  "Das Speichern in Google Drive ist für dieses Portal noch nicht eingerichtet. Bitte wenden Sie sich an einen Administrator.",
+    "sd_btn_save":        "In Drive speichern",
+    "sd_part_label":      "Welche Dateien sollen gespeichert werden?",
+    "sd_part_both":       "<strong>Beide</strong> (Source-Check und Translation)",
+    "sd_part_source":     "<strong>Nur Source-Check</strong>",
+    "sd_part_target":     "<strong>Nur Translation</strong>",
+    "sd_part_pending":    "Der Translation-Schritt ist noch nicht fertig – vorerst kann nur der Source-Check gespeichert werden.",
+    "dz_hint":            "Dateien hierher ziehen oder klicken zum Auswählen",
+    "hs_all":             "Alle",
+    "hs_open":            "Offen",
+    "hs_done":            "Fertig",
+    "hs_cancelled":       "Abgebrochen",
+    "hs_empty":           "Keine Projekte für diese Auswahl.",
+    "hs_empty_archive":   "Keine archivierten Projekte.",
+    "hs_archive_hint":    "Archiv: abgeschlossene Projekte älter als 30 Tage",
+    "jn_project_note":    "Projektnotiz",
+    "jn_project_note_hint": "Die beim Anlegen eingegebene Notiz. Übersetzer sehen sie in Phrase TMS.",
+    "jn_btn_save_note":   "Notiz speichern",
+    "jn_send_hint":       "Wird an alle Jobs (Sprachen) dieses Projekts gesendet.",
+    "jn_no_notes":        "Noch keine Nachrichten.",
+    "jn_loading":         "Wird geladen...",
+    "jn_saving":          "Wird gespeichert...",
+    "jn_saved":           "Gespeichert",
+    "jn_readonly":        "Nur lesen",
+    "dl_title":           "Dateien herunterladen",
+    "dl_where":           "Wohin?",
+    "dl_to_computer":     "<strong>Dieser Computer</strong><br><small>Einzelne Datei oder ZIP</small>",
+    "dl_to_drive":        "<strong>Google Drive</strong><br><small>Ordner „Translation Services“ in Meine Ablage</small>",
+    "dl_btn_download":    "Herunterladen",
+    "cal_today":          "Heute",
+    "cal_month":          "Monat",
+    "cal_week":           "Woche",
+    "cal_overdue":        "Überfällig",
+    "cal_more":           "weitere",
+    "nav_new_project":    "Neues Projekt",
+    "hs_refresh":         "Aktualisieren",
+    "hs_sync":            "Status synchronisieren",
+    "hs_export_csv":      "CSV exportieren",
+    "hs_show_archive":    "Archiv anzeigen",
+    "hs_hide_archive":    "Archiv ausblenden",
+    "hs_f_all":           "Alle Projekte",
+    "hs_f_own":           "Meine Projekte",
+    "hs_f_shared":        "Mit mir geteilt",
+    "hs_search":          "🔍 Suchen...",
+    "hs_view_table":      "Tabelle",
+    "hs_view_calendar":   "Kalender",
+    "hs_loading":         "Projekte werden geladen...",
+    "hs_open_phrase":     "In Phrase TMS öffnen",
+    "th_name":            "Projektname",
+    "th_uploaded":        "Upload-Datum",
+    "th_source":          "Quelle",
+    "th_targets":         "Zielsprachen",
+    "th_status":          "Status",
+    "th_due":             "Fälligkeitsdatum",
+    "th_shared":          "Geteilt?",
+    "th_actions":         "Aktionen",
+    "th_filter":          "Filtern...",
+    "dl_preparing":       "Download wird vorbereitet...",
+    "dl_fetching":        "Dateien werden aus Phrase TMS geladen – das kann einen Moment dauern.",
+    "dl_done":            "Download abgeschlossen",
+    "dl_checking_drive":  "Google-Drive-Zugriff wird geprüft...",
+    "dl_saving_drive":    "Dateien werden in Google Drive gespeichert...",
+    "dl_saved_drive":     "In Google Drive gespeichert",
+    "dl_converting":      "Word-/Excel-/PowerPoint-Dateien werden in Google Docs / Sheets / Slides umgewandelt.",
+    "dl_open_folder":     "Ordner öffnen",
+    "dl_to_docfolder":    "<strong>Drive-Projektordner</strong><br><small>Fertige Sprachen zurück in die Sprachunterordner schreiben</small>",
+    "dl_btn_docfolder":   "In Projektordner schreiben",
+    "dl_docfolder_done":  "In den Projektordner geschrieben",
+    "dl_docfolder_writing": "Schreibe Datei",
+    "dl_docfolder_sub":   "Die Übersetzung wird in den passenden Sprachunterordner geschrieben.",
+    "lbl_project_info_plain": "Projektinfo",
+    "di_folder_title":    "Drive-Ordner (Sprachunterordner)",
+    "di_no_folder":       "Noch kein Ordner ausgewählt",
+    "di_folder_search":   "Projektordner suchen...",
+    "di_no_folders":      "Keine Ordner gefunden.",
+    "di_ref_title":       "Referenzdateien",
+    "di_submit":          "Import starten",
+    "di_lang":            "Sprache",
+    "di_file":            "Dateiname",
+    "di_no_langfolders":  "Keine Sprachunterordner mit Dateien in diesem Ordner gefunden.",
+    "di_will_import":     "wird importiert",
+    "da_confirm":         "Projekt archivieren? Alle Zeilen werden ins Archive-Sheet verschoben und der Einreicher erhält eine „Translation Complete“-Nachricht in Google Chat.",
+    "da_done":            "Archiviert",
+    "pd_details":         "Details",
+    "pd_note":            "Notiz",
+    "pd_share":           "Teilen",
+    "pd_clone":           "Klonen",
+    "pd_due":             "Fälligkeit",
+    "pd_cancel":          "Projekt abbrechen",
+    "pd_archive":         "Archivieren",
+    "pd_facts":           "Projekt",
+    "pd_uploaded":        "Hochgeladen",
+    "pd_targets":         "Zielsprachen",
+    "pd_owner":           "Eigentümer",
+    "pd_shared":          "Geteilt mit",
+    "pd_downloaded":      "Letzter Download",
+    "pd_pending_child":   "wird automatisch angelegt",
+    "pd_files":           "Dateien",
+    "pd_edit":            "Bearbeiten",
+    "pd_no_note":         "Keine Notiz",
+    "db_title":           "Übersicht",
+    "db_30d":             "30 Tage",
+    "db_90d":             "90 Tage",
+    "db_12m":             "12 Monate",
+    "db_all":             "Alle",
+    "db_total":           "Projekte",
+    "db_overdue_sub":     "offen und über Fälligkeit",
+    "db_ontime":          "Termingerecht",
+    "db_no_data":         "noch keine Daten",
+    "db_lead":            "Ø Zeit bis Download",
+    "db_lead_sub":        "Upload bis erster Download",
+    "db_days":            "Tage",
+    "db_per_month":       "Projekte im Zeitverlauf",
+    "db_status":          "Status",
+    "db_languages":       "Häufigste Zielsprachen",
+    "db_templates":       "Häufigste Templates",
+    "prefs_title":        "Einstellungen",
+    "prefs_chat_title":   "Google Chat-Benachrichtigungen",
+    "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
+    "prefs_saved_msg":    "&#10003; Gespeichert!"
+  },
+  en: {
+    "nav_request":        "General Projects",
+    "nav_marketing":      "Marketing Projects",
+    "nav_kec":            "KeC Projects",
+    "nav_documentation": "Documentation Projects",
+    "nav_articulate":     "Campus Projects",
+    "art_show_generator": "Show preview generator",
+    "art_generator_title":"Preview Generator",
+    "art_generator_hint": "Creates a live preview of the Rise course using the current translation state from Phrase.",
+    "art_ph_project":     "Phrase project URL or UID",
+    "art_ph_job":         "Phrase job URL or UID",
+    "art_ph_folder":      "Drive folder (unzipped SCORM export)",
+    "art_ph_name":        "Course name",
+    "art_ph_lang":        "de-DE",
+    "art_sel_project_loading":"Loading projects...",
+    "art_sel_project":    "Select project...",
+    "art_sel_job":         "Select project first...",
+    "art_sel_job_pick":    "Select job...",
+    "art_sel_lang":        "Select language...",
+    "art_btn_generate":   "\u25B6 Generate preview",
+    "art_saved_title":    "Saved courses",
+    "art_loading":        "Loading courses...",
+    "art_empty":          "No courses saved yet.",
+    "art_never_generated":"Not generated yet",
+    "art_btn_play":       "Preview",
+    "art_btn_open_last":  "Open last",
+    "art_btn_delete":     "Delete",
+    "art_err_fields":     "Please fill in all fields.",
+    "art_saving":         "Saving course...",
+    "art_saved":          "Saved.",
+    "art_starting":       "Generating preview...",
+    "art_confirm_delete": "Really delete this course?",
+    "art_progress_title": "Creating preview",
+    "art_preparing":      "Preparing...",
+    "art_done":           "Done",
+    "art_segments":       "segments translated",
+    "art_files":          "files uploaded",
+    "art_skipped":        "skipped (videos)",
+    "art_btn_open_preview":"Open preview",
+    "art_btn_close":      "Close",
+    "art_error":          "Error",
+    "art_btn_check":      "\uD83D\uDD0D Validate inputs",
+    "art_checking":       "Checking inputs against Phrase and Drive...",
+    "art_check_ok":       "Everything found",
+    "art_check_project":  "Project",
+    "art_check_job":      "Job",
+    "art_check_folder":   "Folder",
+    "art_check_files":    "files",
+    "art_check_path":     "Path",
+    "art_ph_search":      "🔍 Search...",
+    "art_btn_refresh":    "Refresh",
+    "art_link_project":   "Project",
+    "art_col_course":     "Course",
+    "art_col_lang":       "Language",
+    "art_col_phrase":     "Phrase",
+    "art_col_path":       "Preview path",
+    "art_col_lastdeploy": "Last deploy",
+    "art_col_status":     "Status",
+    "art_col_actions":    "Actions",
+    "art_warn_notxliff":  "The job file does not look like an XLIFF \u2013 the preview only works with Rise XLIFF jobs.",
+    "art_warn_langmismatch": "Your input differs from the job's target language",
+    "nav_history":        "My Projects",
+    "nav_dashboard":      "Dashboard",
+    "nav_guide":          "User Guide",
+    "nav_help":           "Help & Support",
+    "btn_submit":         'CREATE PROJECT <i class="material-icons-outlined" style="margin-left:10px;">arrow_forward</i>',
+    "lbl_template":       'Template Type <span class="required">*</span>',
+    "lbl_projectname":    'Project Name <span class="required">*</span>',
+    "lbl_source":         'Source Language <span class="required">*</span>',
+    "lbl_target":         'Target Language(s) <span class="required">*</span>',
+    "lbl_duedate":        'Due Date <small style="color:#666; font-weight:normal;">(Defaults to 12:00 PM)</small>',
+    "lbl_note":           'Note',
+    "title_mainfiles":    'Main Files (To Translate) <span class="required">*</span>',
+    "title_reffiles":     'Reference Files (Optional)',
+    "ph_projectname":     "Auto-filled from filename...",
+    "alert_pdf_block":    "⚠️ WARNING: PDFs cannot be used as main files for translation.\n\nPlease upload the original editable format (Word, Excel, InDesign, etc.).",
+    "ph_search_template": "🔍 Search template...",
+    "ph_search_language": "🔍 Search language...",
+    "txt_select_source":  "Select Source Language",
+    "txt_select_target":  "Select Target Language(s)",
+    "alert_multifile_name": "\u26A0 Multiple files selected. Please enter the project name manually.",
+    "alert_clone":        "\u2713 Project data copied.\n\nPlease re-select template, languages and files.",
+    "opt_all":            "All Projects",
+    "opt_own":            "My Projects",
+    "opt_shared":         "Shared with me",
+    "lbl_presets":        "Presets",
+    "btn_save_preset":    "Save",
+    "btn_del_preset":     "Del",
+    "lbl_project_info":   "Project Info",
+    "lbl_settings":       "Settings",
+    "lbl_mainfiles_title":"Main Files (To Translate)",
+    "lbl_reffiles_title": "Reference Files (Optional)",
+    "ph_note_standard":   "...",
+    "ph_note_marketing":  "Please send quote to firstname.lastname@karcher.com",
+    "btn_pc_upload":      "PC Upload",
+    "btn_drive":          "Drive",
+    "opt_select_template":"Select Template Type",
+    "tour_skip":          "Skip",
+    "tour_back":          "Back",
+    "tour_next":          "Next",
+    "tour_done":          "Done",
+    "tour_step_of":       "Step {n} of {m}",
+    "tour_step_start":    "Start a new translation request here.",
+    "tour_step_template": "Select a template first. This defines the workflow.",
+    "tour_step_source":   "Select the source language.",
+    "tour_step_target":   "Select one or more target languages.",
+    "tour_step_projectname": "Enter a project name (usually auto-filled from the file).",
+    "tour_step_presets":  "Save frequently used settings as a preset and reload them with one click next time.",
+    "tour_step_duedate":  "Optional: set a desired completion date.",
+    "tour_step_note":     "Optional: add extra notes for the translators.",
+    "tour_step_mainfiles":"Upload the files you want translated here.",
+    "tour_step_reffiles": "Optional: upload reference files (e.g. images, glossaries) for extra context.",
+    "tour_step_submit":   "Once everything is filled in, create the project here.",
+    "tour_step_myprojects": "In \"My Projects\" you can track all requests, statuses, and download finished translations.",
+    "tour_step_dashboard": "As an admin, you'll find a dashboard here with an overview of all projects.",
+    "tour_step_preferences": "Set your notification preferences here (e.g. Google Chat).",
+    "tour_step_langswitch": "You can switch the interface language here at any time.",
+    "ad_title":           "Access Denied",
+    "ad_text":            "You do not have permission to access the Translation-Services App.<br>Please request authorization to use this application.",
+    "ad_btn":             "Request Access",
+    "instr_title":        "Workflow Required",
+    "instr_text":         "To ensure your project is set up correctly, please follow the order:",
+    "instr_step1":        "1. Select Template",
+    "instr_step2":        "2. Select Source Language",
+    "instr_step3":        "3. Select Target Language",
+    "instr_btn_ok":       "OK, I understand",
+    "instr_btn_guide":    "Open User Guide",
+    "dd_title":           "Update Due Date",
+    "dd_label":           'New Due Date <span style="color:#d93025;">*</span>',
+    "dd_hint":            "&#9888; The date will be updated in Phrase TMS and all project participants will be notified via Google Chat.",
+    "dd_btn_save":        "Save &amp; Notify",
+    "dd_saved_msg":       "&#10003; Due date updated!",
+    "jn_title":           "Notes for Translator",
+    "jn_existing":        "Messages to translators (Phrase TMS)",
+    "jn_add_label":       "Add new note:",
+    "jn_placeholder":     "Write a note for the translator...",
+    "jn_btn_send":        "Send Note",
+    "btn_cancel":         "Cancel",
+    "btn_save":           "Save",
+    "sd_title":           "Save to Google Drive",
+    "sd_desc":            'The translated file(s) will be saved into a folder named <strong>Translation Services</strong> in your own <strong>My Drive</strong>.',
+    "sd_format_label":    "Save Word / Excel / PowerPoint files as:",
+    "sd_format_office":   '<strong>Original Microsoft format</strong> (.docx / .xlsx / .pptx)',
+    "sd_format_google":   '<strong>Convert to Google format</strong> (Google Docs / Sheets / Slides)',
+    "sd_format_hint":     "Other file types (PDF, IDML, XML, TXT, HTML, ...) are always saved as-is – Google format conversion is only offered when saving into Drive.",
+    "sd_not_configured":  "Saving to Google Drive is not set up yet for this portal. Please contact an administrator.",
+    "sd_btn_save":        "Save to Drive",
+    "sd_part_label":      "Which files should be saved?",
+    "sd_part_both":       "<strong>Both</strong> (Source-Check and Translation)",
+    "sd_part_source":     "<strong>Source-Check only</strong>",
+    "sd_part_target":     "<strong>Translation only</strong>",
+    "sd_part_pending":    "The Translation step is not finished yet – only the Source-Check can be saved for now.",
+    "dz_hint":            "Drag files here or click to select",
+    "hs_all":             "All",
+    "hs_open":            "Open",
+    "hs_done":            "Done",
+    "hs_cancelled":       "Cancelled",
+    "hs_empty":           "No projects match this selection.",
+    "hs_empty_archive":   "No archived projects.",
+    "hs_archive_hint":    "Archive: finished projects older than 30 days",
+    "jn_project_note":    "Project note",
+    "jn_project_note_hint": "The note entered when the project was created. Translators see it in Phrase TMS.",
+    "jn_btn_save_note":   "Save note",
+    "jn_send_hint":       "Sent to all jobs (languages) of this project.",
+    "jn_no_notes":        "No messages yet.",
+    "jn_loading":         "Loading...",
+    "jn_saving":          "Saving...",
+    "jn_saved":           "Saved",
+    "jn_readonly":        "Read only",
+    "dl_title":           "Download files",
+    "dl_where":           "Where to?",
+    "dl_to_computer":     "<strong>This computer</strong><br><small>Single file or ZIP</small>",
+    "dl_to_drive":        "<strong>Google Drive</strong><br><small>Folder \"Translation Services\" in My Drive</small>",
+    "dl_btn_download":    "Download",
+    "cal_today":          "Today",
+    "cal_month":          "Month",
+    "cal_week":           "Week",
+    "cal_overdue":        "Overdue",
+    "cal_more":           "more",
+    "nav_new_project":    "New Project",
+    "hs_refresh":         "Refresh",
+    "hs_sync":            "Sync Status",
+    "hs_export_csv":      "Export CSV",
+    "hs_show_archive":    "Show Archive",
+    "hs_hide_archive":    "Hide Archive",
+    "hs_f_all":           "All Projects",
+    "hs_f_own":           "My Projects",
+    "hs_f_shared":        "Shared with me",
+    "hs_search":          "🔍 Search...",
+    "hs_view_table":      "Table",
+    "hs_view_calendar":   "Calendar",
+    "hs_loading":         "Loading your projects...",
+    "hs_open_phrase":     "Open in Phrase TMS",
+    "th_name":            "Project Name",
+    "th_uploaded":        "Upload Date",
+    "th_source":          "Source",
+    "th_targets":         "Target Languages",
+    "th_status":          "Status",
+    "th_due":             "Due Date",
+    "th_shared":          "Shared?",
+    "th_actions":         "Actions",
+    "th_filter":          "Filter...",
+    "dl_preparing":       "Preparing download...",
+    "dl_fetching":        "Files are being fetched from Phrase TMS – this can take a moment.",
+    "dl_done":            "Download complete",
+    "dl_checking_drive":  "Checking Google Drive access...",
+    "dl_saving_drive":    "Saving files to Google Drive...",
+    "dl_saved_drive":     "Saved to Google Drive",
+    "dl_converting":      "Word / Excel / PowerPoint files are converted to Google Docs / Sheets / Slides.",
+    "dl_open_folder":     "Open folder",
+    "dl_to_docfolder":    "<strong>Drive project folder</strong><br><small>Write finished languages back into the language subfolders</small>",
+    "dl_btn_docfolder":   "Write to project folder",
+    "dl_docfolder_done":  "Written to the project folder",
+    "dl_docfolder_writing": "Writing file",
+    "dl_docfolder_sub":   "The translation is written into the matching language subfolder.",
+    "lbl_project_info_plain": "Project Info",
+    "di_folder_title":    "Drive folder (language subfolders)",
+    "di_no_folder":       "No folder selected yet",
+    "di_folder_search":   "Search project folder...",
+    "di_no_folders":      "No folders found.",
+    "di_ref_title":       "Reference files",
+    "di_submit":          "Start import",
+    "di_lang":            "Language",
+    "di_file":            "File name",
+    "di_no_langfolders":  "No language subfolders with files found in this folder.",
+    "di_will_import":     "will be imported",
+    "da_confirm":         "Archive this project? All rows move to the archive sheet and the submitter gets a \"Translation Complete\" message in Google Chat.",
+    "da_done":            "Archived",
+    "pd_details":         "Details",
+    "pd_note":            "Note",
+    "pd_share":           "Share",
+    "pd_clone":           "Clone",
+    "pd_due":             "Due date",
+    "pd_cancel":          "Cancel project",
+    "pd_archive":         "Archive",
+    "pd_facts":           "Project",
+    "pd_uploaded":        "Uploaded",
+    "pd_targets":         "Target languages",
+    "pd_owner":           "Owner",
+    "pd_shared":          "Shared with",
+    "pd_downloaded":      "Last download",
+    "pd_pending_child":   "will be created automatically",
+    "pd_files":           "Files",
+    "pd_edit":            "Edit",
+    "pd_no_note":         "No note",
+    "db_title":           "Overview",
+    "db_30d":             "30 days",
+    "db_90d":             "90 days",
+    "db_12m":             "12 months",
+    "db_all":             "All",
+    "db_total":           "Projects",
+    "db_overdue_sub":     "open and past due date",
+    "db_ontime":          "On time",
+    "db_no_data":         "no data yet",
+    "db_lead":            "Avg. time to download",
+    "db_lead_sub":        "upload to first download",
+    "db_days":            "days",
+    "db_per_month":       "Projects over time",
+    "db_status":          "Status",
+    "db_languages":       "Top target languages",
+    "db_templates":       "Top templates",
+    "prefs_title":        "Preferences",
+    "prefs_chat_title":   "Google Chat Notifications",
+    "prefs_chat_desc":    "Receive a direct message when your project is created.",
+    "prefs_saved_msg":    "&#10003; Saved!"
+  },
+};
+
+let currentLang = localStorage.getItem('appLang') || 'en';
+
+var SUPPORTED_LANGS_ = ['de', 'en', 'fr', 'es', 'pt', 'zh'];
+
+// FIX: Fehlt ein W?rterbuch f?r die gew?hlte Sprache (oder ein einzelner Key darin),
+// f?llt die App auf Englisch zur?ck statt eine Exception zu werfen. Ohne diesen Fallback
+// blieb die Seite komplett leer/"h?ngt", sobald `lang` kein Key in `i18n` war (z.B. bei
+// einem alten/fremden Wert in localStorage, oder sobald neue Sprachen im Umschalter
+// auftauchen, bevor jede einzelne UI-Zeichenkette f?r sie ?bersetzt ist).
+function t_i18n_(lang, key) {
+  const dict = i18n[lang] || i18n.en;
+  return (dict && dict[key]) || (i18n.en && i18n.en[key]) || '';
+}
+
+// FIX: Zeigt f?r einen mehrsprachigen Block (z.B. "guide-text-<lang>") den Block der
+// gew?hlten Sprache, und f?llt auf Englisch (dann Deutsch) zur?ck, wenn f?r diese
+// Sprache noch kein eigener Block existiert ? damit eine Seite NIE leer bleibt, nur
+// weil eine ?bersetzung f?r eine neu hinzugef?gte Sprache noch aussteht.
+function _showLangBlock_(prefix, lang) {
+  const target = document.getElementById(prefix + '-' + lang) ? lang
+    : (document.getElementById(prefix + '-en') ? 'en' : 'de');
+  SUPPORTED_LANGS_.forEach(l => {
+    const el = document.getElementById(prefix + '-' + l);
+    if (el) el.style.display = (l === target) ? 'block' : 'none';
+  });
+}
+
+var _i18nPending_ = {};
+var _i18nFailed_  = {};
+
+// Laedt ein ausgelagertes Woerterbuch (fr/es/pt/zh) nach und ruft danach cb().
+// Mehrfachanfragen fuer dieselbe Sprache werden zusammengefasst.
+function loadI18nDict_(lang, cb) {
+  if (i18n[lang]) { cb(); return; }
+  if (_i18nPending_[lang]) { _i18nPending_[lang].push(cb); return; }
+  _i18nPending_[lang] = [cb];
+  function done() {
+    var cbs = _i18nPending_[lang] || [];
+    delete _i18nPending_[lang];
+    cbs.forEach(function(f) { f(); });
+  }
+  google.script.run
+    .withSuccessHandler(function(dict) {
+      if (dict) i18n[lang] = dict; else _i18nFailed_[lang] = true;
+      done();
+    })
+    .withFailureHandler(function() { _i18nFailed_[lang] = true; done(); })
+    .apiGetI18nDict(lang);
+}
+
+function setGlobalLang(lang) {
+  if (SUPPORTED_LANGS_.indexOf(lang) === -1) lang = 'en';
+  if (!i18n[lang]) {
+    // Noch nicht geladen -> nachholen und danach erneut anlaufen. Ist das
+    // Nachladen bereits gescheitert, bleibt es bei Englisch statt einer
+    // Endlosschleife.
+    if (_i18nFailed_[lang]) lang = 'en';
+    else { loadI18nDict_(lang, function() { setGlobalLang(lang); }); return; }
+  }
+  currentLang = lang;
+  localStorage.setItem('appLang', lang);
+
+  SUPPORTED_LANGS_.forEach(l => {
+    const btn = document.getElementById('glb-' + l);
+    if (btn) btn.classList.toggle('active', lang === l);
+  });
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t_i18n_(lang, key);
+    if (val) el.innerHTML = val;
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const val = t_i18n_(lang, el.getAttribute('data-i18n-title'));
+    if (val) { el.title = val; el.setAttribute('aria-label', val); }
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const val = t_i18n_(lang, key);
+    if (val) el.placeholder = val;
+  });
+
+  document.querySelectorAll('input[id^="templateSearch_"]').forEach(el => {
+      el.placeholder = t_i18n_(lang, "ph_search_template");
+  });
+
+  document.querySelectorAll('[id^="sourceLangDisplay"]').forEach(el => {
+      if(el.innerText.includes("Select Source Language") || el.innerText.includes("Quellsprache auswählen")) {
+          el.innerHTML = `<span style='color:#999'>${t_i18n_(lang, 'txt_select_source')}</span>`;
+      }
+  });
+  document.querySelectorAll('[id^="targetLangText"]').forEach(el => {
+      if(el.innerText.includes("Select Target Language") || el.innerText.includes("Zielsprache(n) auswählen") || el.innerText === "-") {
+          el.innerHTML = `<span style='color:#777'>${t_i18n_(lang, 'txt_select_target')}</span>`;
+      }
+  });
+
+  const ownFilter = document.getElementById('ownershipFilter');
+  if (ownFilter) {
+      ownFilter.options[0].text = t_i18n_(lang, 'opt_all');
+      ownFilter.options[1].text = t_i18n_(lang, 'opt_own');
+      ownFilter.options[2].text = t_i18n_(lang, 'opt_shared');
+  }
+
+  _showLangBlock_('marketing-text', lang);
+  _showLangBlock_('guide-text', lang);
+  _showLangBlock_('faq-text', lang);
+
+  document.querySelectorAll('[id^="note_"]').forEach(el => {
+    const isMkt = el.id.includes('marketing');
+    el.placeholder = isMkt ? t_i18n_(lang, 'ph_note_marketing') : t_i18n_(lang, 'ph_note_standard');
+  });
+
+  document.querySelectorAll('[id^="templateUid_"]').forEach(sel => {
+    const firstOpt = sel.querySelector('option[disabled]');
+    if (firstOpt) firstOpt.text = t_i18n_(lang, 'opt_select_template');
+  });
+  // Status-Chips / Leerzustand in "Meine Projekte" in der neuen Sprache neu zeichnen.
+  if (globalProjects && globalProjects.length) globalSearch();
+  if (typeof currentHistoryView !== 'undefined' && currentHistoryView === 'calendar') renderCalendar(globalProjects);
+}
+
+document.addEventListener("DOMContentLoaded", () => { setGlobalLang(currentLang); });
+
+const PRETTY_LANG_MAP = {
+  "ar":           "🇸🇦 Arabic", "ar_ae":        "🇦🇪 Arabic (UAE)", "ar_sa":        "🇸🇦 Arabic (Saudi Arabia)",
+  "az":           "🇦🇿 Azerbaijani", "az_latn_az":   "🇦🇿 Azerbaijani (Latin)",
+  "bg":           "🇧🇬 Bulgarian", "bg_bg":        "🇧🇬 Bulgarian",
+  "bs":           "🇧🇦 Bosnian", "bs_latn_ba":   "🇧🇦 Bosnian (Latin)", "bs_cyrl":      "🇧🇦 Bosnian (Cyrillic)",
+  "zh":           "🇨🇳 Chinese", "zh_cn":        "🇨🇳 Chinese (Simplified)", "zh_hans":      "🇨🇳 Chinese (Simplified)", "zh_hans_cn":   "🇨🇳 Chinese (Simplified)", "zh_hant_cn":   "🇨🇳 Chinese (Traditional)", "zh_tw":        "🇹🇼 Chinese (Traditional, Taiwan)",
+  "cs":           "🇨🇿 Czech", "cs_cz":        "🇨🇿 Czech",
+  "da":           "🇩🇰 Danish", "da_dk":        "🇩🇰 Danish",
+  "de":           "🇩🇪 German", "de_de":        "🇩🇪 German",
+  "el":           "🇬🇷 Greek", "el_gr":        "🇬🇷 Greek",
+  "en":           "🇬🇧 English", "en_gb":        "🇬🇧 English (UK)", "en_us":        "🇺🇸 English (US)", "en_au":        "🇦🇺 English (Australia)",
+  "es":           "🇪🇸 Spanish", "es_es":        "🇪🇸 Spanish (Spain)",
+  "et":           "🇪🇪 Estonian", "et_ee":        "🇪🇪 Estonian",
+  "fi":           "🇫🇮 Finnish", "fi_fi":        "🇫🇮 Finnish",
+  "fr":           "🇫🇷 French", "fr_fr":        "🇫🇷 French",
+  "he":           "🇮🇱 Hebrew", "he_il":        "🇮🇱 Hebrew",
+  "hi":           "🇮🇳 Hindi", "hi_in":        "🇮🇳 Hindi",
+  "hr":           "🇭🇷 Croatian", "hr_hr":        "🇭🇷 Croatian",
+  "hu":           "🇭🇺 Hungarian", "hu_hu":        "🇭🇺 Hungarian",
+  "id":           "🇮🇩 Indonesian", "id_id":        "🇮🇩 Indonesian",
+  "is":           "🇮🇸 Icelandic",
+  "it":           "🇮🇹 Italian", "it_it":        "🇮🇹 Italian",
+  "ja":           "🇯🇵 Japanese", "ja_jp":        "🇯🇵 Japanese",
+  "ka":           "🇬🇪 Georgian", "ka_ge":        "🇬🇪 Georgian",
+  "kk":           "🇰🇿 Kazakh", "kk_kz":        "🇰🇿 Kazakh",
+  "km":           "🇰🇭 Khmer", "km_kh":        "🇰🇭 Khmer",
+  "ko":           "🇰🇷 Korean", "ko_kr":        "🇰🇷 Korean", "ko_kp":        "🇰🇵 Korean (North Korea)",
+  "lt":           "🇱🇹 Lithuanian", "lt_lt":        "🇱🇹 Lithuanian",
+  "lv":           "🇱🇻 Latvian", "lv_lv":        "🇱🇻 Latvian",
+  "ms":           "🇲🇾 Malay", "ms_my":        "🇲🇾 Malay",
+  "nb":           "🇳🇴 Norwegian", "no":           "🇳🇴 Norwegian", "no_no":        "🇳🇴 Norwegian",
+  "nl":           "🇳🇱 Dutch", "nl_nl":        "🇳🇱 Dutch", "nl_be":        "🇧🇪 Dutch (Belgium)",
+  "pl":           "🇵🇱 Polish", "pl_pl":        "🇵🇱 Polish",
+  "pt":           "🇵🇹 Portuguese", "pt_pt":        "🇵🇹 Portuguese (Portugal)", "pt_br":        "🇧🇷 Portuguese (Brazil)",
+  "ro":           "🇷🇴 Romanian", "ro_ro":        "🇷🇴 Romanian",
+  "ru":           "🇷🇺 Russian", "ru_ru":        "🇷🇺 Russian",
+  "sk":           "🇸🇰 Slovak", "sk_sk":        "🇸🇰 Slovak",
+  "sl":           "🇸🇮 Slovenian", "sl_si":        "🇸🇮 Slovenian",
+  "sq":           "🇦🇱 Albanian", "sq_al":        "🇦🇱 Albanian",
+  "sr":           "🇷🇸 Serbian", "sr_rs":        "🇷🇸 Serbian", "sr_latn":      "🇷🇸 Serbian (Latin)", "sr_latn_rs":   "🇷🇸 Serbian (Latin)", "sr_cyrl":      "🇷🇸 Serbian (Cyrillic)",
+  "sv":           "🇸🇪 Swedish", "sv_se":        "🇸🇪 Swedish",
+  "th":           "🇹🇭 Thai", "th_th":        "🇹🇭 Thai",
+  "tr":           "🇹🇷 Turkish", "tr_tr":        "🇹🇷 Turkish",
+  "uk":           "🇺🇦 Ukrainian", "uk_ua":        "🇺🇦 Ukrainian",
+  "uz":           "🇺🇿 Uzbek", "uz_uz":        "🇺🇿 Uzbek", "uz_latn_uz":   "🇺🇿 Uzbek (Latin)",
+  "vi":           "🇻🇳 Vietnamese", "vi_vn":        "🇻🇳 Vietnamese",
+};
+
+// --- STARTUP ------------------------------------------------------------------
+function startStartupOverlay_() {
+  const o = document.getElementById('overlay');
+  if(o) {
+    document.getElementById('statusTitle').innerText = "LOADING";
+    document.getElementById('statusMsg').innerText = "Please wait while we set things up...";
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('successIcon').style.display = 'none';
+    document.getElementById('overlayActions').style.display = 'none';
+    o.style.display = 'flex';
+  }
+}
+function stopStartupOverlay_() {
+  const o = document.getElementById('overlay'); if(o) o.style.display = 'none';
+}
+
+window.onload = function() { loadAppConfig(); };
+
+/**
+ * Ermittelt, welcher Tab nach dem Laden/Wechseln der Config (normaler Login
+ * ODER Admin-Simulation) angezeigt werden soll. Zentral an einer Stelle,
+ * damit toggleImpersonation() (AdminScript.html) nicht denselben Chain
+ * dupliziert und dabei aus dem Takt geraet (siehe: Simulation landete auf
+ * dem zuletzt aktiven Admin-Tab statt auf dem fuer den Ziel-User passenden).
+ */
+function computeStartTab_(config) {
+  let startTab = 'request';
+  if (config.isExclusive) {
+    if (config.isMarketing) startTab = 'marketing';
+    else if (config.isKeC) startTab = 'kec';
+    else if (config.isDoc) startTab = 'documentation';
+    else if (config.isWoma) startTab = 'woma';
+    else if (config.isCc) startTab = 'cc';
+    else if (config.isArticulate) startTab = 'articulate';
+    else if (config.customPages && config.customPages.length > 0) startTab = config.customPages[0].id;
+  }
+  return startTab;
+}
+
+function loadAppConfig() {
+  startStartupOverlay_();
+  try {
+    google.script.run
+      .withSuccessHandler((config) => {
+        stopStartupOverlay_();
+
+        // fr/es/pt/zh liegen serverseitig und kommen mit der Config mit.
+        // Schlaegt das fehl, faellt die Oberflaeche geschlossen auf Englisch
+        // zurueck - sonst wuerden die direkten i18n[currentLang][...]-Zugriffe
+        // weiter unten auf undefined laufen.
+        if (config && config.i18nLang && config.i18nDict) i18n[config.i18nLang] = config.i18nDict;
+        if (!i18n[currentLang]) currentLang = 'en';
+
+        if (config && (config.authorized === false || config.unauthorized)) {
+            document.getElementById('accessDeniedLock').style.display = 'flex';
+            return;
+        }
+
+        initForm(config);
+
+        let startTab = computeStartTab_(config);
+        if (!currentImpersonationEmail) {
+          google.script.url.getLocation(function(loc) {
+            if (loc.parameter && loc.parameter.tab === 'history') switchTab('history');
+            else switchTab(startTab);
+          });
+        } else {
+          switchTab(startTab);
+        }
+        
+        setGlobalLang(currentLang);
+        setTimeout(function() { checkAndShowChatWelcome(); }, 1500);
+        
+      })
+      .withFailureHandler((err) => {
+        stopStartupOverlay_();
+        const msg = (err && err.message ? err.message : String(err)).toLowerCase();
+        if (msg.includes("not authorized") || msg.includes("access denied") || msg.includes("whitelist")) {
+            document.getElementById('accessDeniedLock').style.display = 'flex';
+        } else {
+            showCustomAlert("Initialization Error: " + (err && err.message ? err.message : err), "Error");
+        }
+      })
+      .apiGetConfig(currentImpersonationEmail, currentLang);
+  } catch(e) {
+    stopStartupOverlay_();
+    showCustomAlert("Startup Error: " + e.message, "Error");
+  }
+}
+
+// --- CHAT WELCOME POPUP -------------------------------------------------------
+function checkAndShowChatWelcome() {
+  if (currentImpersonationEmail) return;
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      console.log('chatPref result:', JSON.stringify(res));
+      console.log('dismissed:', localStorage.getItem('chatWelcomeDismissed'));
+      if (!res.enabled && localStorage.getItem('chatWelcomeDismissed') !== 'true') {
+        document.getElementById('chatWelcomeModal').style.display = 'flex';
+      }
+    })
+    .withFailureHandler(function(err) {
+      console.log('chatPref ERROR:', err.message);
+    })
+    .apiGetChatPreference();
+}
+
+function closeChatWelcome(openSettings) {
+  document.getElementById('chatWelcomeModal').style.display = 'none';
+  if (document.getElementById('chatWelcomeDontShow').checked) {
+    localStorage.setItem('chatWelcomeDismissed', 'true');
+  }
+  if (openSettings) {
+    openPreferences();
+  }
+}
+
+function openChatHelpManually() {
+  document.getElementById('preferencesModal').style.display = 'none';
+  document.getElementById('chatWelcomeModal').style.display = 'flex';
+}</script>
