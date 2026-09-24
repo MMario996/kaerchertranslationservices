@@ -77,7 +77,8 @@
       label { display: block; font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; }
       .required { color: #d93025; }
       input, select, textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 0; background: #fff; color: var(--text-main); box-sizing: border-box; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
-      input[type="checkbox"] { width: 16px; height: 16px; padding: 0; appearance: auto; -webkit-appearance: auto; cursor: pointer; flex-shrink: 0; }
+      input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; min-width: 16px; padding: 0; margin: 2px 0 0 0; appearance: auto; -webkit-appearance: auto; cursor: pointer; flex-shrink: 0; accent-color: var(--primary-black); }
+      input[type="radio"]:disabled, input[type="radio"]:disabled + span { cursor: not-allowed; opacity: 0.45; }
       input:focus, select:focus, textarea:focus { border-color: var(--primary-black); outline: none; background-color: #fafafa; }
       select { height: 48px; }
       .btn { border: none; padding: 0 30px; font-size: 15px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; height: 48px; border-radius: 0; letter-spacing: 0.5px; text-decoration: none; }
@@ -301,6 +302,52 @@
       /* --- Prevent flash of nav before app loads ----------------------- */
       .tab-nav { visibility: hidden; }
       .tab-nav.app-ready { visibility: visible; }
+
+      /* ===== Layout-Refresh: tiefere Karten, Dropzones, Mobile ===== */
+      body { background-color: #f6f6f7; }
+      @supports (height: 100dvh) { body { height: 100dvh; } }
+      .card { padding: 28px; border-radius: 2px; }
+      .card-grid { gap: 24px; align-items: stretch; }
+      form[id^="projectForm_"] .card { min-height: 320px; }
+      form[id^="projectForm_"] .section-title { margin-bottom: 18px; }
+      [id^="settingsCard_"] [id^="noteRow_"] { flex: 1; display: flex; flex-direction: column; margin-bottom: 0; }
+      [id^="settingsCard_"] textarea { flex: 1; min-height: 140px; resize: vertical; }
+      .upload-actions .btn { height: 52px; }
+      .dropzone { flex: 1; min-height: 150px; margin-bottom: 12px; border: 2px dashed #d5d5d5; background: #fafafa; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #888; font-size: 13px; text-align: center; padding: 20px; cursor: pointer; transition: border-color 0.2s, background-color 0.2s, color 0.2s; box-sizing: border-box; }
+      .dropzone .material-icons-outlined { font-size: 42px; color: #c4c4c4; transition: color 0.2s; }
+      .dropzone:hover, .dropzone.dragover { border-color: var(--primary-black); background: #fffbe0; color: var(--primary-black); }
+      .dropzone:hover .material-icons-outlined, .dropzone.dragover .material-icons-outlined { color: var(--primary-black); }
+      .card.has-files .dropzone { flex: 0 0 auto; min-height: 64px; flex-direction: row; padding: 12px; }
+      .card.has-files .dropzone .material-icons-outlined { font-size: 24px; }
+      .file-list-container { margin-top: 0; }
+      .btn:focus-visible, .btn-icon:focus-visible, .tab-btn:focus-visible, .dropzone:focus-visible { outline: 2px solid var(--primary-black); outline-offset: 2px; }
+      .btn-secondary:hover { border-color: var(--primary-black); }
+      .btn-icon:hover { border-color: var(--primary-black); color: var(--primary-black); background: #fffbe0; }
+      .history-table tr.pivot-detail-row:hover { background: transparent; }
+
+      @media (max-width: 700px) {
+        .global-lang-switch { padding: 10px 10px 0 10px; flex-wrap: wrap; }
+        .container { padding: 10px 12px; }
+        .tab-btn { padding: 10px 12px; font-size: 13px; margin: 0 2px; }
+        .card { padding: 18px; }
+        .card-grid { gap: 16px; }
+        form[id^="projectForm_"] .card { min-height: 0; }
+        .section-title { font-size: 14px; }
+        .upload-actions { flex-direction: column; gap: 8px; }
+        .upload-actions .btn { width: 100%; flex: none; height: 48px; }
+        .dropzone { min-height: 110px; }
+        .form-row[style*="display:flex"] { flex-direction: column; gap: 15px !important; }
+        [id^="presetRow_"] { flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+        [id^="presetRow_"] > div { min-width: 0 !important; width: 100%; flex-wrap: wrap; }
+        [id^="presetRow_"] select { flex: 1 1 100% !important; }
+        [id^="presetRow_"] .btn { flex: 1 1 0 !important; }
+        form[id^="projectForm_"] button[type="submit"] { width: 100% !important; padding: 0 20px !important; }
+        form[id^="projectForm_"] > div:last-child { margin-top: 24px !important; margin-bottom: 30px !important; }
+        #globalSearchInput { width: 100% !important; flex: 1 1 100%; }
+        .filter-input { font-size: 16px; }
+        .history-table { min-width: 900px; }
+        div[style*="position:fixed"] > div { max-width: 94vw !important; max-height: 90vh; overflow-y: auto; box-sizing: border-box; padding: 20px !important; }
+      }
     </style>
   </head>
   <body>
@@ -1358,6 +1405,7 @@
               </div>
               <input type="file" id="mainFilePC_{SUFFIX}" multiple style="display:none;">
               <input type="file" id="mainFileXML_{SUFFIX}" accept=".xml" multiple style="display:none;">
+              <div class="dropzone" id="mainDrop_{SUFFIX}" data-drop-type="main" onclick="handlePcUploadClick('main', '_{SUFFIX}')"><span class="material-icons-outlined">upload_file</span><span data-i18n="dz_hint">Drag files here or click to select</span></div>
               <div id="mainListContainer_{SUFFIX}" class="file-list-container mainListContainerStyle" style="display:none;"></div>
             </div>
 
@@ -1369,6 +1417,7 @@
                 <button type="button" class="btn btn-secondary" onclick="handleDriveLinkClick('ref', '_{SUFFIX}')" title="Google Drive Link einfügen (Editor-Rechte erforderlich)"><i class="material-icons-outlined">link</i> Drive Link</button>
               </div>
               <input type="file" id="refFilePC_{SUFFIX}" multiple style="display:none;">
+              <div class="dropzone" id="refDrop_{SUFFIX}" data-drop-type="ref" onclick="handlePcUploadClick('ref', '_{SUFFIX}')"><span class="material-icons-outlined">upload_file</span><span data-i18n="dz_hint">Drag files here or click to select</span></div>
               <div id="refListContainer_{SUFFIX}" class="file-list-container refListContainerStyle" style="display:none;"></div>
             </div>
           </div>
@@ -1499,6 +1548,7 @@
               <button type="button" class="btn btn-secondary" onclick="handleDriveClick('main', '_{SUFFIX}')"><i class="material-icons-outlined">add_to_drive</i> <span data-i18n="btn_drive">Drive</span></button>
             </div>
             <input type="file" id="mainFilePC_{SUFFIX}" multiple style="display:none;">
+            <div class="dropzone" id="mainDrop_{SUFFIX}" data-drop-type="main" onclick="handlePcUploadClick('main', '_{SUFFIX}')"><span class="material-icons-outlined">upload_file</span><span data-i18n="dz_hint">Drag files here or click to select</span></div>
             <div id="mainListContainer_{SUFFIX}" class="file-list-container mainListContainerStyle" style="display:none;"></div>
           </div>
 
@@ -1509,6 +1559,7 @@
               <button type="button" class="btn btn-secondary" onclick="handleDriveClick('ref', '_{SUFFIX}')"><i class="material-icons-outlined">add_to_drive</i> Drive</button>
             </div>
             <input type="file" id="refFilePC_{SUFFIX}" multiple style="display:none;">
+            <div class="dropzone" id="refDrop_{SUFFIX}" data-drop-type="ref" onclick="handlePcUploadClick('ref', '_{SUFFIX}')"><span class="material-icons-outlined">upload_file</span><span data-i18n="dz_hint">Drag files here or click to select</span></div>
             <div id="refListContainer_{SUFFIX}" class="file-list-container refListContainerStyle" style="display:none;"></div>
           </div>
           
@@ -1791,6 +1842,7 @@ const i18n = {
     "sd_part_source":     "<strong>Nur Source-Check</strong>",
     "sd_part_target":     "<strong>Nur Translation</strong>",
     "sd_part_pending":    "Der Translation-Schritt ist noch nicht fertig – vorerst kann nur der Source-Check gespeichert werden.",
+    "dz_hint":            "Dateien hierher ziehen oder klicken zum Auswählen",
     "prefs_title":        "Einstellungen",
     "prefs_chat_title":   "Google Chat-Benachrichtigungen",
     "prefs_chat_desc":    "Erhalten Sie eine Direktnachricht, sobald Ihr Projekt erstellt wurde.",
@@ -1948,6 +2000,7 @@ const i18n = {
     "sd_part_source":     "<strong>Source-Check only</strong>",
     "sd_part_target":     "<strong>Translation only</strong>",
     "sd_part_pending":    "The Translation step is not finished yet – only the Source-Check can be saved for now.",
+    "dz_hint":            "Drag files here or click to select",
     "prefs_title":        "Preferences",
     "prefs_chat_title":   "Google Chat Notifications",
     "prefs_chat_desc":    "Receive a direct message when your project is created.",
@@ -4835,6 +4888,8 @@ function renderFileList(type, suffix) {
   const container = document.getElementById((isMain?'mainListContainer':'refListContainer')+suffix);
   if(!container) return;
   container.innerHTML = "";
+  const card = container.closest('.card');
+  if (card) card.classList.toggle('has-files', arr.length > 0);
   if(arr.length===0) { container.style.display='none'; return; }
   container.style.display = 'block';
   arr.forEach((item, idx) => {
@@ -5160,7 +5215,39 @@ function setupFileListeners(suffix) {
     this.value = "";
     renderFileList('ref', suffix);
   });
+
+  setupDropzone_('main', suffix);
+  setupDropzone_('ref', suffix);
   }
+
+/**
+ * Drag & Drop auf die Upload-Karten: die abgelegten Dateien werden in das
+ * versteckte PC-Upload-Input gesetzt und dessen change-Handler ausgeloest,
+ * damit exakt dieselben Pruefungen (PDF-Sperre, Groessenlimit, ...) greifen.
+ */
+function setupDropzone_(type, suffix) {
+  const zone = document.getElementById(type + 'Drop' + suffix);
+  const input = document.getElementById((type === 'main' ? 'mainFilePC' : 'refFilePC') + suffix);
+  if (!zone || !input) return;
+  const card = zone.closest('.card') || zone;
+  let depth = 0;
+  card.addEventListener('dragenter', e => { e.preventDefault(); depth++; zone.classList.add('dragover'); });
+  card.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  card.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; zone.classList.remove('dragover'); } });
+  card.addEventListener('drop', e => {
+    e.preventDefault();
+    depth = 0;
+    zone.classList.remove('dragover');
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    if (!checkPreconditions(suffix)) return;
+    try {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    } catch (err) {
+      showCustomAlert('Drag & drop is not supported in this browser. Please use "PC Upload".', 'Info');
+    }
+  });
+}
 
 function selectDriveFile(item) {
   const suffix = activeDriveSuffix;
@@ -5618,7 +5705,7 @@ function buildPivotDetailRow_(groupId, parent, child) {
   tr.style.display = 'none';
   tr.className = 'pivot-detail-row';
 
-  const step = (label, proj) => {
+  const step = (label, proj, part) => {
     if (!proj) {
       return `<div style="padding:9px 14px;font-size:12px;color:#888;border-top:1px solid #e8e8e8;">
         <span class="material-icons-outlined" style="font-size:14px;vertical-align:-3px;">hourglass_empty</span>
@@ -5626,7 +5713,8 @@ function buildPivotDetailRow_(groupId, parent, child) {
       </div>`;
     }
     const dlBtn = ['NOTIFIED','COMPLETED','DELIVERED'].includes(proj.status)
-      ? `<button class="btn-icon" title="Download Translation" onclick="smartDownloadFiles('${proj.projectUid}')"><span class="material-icons-outlined" style="font-size:18px;">cloud_download</span></button>`
+      ? `<button class="btn-icon" title="Download" onclick="smartDownloadFiles('${proj.projectUid}')"><span class="material-icons-outlined" style="font-size:18px;">cloud_download</span></button>
+         <button class="btn-icon" title="Save to Google Drive (My Drive)" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined" style="font-size:18px;">add_to_drive</span></button>`
       : '';
     return `<div style="padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:10px;border-top:1px solid #e8e8e8;">
       <strong style="min-width:90px;">${label}:</strong>
@@ -5641,8 +5729,8 @@ function buildPivotDetailRow_(groupId, parent, child) {
   // (Gruppen-Zugehoerigkeit), dickerer unterer Rahmen + Schatten (Abschluss
   // des Containers) statt nur einem duennen Trennstrich.
   tr.innerHTML = `<td colspan="10" style="background:#fafafa;padding:0 0 10px 0;border-left:3px solid var(--primary-yellow,#FFED00);border-bottom:3px solid #ddd;box-shadow:inset 0 -6px 6px -6px rgba(0,0,0,0.08);">
-    ${step('Source-Check', parent)}
-    ${step('Translation', child)}
+    ${step('Source-Check', parent, 'source')}
+    ${step('Translation', child, 'target')}
   </td>`;
   return tr;
 }
@@ -5958,7 +6046,7 @@ function ensureDriveSaveConfig_(cb) {
     .apiGetDriveSaveConfig();
 }
 
-function openSaveToDriveModal(projectUid) {
+function openSaveToDriveModal(projectUid, preselectPart) {
   const p = globalProjects.find(x => x.projectUid === projectUid);
   if (!p) return;
   driveSavePendingProject_ = p;
@@ -5983,7 +6071,8 @@ function openSaveToDriveModal(projectUid) {
     ['both', 'target'].forEach(v => {
       document.querySelector('input[name="saveToDrivePart"][value="' + v + '"]').disabled = !childReady;
     });
-    document.querySelector('input[name="saveToDrivePart"][value="' + (childReady ? 'both' : 'source') + '"]').checked = true;
+    const part = !childReady ? 'source' : (preselectPart || 'both');
+    document.querySelector('input[name="saveToDrivePart"][value="' + part + '"]').checked = true;
 
     document.querySelector('input[name="saveToDriveFormat"][value="google"]').checked = true;
     document.getElementById('saveToDriveModal').style.display = 'flex';
@@ -5995,8 +6084,11 @@ function getPivotChildOf_(p) {
   return globalProjects.find(x => x.pivotRole === 'CHILD' && x.pivotLink === p.projectUid) || null;
 }
 
+// Job-UIDs sind hier bewusst keine Voraussetzung: Pivot-Children legt Phrase
+// selbst an, deren Queue-Zeile hat daher keine gespeicherten Job-UIDs - der
+// Server laedt die Jobs dann direkt aus Phrase nach.
 function isDriveSavable_(p) {
-  return !!(p && ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) && p.jobUids && p.jobUids.length);
+  return !!(p && ['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status));
 }
 
 function closeSaveToDriveModal() {
@@ -6131,7 +6223,7 @@ function confirmSaveToGoogleDrive() {
         }).withFailureHandler(e => {
           agg.errors.push(prefix + e.message);
           saveNext(idx + 1);
-        }).apiSaveProjectToDrive(part.proj.projectUid, part.proj.jobUids, part.proj.projectName, part.proj.targetLangs, part.proj.jobMapping, convertToGoogle,
+        }).apiSaveProjectToDrive(part.proj.projectUid, part.proj.jobUids || [], part.proj.projectName, part.proj.targetLangs, part.proj.jobMapping, convertToGoogle,
           { folderName: p.projectName, subFolderName: part.subFolder });
       };
       saveNext(0);
