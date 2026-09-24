@@ -452,7 +452,8 @@ function apiGetFilesForDriveExport(projectUid, jobUids, projectName, targetLangs
 
   if (!Array.isArray(jobUids)) jobUids = [jobUids];
   jobUids = jobUids.filter(j => j && String(j).trim());
-  if (jobUids.length === 0) return { success: false, error: "No job UIDs provided" };
+  // Keine Job-UIDs (z.B. Pivot-Child, das Phrase selbst angelegt hat) ist ok:
+  // phraseGetJobsForMaxLevel_ holt die Jobs ohnehin direkt aus dem Projekt.
 
   if (jobMapping && typeof jobMapping === "string") {
     try { jobMapping = JSON.parse(jobMapping); } catch (e) { jobMapping = null; }
