@@ -978,7 +978,7 @@ function dbxRender_() {
     const def = DBX_WIDGETS_.find(d => d.id === w.id);
     if (def.scopeAll && dbxData_.scope !== 'all') return '';
     const body = dbxWidgetBody_(w.id, ctx);
-    return '<section class="dbx-w s' + w.size + '" data-wid="' + w.id + '">' +
+    return '<section class="dbx-w s' + w.size + (w.id === 'kpis' ? ' plain' : '') + '" data-wid="' + w.id + '">' +
       '<div class="dbx-w-head"><div class="dbx-w-title">' + escapeHtml(def.title) + '</div>' +
       '<div class="dbx-w-tools">' + (body.tools || '') +
       '<button type="button" class="dbx-w-hide" data-act="hide" data-val="' + w.id + '" title="Ausblenden"><span class="material-icons-outlined">visibility_off</span></button></div></div>' +
@@ -1039,32 +1039,65 @@ function dbxKpis_(ctx) {
     };
   };
   const cur = calc(ctx.rows), prev = calc(ctx.prev);
-  const tile = (key, icon, label, val, filterVal, suffix, invert, tip) => {
-    let delta = '';
-    if (prev && prev[key] !== null && cur[key] !== null && key !== 'overdue' && key !== 'open') {
-      const diff = cur[key] - prev[key];
+
+  // Mini-Verlauf je Kennzahl: Zeitraum in 12 gleich lange Abschnitte teilen.
+  const withT = ctx.rows.filter(r => !isNaN(r.t));
+  const from = ctx.range && isFinite(ctx.range[0]) ? ctx.range[0] : Math.min.apply(null, withT.map(r => r.t).concat([Date.now()]));
+  const to = ctx.range ? Math.min(ctx.range[1], Date.now()) : Date.now();
+  const N = 12, step = Math.max(1, (to - from) / N);
+  const series = fn => {
+    const out = new Array(N).fill(0);
+    withT.forEach(r => { const k = Math.min(N - 1, Math.max(0, Math.floor((r.t - from) / step))); out[k] += fn(r); });
+    return out;
+  };
+  const sparks = {
+    total: series(() => 1),
+    open: series(r => r.grp === 'open' ? 1 : 0),
+    overdue: series(r => dbxIsOverdue_(r) ? 1 : 0),
+    done: series(r => r.grp === 'done' ? 1 : 0),
+    words: series(r => r.words || 0),
+    jobs: series(r => r.langs.length)
+  };
+  const spark = (vals, color) => {
+    if (!vals || !vals.some(v => v)) return '';
+    const max = Math.max.apply(null, vals) || 1, W = 84, H = 30;
+    const pts = vals.map((v, i) => [i * W / (vals.length - 1), H - 3 - (v / max) * (H - 6)]);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    return '<svg class="dbx-spark" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+      '<path d="' + line + ' L ' + W + ' ' + H + ' L 0 ' + H + ' Z" fill="' + color + '" opacity="0.12"/>' +
+      '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  };
+
+  const tile = (key, icon, label, color, filterVal, suffix, invert, tip) => {
+    const val = cur[key];
+    let delta = '<span class="dbx-kpi-delta none">' + (prev ? 'ggü. Vorperiode' : 'Gesamtzeitraum') + '</span>';
+    if (prev && prev[key] !== null && val !== null && key !== 'overdue' && key !== 'open') {
+      const diff = val - prev[key];
       const pct = prev[key] ? Math.round(100 * diff / prev[key]) : null;
       const good = invert ? diff < 0 : diff > 0;
-      const txt = (diff > 0 ? '▲ +' : diff < 0 ? '▼ ' : '± ') + (key === 'ontime' ? diff + ' Pkt.' : (pct === null ? dbxFmt_(diff) : pct + ' %'));
-      delta = '<div class="dbx-kpi-delta ' + (diff === 0 ? '' : good ? 'up' : 'down') + '">' + txt + ' ggü. Vorperiode</div>';
-    } else {
-      delta = '<div class="dbx-kpi-delta">&nbsp;</div>';
+      const txt = (diff > 0 ? '↑ ' : diff < 0 ? '↓ ' : '') + (key === 'ontime' ? Math.abs(diff) + ' Pkt.' : (pct === null ? (diff > 0 ? '+' : '') + dbxFmt_(diff) : Math.abs(pct) + ' %'));
+      delta = '<span class="dbx-kpi-delta ' + (diff === 0 ? '' : good ? 'up' : 'down') + '" title="Vergleich zur Vorperiode (' + dbxFmt_(prev[key]) + ')">' + (diff === 0 ? '± 0' : txt) + '</span>';
     }
     const act = filterVal ? ' data-act="status" data-val="' + filterVal + '"' : '';
     const activeCls = filterVal && dbxState_.status === filterVal ? ' active' : '';
-    return '<button type="button" class="dbx-kpi' + activeCls + '"' + act + (tip ? ' data-tip="' + escapeHtml(tip) + '"' : '') + '>' +
-      '<div class="dbx-kpi-lbl"><span class="material-icons-outlined">' + icon + '</span>' + label + '</div>' +
-      '<div class="dbx-kpi-num">' + (val === null ? '–' : dbxFmt_(val) + (suffix || '')) + '</div>' + delta + '</button>';
+    return '<button type="button" class="dbx-kpi' + activeCls + '"' + act + (tip ? ' data-tip="' + escapeHtml(tip) + '"' : '') +
+      ' style="--acc:' + color + ';--accbg:' + color + '1f;">' +
+      '<div class="dbx-kpi-top"><span class="dbx-kpi-lbl">' + label + '</span>' +
+        '<span class="dbx-kpi-ico"><span class="material-icons-outlined">' + icon + '</span></span></div>' +
+      '<div class="dbx-kpi-num">' + (val === null ? '–' : dbxFmt_(val) + (suffix || '')) + '</div>' +
+      '<div class="dbx-kpi-foot">' + delta + spark(sparks[key], color) + '</div></button>';
   };
-  let html = '<div class="dbx-kpis">' +
-    tile('total', 'folder', 'Projekte', cur.total, '', '', false, 'Alle Projekte im Zeitraum. Klick auf eine Kachel filtert das Dashboard.') +
-    tile('open', 'pending', 'In Bearbeitung', cur.open, 'open') +
-    tile('overdue', 'warning', 'Überfällig', cur.overdue, 'overdue', '', true, 'Offene Projekte, deren Frist abgelaufen ist.') +
-    tile('done', 'task_alt', 'Erledigt', cur.done, 'done') +
-    tile('ontime', 'schedule', 'Termintreue', cur.ontime, '', ' %', false, 'Anteil erledigter Projekte, die vor Fristende heruntergeladen wurden (nur Projekte mit Download-Zeitpunkt).') +
-    tile('words', 'notes', 'Wörter', cur.words, '', '', false, 'Summe der Wörter laut Phrase-Analyse (sofern vorhanden).') +
-    tile('jobs', 'translate', 'Sprach-Jobs', cur.jobs, '', '', false, 'Summe der Zielsprachen über alle Projekte.');
-  if (dbxData_.scope === 'all') html += tile('users', 'group', 'Einreicher', cur.users, '', '', false, 'Anzahl unterschiedlicher Einreicher.');
+  const hasWords = dbxData_.rows.some(r => r.words);
+  const tileCount = 6 + (hasWords ? 1 : 0) + (dbxData_.scope === 'all' ? 1 : 0);
+  let html = '<div class="dbx-kpis" style="--n:' + tileCount + ';">' +
+    tile('total', 'folder_open', 'Projekte', '#111111', '', '', false, 'Alle Projekte im Zeitraum. Klick auf eine Kachel filtert das Dashboard.') +
+    tile('open', 'pending', 'In Bearbeitung', '#b08d00', 'open') +
+    tile('overdue', 'warning_amber', 'Überfällig', '#c62828', 'overdue', '', true, 'Offene Projekte, deren Frist abgelaufen ist.') +
+    tile('done', 'task_alt', 'Erledigt', '#2e7d32', 'done') +
+    tile('ontime', 'schedule', 'Termintreue', '#2a78d6', '', ' %', false, 'Anteil erledigter Projekte, die vor Fristende heruntergeladen wurden (nur Projekte mit Download-Zeitpunkt).') +
+    (hasWords ? tile('words', 'notes', 'Wörter', '#6d4bd1', '', '', false, 'Summe der Wörter laut Phrase-Analyse.') : '') +
+    tile('jobs', 'translate', 'Sprach-Jobs', '#0f8f86', '', '', false, 'Summe der Zielsprachen über alle Projekte.');
+  if (dbxData_.scope === 'all') html += tile('users', 'group', 'Einreicher', '#555555', '', '', false, 'Anzahl unterschiedlicher Einreicher.');
   return { html: html + '</div>' };
 }
 
@@ -1119,7 +1152,7 @@ function dbxTrend_(ctx) {
   })();
   const plotW = W - padL - 6, plotH = H - padB - padT;
   const bw = plotW / buckets.length;
-  const gap = Math.min(2, bw * 0.2);
+  const gap = Math.min(14, bw * 0.3);
   const y = v => padT + plotH - (v / niceMax) * plotH;
   const fmtB = ms => {
     const d = new Date(ms);
@@ -1129,7 +1162,7 @@ function dbxTrend_(ctx) {
   let svg = '<svg class="dbx-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="height:240px;">';
   for (let i = 0; i <= 4; i++) {
     const v = niceMax * i / 4, yy = y(v);
-    svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="#ececec" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="#ededed" stroke-width="1" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>';
   }
   const labelEvery = Math.max(1, Math.ceil(buckets.length / 12));
   const order = ['done', 'open', 'cancelled'];
@@ -1211,8 +1244,9 @@ function dbxTop_(rows, keyFn, act, limit) {
   const rest = list.slice(limit).reduce((a, x) => a + x.v, 0);
   const max = shown[0].v;
   const total = list.reduce((a, x) => a + x.v, 0);
-  let html = '<div class="dbx-hbar">' + shown.map(x =>
+  let html = '<div class="dbx-hbar">' + shown.map((x, i) =>
     '<div class="dbx-hbar-row' + (dbxState_[act] === x.k ? ' sel' : '') + '" data-act="' + act + '" data-val="' + escapeHtml(x.k) + '" data-tip="' + escapeHtml('<strong>' + escapeHtml(x.k) + '</strong><br>' + dbxFmt_(x.v) + ' (' + Math.round(100 * x.v / total) + ' %)<br><em style="color:#bbb;">Klick: filtern</em>') + '">' +
+      '<span class="dbx-hbar-rank">' + (i + 1) + '</span>' +
       '<div class="dbx-hbar-lbl">' + escapeHtml(x.k) + '</div>' +
       '<div class="dbx-hbar-track"><div class="dbx-hbar-fill" style="width:' + (100 * x.v / max) + '%"></div></div>' +
       '<div class="dbx-hbar-val">' + dbxFmt_(x.v) + '</div></div>').join('') + '</div>';

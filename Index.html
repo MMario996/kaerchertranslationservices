@@ -759,7 +759,7 @@
               <div id="artQuickPanel" class="art-panel" style="display:none;"></div>
 
               <details class="art-batch">
-                <summary><span class="material-icons-outlined">dynamic_feed</span> Mehrere Jobs auf einmal (Batch)</summary>
+                <summary><span class="material-icons-outlined">dynamic_feed</span> Mehrere Jobs auf einmal (Batch)<span class="material-icons-outlined art-batch-chev" aria-hidden="true">expand_more</span></summary>
                 <div class="art-field-hint" style="margin:8px 0 10px;">Projekt in Schritt 1 wählen und dann alle Jobs dieses Projekts in einem Durchgang patchen.</div>
                 <button type="button" class="btn btn-secondary" style="width:100%;" onclick="openArticulateBatchPanel()"><i class="material-icons-outlined">playlist_play</i> Alle Jobs im Projekt batch-patchen</button>
                 <div id="articulateBatchPanel" class="art-panel" style="display:none;"></div>
@@ -1044,11 +1044,12 @@
     </template>
     
     <template id="kec-form-template">
-  <div class="split-wrapper" id="kecSplitWrapper_{SUFFIX}">
-    <div class="split-main">
-      <button id="kecShowDebugBtn_{SUFFIX}" class="btn-open-sidebar" onclick="toggleKecSidebar('_{SUFFIX}')" style="display:inline-flex;">
-        <span class="material-icons-outlined">bug_report</span> Debugger
-      </button>
+  <div id="kecSplitWrapper_{SUFFIX}">
+    <div class="docsub-nav">
+      <button type="button" class="docsub-btn active" id="kecsubBtn-import_{SUFFIX}" onclick="switchKecSubtab('_{SUFFIX}', 'import')"><span class="material-icons-outlined">upload_file</span> Import</button>
+      <button type="button" class="docsub-btn" id="kecsubBtn-debug_{SUFFIX}" onclick="switchKecSubtab('_{SUFFIX}', 'debug')"><span class="material-icons-outlined">bug_report</span> Debugger</button>
+    </div>
+    <div id="kecsub-import_{SUFFIX}">
       <form id="projectForm_{SUFFIX}">
         <div class="card-grid">
           
@@ -1187,31 +1188,23 @@
       </form>
     </div>
 
-    <!-- DEBUGGER SIDEBAR -->
-    <div id="kecDebugSidebar_{SUFFIX}" class="split-sidebar collapsed">
-      <div class="sidebar-content">
-        <div class="sidebar-header">
-          <div style="font-size:13px; font-weight:800; color:#ff9800; text-transform:uppercase;">
-            <span class="material-icons-outlined" style="vertical-align:middle; font-size:16px; margin-right:4px;">bug_report</span>
-            Projekt-Debugger
+    <div id="kecsub-debug_{SUFFIX}" style="display:none;">
+      <div class="card kec-debug-card">
+        <div class="art-gen-head">
+          <div class="section-title" style="margin:0;border:none;padding:0;">
+            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">bug_report</span>Projekt-Debugger
           </div>
-          <button class="btn-close-sidebar" onclick="toggleKecSidebar('_{SUFFIX}')" title="Schliessen">
-            <span class="material-icons-outlined">close</span>
-          </button>
         </div>
-        <div style="font-size:12px; color:#666; margin-bottom:12px; line-height:1.5;">
-          Phrase-URL oder Projekt-UID einfügen um zu prüfen, warum ein Projekt nicht im Dropdown erscheint.
+        <div class="art-gen-hint">Phrase-URL oder Projekt-UID einfügen, um zu prüfen, warum ein Projekt nicht im Dropdown „Add to Existing Open Project“ erscheint.</div>
+        <div class="kec-debug-row">
+          <div class="art-input-icon" style="flex:1;min-width:220px;">
+            <span class="material-icons-outlined">link</span>
+            <input type="text" id="kecDebugInput_{SUFFIX}" placeholder="https://cloud.memsource.com/web/project/show/... oder UID"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();runKecDebug('_{SUFFIX}');}">
+          </div>
+          <button type="button" class="btn btn-primary" style="width:auto;padding:0 28px;" onclick="runKecDebug('_{SUFFIX}')">&#9654; Prüfen</button>
         </div>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <input type="text" id="kecDebugInput_{SUFFIX}"
-                 placeholder="https://cloud.memsource.com/web/project/show/... oder UID"
-                 style="width:100%; height:40px; padding:0 12px; font-size:12px; border:1px solid #ccc; box-sizing:border-box;">
-          <button type="button" onclick="runKecDebug('_{SUFFIX}')"
-                  style="background:#ff9800; color:#fff; border:none; height:40px; font-size:13px; font-weight:700; cursor:pointer; text-transform:uppercase; width:100%;">
-            &#9654; Prüfen
-          </button>
-        </div>
-        <div id="kecDebugPanel_{SUFFIX}" style="display:none; margin-top:12px; padding:12px; border:1px solid #eee; background:#fafafa; font-size:12px; line-height:1.6; word-break:break-word;"></div>
+        <div id="kecDebugPanel_{SUFFIX}" class="art-panel" style="display:none;"></div>
       </div>
     </div>
 

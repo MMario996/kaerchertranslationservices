@@ -172,9 +172,6 @@ function initForm(config) {
     const tplHtml = document.getElementById('kec-form-template').innerHTML;
     kecContainer.innerHTML = applyI18nToHtmlString_(tplHtml.replace(/\{SUFFIX\}/g, 'kec').replace(/\{NAME\}/g, 'KeC'), currentLang);
     
-    // Debugger-Button ist im Template bereits display:inline-flex ? kein JS nötig.
-    // Fallback falls doch nicht gefunden:
-    document.querySelectorAll('[id^="kecShowDebugBtn_"]').forEach(b => b.style.display = 'inline-flex');
 
     attachKecFormLogic('_kec');
     activePortals.push('_kec');
