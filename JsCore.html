@@ -841,7 +841,6 @@ function computeStartTab_(config) {
     else if (config.isWoma) startTab = 'woma';
     else if (config.isCc) startTab = 'cc';
     else if (config.isArticulate) startTab = 'articulate';
-    else if (config.customPages && config.customPages.length > 0) startTab = config.customPages[0].id;
   }
   return startTab;
 }

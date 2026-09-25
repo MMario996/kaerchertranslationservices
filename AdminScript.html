@@ -197,7 +197,7 @@ function toggleAdminHelp(id) {
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot', 'tests'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'tests'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
@@ -226,7 +226,6 @@ function toggleAdminHelp(id) {
       });
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
-      if (name === 'custompages') loadCustomPages();
       if (name === 'pivot') {
         loadPivotAdminContent_(function () {
           loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapDatalist_(); populatePivotLangMapValueDatalist_();
@@ -780,207 +779,6 @@ function toggleAdminHelp(id) {
       }).apiAddArticulateWhitelist(email);
     }
 
-    // --- CUSTOM PAGES (eigene Reiter) ---------------------------------
-    let _customPagesRows_ = [];
-    let _customPagesExpanded_ = {};
-
-    function loadCustomPages() {
-        const tbody = document.getElementById('customPagesTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>';
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.success) {
-              tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
-              return;
-            }
-            _customPagesRows_ = res.pages || [];
-            renderCustomPagesTable();
-          })
-          .withFailureHandler(err => {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
-          })
-          .apiAdminListCustomPages();
-    }
-
-    const CUSTOM_PAGE_FIELD_LABELS_ = { presets: 'Vorlagen', dueDate: 'Wunschtermin', note: 'Notiz', refFiles: 'Referenzdateien' };
-
-    function renderCustomPagesTable() {
-        const tbody = document.getElementById('customPagesTableBody');
-        if (!tbody) return;
-        if (!_customPagesRows_.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Noch keine eigenen Reiter angelegt.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = _customPagesRows_.map(p => {
-            const isOpen = !!_customPagesExpanded_[p.id];
-            const safeId = escapeHtml(p.id);
-            const fields = p.fields || {};
-            const badges = Object.keys(CUSTOM_PAGE_FIELD_LABELS_)
-                .filter(k => fields[k])
-                .map(k => `<span class="pill-badge role" style="margin:1px;">${CUSTOM_PAGE_FIELD_LABELS_[k]}</span>`)
-                .join('') || '<span style="color:#999;font-size:11px;">nur Pflichtfelder</span>';
-            const rowsHtml = [`
-              <tr>
-                <td><strong>${escapeHtml(p.name)}</strong></td>
-                <td><code style="font-size:11px;color:#888;">${safeId}</code></td>
-                <td>
-                  <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" ${p.active ? 'checked' : ''} onchange="toggleCustomPageActive('${escapeJs(p.id)}', this.checked)" style="width:auto;">
-                    <span style="font-size:11px;color:${p.active ? '#2e7d32' : '#999'};">${p.active ? 'Aktiv' : 'Inaktiv'}</span>
-                  </label>
-                </td>
-                <td style="max-width:220px;">${badges}</td>
-                <td>${p.userCount}</td>
-                <td style="text-align:right;white-space:nowrap;">
-                  <button class="expand-btn ${isOpen ? 'open' : ''}" onclick="toggleCustomPageWhitelist('${escapeJs(p.id)}')">
-                    <span class="material-icons-outlined" style="font-size:14px;">tune</span> Bearbeiten
-                  </button>
-                  <span class="material-icons-outlined icon-btn-danger" style="margin-left:8px;vertical-align:middle;cursor:pointer;" title="Umbenennen" onclick="renameCustomPage('${escapeJs(p.id)}', '${escapeJs(p.name)}')">edit</span>
-                  <span class="material-icons-outlined icon-btn-danger" style="vertical-align:middle;cursor:pointer;" title="Löschen" onclick="deleteCustomPage('${escapeJs(p.id)}', '${escapeJs(p.name)}')">delete</span>
-                </td>
-              </tr>
-            `];
-            if (isOpen) {
-                const fieldCheckboxes = Object.keys(CUSTOM_PAGE_FIELD_LABELS_).map(k => `
-                  <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                    <input type="checkbox" id="customPageField_${safeId}_${k}" ${fields[k] ? 'checked' : ''} style="width:auto;"> ${CUSTOM_PAGE_FIELD_LABELS_[k]}
-                  </label>
-                `).join('');
-                rowsHtml.push(`
-                  <tr class="detail-row">
-                    <td colspan="6">
-                      <div class="detail-panel-grid">
-                        <div>
-                          <label>Sichtbare Bausteine</label>
-                          <div style="display:flex;flex-wrap:wrap;gap:14px;margin:8px 0 10px;">${fieldCheckboxes}</div>
-                          <button class="btn btn-secondary" style="width:auto;height:34px;padding:0 16px;font-size:12px;" onclick="saveCustomPageFields('${escapeJs(p.id)}')">
-                            <span class="material-icons-outlined" style="font-size:15px;vertical-align:middle;margin-right:4px;">save</span>Bausteine speichern
-                          </button>
-                        </div>
-                        <div>
-                          <label>Whitelist</label>
-                          <div style="display:flex; gap:10px; margin:8px 0 10px; max-width:420px;">
-                            <input type="email" id="newCustomPageWlEmail_${safeId}" placeholder="colleague@karcher.com">
-                            <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addCustomPageWhitelistUser('${escapeJs(p.id)}')">ADD</button>
-                          </div>
-                          <div id="customPageWlContainer_${safeId}" class="list-container" style="max-width:420px;"><div style="padding:15px;color:#888;">Loading...</div></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                `);
-            }
-            return rowsHtml.join('');
-        }).join('');
-
-        Object.keys(_customPagesExpanded_).forEach(id => {
-            if (_customPagesExpanded_[id]) loadCustomPageWhitelist(id);
-        });
-    }
-
-    function saveCustomPageFields(id) {
-        const fields = {};
-        Object.keys(CUSTOM_PAGE_FIELD_LABELS_).forEach(k => {
-            const cb = document.getElementById('customPageField_' + id + '_' + k);
-            fields[k] = cb ? cb.checked : true;
-        });
-        google.script.run
-          .withSuccessHandler(() => { showCustomAlert('✓ Bausteine gespeichert.', 'Gespeichert'); loadCustomPages(); })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAdminUpdateCustomPageFields(id, fields);
-    }
-
-    function toggleCustomPageWhitelist(id) {
-        _customPagesExpanded_[id] = !_customPagesExpanded_[id];
-        renderCustomPagesTable();
-    }
-
-    function loadCustomPageWhitelist(id) {
-        const c = document.getElementById('customPageWlContainer_' + id);
-        if (!c) return;
-        google.script.run
-          .withSuccessHandler(r => {
-            c.innerHTML = (r.emails || []).map(e => `
-              <div class="list-row">
-                <span>${escapeHtml(e)}</span>
-                <span class="material-icons-outlined icon-btn-danger" onclick="removeCustomPageWhitelistUser('${escapeJs(id)}', '${escapeJs(e)}')">delete</span>
-              </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-          })
-          .withFailureHandler(err => {
-            c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-          })
-          .apiGetCustomPageWhitelist(id);
-    }
-
-    function addCustomPageWhitelistUser(id) {
-        const input = document.getElementById('newCustomPageWlEmail_' + id);
-        const email = input ? input.value.trim() : '';
-        if (!email) return;
-        google.script.run
-          .withSuccessHandler(() => { if (input) input.value = ''; loadCustomPageWhitelist(id); loadCustomPages(); })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAddCustomPageWhitelist(id, email);
-    }
-
-    function removeCustomPageWhitelistUser(id, email) {
-        showCustomConfirm('"' + email + '" aus der Whitelist entfernen?', function() {
-            google.script.run
-              .withSuccessHandler(() => { loadCustomPageWhitelist(id); loadCustomPages(); })
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiRemoveCustomPageWhitelist(id, email);
-        });
-    }
-
-    function createCustomPage() {
-        const input = document.getElementById('newCustomPageName');
-        const name = input ? input.value.trim() : '';
-        if (!name) { showCustomAlert('Bitte einen Namen eingeben.', 'Hinweis'); return; }
-        const fields = {
-            presets: !!document.getElementById('newCustomPageFieldPresets').checked,
-            dueDate: !!document.getElementById('newCustomPageFieldDueDate').checked,
-            note: !!document.getElementById('newCustomPageFieldNote').checked,
-            refFiles: !!document.getElementById('newCustomPageFieldRefFiles').checked
-        };
-        google.script.run
-          .withSuccessHandler(res => {
-            if (input) input.value = '';
-            ['newCustomPageFieldPresets', 'newCustomPageFieldDueDate', 'newCustomPageFieldNote', 'newCustomPageFieldRefFiles']
-              .forEach(elId => { document.getElementById(elId).checked = true; });
-            showCustomAlert('✓ Reiter "' + res.name + '" angelegt (ID: ' + res.id + '). Bitte Nutzer über die Whitelist eintragen.', 'Angelegt');
-            loadCustomPages();
-          })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAdminCreateCustomPage(name, name, fields);
-    }
-
-    function renameCustomPage(id, currentName) {
-        showCustomPrompt('Neuer Name für diesen Reiter:', currentName, function(newName) {
-            if (!newName || !newName.trim()) return;
-            google.script.run
-              .withSuccessHandler(() => loadCustomPages())
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiAdminRenameCustomPage(id, newName.trim());
-        }, 'Reiter umbenennen');
-    }
-
-    function toggleCustomPageActive(id, active) {
-        google.script.run
-          .withSuccessHandler(() => loadCustomPages())
-          .withFailureHandler(err => { showCustomAlert('Error: ' + err.message, 'Error'); loadCustomPages(); })
-          .apiAdminSetCustomPageActive(id, active);
-    }
-
-    function deleteCustomPage(id, name) {
-        showCustomConfirm('Reiter "' + name + '" wirklich löschen? Die Whitelist bleibt erhalten, falls er später neu angelegt wird.', function() {
-            google.script.run
-              .withSuccessHandler(() => loadCustomPages())
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiAdminDeleteCustomPage(id);
-        });
-    }
-
     function loadAdmins() {
         const c = document.getElementById('adminListContainer');
         c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
@@ -1016,7 +814,6 @@ function toggleAdminHelp(id) {
         const subtabs = [];
         if (document.getElementById('adminLightSubtabUsers').checked) subtabs.push('users');
         if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
-        if (document.getElementById('adminLightSubtabCustompages').checked) subtabs.push('custompages');
         if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
         if (document.getElementById('adminLightSubtabTests').checked) subtabs.push('tests');
         if (document.getElementById('adminLightSubtabDashboard').checked) subtabs.push('dashboard');
@@ -1027,7 +824,6 @@ function toggleAdminHelp(id) {
             document.getElementById('newAdminLightEmail').value = '';
             document.getElementById('adminLightSubtabUsers').checked = false;
             document.getElementById('adminLightSubtabTemplates').checked = false;
-            document.getElementById('adminLightSubtabCustompages').checked = false;
             document.getElementById('adminLightSubtabPivot').checked = false;
             document.getElementById('adminLightSubtabTests').checked = false;
             document.getElementById('adminLightSubtabDashboard').checked = false;

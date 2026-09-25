@@ -6,8 +6,6 @@ function initForm(config) {
   configData = config;
   templateGroups = groupTemplates(config.templates);
 
-  document.querySelectorAll('.dynamic-nav-btn').forEach(el => el.remove());
-  document.querySelectorAll('.dynamic-tab-div').forEach(el => el.remove());
   
   const mktContainer = document.getElementById('marketing-form-container');
   if (mktContainer) {
@@ -38,7 +36,7 @@ function initForm(config) {
 
   // "Allgemeine Projekte" nur fuer explizit auf der Whitelist stehende User (oder Admins),
   // nicht mehr Default-sichtbar fuer jeden, der in keiner anderen Exklusiv-Kategorie steckt.
-  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Articulate/CustomPages) sehen weiterhin NUR ihren Spezial-Tab.
+  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Articulate) sehen weiterhin NUR ihren Spezial-Tab.
   const showRequest = (config.isGeneral && !config.isExclusive) || (config.isAdmin && !config.isImpersonating);
   if (showRequest) {
     if (btnRequest) btnRequest.style.display = 'block';
@@ -177,24 +175,6 @@ function initForm(config) {
     activePortals.push('_kec');
 }
 
-  if (config.customPages && config.customPages.length > 0) {
-    config.customPages.forEach(page => {
-      const navBtn = document.createElement('button');
-      navBtn.className = 'tab-btn dynamic-nav-btn';
-      navBtn.id = 'btn-nav-' + page.id;
-      navBtn.innerText = page.name;
-      navBtn.onclick = () => switchTab(page.id);
-      document.getElementById('portalNav').appendChild(navBtn);
-
-      const tabDiv = document.createElement('div');
-      tabDiv.id = 'tab-' + page.id;
-      tabDiv.className = 'tab-content dynamic-tab-div';
-      document.querySelector('.container').insertBefore(tabDiv, document.getElementById('tab-history'));
-
-      renderFormFromTemplate(page.id, page.name, tabDiv, page.fields);
-      activePortals.push('_' + page.id);
-    });
-  }
   const nav = document.getElementById('mainTabNav');
   if (nav) nav.classList.add('app-ready');
   updatePortalNav_();
@@ -232,13 +212,7 @@ function updatePortalNav_(activeTab) {
   nav.classList.toggle('open', inPortal && visible.length > 1);
 }
 
-/**
- * fieldsConfig (optional): { presets, dueDate, note, refFiles } - blendet die
- * jeweiligen optionalen Bausteine aus, wenn ein Wert explizit false ist. Wird
- * nur von Custom-Tabs (config.customPages) befuellt, siehe CustomPages.gs -
- * die Standard-Portale (Allgemein/Marketing/WOMA/CC) zeigen weiterhin alles.
- */
-function renderFormFromTemplate(id, name, targetDiv, fieldsConfig) {
+function renderFormFromTemplate(id, name, targetDiv) {
   const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
   let finalHtml = templateHtml
     .replace(/\{SUFFIX\}/g, id)
@@ -249,16 +223,6 @@ function renderFormFromTemplate(id, name, targetDiv, fieldsConfig) {
   if (targetDiv) targetDiv.innerHTML = finalHtml;
   else document.getElementById('tab-' + id).innerHTML = finalHtml;
   attachFormLogic('_' + id);
-
-  if (fieldsConfig) {
-    const hide = (elId) => { const el = document.getElementById(elId); if (el) el.style.display = 'none'; };
-    if (fieldsConfig.presets === false) hide('presetRow_' + id);
-    if (fieldsConfig.dueDate === false) hide('dueDateRow_' + id);
-    if (fieldsConfig.note === false) hide('noteRow_' + id);
-    if (fieldsConfig.refFiles === false) hide('refFilesCard_' + id);
-    // Settings-Karte komplett ausblenden, wenn beide ihrer Felder deaktiviert sind.
-    if (fieldsConfig.dueDate === false && fieldsConfig.note === false) hide('settingsCard_' + id);
-  }
 }
 
 function applyI18nToHtmlString_(html, lang) {

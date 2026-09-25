@@ -33,25 +33,11 @@ function getConfig_(impersonateEmail) {
   const isWoma = isWomaUser_(effectiveUser);
   const isCc = isCcUser_(effectiveUser);
 
-  // ?? Custom pages the effective user can access ??
-  let userCustomPages = [];
-  try {
-    const allPages = apiGetCustomPages();
-    allPages.forEach(p => {
-      const wl = getDynamicWhitelist_(p.id);
-      if (wl.includes(effectiveUser)) {
-        userCustomPages.push({ id: p.id, name: p.name });
-      }
-    });
-  } catch(e) {
-    console.warn("getConfig_: custom pages lookup error:", e.message);
-  }
-
   const effectiveIsAdmin = isAdmin_(effectiveUser);
   const adminLightSubtabs = effectiveIsAdmin ? [] : getAdminLightSubtabs_(effectiveUser);
   const isGeneral = isGeneralUser_(effectiveUser);
   // isExclusive: User sieht NUR den jeweiligen Spezial-Tab (kein "General Projects")
-  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isArticulate || userCustomPages.length > 0);
+  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isArticulate);
 
   // ?? FETCH TEMPLATES AND FILTER ??
   const allTemplates = readTemplates_();
@@ -88,7 +74,6 @@ function getConfig_(impersonateEmail) {
     isCc: isCc,
     isGeneral: isGeneral,
     isExclusive: isExclusive,
-    customPages: userCustomPages,
     maintenance: maintenance,
     adminLightSubtabs: adminLightSubtabs
   };
@@ -108,17 +93,6 @@ function getAdminDashboardData_() {
   const docWhitelist = readEmailListFromSheet_(getAccessSheetId_(), DOC_WHITELIST_SHEET_NAME, 1);
   const sizeLimit = getSizeLimitMb_();
 
-  let customPages = [];
-  try {
-    const allPages = apiGetCustomPages();
-    allPages.forEach(p => {
-      const users = getDynamicWhitelist_(p.id);
-      customPages.push({ id: p.id, name: p.name, users: users });
-    });
-  } catch(e) {
-    console.warn("getAdminDashboardData_: custom pages error:", e.message);
-  }
-
   let logs = [];
   try { logs = getRecentQueueLogs_(20); } catch(e) { logs = ["\u2717 Error loading logs: " + e.message]; }
 
@@ -129,7 +103,6 @@ function getAdminDashboardData_() {
     kecWhitelist: kecWhitelist,
     docWhitelist: docWhitelist,
     admins: adminEmails,
-    customPages: customPages,
     logs: logs
   };
 }

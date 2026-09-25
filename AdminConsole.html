@@ -6,7 +6,6 @@
                 <button class="admin-subtab-btn active" id="subtab-btn-console" onclick="switchAdminSubtab('console')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#d93025;cursor:pointer;border-bottom:3px solid #d93025;text-transform:uppercase;">Console</button>
                 <button class="admin-subtab-btn" id="subtab-btn-users" onclick="switchAdminSubtab('users')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">User Manager</button>
                 <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Template Manager</button>
-                <button class="admin-subtab-btn" id="subtab-btn-custompages" onclick="switchAdminSubtab('custompages')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Eigene Reiter</button>
                 <button class="admin-subtab-btn" id="subtab-btn-pivot" onclick="switchAdminSubtab('pivot')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Pivot Templates</button>
                 <button class="admin-subtab-btn" id="subtab-btn-tests" onclick="switchAdminSubtab('tests')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Tests</button>
             </div>
@@ -188,7 +187,7 @@
                     </div>
                     <div id="help-adminlight" class="admin-help-panel">
                         <span class="help-impact impact-high">High Impact &#8211; Eingeschränkter Admin-Zugriff</span>
-                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager, Template Manager, Eigene Reiter, Pivot Templates und/oder das Analytics-Dashboard &#8211; ohne Console (Whitelists, Maintenance, Script Properties etc.). Das Dashboard zeigt dabei alle Projekte (nur lesend).</p>
+                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager, Template Manager, Pivot Templates, Tests und/oder das Analytics-Dashboard &#8211; ohne Console (Whitelists, Maintenance, Script Properties etc.). Das Dashboard zeigt dabei alle Projekte (nur lesend).</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:10px;">
                         <input type="email" id="newAdminLightEmail" placeholder="user@karcher.com">
@@ -199,9 +198,6 @@
                         </label>
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabTemplates" style="width:auto;"> Template Manager
-                        </label>
-                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
-                            <input type="checkbox" id="adminLightSubtabCustompages" style="width:auto;"> Eigene Reiter
                         </label>
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabPivot" style="width:auto;"> Pivot Templates
@@ -664,62 +660,6 @@
     </div>
 <!-- /admin-subtab-templates -->
 
-      <div id="admin-subtab-custompages" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
-          <div class="section-title" style="margin:0;border:none;font-size:18px;">Eigene Reiter (Custom Tabs)</div>
-          <button class="btn-refresh" onclick="loadCustomPages()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
-        </div>
-        <div style="font-size:12px;color:#888;margin-bottom:15px;line-height:1.6;">
-          Legt einen zusätzlichen Reiter mit dem Standard-Anfrageformular an (Template/Quellsprache/Zielsprache/Projektname/Hauptdateien sind immer Pflicht, ohne die kann kein Phrase-Projekt entstehen). Wähle unten aus, welche <strong>optionalen</strong> Bausteine dieser Reiter zusätzlich zeigen soll. Jeder Reiter bekommt eine eigene Whitelist &#8211; nur eingetragene Nutzer sehen ihn, Admins automatisch alle. Es wird <strong>kein Code erzeugt</strong> &#8211; alle Reiter teilen sich dasselbe Formular, nur die sichtbaren Bausteine unterscheiden sich.
-        </div>
-
-        <div class="card" style="margin-bottom:20px;">
-          <div class="section-title" style="font-size:14px;">Neuen Reiter zusammenstellen</div>
-          <div class="form-row">
-            <label style="font-size:12px;">Name des Reiters</label>
-            <input type="text" id="newCustomPageName" placeholder='z.B. "Sonderprojekt XY"'>
-          </div>
-          <div class="form-row">
-            <label style="font-size:12px;">Zusätzliche Bausteine (Template, Sprachen, Projektname und Hauptdateien sind immer dabei)</label>
-            <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:6px;">
-              <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                <input type="checkbox" id="newCustomPageFieldPresets" checked style="width:auto;"> Vorlagen (Presets)
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                <input type="checkbox" id="newCustomPageFieldDueDate" checked style="width:auto;"> Wunschtermin
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                <input type="checkbox" id="newCustomPageFieldNote" checked style="width:auto;"> Notiz-Feld
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                <input type="checkbox" id="newCustomPageFieldRefFiles" checked style="width:auto;"> Referenzdateien
-              </label>
-            </div>
-          </div>
-          <button class="btn btn-primary" style="width:auto; padding:0 25px; margin-top:10px;" onclick="createCustomPage()">
-            <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>REITER ANLEGEN
-          </button>
-        </div>
-
-        <div class="modern-table-wrap">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-                <th>Status</th>
-                <th>Bausteine</th>
-                <th>Nutzer</th>
-                <th style="text-align:right;">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="customPagesTableBody">
-              <tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-<!-- /admin-subtab-custompages -->
 
       <!-- Inhalt wird lazy per apiGetPivotAdminContent() nachgeladen (loadPivotAdminContent_()
            in Index.html), sobald dieser Subtab zum ersten Mal geoeffnet wird - haelt den
