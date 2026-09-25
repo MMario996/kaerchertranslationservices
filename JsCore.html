@@ -755,6 +755,7 @@ function setGlobalLang(lang) {
   // Status-Chips / Leerzustand in "Meine Projekte" in der neuen Sprache neu zeichnen.
   if (globalProjects && globalProjects.length) globalSearch();
   if (typeof currentHistoryView !== 'undefined' && currentHistoryView === 'calendar') renderCalendar(globalProjects);
+  if (typeof renderAnnouncements_ === 'function') renderAnnouncements_();
 }
 
 document.addEventListener("DOMContentLoaded", () => { setGlobalLang(currentLang); });

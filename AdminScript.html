@@ -629,7 +629,148 @@ function toggleAdminHelp(id) {
         else showCustomConfirm(tr_('acc_confirm_revoke', 'Zugriff für {n} Nutzer entziehen?').replace('{n}', emails.length), run);
     }
 
+    // --- Ankuendigungen ---------------------------------------------------------
+    let annList_ = [];
+    const ANN_AREAS_ = ['all', 'general', 'marketing', 'woma', 'cc', 'kec', 'documentation', 'campus', 'admin'];
+
+    function annAudienceLabel_(a) { return a === 'all' ? tr_('ann_all', 'Alle Nutzer') : accAreaLabel_(a); }
+
+    function annInitForm_() {
+        const box = document.getElementById('annAudience');
+        if (!box || box.dataset.ready) return;
+        box.dataset.ready = '1';
+        box.innerHTML = ANN_AREAS_.map(a => '<label class="acc-area-opt"><input type="checkbox" value="' + a + '"' + (a === 'all' ? ' checked' : '') +
+            ' onchange="annAudienceChange_(this)"> <span class="material-icons-outlined">' + (a === 'all' ? 'groups' : (ACC_AREA_ICONS_[a] || 'label')) + '</span>' + escapeHtml(annAudienceLabel_(a)) + '</label>').join('');
+        annPreview_();
+    }
+
+    function annAudienceChange_(cb) {
+        const all = document.querySelector('#annAudience input[value="all"]');
+        const others = Array.from(document.querySelectorAll('#annAudience input')).filter(i => i.value !== 'all');
+        if (cb.value === 'all' && cb.checked) others.forEach(i => { i.checked = false; });
+        else if (cb.value !== 'all') all.checked = !others.some(i => i.checked);
+    }
+
+    function annFormData_() {
+        const iso = id => { const v = document.getElementById(id).value; return v ? new Date(v).toISOString() : ''; };
+        const aud = Array.from(document.querySelectorAll('#annAudience input:checked')).map(i => i.value);
+        return {
+            id: document.getElementById('annId').value || '',
+            type: (document.querySelector('input[name="annType"]:checked') || {}).value || 'info',
+            titleDe: document.getElementById('annTitleDe').value, textDe: document.getElementById('annTextDe').value,
+            titleEn: document.getElementById('annTitleEn').value, textEn: document.getElementById('annTextEn').value,
+            start: iso('annStart'), end: iso('annEnd'),
+            audience: aud.indexOf('all') >= 0 || !aud.length ? ['all'] : aud
+        };
+    }
+
+    function annPreview_() {
+        const a = annFormData_();
+        const t = annText_(a);
+        document.getElementById('annPreview').innerHTML = (t.title || t.text)
+            ? '<div class="announce announce-' + a.type + '" style="margin:0;"><span class="material-icons-outlined announce-ico">' + (ANN_ICONS_[a.type] || 'info') + '</span><div class="announce-body">' +
+              (t.title ? '<strong>' + escapeHtml(t.title) + '</strong>' : '') + (t.text ? '<span>' + escapeHtml(t.text).replace(/\n/g, '<br>') + '</span>' : '') + '</div></div>'
+            : '<div style="color:#999;font-size:13px;padding:14px;border:1px dashed #ddd;border-radius:12px;">' + escapeHtml(tr_('ann_preview_empty', 'Titel oder Text eingeben …')) + '</div>';
+    }
+
+    function annResetForm_() {
+        ['annId', 'annTitleDe', 'annTextDe', 'annTitleEn', 'annTextEn', 'annStart', 'annEnd'].forEach(id => { document.getElementById(id).value = ''; });
+        document.querySelector('input[name="annType"][value="info"]').checked = true;
+        document.querySelectorAll('#annAudience input').forEach(i => { i.checked = i.value === 'all'; });
+        document.getElementById('annSaveBtn').textContent = tr_('ann_publish', 'Veröffentlichen');
+        annPreview_();
+    }
+
+    function annLocalInput_(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        const p = n => String(n).padStart(2, '0');
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function editAnnouncement_(id) {
+        const a = annList_.find(x => x.id === id);
+        if (!a) return;
+        document.getElementById('annId').value = a.id;
+        document.querySelector('input[name="annType"][value="' + a.type + '"]').checked = true;
+        document.getElementById('annTitleDe').value = a.titleDe; document.getElementById('annTextDe').value = a.textDe;
+        document.getElementById('annTitleEn').value = a.titleEn; document.getElementById('annTextEn').value = a.textEn;
+        document.getElementById('annStart').value = annLocalInput_(a.start);
+        document.getElementById('annEnd').value = annLocalInput_(a.end);
+        document.querySelectorAll('#annAudience input').forEach(i => { i.checked = a.audience.indexOf(i.value) >= 0 || (i.value === 'all' && !a.audience.length); });
+        document.getElementById('annSaveBtn').textContent = tr_('ann_update', 'Aktualisieren');
+        annPreview_();
+        document.querySelector('.ann-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function loadAnnouncementsAdmin() {
+        annInitForm_();
+        google.script.run.withSuccessHandler(res => {
+            if (!res || !res.success) { document.getElementById('annList').innerHTML = '<div style="color:#d93025;padding:10px;">' + escapeHtml((res && res.error) || 'Error') + '</div>'; return; }
+            renderAnnouncementsAdmin_(res.announcements || []);
+        }).withFailureHandler(err => {
+            document.getElementById('annList').innerHTML = '<div style="color:#d93025;padding:10px;">' + escapeHtml(err.message) + '</div>';
+        }).apiAdminListAnnouncements();
+    }
+
+    function renderAnnouncementsAdmin_(list) {
+        annList_ = list;
+        const now = Date.now();
+        const state = a => !a.active ? ['off', tr_('ann_s_off', 'Aus')] : a.live ? ['live', tr_('ann_s_live', 'Aktiv')]
+            : (a.start && new Date(a.start).getTime() > now ? ['planned', tr_('ann_s_planned', 'Geplant')] : ['expired', tr_('ann_s_expired', 'Abgelaufen')]);
+        const fmt = iso => iso ? new Date(iso).toLocaleString(calLocale_(), { dateStyle: 'short', timeStyle: 'short' }) : '';
+        document.getElementById('annList').innerHTML = list.map(a => {
+            const t = annText_(a), s = state(a);
+            return '<div class="ann-item">' +
+              '<span class="material-icons-outlined ann-item-ico ann-c-' + a.type + '">' + (ANN_ICONS_[a.type] || 'info') + '</span>' +
+              '<div class="ann-item-main"><div class="ann-item-title">' + escapeHtml(t.title || t.text.slice(0, 80)) + ' <span class="ann-state ann-state-' + s[0] + '">' + escapeHtml(s[1]) + '</span></div>' +
+              '<div class="ann-item-meta">' + escapeHtml(a.audience.map(annAudienceLabel_).join(', ')) +
+                (a.start || a.end ? ' · ' + escapeHtml(fmt(a.start) + ' – ' + fmt(a.end)) : '') +
+                (a.chatSentAt ? ' · <span class="material-icons-outlined" style="font-size:13px;vertical-align:-2px;">chat</span> ' + escapeHtml(fmt(a.chatSentAt)) : '') + '</div></div>' +
+              '<div class="ann-item-actions">' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(tr_('ann_edit', 'Bearbeiten')) + '" onclick="editAnnouncement_(\'' + a.id + '\')"><span class="material-icons-outlined">edit</span></button>' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(a.active ? tr_('ann_disable', 'Ausschalten') : tr_('ann_enable', 'Einschalten')) + '" onclick="toggleAnnouncement_(\'' + a.id + '\',' + !a.active + ')"><span class="material-icons-outlined">' + (a.active ? 'toggle_on' : 'toggle_off') + '</span></button>' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(tr_('ann_send_chat', 'Per Chat senden')) + '" onclick="sendAnnouncementChat_(\'' + a.id + '\')"><span class="material-icons-outlined">send</span></button>' +
+                '<button type="button" class="pv-icon-btn danger" title="' + escapeHtml(tr_('ann_delete', 'Löschen')) + '" onclick="deleteAnnouncement_(\'' + a.id + '\')"><span class="material-icons-outlined">delete</span></button>' +
+              '</div></div>';
+        }).join('') || '<div class="pv-empty"><span class="material-icons-outlined">campaign</span>' + escapeHtml(tr_('ann_none', 'Noch keine Ankündigungen.')) + '</div>';
+    }
+
+    function annAfterChange_(res, msg) {
+        if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || 'Error'), 'Error'); return; }
+        renderAnnouncementsAdmin_(res.announcements || []);
+        if (msg) showToast_('✓ ' + msg, 'ok');
+    }
+
+    function saveAnnouncement_() {
+        const a = annFormData_();
+        if (!(a.titleDe || a.textDe || a.titleEn || a.textEn).trim()) { showCustomAlert(escapeHtml(tr_('ann_need_text', 'Bitte Titel oder Text eingeben.')), 'Info'); return; }
+        google.script.run.withSuccessHandler(res => { annAfterChange_(res, tr_('ann_saved', 'Ankündigung gespeichert')); if (res && res.success) annResetForm_(); })
+          .withFailureHandler(err => showCustomAlert(escapeHtml(err.message), 'Error')).apiAdminSaveAnnouncement(a);
+    }
+    function toggleAnnouncement_(id, on) {
+        google.script.run.withSuccessHandler(res => annAfterChange_(res)).withFailureHandler(err => showCustomAlert(escapeHtml(err.message), 'Error')).apiAdminSetAnnouncementActive(id, on);
+    }
+    function deleteAnnouncement_(id) {
+        showCustomConfirm(tr_('ann_confirm_delete', 'Ankündigung löschen?'), () => {
+            google.script.run.withSuccessHandler(res => annAfterChange_(res, tr_('ann_deleted', 'Gelöscht'))).withFailureHandler(err => showCustomAlert(escapeHtml(err.message), 'Error')).apiAdminDeleteAnnouncement(id);
+        });
+    }
+    function sendAnnouncementChat_(id) {
+        showCustomConfirm(tr_('ann_confirm_chat', 'Ankündigung jetzt per Google Chat an alle Nutzer der Zielgruppe senden?'), () => {
+            setDownloadProgress_(tr_('ann_sending', 'Sende Chat-Nachrichten...'), tr_('ann_sending_sub', 'Das kann bei vielen Empfängern einige Minuten dauern.'));
+            google.script.run.withSuccessHandler(res => {
+                hideDownloadProgress_();
+                if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || 'Error'), 'Error'); return; }
+                showCustomAlert(escapeHtml(tr_('ann_chat_result', '{s} von {n} gesendet, {k} ohne Chat-Verbindung übersprungen.').replace('{s}', res.sent).replace('{n}', res.recipients).replace('{k}', res.skipped)) +
+                    (res.pending ? '<div class="dl-errors">' + escapeHtml(tr_('ann_chat_pending', '{p} Empfänger wegen Zeitlimit nicht erreicht.').replace('{p}', res.pending)) + '</div>' : ''), tr_('ann_title', 'Ankündigungen'));
+                loadAnnouncementsAdmin();
+            }).withFailureHandler(err => { hideDownloadProgress_(); showCustomAlert(escapeHtml(err.message), 'Error'); }).apiAdminSendAnnouncementChat(id);
+        });
+    }
+
     function loadAdminDashboardData() {
+        loadAnnouncementsAdmin();
         let savedGroup = 'access';
         try { savedGroup = localStorage.getItem('consoleGroup') || 'access'; } catch (e) {}
         switchConsoleGroup(savedGroup);

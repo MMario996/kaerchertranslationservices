@@ -75,7 +75,11 @@ function getConfig_(impersonateEmail) {
     isGeneral: isGeneral,
     isExclusive: isExclusive,
     maintenance: maintenance,
-    adminLightSubtabs: adminLightSubtabs
+    adminLightSubtabs: adminLightSubtabs,
+    announcements: announcementsForUser_({
+      isGeneral: isGeneral, isMarketing: isMarketing, isWoma: isWoma, isCc: isCc, isKeC: isKeC,
+      isDoc: isDoc, isArticulate: isArticulate, effectiveIsAdmin: effectiveIsAdmin
+    })
   };
 }
 

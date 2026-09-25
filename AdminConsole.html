@@ -433,6 +433,47 @@
                     <button class="btn btn-primary" style="width:100%; background-color:#ff9800; color:#fff; margin-top:10px;" onclick="runUserTemplatesDebug()">ZEIGE TEMPLATES</button>
                     <div id="debugResultContainer" style="margin-top:15px; padding:15px; background:#fff3e0; border:1px solid #ffe0b2; font-size:12px; display:none; white-space:pre-wrap; font-family:monospace; line-height:1.6; max-height:400px; overflow-y:auto;"></div>
                 </div>
+                <div class="card ann-card" data-cgroup="comms" style="grid-column:1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">campaign</span><span data-i18n="ann_title">Ankündigungen</span></div>
+                        <button type="button" class="btn-refresh" onclick="loadAnnouncementsAdmin()"><i class="material-icons-outlined">refresh</i></button>
+                    </div>
+                    <div class="acc-hint" data-i18n="ann_hint">Hinweise erscheinen als Banner oben in der App – für alle oder nur für bestimmte Bereiche, optional mit Zeitraum. Auf Wunsch zusätzlich als Chat-Nachricht.</div>
+                    <div class="ann-layout">
+                        <div class="ann-form">
+                            <input type="hidden" id="annId">
+                            <div class="ann-label" data-i18n="ann_type">Art</div>
+                            <div class="ann-types" id="annTypes">
+                                <label class="ann-type ann-t-info"><input type="radio" name="annType" value="info" checked onchange="annPreview_()"><span class="material-icons-outlined">info</span><span data-i18n="ann_t_info">Info</span></label>
+                                <label class="ann-type ann-t-success"><input type="radio" name="annType" value="success" onchange="annPreview_()"><span class="material-icons-outlined">check_circle</span><span data-i18n="ann_t_success">Neuerung</span></label>
+                                <label class="ann-type ann-t-warning"><input type="radio" name="annType" value="warning" onchange="annPreview_()"><span class="material-icons-outlined">warning_amber</span><span data-i18n="ann_t_warning">Warnung</span></label>
+                                <label class="ann-type ann-t-critical"><input type="radio" name="annType" value="critical" onchange="annPreview_()"><span class="material-icons-outlined">report</span><span data-i18n="ann_t_critical">Kritisch</span></label>
+                            </div>
+                            <div class="ann-label">Deutsch</div>
+                            <input type="text" id="annTitleDe" class="acc-input ann-full" data-i18n-placeholder="ann_ph_title" placeholder="Titel" oninput="annPreview_()">
+                            <textarea id="annTextDe" rows="3" class="acc-input" data-i18n-placeholder="ann_ph_text" placeholder="Text" oninput="annPreview_()"></textarea>
+                            <div class="ann-label">English <span class="ann-opt" data-i18n="ann_en_hint">(für alle anderen Sprachen)</span></div>
+                            <input type="text" id="annTitleEn" class="acc-input ann-full" placeholder="Title" oninput="annPreview_()">
+                            <textarea id="annTextEn" rows="3" class="acc-input" placeholder="Text" oninput="annPreview_()"></textarea>
+                            <div class="ann-row">
+                                <div><div class="ann-label" data-i18n="ann_start">Start (optional)</div><input type="datetime-local" id="annStart" class="acc-input ann-full"></div>
+                                <div><div class="ann-label" data-i18n="ann_end">Ende (optional)</div><input type="datetime-local" id="annEnd" class="acc-input ann-full"></div>
+                            </div>
+                            <div class="ann-label" data-i18n="ann_audience">Zielgruppe</div>
+                            <div class="acc-add-areas" id="annAudience"></div>
+                            <div class="ann-actions">
+                                <button type="button" class="btn btn-secondary" style="width:auto;padding:0 18px;height:40px;" onclick="annResetForm_()" data-i18n="ann_new">Neu</button>
+                                <button type="button" class="btn btn-primary" style="width:auto;padding:0 22px;height:40px;" onclick="saveAnnouncement_()" id="annSaveBtn" data-i18n="ann_publish">Veröffentlichen</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="ann-label" data-i18n="ann_preview">Vorschau</div>
+                            <div id="annPreview" class="ann-preview"></div>
+                            <div class="ann-label" style="margin-top:18px;" data-i18n="ann_list">Alle Ankündigungen</div>
+                            <div id="annList" class="ann-list"><div style="color:#888;padding:10px;">Loading...</div></div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="card" data-cgroup="comms" style="border-top-color:#4CAF50;">
                     <div class="admin-card-header">

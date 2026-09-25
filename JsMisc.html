@@ -664,4 +664,43 @@ function runSelfTests_() {
     box.innerHTML = '<div class="dl-errors">' + escapeHtml(e.message) + '</div>';
   }).apiRunSelfTests();
 }
+
+// --- Ankuendigungen (Banner oben in der App) ------------------------------------
+// Kommen mit apiGetConfig(); weggeklickte Hinweise merkt sich der Browser.
+// Kritische Hinweise lassen sich nicht wegklicken.
+let announcements_ = [];
+const ANN_ICONS_ = { info: 'info', success: 'check_circle', warning: 'warning_amber', critical: 'report' };
+
+function annText_(a) {
+  const de = currentLang === 'de';
+  const title = de ? (a.titleDe || a.titleEn) : (a.titleEn || a.titleDe);
+  const text = de ? (a.textDe || a.textEn) : (a.textEn || a.textDe);
+  return { title: title || '', text: text || '' };
+}
+
+function annDismissed_() {
+  try { return JSON.parse(localStorage.getItem('annDismissed') || '[]') || []; } catch (e) { return []; }
+}
+
+function renderAnnouncements_(list) {
+  if (list) announcements_ = list;
+  const host = document.getElementById('announceHost');
+  if (!host) return;
+  const dismissed = annDismissed_();
+  host.innerHTML = announcements_.filter(a => a.type === 'critical' || dismissed.indexOf(a.id) < 0).map(a => {
+    const t = annText_(a);
+    return `<div class="announce announce-${escapeHtml(a.type)}" role="${a.type === 'critical' ? 'alert' : 'status'}">
+      <span class="material-icons-outlined announce-ico">${ANN_ICONS_[a.type] || 'info'}</span>
+      <div class="announce-body">${t.title ? `<strong>${escapeHtml(t.title)}</strong>` : ''}${t.text ? `<span>${escapeHtml(t.text).replace(/\n/g, '<br>')}</span>` : ''}</div>
+      ${a.type === 'critical' ? '' : `<button type="button" class="announce-close" onclick="dismissAnnouncement_('${escapeJs(a.id)}')" title="${escapeHtml(tr_('btn_close', 'Schließen'))}"><span class="material-icons-outlined">close</span></button>`}
+    </div>`;
+  }).join('');
+}
+
+function dismissAnnouncement_(id) {
+  const d = annDismissed_();
+  if (d.indexOf(id) < 0) d.push(id);
+  try { localStorage.setItem('annDismissed', JSON.stringify(d.slice(-100))); } catch (e) {}
+  renderAnnouncements_();
+}
 </script>

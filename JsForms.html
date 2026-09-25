@@ -130,6 +130,7 @@ function initForm(config) {
   }
 
   checkMaintenanceStatus(config.maintenance, config.isAdmin);
+  renderAnnouncements_(config.announcements || []);
 
   activePortals = [];
 
