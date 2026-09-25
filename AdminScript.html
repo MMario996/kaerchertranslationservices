@@ -523,7 +523,117 @@ function toggleAdminHelp(id) {
         })
         .apiUpdateUserField(username, field, value, syncToPhrase);
     }
+    // --- Console: Unterreiter & Zugriffs-Uebersicht ----------------------
+    let consoleGroup_ = 'access';
+    let accData_ = null;
+    const ACC_AREA_ICONS_ = { general: 'public', marketing: 'campaign', woma: 'water_drop', cc: 'hub', kec: 'inventory_2', documentation: 'description', campus: 'school', admin: 'admin_panel_settings' };
+
+    function switchConsoleGroup(g) {
+        consoleGroup_ = g || 'access';
+        try { localStorage.setItem('consoleGroup', consoleGroup_); } catch (e) {}
+        const showLegacy = !!(document.getElementById('accShowLegacy') || {}).checked;
+        document.querySelectorAll('#adminGridContainer > [data-cgroup]').forEach(card => {
+            const on = card.getAttribute('data-cgroup') === consoleGroup_ && (!card.hasAttribute('data-legacy') || showLegacy);
+            card.style.display = on ? '' : 'none';
+        });
+        document.querySelectorAll('#consoleGroupNav .cgroup-btn').forEach(b => b.classList.toggle('active', b.dataset.cg === consoleGroup_));
+    }
+
+    function accAreaLabel_(id) {
+        return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
+    }
+
+    function loadAccessMatrix() {
+        const tbody = document.querySelector('#accTable tbody');
+        if (!tbody) return;
+        google.script.run.withSuccessHandler(res => {
+            if (!res || !res.success) { tbody.innerHTML = '<tr><td style="color:#d93025;padding:15px;">' + escapeHtml((res && res.error) || 'Error') + '</td></tr>'; return; }
+            accData_ = res;
+            const f = document.getElementById('accFilter');
+            const cur = f.value;
+            f.innerHTML = '<option value="">' + escapeHtml(tr_('acc_all_areas', 'Alle Bereiche')) + '</option>' +
+                '<option value="__none">' + escapeHtml(tr_('acc_no_area', 'Ohne Bereich')) + '</option>' +
+                res.areas.map(a => '<option value="' + a + '">' + escapeHtml(accAreaLabel_(a)) + '</option>').join('');
+            f.value = cur;
+            document.getElementById('accAddAreas').innerHTML = res.areas.map(a =>
+                '<label class="acc-area-opt"><input type="checkbox" value="' + a + '"> <span class="material-icons-outlined">' + (ACC_AREA_ICONS_[a] || 'label') + '</span>' + escapeHtml(accAreaLabel_(a)) + '</label>').join('');
+            renderAccessMatrix_();
+        }).withFailureHandler(err => {
+            tbody.innerHTML = '<tr><td style="color:#d93025;padding:15px;">' + escapeHtml(err.message) + '</td></tr>';
+        }).apiGetAccessMatrix();
+    }
+
+    function renderAccessMatrix_() {
+        if (!accData_) return;
+        const q = (document.getElementById('accSearch').value || '').trim().toLowerCase();
+        const filter = document.getElementById('accFilter').value;
+        const areas = accData_.areas;
+        const users = accData_.users.filter(u => {
+            if (q && u.email.indexOf(q) < 0) return false;
+            if (filter === '__none') return !areas.some(a => u.areas[a]);
+            if (filter) return !!u.areas[filter];
+            return true;
+        });
+        const counts = {};
+        areas.forEach(a => { counts[a] = accData_.users.filter(u => u.areas[a]).length; });
+        document.getElementById('accCount').textContent = '(' + users.length + (users.length !== accData_.users.length ? ' / ' + accData_.users.length : '') + ')';
+        document.querySelector('#accTable thead').innerHTML = '<tr><th>' + escapeHtml(tr_('acc_user', 'Nutzer')) + '</th>' +
+            areas.map(a => '<th title="' + escapeHtml(accAreaLabel_(a)) + '"><span class="material-icons-outlined">' + (ACC_AREA_ICONS_[a] || 'label') + '</span><div>' + escapeHtml(accAreaLabel_(a)) + '</div><small>' + counts[a] + '</small></th>').join('') +
+            '<th>Admin-Light</th></tr>';
+        document.querySelector('#accTable tbody').innerHTML = users.slice(0, 400).map(u =>
+            '<tr><td class="acc-email">' + escapeHtml(u.email) + (u.email === accData_.me ? ' <span class="acc-me">' + escapeHtml(tr_('acc_you', 'du')) + '</span>' : '') + '</td>' +
+            areas.map(a => {
+                const lock = a === 'admin' && u.email === accData_.me;
+                return '<td class="acc-cell"><input type="checkbox" ' + (u.areas[a] ? 'checked ' : '') + (lock ? 'disabled ' : '') +
+                  'aria-label="' + escapeHtml(u.email + ' – ' + accAreaLabel_(a)) + '" onchange="toggleAccess_(\'' + escapeJs(u.email) + '\', \'' + a + '\', this)"></td>';
+            }).join('') +
+            '<td class="acc-light">' + (u.light || []).map(l => '<span>' + escapeHtml(l) + '</span>').join('') + '</td></tr>'
+        ).join('') || '<tr><td colspan="' + (areas.length + 2) + '" style="padding:20px;color:#888;text-align:center;">' + escapeHtml(tr_('acc_none', 'Keine Nutzer gefunden.')) + '</td></tr>';
+    }
+
+    function toggleAccess_(email, area, cb) {
+        const grant = cb.checked;
+        cb.disabled = true;
+        google.script.run.withSuccessHandler(res => {
+            cb.disabled = false;
+            if (!res || !res.success || (res.errors && res.errors.length)) {
+                cb.checked = !grant;
+                showCustomAlert(escapeHtml(((res && res.errors) || [res && res.error]).join('\n')), 'Error');
+                return;
+            }
+            const u = accData_.users.find(x => x.email === email);
+            if (u) { if (grant) u.areas[area] = true; else delete u.areas[area]; }
+            showToast_('✓ ' + email + ' – ' + accAreaLabel_(area) + (grant ? ' +' : ' –'), 'ok');
+        }).withFailureHandler(err => {
+            cb.disabled = false; cb.checked = !grant;
+            showCustomAlert(escapeHtml(err.message), 'Error');
+        }).apiSetAccessBulk([email], [area], grant);
+    }
+
+    function bulkAccess_(grant) {
+        const emails = document.getElementById('accAddEmails').value.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(e => e.indexOf('@') > 0);
+        const areas = Array.from(document.querySelectorAll('#accAddAreas input:checked')).map(i => i.value);
+        if (!emails.length || !areas.length) { showCustomAlert(escapeHtml(tr_('acc_need_input', 'Bitte mindestens eine E-Mail und einen Bereich angeben.')), tr_('pv_error', 'Hinweis')); return; }
+        const run = () => {
+            setDownloadProgress_(tr_('acc_saving', 'Speichere Zugriffe...'), '');
+            google.script.run.withSuccessHandler(res => {
+                hideDownloadProgress_();
+                if (res.errors && res.errors.length) showCustomAlert('<div class="dl-errors">' + res.errors.map(escapeHtml).join('<br>') + '</div>', 'Info');
+                else showToast_('✓ ' + tr_('acc_changed', '{n} Änderung(en) gespeichert').replace('{n}', res.changed), 'ok');
+                document.getElementById('accAddEmails').value = '';
+                loadAccessMatrix();
+            }).withFailureHandler(err => { hideDownloadProgress_(); showCustomAlert(escapeHtml(err.message), 'Error'); })
+              .apiSetAccessBulk(emails, areas, grant);
+        };
+        if (grant) run();
+        else showCustomConfirm(tr_('acc_confirm_revoke', 'Zugriff für {n} Nutzer entziehen?').replace('{n}', emails.length), run);
+    }
+
     function loadAdminDashboardData() {
+        let savedGroup = 'access';
+        try { savedGroup = localStorage.getItem('consoleGroup') || 'access'; } catch (e) {}
+        switchConsoleGroup(savedGroup);
+        loadAccessMatrix();
         loadWhitelist();
         loadMarketingWhitelist();
         loadWomaWhitelist();

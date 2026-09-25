@@ -13,11 +13,42 @@
             <div id="admin-subtab-console">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px;">
                 <div class="section-title" style="margin:0; border:none; font-size:20px;">Admin Console</div>
-                <button class="btn-refresh" onclick="loadAdminDashboardData()"><i class="material-icons-outlined">refresh</i> Refresh Data</button>
+                <button class="btn-refresh" onclick="loadAdminDashboardData()"><i class="material-icons-outlined">refresh</i> <span data-i18n="ad_refresh">Refresh Data</span></button>
+            </div>
+
+            <div class="cgroup-nav" id="consoleGroupNav">
+                <button type="button" class="cgroup-btn active" data-cg="access" onclick="switchConsoleGroup('access')"><span class="material-icons-outlined">group</span><span data-i18n="cg_access">Zugriffe</span></button>
+                <button type="button" class="cgroup-btn" data-cg="system" onclick="switchConsoleGroup('system')"><span class="material-icons-outlined">tune</span><span data-i18n="cg_system">System</span></button>
+                <button type="button" class="cgroup-btn" data-cg="comms" onclick="switchConsoleGroup('comms')"><span class="material-icons-outlined">campaign</span><span data-i18n="cg_comms">Kommunikation</span></button>
+                <button type="button" class="cgroup-btn" data-cg="logs" onclick="switchConsoleGroup('logs')"><span class="material-icons-outlined">receipt_long</span><span data-i18n="cg_logs">Protokolle &amp; Diagnose</span></button>
             </div>
 
             <div class="admin-grid" id="adminGridContainer">
-                <div class="card" style="border-top-color:#9c27b0;">
+                <div class="card access-card" data-cgroup="access" style="grid-column:1 / -1;">
+                    <div class="admin-card-header">
+                        <div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">grid_on</span><span data-i18n="acc_title">Zugriffs-Übersicht</span> <span id="accCount" class="acc-count"></span></div>
+                        <div class="acc-tools">
+                            <input type="search" id="accSearch" class="acc-input" oninput="renderAccessMatrix_()" data-i18n-placeholder="acc_search" placeholder="Nutzer suchen...">
+                            <select id="accFilter" class="acc-input" onchange="renderAccessMatrix_()"></select>
+                            <button type="button" class="btn-refresh" onclick="loadAccessMatrix()"><i class="material-icons-outlined">refresh</i></button>
+                        </div>
+                    </div>
+                    <div class="acc-hint" data-i18n="acc_hint">Ein Häkchen gibt dem Nutzer Zugriff auf den Bereich. Änderungen werden sofort gespeichert.</div>
+                    <details class="acc-add">
+                        <summary><span class="material-icons-outlined">person_add</span><span data-i18n="acc_add_title">Nutzer hinzufügen (auch mehrere)</span></summary>
+                        <div class="acc-add-body">
+                            <textarea id="accAddEmails" rows="3" class="acc-input" data-i18n-placeholder="acc_add_ph" placeholder="E-Mail-Adressen, getrennt durch Komma, Leerzeichen oder Zeilenumbruch"></textarea>
+                            <div id="accAddAreas" class="acc-add-areas"></div>
+                            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                                <button type="button" class="btn btn-secondary" style="width:auto;padding:0 18px;height:38px;" onclick="bulkAccess_(false)" data-i18n="acc_revoke">Entziehen</button>
+                                <button type="button" class="btn btn-primary" style="width:auto;padding:0 18px;height:38px;" onclick="bulkAccess_(true)" data-i18n="acc_grant">Freigeben</button>
+                            </div>
+                        </div>
+                    </details>
+                    <div class="acc-table-wrap"><table class="acc-table" id="accTable"><thead></thead><tbody><tr><td style="padding:20px;color:#888;">Loading...</td></tr></tbody></table></div>
+                    <label class="acc-legacy-toggle"><input type="checkbox" id="accShowLegacy" onchange="switchConsoleGroup('access')"> <span data-i18n="acc_show_legacy">Einzelne Whitelist-Listen zusätzlich anzeigen</span></label>
+                </div>
+                <div class="card" data-cgroup="access" style="border-top-color:#9c27b0;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#9c27b0;">User View Simulator</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('simulator')" title="Help">?</button>
@@ -36,7 +67,7 @@
                         <button class="btn" style="width:auto; padding:0 20px; background-color:#9c27b0; color:#fff;" onclick="toggleImpersonation()">SIMULATE</button>
                     </div>
                 </div>
-                <div class="card">
+                <div class="card" data-cgroup="system">
                     <div class="admin-card-header">
                         <div class="section-title">Maintenance Mode</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('maintenance')" title="Help">?</button>
@@ -66,7 +97,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" data-cgroup="system">
                     <div class="admin-card-header">
                         <div class="section-title">System Configuration</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('sysconfig')" title="Help">?</button>
@@ -123,7 +154,7 @@
                     </div>
                 </div>
 
-                <div class="card" style="border-top-color:#1a73e8;">
+                <div class="card" data-cgroup="system" style="border-top-color:#1a73e8;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#1a73e8;">Google Drive Export ("Save to Drive")</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('drivesave')" title="Help">?</button>
@@ -149,7 +180,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" data-cgroup="access" data-legacy="1">
                     <div class="admin-card-header">
                         <div class="section-title">General Projects Whitelist</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('stdwl')" title="Help">?</button>
@@ -165,7 +196,7 @@
                     <div id="whitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
 
-                <div class="card" style="border-top-color:#d93025;">
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#d93025;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#d93025;">Manage Administrators</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('admins')" title="Help">?</button>
@@ -180,7 +211,7 @@
                     </div>
                     <div id="adminListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
-                <div class="card" style="border-top-color:#795548;">
+                <div class="card" data-cgroup="access" style="border-top-color:#795548;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#795548;">Admin-Light Access</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('adminlight')" title="Help">?</button>
@@ -213,7 +244,7 @@
                     <div id="adminLightListContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
                 
-                <div class="card">
+                <div class="card" data-cgroup="access" data-legacy="1">
                     <div class="admin-card-header">
                         <div class="section-title">Marketing Projects Whitelist</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('mktgwl')" title="Help">?</button>
@@ -228,7 +259,7 @@
                     </div>
                     <div id="marketingWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
-                <div class="card">
+                <div class="card" data-cgroup="access" data-legacy="1">
                     <div class="admin-card-header">
                         <div class="section-title">WOMA Whitelist</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('womawl')" title="Help">?</button>
@@ -244,7 +275,7 @@
                     <div id="womaWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
 
-                <div class="card" style="border-top-color:#00838f;">
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#00838f;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#00838f;">Competence Center Projects Whitelist</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('ccwl')" title="Help">?</button>
@@ -259,7 +290,7 @@
                     </div>
                     <div id="ccWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
-                <div class="card" style="border-top-color:#9c27b0;">
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#9c27b0;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#9c27b0;">KeC Projects Whitelist</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('kecwl')" title="Help">?</button>
@@ -275,7 +306,7 @@
                     <div id="kecWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
 
-                <div class="card" style="border-top-color:#0288d1;">
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#0288d1;">
                     <div class="admin-card-header">
                       <div class="section-title" style="color:#0288d1;">Documentation Projects Whitelist</div>
                       <button class="help-toggle-btn" onclick="toggleAdminHelp('docwl')" title="Help">?</button>
@@ -291,7 +322,7 @@
                     <div id="docWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                   </div>
 
-                <div class="card" style="border-top-color:#1a73e8;">
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#1a73e8;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#1a73e8;">
                             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">play_circle</span>
@@ -313,7 +344,7 @@
                     <div id="articulateWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;">Loading...</div></div>
                 </div>
 
-                <div class="card" style="border-top-color:#9c27b0;">
+                <div class="card" data-cgroup="system" style="border-top-color:#9c27b0;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#9c27b0;">KeC Eligibility Settings</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('kecelig')" title="Help">?</button>
@@ -349,7 +380,7 @@
                         SPEICHERN
                     </button>
                 </div>
-                <div class="card" style="border-top-color:#0288d1;">
+                <div class="card" data-cgroup="system" style="border-top-color:#0288d1;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#0288d1;">Documentation Drive Root</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('docdriveroot')" title="Help">?</button>
@@ -374,7 +405,7 @@
                         SPEICHERN
                     </button>
                 </div>
-                <div class="card">
+                <div class="card" data-cgroup="logs">
                     <div class="admin-card-header">
                         <div class="section-title">System Logs (Last 20)</div>
                         <div style="display:flex;gap:6px;align-items:center;">
@@ -386,7 +417,7 @@
                     </div>
                 </div>
 
-                <div class="card" style="border-top-color:#ff9800;">
+                <div class="card" data-cgroup="logs" style="border-top-color:#ff9800;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#ff9800;">User Template Debugger</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('debug')" title="Help">?</button>
@@ -403,7 +434,7 @@
                     <div id="debugResultContainer" style="margin-top:15px; padding:15px; background:#fff3e0; border:1px solid #ffe0b2; font-size:12px; display:none; white-space:pre-wrap; font-family:monospace; line-height:1.6; max-height:400px; overflow-y:auto;"></div>
                 </div>
 
-                <div class="card" style="border-top-color:#4CAF50;">
+                <div class="card" data-cgroup="comms" style="border-top-color:#4CAF50;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#4CAF50;">Chat Bot Tester</div>
                         <button class="help-toggle-btn" onclick="toggleAdminHelp('chattest')" title="Help">?</button>
@@ -421,7 +452,7 @@
                     </div>
                 </div>
 
-                <div class="card" style="border-top-color:#009688;">
+                <div class="card" data-cgroup="comms" style="border-top-color:#009688;">
                   <div class="admin-card-header">
                       <div class="section-title" style="color:#009688;">
                           <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">visibility</span>
@@ -457,7 +488,7 @@
                   </div>
               </div>
 
-                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
+                <div class="card" data-cgroup="comms" style="border-top-color:#1565c0; grid-column: 1 / -1;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#1565c0;">
                             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">message</span>
@@ -484,7 +515,7 @@
                     </div>
                 </div>
                 
-                <div class="card" style="border-top-color:#607d8b; grid-column: 1 / -1;">
+                <div class="card" data-cgroup="system" style="border-top-color:#607d8b; grid-column: 1 / -1;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#607d8b;">
                             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">settings_applications</span>
@@ -528,7 +559,7 @@
                     </div>
                 </div>
                 
-                <div class="card" style="border-top-color:#1565c0; grid-column: 1 / -1;">
+                <div class="card" data-cgroup="logs" style="border-top-color:#1565c0; grid-column: 1 / -1;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#1565c0;">
                             <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">history</span>
