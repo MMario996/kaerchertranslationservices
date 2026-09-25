@@ -10,7 +10,7 @@ function initForm(config) {
   const mktContainer = document.getElementById('marketing-form-container');
   if (mktContainer) {
       mktContainer.innerHTML = `<button id="marketingShowInfoBtn" class="btn-open-sidebar" onclick="toggleMarketingSidebar()">
-        <span class="material-icons-outlined">info</span> Show Help &amp; Options
+        <span class="material-icons-outlined">info</span> ${' ' + tr_('jx_cab257d', 'Show Help &amp; Options') + '\n      '}
       </button>`;
   }
 
@@ -71,19 +71,19 @@ function initForm(config) {
       // keine eigenen Kacheln mehr unterhalb des Formulars.
       const reviewRow =
         '<div class="form-row">' +
-          '<label><span data-i18n="art_review_type">Review-Typ</span> <span class="required">*</span></label>' +
+          ('<label><span data-i18n="art_review_type">' + tr_('jx_f608234', 'Review-Typ') + '</span> <span class="required">*</span></label>') +
           '<select id="artReviewType" required>' +
-            '<option value="" disabled selected>-- Bitte auswählen --</option>' +
-            '<option value="Review Campus Sales H&amp;G">Review Campus Sales H&amp;G</option>' +
-            '<option value="Review Campus Sales Professional">Review Campus Sales Professional</option>' +
-            '<option value="Review Campus Product Trainings">Review Campus Product Trainings</option>' +
-            '<option value="Review Campus DSGVO Training">Review Campus DSGVO Training</option>' +
+            ('<option value="" disabled selected>' + tr_('jx_bd51c38', '-- Bitte auswählen --') + '</option>') +
+            ('<option value="Review Campus Sales H&amp;G">' + tr_('jx_fdff951', 'Review Campus Sales H&amp;G') + '</option>') +
+            ('<option value="Review Campus Sales Professional">' + tr_('jx_1eca1d7', 'Review Campus Sales Professional') + '</option>') +
+            ('<option value="Review Campus Product Trainings">' + tr_('jx_26ab525', 'Review Campus Product Trainings') + '</option>') +
+            ('<option value="Review Campus DSGVO Training">' + tr_('jx_7760e52', 'Review Campus DSGVO Training') + '</option>') +
           '</select>' +
         '</div>';
       const scormRow =
         '<div class="form-row art-scorm-row">' +
           '<label for="artSubmitScormFolder"><span class="material-icons-outlined" style="font-size:18px;color:#1a73e8;">play_circle</span>' +
-            '<span data-i18n="art_scorm_label">SCORM-Preview automatisch erzeugen</span> <span class="art-opt">optional</span></label>' +
+            ('<span data-i18n="art_scorm_label">' + tr_('jx_580a4c6', 'SCORM-Preview automatisch erzeugen') + '</span> <span class="art-opt">optional</span></label>') +
           '<div class="art-input-icon"><span class="material-icons-outlined">folder_zip</span>' +
             '<input type="text" id="artSubmitScormFolder" placeholder="Drive-Ordner-Link (entpackter SCORM-Export)"></div>' +
           '<div class="art-field-hint">Erzeugt direkt nach dem Einreichen eine Preview (noch unübersetzt) und erneut, sobald die Übersetzung fertig ist. ' +
@@ -176,6 +176,9 @@ function initForm(config) {
     activePortals.push('_kec');
 }
 
+  // Formulare aus <template> sind jetzt im DOM - Uebersetzungen darauf anwenden
+  // (applyI18nToHtmlString_ kennt keine Inline-Tags wie <strong>).
+  applyI18nIn_(document, currentLang);
   const nav = document.getElementById('mainTabNav');
   if (nav) nav.classList.add('app-ready');
   updatePortalNav_();
@@ -242,7 +245,7 @@ function applyI18nToHtmlString_(html, lang) {
     /data-i18n-placeholder="([^"]+)"/g,
     (match, key) => {
       const val = t[key];
-      return val ? `placeholder="${val}"` : match;
+      return val ? `placeholder="${val}" data-i18n-placeholder="${key}"` : match;
     }
   );
 
@@ -258,7 +261,7 @@ function applyI18nToHtmlString_(html, lang) {
 
   html = html.replace(
     />Select Source Language</g,
-    `>${t['txt_select_source'] || 'Select Source Language'}<`
+    `>${t['txt_select_source'] || tr_('jx_eb29ff5', 'Select Source Language')}<`
   );
 
   html = html.replace(
@@ -268,7 +271,7 @@ function applyI18nToHtmlString_(html, lang) {
 
   html = html.replace(
     /-- Select Preset --/g,
-    lang === 'de' ? '-- Vorlage wählen --' : '-- Select Preset --'
+    lang === 'de' ? tr_('jx_9326f2f', '-- Vorlage wählen --') : tr_('jx_b77a532', '-- Select Preset --')
   );
 
   return html;
@@ -282,7 +285,7 @@ function attachFormLogic(suffix) {
   templateSortState[suffix] = 'asc'; 
   
   const tmplSelect = document.getElementById('templateUid' + suffix);
-  if(tmplSelect) tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+  if(tmplSelect) tmplSelect.innerHTML = '<option disabled selected value="">' + tr_('opt_select_template', 'Select Template Type') + '</option>';
   
   renderTemplateOptions(suffix);
   
@@ -299,7 +302,7 @@ function attachKecFormLogic(suffix) {
     
     const tmplSelect = document.getElementById('templateUid' + suffix);
     if(tmplSelect) {
-        tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+        tmplSelect.innerHTML = '<option disabled selected value="">' + tr_('opt_select_template', 'Select Template Type') + '</option>';
         renderTemplateOptions(suffix);
         tmplSelect.addEventListener('change', () => {
             onTemplateGroupChange(suffix);
@@ -334,7 +337,7 @@ function attachKecFormLogic(suffix) {
     if (form) {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            if(mainFilesMap[suffix].length===0) { showCustomAlert("Please select a Main File."); return; }
+            if(mainFilesMap[suffix].length===0) { showCustomAlert(tr_('jx_de7a362', 'Please select a Main File.')); return; }
 
             const exUid = document.getElementById('existingProjectUid' + suffix).value;
             if (exUid) {
@@ -359,7 +362,7 @@ function executeKecLiveDebug() {
         resultEl.style.background = '#fff3f3';
         resultEl.style.color = '#c62828';
         resultEl.style.border = '1px solid #ffcdD2';
-        resultEl.innerText = "Bitte gib eine gültige Phrase-URL oder UID ein.";
+        resultEl.innerText = tr_('jx_3dbd090', 'Bitte gib eine gültige Phrase-URL oder UID ein.');
         return;
     }
 
@@ -371,7 +374,7 @@ function executeKecLiveDebug() {
     resultEl.style.background = '#f5f5f5';
     resultEl.style.color = '#333';
     resultEl.style.border = '1px solid #ddd';
-    resultEl.innerText = "\u231B Verbindung zu Phrase TMS wird aufgebaut und Daten analysiert...";
+    resultEl.innerText = tr_('jx_03cedf0', '⌛ Verbindung zu Phrase TMS wird aufgebaut und Daten analysiert...');
 
     google.script.run
         .withSuccessHandler(res => {
@@ -379,37 +382,37 @@ function executeKecLiveDebug() {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = "\u2717 Fehler im Debugger: " + res.error;
+                resultEl.innerText = tr_('jx_8710ece', '✗ Fehler im Debugger:') + ' ' + res.error;
                 return;
             }
 
             const r = res.report;
-            let log = `\uD83D\uDD0D **Live-Analysebericht für UID:** ${r.uid}\n\n`;
+            let log = `${tr_('jx_e8c7a69', '🔍 **Live-Analysebericht für UID:**') + ' '} ${r.uid}\n\n`;
 
             // Gate 1: Existenz
             if (!r.exists) {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = log + "\u2717 **Gate 1 (Existenz): FEHLGESCHLAGEN**\n" + r.details.existence;
+                resultEl.innerText = log + tr_('jx_bcb4ebd', '✗ **Gate 1 (Existenz): FEHLGESCHLAGEN**') + '\n' + r.details.existence;
                 return;
             }
-            log += "\u2713 **Gate 1 (Existenz):** Projekt in Phrase TMS gefunden.\n";
+            log += tr_('jx_ad33b3d', '✓ **Gate 1 (Existenz):** Projekt in Phrase TMS gefunden.') + '\n';
 
             // Gate 2: Status
             if (!r.statusOk) {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = log + "\u2717 **Gate 2 (Status): FEHLGESCHLAGEN**\n" + r.details.statusError;
+                resultEl.innerText = log + tr_('jx_0f2d787', '✗ **Gate 2 (Status): FEHLGESCHLAGEN**') + '\n' + r.details.statusError;
                 return;
             }
-            log += `\u2713 **Gate 2 (Status):** Projekt-Status ist 'NEW'.\n`;
+            log += tr_('jx_133c6ac', '✓ **Gate 2 (Status):** Projekt-Status ist \'NEW\'.') + '\n';
 
             // Gate 3, 4, 5: Metadaten
-            log += `   \u2013 Gefundener Client: ${r.details.client}\n`;
-            log += `   \u2013 Gefundene Domain: ${r.details.domain}\n`;
-            log += `   \u2013 Gefundene Business Unit: ${r.details.bu}\n`;
+            log += `   ${'   ' + tr_('jx_0b745d6', '– Gefundener Client:') + ' '} ${r.details.client}\n`;
+            log += `   ${'   ' + tr_('jx_af7036f', '– Gefundene Domain:') + ' '} ${r.details.domain}\n`;
+            log += `   ${'   ' + tr_('jx_c211a8c', '– Gefundene Business Unit:') + ' '} ${r.details.bu}\n`;
 
             if (!r.clientOk || !r.domainOk || !r.buOk) {
                 resultEl.style.background = '#fff3f3';
@@ -417,21 +420,21 @@ function executeKecLiveDebug() {
                 resultEl.style.border = '1px solid #ffcdD2';
                 
                 let mismatches = [];
-                if (!r.clientOk) mismatches.push("Kunde (Client) stimmt nicht überein (Erwartet: AKW / ID: 620249)");
-                if (!r.domainOk) mismatches.push("Bereich (Domain) stimmt nicht überein (Erwartet: Marketing Content / ID: 23997)");
-                if (!r.buOk)     mismatches.push("Business Unit (BU)  stimmt nicht überein (Erwartet: MMV-P / ID: 56182)");
+                if (!r.clientOk) mismatches.push(tr_('jx_dfa7501', 'Kunde (Client) stimmt nicht überein (Erwartet: AKW / ID: 620249)'));
+                if (!r.domainOk) mismatches.push(tr_('jx_aeae9b1', 'Bereich (Domain) stimmt nicht überein (Erwartet: Marketing Content / ID: 23997)'));
+                if (!r.buOk)     mismatches.push(tr_('jx_2ff97e1', 'Business Unit (BU)  stimmt nicht überein (Erwartet: MMV-P / ID: 56182)'));
                 
-                resultEl.innerText = log + "\n? **Gate 3-5 (Metadaten): FEHLGESCHLAGEN**\n" + mismatches.join("\n");
+                resultEl.innerText = log + '\n' + tr_('jx_ddace8a', '? **Gate 3-5 (Metadaten): FEHLGESCHLAGEN**') + '\n' + mismatches.join("\n");
                 return;
             }
-            log += "\u2713 **Gate 3-5 (Metadaten):** Alle Kärcher-Metadaten stimmen perfekt überein.\n";
+            log += tr_('jx_f70763d', '✓ **Gate 3-5 (Metadaten):** Alle Kärcher-Metadaten stimmen perfekt überein.') + '\n';
 
             // Gate 6: Workflow-Zustand
             if (!r.workflowOk) {
                 resultEl.style.background = '#fff3f3';
                 resultEl.style.color = '#c62828';
                 resultEl.style.border = '1px solid #ffcdD2';
-                resultEl.innerText = log + "\n? **Gate 6 (Workflow): FEHLGESCHLAGEN**\n" + r.details.workflowError;
+                resultEl.innerText = log + '\n' + tr_('jx_9a44b2b', '? **Gate 6 (Workflow): FEHLGESCHLAGEN**') + '\n' + r.details.workflowError;
                 return;
             }
 
@@ -439,13 +442,13 @@ function executeKecLiveDebug() {
             resultEl.style.background = '#e8f5e9';
             resultEl.style.color = '#2e7d32';
             resultEl.style.border = '1px solid #c8e6c9';
-            resultEl.innerText = log + "\n? **ERFOLG:** Das Projekt erfüllt alle Kriterien zu 100%! Schließe dieses Fenster und klicke erneut auf 'SCAN PROJECTS', um es auszuwählen.";
+            resultEl.innerText = log + '\n' + tr_('jx_07bb11c', '? **ERFOLG:** Das Projekt erfüllt alle Kriterien zu 100%! Schließe dieses Fenster und klicke erneut auf \'SCAN PROJECTS\', um es auszuwählen.');
         })
         .withFailureHandler(err => {
             resultEl.style.background = '#fff3f3';
             resultEl.style.color = '#c62828';
             resultEl.style.border = '1px solid #ffcdD2';
-            resultEl.innerText = "\u2717 Verbindungsfehler zum Server: " + err.message;
+            resultEl.innerText = tr_('jx_16b9135', '✗ Verbindungsfehler zum Server:') + ' ' + err.message;
         })
         .apiDebugSingleKeCProject(extractedUid);
 }
@@ -458,10 +461,10 @@ function scanKeCProjects(suffix) {
     
     if (!overlay || !title) return;
     
-    title.innerText = "Searching Phrase TMS for open projects...";
+    title.innerText = tr_('jx_c9dc5a5', 'Searching Phrase TMS for open projects...');
     overlay.style.display = 'flex';
     btn.disabled = true;
-    exSel.innerHTML = '<option value="">\u231B Scanning live data...</option>';
+    exSel.innerHTML = ('<option value="">' + tr_('jx_9028518', '⌛ Scanning live data...') + '</option>');
     
     google.script.run
         .withSuccessHandler(res => {
@@ -469,7 +472,7 @@ function scanKeCProjects(suffix) {
             btn.disabled = false;
             
             if (res.success && res.projects && res.projects.length > 0) {
-                exSel.innerHTML = '<option value="">-- Select Existing Project --</option>';
+                exSel.innerHTML = ('<option value="">' + tr_('jx_e31964c', '-- Select Existing Project --') + '</option>');
                 window.kecEligibleProjects = res.projects;
                 res.projects.forEach(p => {
                     const opt = document.createElement('option');
@@ -477,27 +480,27 @@ function scanKeCProjects(suffix) {
                     opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")";
                     exSel.appendChild(opt);
                 });
-                showCustomAlert("\u2713 " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
+                showCustomAlert("\u2713 " + res.projects.length + ' ' + tr_('jx_131038b', 'eligible KeC projects loaded into dropdown.'), tr_('jx_796cb40', 'Scan Complete'));
             } else {
-               exSel.innerHTML = '<option value="">-- Keine passenden Projekte gefunden --</option>';
+               exSel.innerHTML = ('<option value="">' + tr_('jx_13f82b6', '-- Keine passenden Projekte gefunden --') + '</option>');
                 showCustomAlert(
-                  "Keine passenden offenen Projekte gefunden.\n\n" +
-                  "Geprüfte Kriterien:\n" +
-                  "\u2022 Status: NEW\n" +
-                  "\u2022 Client: AKW\n" +
-                  "\u2022 Domain: Marketing Content\n" +
-                  "\u2022 Business Unit: MMV-P\n\n" +
-                  "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
-                  "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
-                  "Scan-Ergebnis"
+                  tr_('jx_4b3dc36', 'Keine passenden offenen Projekte gefunden.') + '\n\n' +
+                  tr_('jx_778a27a', 'Geprüfte Kriterien:') + '\n' +
+                  tr_('jx_d7752a0', '• Status: NEW') + '\n' +
+                  tr_('jx_d415775', '• Client: AKW') + '\n' +
+                  tr_('jx_a10b342', '• Domain: Marketing Content') + '\n' +
+                  tr_('jx_f21b06d', '• Business Unit: MMV-P') + '\n\n' +
+                  tr_('jx_47cd0a7', 'Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.') + '\n\n' +
+                  tr_('jx_a0be7e5', 'Nutze den – Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.'),
+                  tr_('jx_d45235e', 'Scan-Ergebnis')
                 ); 
             }
         })
         .withFailureHandler(err => {
             overlay.style.display = 'none';
             btn.disabled = false;
-            exSel.innerHTML = '<option value="">\u26A0 Scan Failed</option>';
-            showCustomAlert("<span style='color:#d93025;'>\u2717 Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
+            exSel.innerHTML = ('<option value="">' + tr_('jx_0125945', '⚠ Scan Failed') + '</option>');
+            showCustomAlert("<span style='color:#d93025;'>\u2717 Error during Phrase connection: " + escapeHtml(err.message) + "</span>", tr_('jx_fba0f8a', 'API Error'));
         })
         .apiGetEligibleKeCProjects();
 }
@@ -535,8 +538,8 @@ function toggleKecMode(suffix, mode) {
         if (!tmplSelect || !tmplSelect.value) {
             const srcDisp = document.getElementById('sourceLangDisplay' + suffix);
             const tgtTxt = document.getElementById('targetLangText' + suffix);
-            if(srcDisp) srcDisp.innerHTML = `<span style='color:#999'>${i18n[currentLang]['txt_select_source'] || 'Select Source Language'}</span>`;
-            if(tgtTxt) tgtTxt.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || 'Select Target Language(s)'}</span>`;
+            if(srcDisp) srcDisp.innerHTML = `<span style='color:#999'>${i18n[currentLang]['txt_select_source'] || tr_('jx_eb29ff5', 'Select Source Language')}</span>`;
+            if(tgtTxt) tgtTxt.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || tr_('jx_80c01ce', 'Select Target Language(s)')}</span>`;
             if(srcTrigger) srcTrigger.classList.add('disabled');
             if(tgtTrigger) tgtTrigger.classList.add('disabled');
             const srcOver = document.getElementById('sourceLangOverlay' + suffix);
@@ -579,7 +582,7 @@ function renderTemplateOptions(suffix) {
   const sortedKeys = [...normal, ...pinned];
 
   const currentVal = tmplSelect.value;
-  tmplSelect.innerHTML = '<option disabled value="">Select Template Type</option>';
+  tmplSelect.innerHTML = '<option disabled value="">' + tr_('opt_select_template', 'Select Template Type') + '</option>';
   sortedKeys.forEach(gName => {
     const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim();
     const opt = document.createElement('option');
@@ -591,7 +594,7 @@ function renderTemplateOptions(suffix) {
 
   optionsList.innerHTML = '';
   if (sortedKeys.length === 0) {
-    optionsList.innerHTML = '<div class="tmpl-option-empty">No templates available.</div>';
+    optionsList.innerHTML = ('<div class="tmpl-option-empty">' + tr_('jx_109089c', 'No templates available.') + '</div>');
     return;
   }
   sortedKeys.forEach(gName => {
@@ -647,7 +650,7 @@ function filterTemplateDropdown_(suffix) {
     if (!empty) {
       empty = document.createElement('div');
       empty.className = 'tmpl-option-empty';
-      empty.textContent = 'No templates found.';
+      empty.textContent = tr_('jx_9e0e871', 'No templates found.');
       list.appendChild(empty);
     }
     empty.style.display = 'block';
@@ -733,7 +736,7 @@ function onTemplateGroupChange(suffix) {
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text'; searchInput.className = 'multiselect-search';
-  searchInput.placeholder = i18n[currentLang]['ph_search_language'] || 'Search language...';
+  searchInput.placeholder = i18n[currentLang]['ph_search_language'] || tr_('jx_02b60a4', 'Search language...');
   searchInput.oninput = function() {
     const q = this.value.toLowerCase();
     srcOptions.querySelectorAll('.multiselect-option').forEach(o => {
@@ -824,13 +827,13 @@ function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
   const text = document.getElementById('pivotTargetLangText' + suffix);
   if (row) row.style.display = '';
   if (srcDisplay) srcDisplay.innerText = '...';
-  if (text) text.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || 'Loading...'}</span>`;
+  if (text) text.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || tr_('jx_8524de9', 'Loading...')}</span>`;
 
   google.script.run
     .withSuccessHandler(res => {
       if (!res.ok) {
         if (srcDisplay) srcDisplay.innerText = '-';
-        if (text) text.innerHTML = `<span style='color:#d93025'>${escapeHtml(res.error || 'Error')}</span>`;
+        if (text) text.innerHTML = `<span style='color:#d93025'>${escapeHtml(res.error || tr_('jx_902b0d5', 'Error'))}</span>`;
         return;
       }
       if (srcDisplay) srcDisplay.innerText = getPrettyLangName(res.sourceLang);
@@ -844,7 +847,7 @@ function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
 }
 
 function getPrettyLangName(code) {
-  if (!code) return "Unknown";
+  if (!code) return tr_('jx_88183b9', 'Unknown');
   const key = code.toLowerCase().replace(/-/g, "_");
   if (PRETTY_LANG_MAP[key]) return PRETTY_LANG_MAP[key];
   const base = key.split("_")[0];
@@ -858,7 +861,7 @@ function initMultiSelect(suffix, targetCodes, prefix) {
   if(!list) return;
   list.innerHTML = "";
   const searchInput = document.createElement("input");
-  searchInput.type = "text"; searchInput.className = "multiselect-search"; searchInput.placeholder = i18n[currentLang]['ph_search_language'] || "Search language...";
+  searchInput.type = "text"; searchInput.className = "multiselect-search"; searchInput.placeholder = i18n[currentLang]['ph_search_language'] || tr_('jx_02b60a4', 'Search language...');
   searchInput.onclick = (e) => e.stopPropagation();
   searchInput.onkeyup = (e) => {
     const filter = e.target.value.toLowerCase();
@@ -948,7 +951,7 @@ function openPreferences() {
   const text = document.getElementById('chatPrefStatusText');
   
   cb.disabled = true;
-  text.innerText = 'Loading...';
+  text.innerText = tr_('jx_8524de9', 'Loading...');
   text.style.color = '#888';
   
   google.script.run
@@ -959,8 +962,8 @@ function openPreferences() {
       text.style.color = cb.checked ? '#4CAF50' : '#888';
     })
     .withFailureHandler(err => {
-      text.innerText = 'Error';
-      showCustomAlert('Error loading preferences: ' + err.message, "Error");
+      text.innerText = tr_('jx_902b0d5', 'Error');
+      showCustomAlert(tr_('jx_69bccab', 'Error loading preferences:') + ' ' + err.message, tr_('jx_902b0d5', 'Error'));
     })
     .apiGetChatPreference();
 }
@@ -976,6 +979,6 @@ function saveChatPreference() {
       document.getElementById('prefsSaveMsg').style.display = 'block';
       setTimeout(closePreferences, 1200);
     })
-    .withFailureHandler(err => showCustomAlert('Error: ' + err.message, "Error"))
+    .withFailureHandler(err => showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + err.message, tr_('jx_902b0d5', 'Error')))
     .apiSetChatPreference(enabled);
 }</script>

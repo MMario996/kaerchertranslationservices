@@ -6,7 +6,7 @@
       if (!dd) return;
       google.script.run.withSuccessHandler(res => {
         if (!res.success) return;
-        dd.innerHTML = '<option value="">-- Select Preset --</option>';
+        dd.innerHTML = ('<option value="">' + tr_('jx_b77a532', '-- Select Preset --') + '</option>');
         res.presets.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.presetId;
@@ -18,13 +18,13 @@
     }
 
     function saveCurrentAsPreset(suffix) {
-      if (!finalSelectedUid) { showCustomAlert("Please select at least a Template and Source Language."); return; }
+      if (!finalSelectedUid) { showCustomAlert(tr_('jx_cebd9ec', 'Please select at least a Template and Source Language.')); return; }
       const tName = document.getElementById('templateUid' + suffix).options[document.getElementById('templateUid' + suffix).selectedIndex].text;
       const sLang = document.getElementById('sourceLang' + suffix).value;
       const tLangs = Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb => cb.value);
-      if (tLangs.length === 0) { showCustomAlert("Please select at least one Target Language."); return; }
+      if (tLangs.length === 0) { showCustomAlert(tr_('jx_3e39538', 'Please select at least one Target Language.')); return; }
       
-      showCustomPrompt("Enter a name for this preset:", tName + " " + sLang + " -> " + tLangs.length + " langs", function(pName) {
+      showCustomPrompt(tr_('jx_61a1baa', 'Enter a name for this preset:'), tName + " " + sLang + " -> " + tLangs.length + " langs", function(pName) {
         if (!pName) return;
         const data = {
           presetName: pName,
@@ -36,8 +36,8 @@
           projectName: document.getElementById('projectName' + suffix).value
         };
         google.script.run.withSuccessHandler(r => {
-          if (r.success) { showCustomAlert("Preset saved!"); loadUserPresets(suffix); }
-          else showCustomAlert("Error: " + r.error, "Error");
+          if (r.success) { showCustomAlert(tr_('jx_7713155', 'Preset saved!')); loadUserPresets(suffix); }
+          else showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + r.error, tr_('jx_902b0d5', 'Error'));
         }).apiSavePreset(data);
       });
     }
@@ -71,7 +71,7 @@
           }
         }
         
-        if (!found) { showCustomAlert("Template for this preset is no longer available.", "Warning"); return; }
+        if (!found) { showCustomAlert(tr_('jx_79b98ac', 'Template for this preset is no longer available.'), tr_('jx_0eaadb4', 'Warning')); return; }
 
         onTemplateGroupChange(suffix);
 
@@ -94,14 +94,14 @@
               srcOptDiv.click();
               setTimeout(() => _presetSetTargets_(suffix, p), 400);
             } else {
-              showCustomAlert("Source language '" + p.sourceLang + "' not found in template variants.", "Warning");
+              showCustomAlert('Source language \'' + p.sourceLang + '\' not found in template variants.', tr_('jx_0eaadb4', 'Warning'));
             }
           }
         }, 350);
 
       } catch(e) { 
-        console.error("Error loading preset:", e); 
-        showCustomAlert("Error loading preset: " + e.message, "Error");
+        console.error(tr_('jx_f55d19d', 'Error loading preset:') + ' ', e); 
+        showCustomAlert(tr_('jx_f55d19d', 'Error loading preset:') + ' ' + e.message, tr_('jx_902b0d5', 'Error'));
       }
     }
 
@@ -117,9 +117,9 @@
       if (p.projectName) document.getElementById('projectName' + suffix).value = p.projectName;
 
       if (!anyChecked) {
-        showCustomAlert("Preset loaded \u2013 but target languages were not found in this template. Please re-select.", "Warning");
+        showCustomAlert(tr_('jx_d4366d8', 'Preset loaded – but target languages were not found in this template. Please re-select.'), tr_('jx_0eaadb4', 'Warning'));
       } else {
-        showCustomAlert("\u2713 Preset loaded successfully.");
+        showCustomAlert(tr_('jx_b63b629', '✓ Preset loaded successfully.'));
       }
     }
 
@@ -128,39 +128,39 @@
       const sel = dd.options[dd.selectedIndex];
       
       if (!sel || !sel.value) {
-          showCustomAlert("Please select a preset to delete.", "Info");
+          showCustomAlert(tr_('jx_74f091e', 'Please select a preset to delete.'), tr_('jx_4059b02', 'Info'));
           return;
       }
       
-      showCustomConfirm("Delete preset '" + sel.text + "'?", function() {
-        showCustomAlert("Deleting preset...", "Please wait");
+      showCustomConfirm('Delete preset \'' + sel.text + "'?", function() {
+        showCustomAlert(tr_('jx_7111322', 'Deleting preset...'), tr_('jx_c360639', 'Please wait'));
         
         google.script.run
           .withSuccessHandler(r => {
             if(r.success) { 
-              showCustomAlert("\u2713 Preset deleted successfully.", "Success");
+              showCustomAlert(tr_('jx_aadb46b', '✓ Preset deleted successfully.'), tr_('jx_505a83f', 'Success'));
               loadUserPresets(suffix); 
             } else {
-              showCustomAlert("Error: " + r.error, "Error");
+              showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + r.error, tr_('jx_902b0d5', 'Error'));
             }
           })
           .withFailureHandler(e => {
-            showCustomAlert("Execution Error: " + e.message, "Error");
+            showCustomAlert(tr_('jx_38a363b', 'Execution Error:') + ' ' + e.message, tr_('jx_902b0d5', 'Error'));
           })
           .apiDeletePreset(sel.value);
       });
     }
 
     const MSG_KEY_LABELS = {
-      MSG_WELCOME:             "Welcome (first bot message)",
-      MSG_PROJECT_SUBMITTED: "Project Submitted",
-      MSG_COMPLETED:         "Translation Complete",
-      MSG_SHARED:             "Project Shared (recipient)",
-      MSG_CANCELLED:         "Project Cancelled",
-      MSG_DUE_DATE_UPDATED:  "Due Date Updated",
-      MSG_DEADLINE_REMINDER: "Deadline Reminder (24h)",
-      MSG_SHARE_CONFIRM:     "Share Confirmed (owner)",
-      MSG_ARTICULATE_COMPLETED: "Campus: Übersetzung fertig (automatisch)"
+      MSG_WELCOME:             tr_('jx_f056987', 'Welcome (first bot message)'),
+      MSG_PROJECT_SUBMITTED: tr_('jx_ba3cdda', 'Project Submitted'),
+      MSG_COMPLETED:         tr_('jx_a03bf7d', 'Translation Complete'),
+      MSG_SHARED:             tr_('jx_63a50ee', 'Project Shared (recipient)'),
+      MSG_CANCELLED:         tr_('jx_8193f8a', 'Project Cancelled'),
+      MSG_DUE_DATE_UPDATED:  tr_('jx_a733ef2', 'Due Date Updated'),
+      MSG_DEADLINE_REMINDER: tr_('jx_69e2f7c', 'Deadline Reminder (24h)'),
+      MSG_SHARE_CONFIRM:     tr_('jx_24a544d', 'Share Confirmed (owner)'),
+      MSG_ARTICULATE_COMPLETED: tr_('jx_30fd979', 'Campus: Übersetzung fertig (automatisch)')
     };
 
 
@@ -205,7 +205,7 @@
       startStartupOverlay_();
       google.script.run
         .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab('admin'); })
-        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
+        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + err.message, tr_('jx_902b0d5', 'Error')); })
         .apiGetConfig(currentImpersonationEmail, currentLang);
     }
 
@@ -253,7 +253,7 @@
 
 
 
-    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager', pivot: 'Pivot Templates', tests: 'Tests', dashboard: 'Dashboard' };
+    const ADMIN_LIGHT_LABELS_ = { users: tr_('jx_687c52e', 'User Manager'), templates: tr_('jx_83ae0cb', 'Template Manager'), pivot: tr_('jx_cd07a63', 'Pivot Templates'), tests: tr_('jx_90792de', 'Tests'), dashboard: tr_('jx_2938c7f', 'Dashboard') };
 
 
 
@@ -290,7 +290,7 @@
         panelEl.style.display = 'block';
         panelEl.style.background = '#fff3f3';
         panelEl.style.border = '1px solid #ffcdd2';
-        panelEl.innerHTML = '\u26A0 Bitte eine Phrase-URL oder UID eingeben.';
+        panelEl.innerHTML = tr_('jx_c7d192b', '⚠ Bitte eine Phrase-URL oder UID eingeben.');
         return;
       }
 
@@ -300,23 +300,23 @@
       panelEl.style.display = 'block';
       panelEl.style.background = '#f5f5f5';
       panelEl.style.border = '1px solid #ddd';
-      panelEl.innerHTML = '\u231B Verbinde mit Phrase TMS...';
+      panelEl.innerHTML = tr_('jx_86d912e', '⌛ Verbinde mit Phrase TMS...');
 
       google.script.run
         .withSuccessHandler(res => {
           if (!res.success) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            panelEl.innerHTML = '\u2717 Server-Fehler: ' + escapeHtml(res.error);
+            panelEl.innerHTML = tr_('jx_ab5c455', '✗ Server-Fehler:') + ' ' + escapeHtml(res.error);
             return;
           }
           const r = res.report;
-          let log = '<strong>\u2022 Analysebericht für UID:</strong> ' + escapeHtml(r.uid) + '<br><br>';
+          let log = ('<strong>' + tr_('jx_51a6772', '• Analysebericht für UID:') + '</strong> ') + escapeHtml(r.uid) + '<br><br>';
 
           if (!r.exists) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">\u2022 Projekt nicht in Phrase TMS gefunden.</span>';
+            log += ('<span style="color:#d93025;">' + tr_('jx_edde50d', '• Projekt nicht in Phrase TMS gefunden.') + '</span>');
             panelEl.innerHTML = log;
             return;
           }
@@ -325,7 +325,7 @@
           if (!r.statusOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">\u2022 Gate 2: Status ist <strong>' + escapeHtml(r.details.actualStatus) + '</strong> \u2013 erwartet: NEW</span>';
+            log += ('<span style="color:#d93025;">' + tr_('jx_15a16a6', '• Gate 2: Status ist') + ' ' + '<strong>') + escapeHtml(r.details.actualStatus) + ('</strong> ' + tr_('jx_618402a', '– erwartet: NEW') + '</span>');
             panelEl.innerHTML = log;
             return;
           }
@@ -337,7 +337,7 @@
           if (!r.clientOk || !r.domainOk || !r.buOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<br><span style="color:#d93025;">\u2022 Metadaten stimmen nicht überein:<br>';
+            log += ('<br><span style="color:#d93025;">' + tr_('jx_07ee173', '• Metadaten stimmen nicht überein:') + '<br>');
             if (!r.clientOk) log += '\u2022 Client \u2013 AKW<br>';
             if (!r.domainOk) log += '\u2022 Domain \u2013 Marketing Content<br>';
             if (!r.buOk)     log += '\u2022 BU \u2013 MMV-P<br>';
@@ -350,20 +350,20 @@
           if (!r.workflowOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += '<span style="color:#d93025;">\u2022 Gate 6: Workflow blockiert \u2013 ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.</span>';
+            log += ('<span style="color:#d93025;">' + tr_('jx_b5cfc37', '• Gate 6: Workflow blockiert – ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.') + '</span>');
             panelEl.innerHTML = log;
             return;
           }
 
           panelEl.style.background = '#e8f5e9';
           panelEl.style.border = '1px solid #c8e6c9';
-          log += '<span style="color:#2e7d32;">\u2022 Alle Gates bestanden! Klicke erneut auf SCAN PROJECTS.</span>';
+          log += ('<span style="color:#2e7d32;">' + tr_('jx_db692eb', '• Alle Gates bestanden! Klicke erneut auf SCAN PROJECTS.') + '</span>');
           panelEl.innerHTML = log;
         })
         .withFailureHandler(err => {
           panelEl.style.background = '#fff3f3';
           panelEl.style.border = '1px solid #ffcdd2';
-          panelEl.innerHTML = '\u2717 Verbindungsfehler: ' + escapeHtml(err.message);
+          panelEl.innerHTML = tr_('jx_45033bc', '✗ Verbindungsfehler:') + ' ' + escapeHtml(err.message);
         })
         .apiDebugSingleKeCProject(uid);
     }
@@ -491,10 +491,10 @@
       const isLast = currentTourStep === currentTour.length - 1;
       const isFirst = currentTourStep === 0;
 
-      const skipLabel = t_i18n_(currentLang, 'tour_skip') || 'Skip';
-      const prevLabel = t_i18n_(currentLang, 'tour_back') || 'Back';
-      const nextLabel = isLast ? (t_i18n_(currentLang, 'tour_done') || 'Done') : (t_i18n_(currentLang, 'tour_next') || 'Next');
-      const stepOfLabel = (t_i18n_(currentLang, 'tour_step_of') || 'Step {n} of {m}')
+      const skipLabel = t_i18n_(currentLang, 'tour_skip') || tr_('jx_72ef2b9', 'Skip');
+      const prevLabel = t_i18n_(currentLang, 'tour_back') || tr_('jx_0557fa9', 'Back');
+      const nextLabel = isLast ? (t_i18n_(currentLang, 'tour_done') || tr_('jx_f92965e', 'Done')) : (t_i18n_(currentLang, 'tour_next') || tr_('jx_10ac3d0', 'Next'));
+      const stepOfLabel = (t_i18n_(currentLang, 'tour_step_of') || tr_('jx_62e42f0', 'Step {n} of {m}'))
         .replace('{n}', currentTourStep + 1).replace('{m}', currentTour.length);
       const stepText = t_i18n_(currentLang, step.textKey) || step.textKey;
 
@@ -581,16 +581,16 @@
   function handleDriveLinkClick(type, suffix) {
   if (!checkPreconditions(suffix)) return;
   showCustomPrompt(
-    "Google Drive Link einfügen:\n\n\u26A0 Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.",
+    tr_('jx_b572fda', 'Google Drive Link einfügen:\n\n⚠ Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.'),
     "",
     function(url) {
       if (!url || !url.trim()) return;
       const fileId = extractDriveFileId_(url.trim());
       if (!fileId) {
-        showCustomAlert("Ungültiger Google Drive Link. Bitte einen direkten Drive-Link einfügen (z.B. https://drive.google.com/file/d/...).", "Ungültiger Link");
+        showCustomAlert("Ungültiger Google Drive Link. Bitte einen direkten Drive-Link einfügen (z.B. https://drive.google.com/file/d/...).", tr_('jx_31763a0', 'Ungültiger Link'));
         return;
       }
-      const fileName = extractDriveFileName_(url.trim()) || "Drive-Datei (" + fileId.substring(0, 8) + "...)";
+      const fileName = extractDriveFileName_(url.trim()) || tr_('jx_25b4eee', 'Drive-Datei (') + fileId.substring(0, 8) + "...)";
       const fileObj = { source: "drivelink", id: fileId, name: fileName };
       if (type === "main") {
         mainFilesMap[suffix].push(fileObj);
@@ -603,7 +603,7 @@
       }
       renderFileList(type, suffix);
     },
-    "Google Drive Link"
+    tr_('jx_4b902de', 'Google Drive Link')
   );
 }
 

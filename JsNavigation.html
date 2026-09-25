@@ -70,6 +70,7 @@ function loadAdminContent_(silent) {
       el.text = res.js;
       document.head.appendChild(el);
       _adminContentLoaded_ = true;
+      loadAdminI18n_(currentLang, function() { applyI18nIn_(host, currentLang); rerenderDynamicI18n_(); });
       // Beim Vorabladen nicht initialisieren - applyAdminAccessRestrictions_()
       // stoesst loadAdminDashboardData() mit rund einem Dutzend Serveraufrufen an.
       if (_adminWantsShow_ || !silent) applyAdminAccessRestrictions_();
@@ -110,6 +111,7 @@ function loadPivotAdminContent_(callback) {
       el.text = res.js;
       document.head.appendChild(el);
       _pivotAdminContentLoaded_ = true;
+      applyI18nIn_(host, currentLang);
       if (callback) callback();
     })
     .withFailureHandler(function(err) {

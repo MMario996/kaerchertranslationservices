@@ -23,7 +23,7 @@ function pvTemplateUrl_(uid) {
 function pvLangName_(code) {
   return typeof getPrettyLangName === 'function' ? getPrettyLangName(code) : code;
 }
-function pvErr_(msg) { showCustomAlert(escapeHtml(msg || 'Error'), tr_('pv_error', 'Fehler')); }
+function pvErr_(msg) { showCustomAlert(escapeHtml(msg || tr_('ax_902b0d5', 'Error')), tr_('pv_error', 'Fehler')); }
 
 /** Einstieg beim Oeffnen des Subtabs. */
 function pvInit_() {
@@ -357,7 +357,7 @@ function pvPreviewImport() {
   pvImportRows_ = lines.map(line => {
     const parts = line.split(/\t|;|,/).map(s => s.trim()).filter(Boolean);
     const p = pvResolveTpl_(parts[0]), c = pvResolveTpl_(parts[1]);
-    let error = p.error ? 'Parent: ' + p.error : (c.error ? 'Child: ' + c.error : '');
+    let error = p.error ? tr_('ax_f188075', 'Parent:') + ' ' + p.error : (c.error ? tr_('ax_398a771', 'Child:') + ' ' + c.error : '');
     if (!error && p.tpl.uid === c.tpl.uid) error = tr_('pv_same', 'Parent und Child identisch');
     const key = p.tpl && c.tpl ? p.tpl.uid + '|' + c.tpl.uid : '';
     if (!error && exists[key]) error = tr_('pv_exists', 'existiert bereits');
@@ -367,7 +367,7 @@ function pvPreviewImport() {
   });
   const ok = pvImportRows_.filter(r => !r.error).length;
   document.getElementById('pvImportPreview').innerHTML = !pvImportRows_.length ? '' : `
-    <div class="pv-table-wrap"><table class="pv-table"><thead><tr><th></th><th>Parent</th><th>Child</th><th></th></tr></thead><tbody>
+    <div class="pv-table-wrap"><table class="pv-table"><thead><tr><th></th><th>${tr_('ax_3026902', 'Parent')}</th><th>${tr_('ax_a82fea3', 'Child')}</th><th></th></tr></thead><tbody>
     ${pvImportRows_.map(r => `<tr class="${r.error ? 'bad' : ''}">
       <td><span class="material-icons-outlined" style="color:${r.error ? '#c62828' : '#2e7d32'};">${r.error ? 'error_outline' : 'check_circle'}</span></td>
       <td>${escapeHtml(r.parent ? r.parent.name : r.line.split(/\t|;|,/)[0] || '')}</td>
