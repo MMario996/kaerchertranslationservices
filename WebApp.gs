@@ -136,38 +136,43 @@ function apiGetMyProjects() {
   return { projects: filtered, email: ctx.userEmail };
 }
 
+/**
+ * Daten fuer den Analytics-Reiter "Dashboard".
+ * Admins und Admin-Light-User mit Bereich "dashboard" sehen alle Projekte,
+ * alle anderen nur ihre eigenen/geteilten (wie in "Meine Projekte").
+ * Geliefert werden schlanke Rohzeilen - Filter, Zeitraeume und Diagramme
+ * rechnet das Frontend selbst, damit das Dashboard ohne weitere
+ * Serveraufrufe interaktiv bleibt.
+ */
 function apiGetDashboardData() {
-  const projects = apiGetMyProjects().projects;
-  const now = new Date();
+  const ctx = getUserContext_();
+  const canSeeAll = ctx.isAdmin || isAdminLightWithAccess_(ctx.userEmail, "dashboard");
+  const projects = canSeeAll ? readQueueRows_() : apiGetMyProjects().projects;
 
-  let totalProjects = projects.length, completed = 0, overdue = 0, active = 0;
-  const templateCount = {};
+  const toIso = v => {
+    if (!v) return "";
+    const d = v instanceof Date ? v : new Date(v);
+    return isNaN(d.getTime()) ? "" : d.toISOString();
+  };
 
-  projects.forEach(p => {
-    const status     = String(p.status || "").toUpperCase();
-    const isDone     = ["COMPLETED","DELIVERED","DONE","FINISHED"].includes(status);
-    const isCancelled = ["CANCELLED","CANCELED"].includes(status);
+  const rows = projects.map(p => ({
+    ts:        toIso(p.timestamp),
+    due:       toIso(p.dueDate),
+    dl:        p.downloadedAt || "",
+    owner:     String(p.owner || p.userEmail || "").toLowerCase(),
+    uid:       p.projectUid || "",
+    name:      p.projectName || "",
+    template:  String(p.templateName || "").trim(),
+    status:    String(p.status || "").toUpperCase().trim(),
+    langs:     p.targetLangs || [],
+    files:     (p.jobUids || []).length,
+    words:     p.totalWords || 0,
+    netWords:  p.netWords || 0,
+    pivot:     p.pivotRole || "",
+    shared:    !!p.isShared
+  }));
 
-    let due = null;
-    if (p.dueDate) { const d = new Date(p.dueDate); if (!isNaN(d)) due = d; }
-
-    if (isDone) {
-      if (!due || due >= now) completed++; else overdue++;
-    } else if (!isCancelled) {
-      active++;
-      if (due && due < now) overdue++;
-    }
-
-    const tpl = (p.templateName || p.projectName || "Unknown").toString().trim();
-    templateCount[tpl] = (templateCount[tpl] || 0) + 1;
-  });
-
-  const topTemplates = Object.keys(templateCount)
-    .map(name => ({ name, count: templateCount[name] }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  return { totalProjects, completed, overdue, active, topTemplates };
+  return { success: true, scope: canSeeAll ? "all" : "own", generatedAt: new Date().toISOString(), rows: rows };
 }
 
 /* ==========================================================================
@@ -1003,6 +1008,8 @@ function readQueueRows_() {
     const dueDate     = pick(row, ["duedate","due date","deadline"], 12);
     const sharedWith  = pick(row, ["sharedwith","shared with","shared"], 17);
     const templateName = pick(row, ["templatename","template name","template"], null);
+    const totalWords = pick(row, ["total words","totalwords"], 15);
+    const netWords   = pick(row, ["net words","networds"], 16);
     const pivotRole  = pick(row, ["pivot role"], null);
     const pivotLink  = pick(row, ["pivot link"], null);
     // Spalte V: letzter Download (recordDownloadTimestamp_), fuer das Archiv.
@@ -1065,7 +1072,9 @@ function readQueueRows_() {
       jobMapping:   jobMapping,
       pivotRole:    String(pivotRole || "").trim(),
       pivotLink:    String(pivotLink || "").trim(),
-      downloadedAt: downloadedAt
+      downloadedAt: downloadedAt,
+      totalWords:   Number(totalWords) || 0,
+      netWords:     Number(netWords) || 0
     });
   }
 

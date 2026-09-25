@@ -200,7 +200,7 @@ function toggleAdminHelp(id) {
     const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
-      const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []);
+      const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
       ADMIN_SUBTABS_.forEach(n => {
         const btn = document.getElementById('subtab-btn-' + n);
         if (btn) btn.style.display = allowed.includes(n) ? 'inline-flex' : 'none';
@@ -1018,6 +1018,7 @@ function toggleAdminHelp(id) {
         if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
         if (document.getElementById('adminLightSubtabCustompages').checked) subtabs.push('custompages');
         if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
+        if (document.getElementById('adminLightSubtabDashboard').checked) subtabs.push('dashboard');
         if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
         google.script.run
           .withSuccessHandler(r => {
@@ -1027,6 +1028,7 @@ function toggleAdminHelp(id) {
             document.getElementById('adminLightSubtabTemplates').checked = false;
             document.getElementById('adminLightSubtabCustompages').checked = false;
             document.getElementById('adminLightSubtabPivot').checked = false;
+            document.getElementById('adminLightSubtabDashboard').checked = false;
             loadAdminLightUsers();
           })
           .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))

@@ -187,7 +187,7 @@
                     </div>
                     <div id="help-adminlight" class="admin-help-panel">
                         <span class="help-impact impact-high">High Impact &#8211; Eingeschränkter Admin-Zugriff</span>
-                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager, Template Manager und/oder Eigene Reiter &#8211; ohne Console (Whitelists, Maintenance, Script Properties etc.).</p>
+                        <p>Gibt Zugriff auf <strong>nur</strong> User Manager, Template Manager, Eigene Reiter, Pivot Templates und/oder das Analytics-Dashboard &#8211; ohne Console (Whitelists, Maintenance, Script Properties etc.). Das Dashboard zeigt dabei alle Projekte (nur lesend).</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:10px;">
                         <input type="email" id="newAdminLightEmail" placeholder="user@karcher.com">
@@ -204,6 +204,9 @@
                         </label>
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabPivot" style="width:auto;"> Pivot Templates
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
+                            <input type="checkbox" id="adminLightSubtabDashboard" style="width:auto;"> Dashboard (Analytics)
                         </label>
                         <button class="btn btn-primary" style="width:auto; padding:0 20px; background-color:#795548; color:#fff;" onclick="addAdminLightUser()">ADD</button>
                     </div>

@@ -4,10 +4,11 @@
  * Template Manager) ohne vollen Admin-Zugriff (kein Console-Tab, keine
  * Whitelists/Maintenance/Script-Properties etc.).
  * Sheet: "Whitelist_AdminLight" in ACCESS_SHEET_ID
- * Spalten: Email | Subtabs (z.B. "users,templates")
+ * Spalten: Email | Subtabs (z.B. "users,templates,dashboard")
+ * "dashboard" schaltet den Analytics-Reiter "Dashboard" frei (kein Admin-Subtab).
  */
 var ADMIN_LIGHT_SHEET_NAME_ = "Whitelist_AdminLight";
-var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages", "pivot"];
+var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages", "pivot", "dashboard"];
 
 function getAdminLightSubtabs_(email) {
   if (!email) return [];
@@ -63,7 +64,7 @@ function apiAddAdminLightUser(email, subtabs) {
   const cleanSubtabs = (Array.isArray(subtabs) ? subtabs : [])
     .map(s => String(s).trim().toLowerCase())
     .filter(s => ADMIN_LIGHT_VALID_SUBTABS_.includes(s));
-  if (!cleanSubtabs.length) return { success: false, error: "Mindestens ein Subtab (users/templates/custompages) angeben." };
+  if (!cleanSubtabs.length) return { success: false, error: "Mindestens einen Bereich (users/templates/custompages/pivot/dashboard) angeben." };
   try {
     const ss = openAccessSS_();
     let sh = ss.getSheetByName(ADMIN_LIGHT_SHEET_NAME_);
