@@ -1,17 +1,17 @@
 <script>
 // JsUpload.html - eingebunden in Index.html via include() (WebApp.gs)
 
-function toggleKecSidebar(suffix) {
-  const sb  = document.getElementById('kecDebugSidebar' + suffix);
-  const btn = document.getElementById('kecShowDebugBtn' + suffix);
-  if (!sb) return;
-  if (sb.classList.contains('collapsed')) {
-    sb.classList.remove('collapsed');
-    if (btn) btn.style.display = 'none';
-  } else {
-    sb.classList.add('collapsed');
-    if (btn) btn.style.display = 'inline-flex';
-  }
+/** KeC: Unterreiter "Import" (Formular) / "Debugger". */
+function switchKecSubtab(suffix, name) {
+  const isImport = name !== 'debug';
+  const imp = document.getElementById('kecsub-import' + suffix);
+  const dbg = document.getElementById('kecsub-debug' + suffix);
+  if (!imp || !dbg) return;
+  imp.style.display = isImport ? 'block' : 'none';
+  dbg.style.display = isImport ? 'none' : 'block';
+  document.getElementById('kecsubBtn-import' + suffix).classList.toggle('active', isImport);
+  document.getElementById('kecsubBtn-debug' + suffix).classList.toggle('active', !isImport);
+  if (!isImport) { const inp = document.getElementById('kecDebugInput' + suffix); if (inp) inp.focus(); }
 }
 
 
