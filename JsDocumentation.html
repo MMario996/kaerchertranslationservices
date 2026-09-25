@@ -1,0 +1,509 @@
+<script>
+// JsDocumentation.html - eingebunden in Index.html via include() (WebApp.gs)
+
+// --- Dokumentation: Import / Meine Projekte ------------------------------------
+// "Meine Projekte" ist hier dieselbe Ansicht wie im Hauptreiter (Tabelle,
+// Status-Chips, Archiv, Kalender, Download-Dialog, Notizen). Statt sie zu
+// duplizieren, wird der Inhalt von #tab-history in den jeweils aktiven Reiter
+// verschoben und die Datenquelle umgeschaltet (historyScope_).
+let historyScope_ = 'all';
+let docSubtab_ = 'import';
+
+function mountHistoryView_(hostId, scope) {
+  let view = document.getElementById('historyView');
+  if (!view) {
+    const tab = document.getElementById('tab-history');
+    view = document.createElement('div');
+    view.id = 'historyView';
+    while (tab.firstChild) view.appendChild(tab.firstChild);
+    tab.appendChild(view);
+  }
+  const host = document.getElementById(hostId);
+  if (host && view.parentNode !== host) host.appendChild(view);
+  if (historyScope_ !== scope) {
+    historyScope_ = scope;
+    globalProjects = [];
+    historyStatusFilter_ = 'all';
+    historyShowArchive_ = false;
+    const archBtn = document.getElementById('archiveToggleBtn');
+    if (archBtn) { archBtn.classList.remove('active'); archBtn.innerHTML = '<i class="material-icons-outlined">archive</i> <span data-i18n="hs_show_archive">' + escapeHtml(tr_('hs_show_archive', 'Show Archive')) + '</span>'; }
+    const tbody = document.querySelector('#projectsTable tbody');
+    if (tbody) tbody.innerHTML = '';
+  }
+  view.classList.toggle('scope-doc', scope === 'doc');
+}
+
+function switchDocSubtab(name) {
+  docSubtab_ = name === 'projects' ? 'projects' : 'import';
+  const isImport = docSubtab_ === 'import';
+  document.getElementById('docsub-import').style.display = isImport ? 'block' : 'none';
+  document.getElementById('docsub-projects').style.display = isImport ? 'none' : 'block';
+  document.getElementById('docsubBtn-import').classList.toggle('active', isImport);
+  document.getElementById('docsubBtn-projects').classList.toggle('active', !isImport);
+  if (isImport) { docImportPreloadFolders_(); return; }
+  mountHistoryView_('docsub-projects', 'doc');
+  loadMyProjects();
+}
+
+/** Sprach-Badges pro Job (Farbe = Job-Status) fuer Dokumentationsprojekte. */
+function docJobBadges_(p) {
+  const colors = { COMPLETED: '#2e7d32', DELIVERED: '#2e7d32', NOTIFIED: '#2e7d32', CANCELLED: '#c62828', ERROR: '#c62828' };
+  const jobs = p.docJobs || [];
+  if (!jobs.length) return '-';
+  return '<span class="doc-job-badges">' + jobs.map(j => {
+    const c = colors[j.status] || '#b08d00';
+    return `<span class="doc-job-badge" style="color:${c};border-color:${c}66;background:${c}14;" title="${escapeHtml((j.fileName || '') + ' – ' + j.status)}">${escapeHtml(j.targetLang || '?')}</span>`;
+  }).join('') + '</span>';
+}
+
+function docArchiveFromHistory_(projectUid, projectName) {
+  showCustomConfirm(
+    tr_('da_confirm', 'Archive this project? All rows move to the archive sheet and the submitter gets a "Translation Complete" message in Google Chat.') + '\n\n' + projectName,
+    function() {
+      setDownloadProgress_(tr_('pd_archive', 'Archive') + ': ' + projectName, '');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideDownloadProgress_();
+          if (!res.success) { showCustomAlert('Fehler: ' + escapeHtml(res.error), 'Fehler'); return; }
+          showToast_('\u2713 ' + tr_('da_done', 'Archived') + ' (' + res.archivedRows + ')', 'ok');
+          loadMyProjects();
+        })
+        .withFailureHandler(function(err) {
+          hideDownloadProgress_();
+          showCustomAlert('Fehler: ' + escapeHtml(err.message), 'Fehler');
+        })
+        .apiArchiveDocQueueProject(projectUid, projectName);
+    },
+    tr_('pd_archive', 'Archive')
+  );
+}
+
+/**
+ * Schreibt die fertigen Sprachen eines Dokumentationsprojekts zurueck in den
+ * Drive-Projektordner (Sprachunterordner) - frueher der Reiter "Export".
+ */
+function exportDocProjectToFolder_(p) {
+  const jobs = (p.docJobs || []).filter(j => j.status === 'COMPLETED' && j.jobUid);
+  if (!jobs.length) { showCustomAlert('Keine fertigen (COMPLETED) Dateien zum Zurückschreiben.', 'Hinweis'); return; }
+  let idx = 0, ok = 0, folderUrl = '';
+  const errors = [];
+  const next = () => {
+    if (idx >= jobs.length) {
+      hideDownloadProgress_();
+      if (ok && !errors.length) {
+        showToast_('\u2713 ' + tr_('dl_docfolder_done', 'Written to the project folder') + ' (' + ok + ')', 'ok', folderUrl ? { href: folderUrl, label: tr_('dl_open_folder', 'Open folder') } : null);
+      } else {
+        let msg = ok + ' von ' + jobs.length + ' Datei(en) geschrieben.';
+        if (folderUrl) msg += '<div style="margin-top:12px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">Ordner in Drive öffnen →</a></div>';
+        if (errors.length) msg += '<div class="dl-errors">' + errors.join('<br>') + '</div>';
+        showCustomAlert(msg, 'Zurückschreiben');
+      }
+      loadMyProjects();
+      return;
+    }
+    const job = jobs[idx];
+    setDownloadProgress_(tr_('dl_docfolder_writing', 'Writing file') + ' ' + (idx + 1) + '/' + jobs.length + ' (' + job.targetLang + ')', tr_('dl_docfolder_sub', 'The translation is written into the matching language subfolder.'));
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.success) { ok++; if (res.folderUrl) folderUrl = res.folderUrl; }
+        else errors.push('<strong>' + escapeHtml(job.targetLang) + '</strong>: ' + escapeHtml(res.error));
+        idx++; next();
+      })
+      .withFailureHandler(err => {
+        errors.push('<strong>' + escapeHtml(job.targetLang) + '</strong>: ' + escapeHtml(err.message));
+        idx++; next();
+      })
+      .apiExportSingleJobToDrive(p.projectUid, p.projectName, { jobUid: job.jobUid, targetLang: job.targetLang, fileName: job.fileName, status: job.status });
+  };
+  next();
+}
+
+let _docImportDriveTree_ = null;
+let _docImportSelectedFolderId_ = null;
+let _docImportSelectedFolderName_ = null;
+let _docImportDuplicateHistory_ = [];
+let _docImportDuplicateConfirmed_ = false;
+let _docImportIsExpress_ = false;
+let _docImportFolderSearchTimer_ = null;
+let _docImportFolderCache_ = null;
+let _docImportFolderCacheLoading_ = false;
+let _germanHolidaySet_ = null;
+
+function attachDocImportFormLogic_() {
+  mainFilesMap['_docimport'] = [];
+  refFilesMap['_docimport'] = [];
+  templateSortState['_docimport'] = 'asc';
+  const tmplSelect = document.getElementById('templateUid_docimport');
+  tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+  renderTemplateOptions('_docimport');
+  tmplSelect.addEventListener('change', () => {
+    docImportOnTemplateChange_();
+  });
+  docImportSetupRefFileListener_();
+  document.getElementById('projectForm_docimport').addEventListener('submit', function(e) {
+    e.preventDefault();
+    docImportSubmit_();
+  });
+  const dueDateInput = document.getElementById('dateDue_docimport');
+  if (dueDateInput) dueDateInput.addEventListener('change', docImportValidateDueDate_);
+  docImportLoadHolidays_();
+}
+
+/**
+ * Eigener, schlanker Listener statt der generischen setupFileListeners():
+ * Doc Import hat kein "mainFilePC"-Upload-Feld (Quelldateien kommen aus dem
+ * Drive-Baum), setupFileListeners() würde dort auf ein nicht existierendes
+ * Element zugreifen und abbrechen. Das war der Grund, warum ausgewählte
+ * Referenzdateien bisher nirgendwo ankamen.
+ */
+function docImportSetupRefFileListener_() {
+  const refInput = document.getElementById('refFilePC_docimport');
+  if (!refInput) return;
+  refInput.addEventListener('change', function() {
+    for (let i = 0; i < this.files.length; i++) {
+      refFilesMap['_docimport'].push({ type: 'pc', fileObj: this.files[i], name: this.files[i].name });
+    }
+    this.value = "";
+    renderFileList('ref', '_docimport');
+  });
+  setupDropzone_('ref', '_docimport');
+}
+
+function docImportOnTemplateChange_() {
+  onTemplateGroupChange('_docimport');
+  const tmplSelect = document.getElementById('templateUid_docimport');
+  const label = (tmplSelect && tmplSelect.options[tmplSelect.selectedIndex]) ? tmplSelect.options[tmplSelect.selectedIndex].text : '';
+  _docImportIsExpress_ = /express/i.test(label);
+  const notice = document.getElementById('docImportExpressNotice');
+  const cb = document.getElementById('docImportExpressConfirmCb');
+  if (notice) notice.style.display = _docImportIsExpress_ ? 'block' : 'none';
+  if (cb) cb.checked = false;
+  docImportValidateDueDate_();
+}
+
+function docImportLoadHolidays_() {
+  const y = new Date().getFullYear();
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) return;
+      _germanHolidaySet_ = new Set(res.holidays.map(h => h.date));
+    })
+    .apiGetGermanHolidays([y, y + 1]);
+}
+
+function docImportCheckNonWorkingDay_(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  if (day === 0 || day === 6) return { blocked: true, reason: 'ein Wochenende' };
+  if (_germanHolidaySet_ && _germanHolidaySet_.has(dateStr)) return { blocked: true, reason: 'einen gesetzlichen Feiertag' };
+  return { blocked: false, reason: '' };
+}
+
+function docImportValidateDueDate_() {
+  const input = document.getElementById('dateDue_docimport');
+  const val = input.value;
+  if (!val) return;
+  const nonWorking = docImportCheckNonWorkingDay_(val);
+  if (nonWorking.blocked) {
+    showCustomAlert('Das Due Date fällt auf ' + nonWorking.reason + '. Bitte ein anderes Datum wählen.', 'Ungültiges Datum');
+    input.value = '';
+    return;
+  }
+  if (_docImportIsExpress_) {
+    const due = new Date(val + 'T12:00:00');
+    const hoursUntil = (due.getTime() - Date.now()) / 36e5;
+    if (hoursUntil < 0 || hoursUntil > 72) {
+      showCustomAlert('Bei dieser Express-Vorlage muss das Due Date innerhalb der nächsten 72 Stunden liegen.', 'Express-Vorlage');
+      input.value = '';
+    }
+  }
+}
+
+function openDocImportFolderDropdown_() {
+  const input = document.getElementById('docImportFolderSearch');
+  if (input) input.focus();
+}
+
+function onDocImportFolderSearchInput_() {
+  const q = document.getElementById('docImportFolderSearch').value;
+  clearTimeout(_docImportFolderSearchTimer_);
+  _docImportFolderSearchTimer_ = setTimeout(() => docImportSearchFolders_(q), 250);
+}
+
+function renderDocImportFolderList_(folders) {
+  const list = document.getElementById('docImportFolderOptionsList');
+  if (!list) return;
+  if (!folders.length) {
+    list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(tr_('di_no_folders', 'No folders found.')) + '</div>';
+    return;
+  }
+  list.innerHTML = folders.map(f =>
+    `<button type="button" class="folder-row${f.id === _docImportSelectedFolderId_ ? ' selected' : ''}" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>
+       <span class="material-icons-outlined">${f.id === _docImportSelectedFolderId_ ? 'check_circle' : 'folder'}</span><span class="folder-row-name">${escapeHtml(f.name)}</span>
+     </button>`
+  ).join('');
+}
+
+function docImportSearchFolders_(query) {
+  const list = document.getElementById('docImportFolderOptionsList');
+  const hasCache = !query && _docImportFolderCache_;
+  // Bei leerer Suche und vorhandenem Cache keinen Lade-Spinner zeigen - die
+  // gecachten (aktuellen) Projekte bleiben sichtbar, bis die Aktualisierung durch ist.
+  if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">Suche...</div>';
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) {
+        if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || 'Fehler') + '</div>';
+        return;
+      }
+      const folders = res.folders || [];
+      if (!query) _docImportFolderCache_ = folders;
+      renderDocImportFolderList_(folders);
+    })
+    .withFailureHandler(err => {
+      if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(err.message) + '</div>';
+    })
+    .apiSearchDocDriveFolders(query);
+}
+
+// Lädt die aktuellen Projektordner im Hintergrund, sobald der Import-Tab
+// sichtbar wird - damit die Auswahl beim öffnen sofort aktuell ist, statt
+// erst nach Klick auf "Ordner auswählen" nachzuladen.
+function docImportPreloadFolders_() {
+  if (_docImportFolderCache_) {
+    const searchInput = document.getElementById('docImportFolderSearch');
+    if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
+  } else {
+    const list = document.getElementById('docImportFolderOptionsList');
+    if (list && !list.innerHTML) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(tr_('jn_loading', 'Loading...')) + '</div>';
+  }
+  if (_docImportFolderCacheLoading_) return;
+  _docImportFolderCacheLoading_ = true;
+  google.script.run
+    .withSuccessHandler(res => {
+      _docImportFolderCacheLoading_ = false;
+      if (!res.success) return;
+      _docImportFolderCache_ = res.folders || [];
+      const searchInput = document.getElementById('docImportFolderSearch');
+      if (!searchInput || !searchInput.value) renderDocImportFolderList_(_docImportFolderCache_);
+    })
+    .withFailureHandler(() => { _docImportFolderCacheLoading_ = false; })
+    .apiSearchDocDriveFolders('');
+}
+
+function selectDocImportFolder_(folderId, folderName) {
+  _docImportSelectedFolderId_ = folderId;
+  _docImportSelectedFolderName_ = folderName;
+  _docImportDuplicateConfirmed_ = false;
+  _docImportDuplicateHistory_ = [];
+
+  const triggerText = document.getElementById('docImportFolderTriggerText');
+  if (triggerText) triggerText.textContent = folderName;
+  const trigger = document.getElementById('docImportFolderTrigger');
+  if (trigger) trigger.classList.add('has-folder');
+  document.querySelectorAll('#docImportFolderOptionsList .folder-row').forEach(b => {
+    const on = b.querySelector('.folder-row-name').textContent === folderName;
+    b.classList.toggle('selected', on);
+    b.querySelector('.material-icons-outlined').textContent = on ? 'check_circle' : 'folder';
+  });
+
+  const pName = document.getElementById('projectName_docimport');
+  if (pName && !pName.value.trim()) pName.value = folderName;
+
+  const container = document.getElementById('docImportValidationContainer');
+  container.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loader" style="width:28px;height:28px;border-width:3px;margin:0 auto;"></div></div>';
+  const warnBox = document.getElementById('docImportDuplicateWarning');
+  if (warnBox) warnBox.style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success || !res.found) {
+        _docImportDriveTree_ = null;
+        container.innerHTML = '<div style="color:#c62828;font-size:13px;">Ordner konnte nicht gelesen werden' + (res.error ? ': ' + escapeHtml(res.error) : '.') + '</div>';
+        const badge = document.getElementById('docImportErrorBadge');
+        if (badge) badge.style.display = 'inline-block';
+        return;
+      }
+      _docImportDriveTree_ = res.tree;
+      docImportRenderValidation_();
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<div style="color:#d93025;font-size:13px;">Fehler: ' + escapeHtml(err.message) + '</div>';
+    })
+    .apiGetDocDriveTreeById(folderId);
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.success) return;
+      _docImportDuplicateHistory_ = res.history || [];
+      if (!warnBox) return;
+      if (_docImportDuplicateHistory_.length) {
+        const last = _docImportDuplicateHistory_[_docImportDuplicateHistory_.length - 1];
+        const dateStr = last.timestamp ? new Date(last.timestamp).toLocaleDateString('de-DE') : 'unbekanntem Datum';
+        warnBox.innerHTML = 'Dieser Ordner wurde bereits am ' + escapeHtml(dateStr) + ' importiert (Projekt "' + escapeHtml(last.projectName || '') + '"). ' +
+          '<label style="display:block;margin-top:6px;font-weight:600;cursor:pointer;"><input type="checkbox" id="docImportDuplicateConfirmCb" onchange="_docImportDuplicateConfirmed_=this.checked"> Ich möchte trotzdem fortfahren (z.B. weil Dateien aktualisiert wurden).</label>';
+        warnBox.style.display = 'block';
+      } else {
+        warnBox.style.display = 'none';
+      }
+    })
+    .apiGetDocImportFolderHistory(folderId);
+}
+
+function docImportRenderValidation_() {
+  const container = document.getElementById('docImportValidationContainer');
+  const badge = document.getElementById('docImportErrorBadge');
+  const details = document.getElementById('docImportFolderDetails');
+  if (!_docImportDriveTree_) {
+    container.innerHTML = '';
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+  const langFolders = _docImportDriveTree_.langFolders || [];
+  let rows = '';
+  langFolders.forEach(lf => {
+    rows += `<tr><td>${escapeHtml(getPrettyLangName(lf.lang))}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">\u231B ${escapeHtml(tr_('di_will_import', 'will be imported'))}</td></tr>`;
+  });
+  container.innerHTML = langFolders.length
+    ? `<table class="docimport-validation-table"><thead><tr><th>${escapeHtml(tr_('di_lang', 'Language'))}</th><th>${escapeHtml(tr_('di_file', 'File name'))}</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<div style="color:#c62828;font-size:13px;">' + escapeHtml(tr_('di_no_langfolders', 'No language subfolders with files found in this folder.')) + '</div>';
+  if (badge) {
+    if (!langFolders.length) {
+      badge.style.display = 'inline-block';
+      if (details) details.open = true;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+function docImportSubmit_() {
+  if (!finalSelectedUid) { showCustomAlert('Bitte Template und Quellsprache wählen.'); return; }
+  if (!_docImportSelectedFolderId_ || !_docImportDriveTree_ || !(_docImportDriveTree_.langFolders || []).length) {
+    showCustomAlert('Bitte zuerst einen Drive-Ordner mit Sprachunterordnern auswählen.');
+    return;
+  }
+
+  if (!refFilesMap['_docimport'] || refFilesMap['_docimport'].length === 0) {
+    showCustomAlert("\u231B Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist für Documentation Projects obligatorisch.", "Pflichtfeld");
+    return;
+  }
+
+  const projectName = document.getElementById('projectName_docimport').value.trim();
+  const iaNumber = document.getElementById('iaNumber_docimport').value.trim();
+  if (!projectName) { showCustomAlert('Projektname fehlt.'); return; }
+  if (!/^[0-9]+$/.test(iaNumber)) { showCustomAlert('IA Number ist Pflicht und muss numerisch sein.'); return; }
+  const tmplSelect = document.getElementById('templateUid_docimport');
+  const templateName = tmplSelect.options[tmplSelect.selectedIndex] ? tmplSelect.options[tmplSelect.selectedIndex].text : '';
+  const srcLang = document.getElementById('sourceLang_docimport').value;
+  let rDate = document.getElementById('dateDue_docimport').value;
+  if (!rDate) { showCustomAlert('Due Date ist ein Pflichtfeld.'); return; }
+  let fDate = new Date(rDate + "T12:00:00").toISOString();
+
+  if (_docImportIsExpress_) {
+    const cb = document.getElementById('docImportExpressConfirmCb');
+    if (!cb || !cb.checked) {
+      showCustomAlert('Bitte bestätigen Sie den 15%-Express-Aufschlag, um mit dieser Vorlage fortzufahren.', 'Express-Aufschlag');
+      return;
+    }
+  }
+
+  if (_docImportDuplicateHistory_.length && !_docImportDuplicateConfirmed_) {
+    showCustomAlert('Dieser Ordner wurde bereits importiert. Bitte bestätigen Sie im Warnhinweis, dass Sie trotzdem fortfahren möchten.', 'Bereits importiert');
+    return;
+  }
+
+  const filesPayload = (_docImportDriveTree_.langFolders || [])
+    .filter(lf => lf.xmlFileId)
+    .map(lf => ({ targetLang: lf.lang, fileId: lf.xmlFileId, fileName: lf.xmlFileName }));
+
+  if (!filesPayload.length) { showCustomAlert('Keine XML-Dateien im Drive-Ordner gefunden.'); return; }
+
+  document.getElementById('overlay').style.display = 'flex';
+  document.getElementById('loadingSpinner').style.display = 'block';
+  document.getElementById('successIcon').style.display = 'none';
+  document.getElementById('statusTitle').innerText = "IMPORTING";
+  document.getElementById('overlayActions').style.display = 'none';
+  startStatusAnimation();
+
+  (async function() {
+    try {
+      const readyRef = []; 
+      const refIds = [];
+      for(const ref of refFilesMap['_docimport']) {
+        if(ref.type === 'drive' || ref.type === 'drivelink') {
+          refIds.push(ref.id);
+        } else {
+          readyRef.push(await readFile(ref.fileObj));
+        }
+      }
+
+      const payload = {
+        templateUid: finalSelectedUid,
+        templateName: templateName,
+        sourceLang: srcLang,
+        projectName: projectName,
+        iaNumber: iaNumber,
+        dueDate: fDate,
+        note: document.getElementById('note_docimport').value,
+        files: filesPayload,
+        refFiles: readyRef,
+        refDriveIds: refIds,
+        driveFolderId: _docImportSelectedFolderId_,
+        expressSurchargeConfirmed: _docImportIsExpress_ ? !!(document.getElementById('docImportExpressConfirmCb') && document.getElementById('docImportExpressConfirmCb').checked) : false,
+        confirmDuplicate: _docImportDuplicateConfirmed_
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          stopStatusAnimation('');
+          document.getElementById('loadingSpinner').style.display = 'none';
+          if (!res.success) {
+            document.getElementById('statusTitle').innerText = "ERROR";
+            document.getElementById('statusTitle').style.color = "#d93025";
+            document.getElementById('overlayActions').style.display = 'block';
+            document.getElementById('overlayActions').innerHTML =
+              "<div style='color:#c62828;font-size:13px;margin-bottom:15px;'>" + escapeHtml(res.error || '') + "</div>" +
+              "<button class='btn btn-secondary' onclick='document.getElementById(\"overlay\").style.display=\"none\"'>SCHLIESSEN</button>";
+            return;
+          }
+          document.getElementById('successIcon').style.display = 'block';
+          document.getElementById('statusTitle').innerText = "FERTIG";
+          document.getElementById('statusTitle').style.color = "#0d652d";
+          document.getElementById('overlayActions').style.display = 'block';
+          const warnHtml = res.errors && res.errors.length
+            ? '<div style="color:#e65100;font-size:12px;margin-bottom:10px;text-align:left;">' + res.errors.map(escapeHtml).join('<br>') + '</div>'
+            : '';
+          document.getElementById('overlayActions').innerHTML =
+            "<div style='max-width:450px;margin:0 auto;'>" +
+            "<div style='margin-bottom:15px;'>" + res.createdCount + " von " + res.totalCount + " Dateien hochgeladen.</div>" +
+            warnHtml +
+            "<a href='" + res.sheetUrl + "' target='_blank' class='btn btn-secondary' style='display:inline-flex;margin-bottom:10px;text-decoration:none;'>Queue-Sheet öffnen ?</a><br>" +
+            "<button class='btn btn-secondary' onclick='document.getElementById(\"overlay\").style.display=\"none\";location.reload()'>SCHLIESSEN</button>" +
+            "</div>";
+        })
+        .withFailureHandler(err => {
+          stopStatusAnimation('');
+          document.getElementById('loadingSpinner').style.display = 'none';
+          document.getElementById('statusTitle').innerText = "ERROR";
+          document.getElementById('statusTitle').style.color = "#d93025";
+          document.getElementById('overlayActions').style.display = 'block';
+          document.getElementById('overlayActions').innerHTML =
+            "<div style='color:#c62828;font-size:13px;margin-bottom:15px;'>" + escapeHtml(err.message) + "</div>" +
+            "<button class='btn btn-secondary' onclick='document.getElementById(\"overlay\").style.display=\"none\"'>SCHLIESSEN</button>";
+        })
+        .apiUploadDocXmlBatch(payload);
+    } catch(e) {
+      stopStatusAnimation('');
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('statusTitle').innerText = "ERROR";
+      document.getElementById('statusTitle').style.color = "#d93025";
+      document.getElementById('overlayActions').style.display = 'block';
+      document.getElementById('overlayActions').innerHTML =
+        "<div style='color:#c62828;font-size:13px;margin-bottom:15px;'>" + escapeHtml(e.message) + "</div>" +
+        "<button class='btn btn-secondary' onclick='document.getElementById(\"overlay\").style.display=\"none\"'>SCHLIESSEN</button>";
+    }
+  })();
+}
+
+let docDriveRootUnlocked = false;</script>

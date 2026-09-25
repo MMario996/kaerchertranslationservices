@@ -101,26 +101,11 @@ function apiGetDocProjectsForHistory() {
   var res = apiGetDocQueueProjects();
   if (!res.success) return { error: res.error, projects: [] };
 
-  var order = ["NEW", "UPLOADED", "ASSIGNED", "ACCEPTED", "COMPLETED", "DELIVERED", "NOTIFIED"];
   var tz = Session.getScriptTimeZone();
 
   var projects = res.projects.map(function(p) {
     var jobs = p.jobs || [];
-    var active = jobs.filter(function(j) { return ["CANCELLED", "CANCELED", "REJECTED"].indexOf(j.status) === -1; });
-    var status;
-    var ps = String(p.phraseProjectStatus || "").toUpperCase();
-    if (ps.indexOf("COMPLETED") === 0) status = "COMPLETED";
-    else if (ps === "CANCELLED") status = "CANCELLED";
-    else if (!active.length) status = jobs.length ? "CANCELLED" : "NEW";
-    else {
-      var minIdx = order.length - 1;
-      active.forEach(function(j) {
-        var i = order.indexOf(j.status);
-        if (i === -1) i = 1;
-        if (i < minIdx) minIdx = i;
-      });
-      status = order[minIdx];
-    }
+    var status = docAggregateStatus_(jobs, p.phraseProjectStatus);
 
     var langs = [];
     jobs.forEach(function(j) { if (j.targetLang && langs.indexOf(j.targetLang) === -1) langs.push(j.targetLang); });
@@ -159,6 +144,28 @@ function apiGetDocProjectsForHistory() {
 
   projects.sort(function(a, b) { return String(b.timestamp).localeCompare(String(a.timestamp)); });
   return { projects: projects, email: getUserEmail_() };
+}
+
+/**
+ * Projektstatus aus Job-Status (rein, ohne Seiteneffekte - siehe SelfTests.gs
+ * und tests/): COMPLETED/CANCELLED aus "Phrase Project Status" gewinnt, sonst
+ * der am wenigsten fortgeschrittene nicht abgebrochene Job.
+ */
+function docAggregateStatus_(jobs, phraseProjectStatus) {
+  var order = ["NEW", "UPLOADED", "ASSIGNED", "ACCEPTED", "COMPLETED", "DELIVERED", "NOTIFIED"];
+  jobs = jobs || [];
+  var ps = String(phraseProjectStatus || "").toUpperCase();
+  if (ps.indexOf("COMPLETED") === 0) return "COMPLETED";
+  if (ps === "CANCELLED") return "CANCELLED";
+  var active = jobs.filter(function(j) { return ["CANCELLED", "CANCELED", "REJECTED"].indexOf(j.status) === -1; });
+  if (!active.length) return jobs.length ? "CANCELLED" : "NEW";
+  var minIdx = order.length - 1;
+  active.forEach(function(j) {
+    var i = order.indexOf(j.status);
+    if (i === -1) i = 1;
+    if (i < minIdx) minIdx = i;
+  });
+  return order[minIdx];
 }
 
 /** Queue-Zeile eines Dokumentationsprojekts (fuer Notiz-Berechtigung), sonst null. */

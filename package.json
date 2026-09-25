@@ -1,0 +1,12 @@
+{
+  "name": "kaerchertranslationservices",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Kärcher Translation Services portal (Google Apps Script web app).",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

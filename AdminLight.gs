@@ -8,7 +8,7 @@
  * "dashboard" schaltet den Analytics-Reiter "Dashboard" frei (kein Admin-Subtab).
  */
 var ADMIN_LIGHT_SHEET_NAME_ = "Whitelist_AdminLight";
-var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages", "pivot", "dashboard"];
+var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "custompages", "pivot", "tests", "dashboard"];
 
 function getAdminLightSubtabs_(email) {
   if (!email) return [];
@@ -64,7 +64,7 @@ function apiAddAdminLightUser(email, subtabs) {
   const cleanSubtabs = (Array.isArray(subtabs) ? subtabs : [])
     .map(s => String(s).trim().toLowerCase())
     .filter(s => ADMIN_LIGHT_VALID_SUBTABS_.includes(s));
-  if (!cleanSubtabs.length) return { success: false, error: "Mindestens einen Bereich (users/templates/custompages/pivot/dashboard) angeben." };
+  if (!cleanSubtabs.length) return { success: false, error: "Mindestens einen Bereich (users/templates/custompages/pivot/tests/dashboard) angeben." };
   try {
     const ss = openAccessSS_();
     let sh = ss.getSheetByName(ADMIN_LIGHT_SHEET_NAME_);

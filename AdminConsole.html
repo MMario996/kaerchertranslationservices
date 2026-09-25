@@ -8,6 +8,7 @@
                 <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Template Manager</button>
                 <button class="admin-subtab-btn" id="subtab-btn-custompages" onclick="switchAdminSubtab('custompages')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Eigene Reiter</button>
                 <button class="admin-subtab-btn" id="subtab-btn-pivot" onclick="switchAdminSubtab('pivot')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Pivot Templates</button>
+                <button class="admin-subtab-btn" id="subtab-btn-tests" onclick="switchAdminSubtab('tests')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;">Tests</button>
             </div>
 
             <div id="admin-subtab-console">
@@ -204,6 +205,9 @@
                         </label>
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabPivot" style="width:auto;"> Pivot Templates
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
+                            <input type="checkbox" id="adminLightSubtabTests" style="width:auto;"> Tests
                         </label>
                         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0;font-size:13px;">
                             <input type="checkbox" id="adminLightSubtabDashboard" style="width:auto;"> Dashboard (Analytics)
@@ -723,4 +727,14 @@
            apiGetGuideContent() in WebApp.gs zum selben Truncation-Problem). -->
       <div id="admin-subtab-pivot" style="display:none;"></div>
 <!-- /admin-subtab-pivot -->
+      <div id="admin-subtab-tests" style="display:none;">
+        <div class="selftest-head">
+          <div>
+            <div class="section-title" style="margin:0;border:none;font-size:20px;">Selbsttests</div>
+            <div style="color:#777;font-size:13px;margin-top:4px;">Prüft Logik, Konfiguration, Sheets und Verbindungen. Nur lesend &#8211; es wird nichts verändert.</div>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:0 24px;height:44px;" onclick="runSelfTests_()"><i class="material-icons-outlined">play_arrow</i> Tests ausführen</button>
+        </div>
+        <div id="selfTestResults"><div class="cal-empty" style="padding:30px;">Noch nicht ausgeführt.</div></div>
+      </div>
   </div> <!-- /container -->
