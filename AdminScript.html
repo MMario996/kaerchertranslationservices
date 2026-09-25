@@ -197,7 +197,7 @@ function toggleAdminHelp(id) {
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot', 'tests'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
@@ -1018,6 +1018,7 @@ function toggleAdminHelp(id) {
         if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
         if (document.getElementById('adminLightSubtabCustompages').checked) subtabs.push('custompages');
         if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
+        if (document.getElementById('adminLightSubtabTests').checked) subtabs.push('tests');
         if (document.getElementById('adminLightSubtabDashboard').checked) subtabs.push('dashboard');
         if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
         google.script.run
@@ -1028,6 +1029,7 @@ function toggleAdminHelp(id) {
             document.getElementById('adminLightSubtabTemplates').checked = false;
             document.getElementById('adminLightSubtabCustompages').checked = false;
             document.getElementById('adminLightSubtabPivot').checked = false;
+            document.getElementById('adminLightSubtabTests').checked = false;
             document.getElementById('adminLightSubtabDashboard').checked = false;
             loadAdminLightUsers();
           })

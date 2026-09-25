@@ -1,0 +1,810 @@
+<script>
+// JsUpload.html - eingebunden in Index.html via include() (WebApp.gs)
+
+function toggleKecSidebar(suffix) {
+  const sb  = document.getElementById('kecDebugSidebar' + suffix);
+  const btn = document.getElementById('kecShowDebugBtn' + suffix);
+  if (!sb) return;
+  if (sb.classList.contains('collapsed')) {
+    sb.classList.remove('collapsed');
+    if (btn) btn.style.display = 'none';
+  } else {
+    sb.classList.add('collapsed');
+    if (btn) btn.style.display = 'inline-flex';
+  }
+}
+
+
+function checkTemplateSelected(suffix, type) {
+  const exUid = document.getElementById('existingProjectUid' + suffix);
+  if (exUid && exUid.value) return; 
+  
+  if (!finalSelectedUid) {
+    const tmplSelect = document.getElementById('templateUid' + suffix);
+    if(tmplSelect && tmplSelect.value) showCustomAlert("\u26A0 Please select the Source Language first.");
+    else showInstruction();
+  }
+}
+
+function checkPreconditions(suffix) {
+  const exUid = document.getElementById('existingProjectUid' + suffix);
+  if (exUid && exUid.value) return true;
+
+  if(!finalSelectedUid) { showCustomAlert("Please select a Template and Source Language."); return false; }
+  
+  if (suffix !== '_docimport') {
+    const tList = document.getElementById(`targetLangList${suffix}`);
+    if(tList && tList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select Target Language."); return false; }
+  }
+
+  const pivotRow = document.getElementById('pivotTargetLangRow' + suffix);
+  if (pivotRow && pivotRow.style.display !== 'none') {
+    const pList = document.getElementById(`pivotTargetLangList${suffix}`);
+    if (pList && pList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select at least one Translation Target Language (Pivot)."); return false; }
+  }
+
+  return true;
+}
+
+function handleXmlUploadClick(type, suffix) {
+  if(checkPreconditions(suffix)) {
+    if(type === 'main') {
+      const xmlInput = document.getElementById('mainFileXML' + suffix);
+      if(xmlInput) xmlInput.click();
+    }
+  }
+}
+
+function handlePcUploadClick(type, suffix) {
+  if(checkPreconditions(suffix)) {
+    if(type==='main') document.getElementById('mainFilePC'+suffix).click();
+    else document.getElementById('refFilePC'+suffix).click();
+  }
+}
+function handleDriveClick(type, suffix) {
+  if(checkPreconditions(suffix)) openDriveModal(type, suffix);
+}
+
+function removeFile(type, index, suffix) {
+  if(type==='main') mainFilesMap[suffix].splice(index,1);
+  else refFilesMap[suffix].splice(index,1);
+  renderFileList(type, suffix);
+}
+function renderFileList(type, suffix) {
+  const isMain = (type==='main');
+  const arr = isMain ? mainFilesMap[suffix] : refFilesMap[suffix];
+  const container = document.getElementById((isMain?'mainListContainer':'refListContainer')+suffix);
+  if(!container) return;
+  container.innerHTML = "";
+  const card = container.closest('.card');
+  if (card) card.classList.toggle('has-files', arr.length > 0);
+  if(arr.length===0) { container.style.display='none'; return; }
+  container.style.display = 'block';
+  arr.forEach((item, idx) => {
+    const div = document.createElement('div'); div.className='file-item';
+    const icon = (item.source==='drive'||item.type==='drive') ? 'add_to_drive' : (isMain?'computer':'description');
+    div.innerHTML = `<span class="material-icons-outlined file-icon">${icon}</span><span class="file-name">${item.name}</span><span class="material-icons-outlined file-remove" onclick="removeFile('${type}',${idx},'${suffix}')">close</span>`;
+    container.appendChild(div);
+  });
+}
+
+let activeDriveSuffix  = "";
+let driveCurrentItems  = [];   
+let driveViewMode      = localStorage.getItem('driveViewMode') || 'list';
+let driveFavoritesMode = false;
+let driveFavorites     = JSON.parse(localStorage.getItem('driveFavorites') || '[]');
+let driveRecents       = JSON.parse(localStorage.getItem('driveRecents')   || '[]');
+
+function openDriveModal(mode, suffix) {
+  driveSelectionMode = mode;
+  activeDriveSuffix  = suffix;
+  driveFavoritesMode = false;
+  document.getElementById('driveSearchInput').value = '';
+  document.getElementById('driveRecentsPanel').style.display = 'none';
+  document.getElementById('driveFavBtn').style.background = '#fff';
+  document.getElementById('driveFavBtn').style.color = '#666';
+  setDriveView(driveViewMode, false);
+  document.getElementById('driveModal').style.display = 'flex';
+  loadDriveFolder('home');
+}
+
+function closeDriveModal() {
+  document.getElementById('driveModal').style.display = 'none';
+}
+
+function setDriveView(mode, save = true) {
+  driveViewMode = mode;
+  if (save) localStorage.setItem('driveViewMode', mode);
+  document.getElementById('driveViewList').style.background = mode === 'list' ? 'var(--primary-black)' : '#f5f5f5';
+  document.getElementById('driveViewList').style.color      = mode === 'list' ? 'var(--primary-yellow)' : '#666';
+  document.getElementById('driveViewGrid').style.background = mode === 'grid' ? 'var(--primary-black)' : '#f5f5f5';
+  document.getElementById('driveViewGrid').style.color      = mode === 'grid' ? 'var(--primary-yellow)' : '#666';
+  filterAndRenderDrive();
+}
+
+function toggleDriveFavorites() {
+  driveFavoritesMode = !driveFavoritesMode;
+  const btn = document.getElementById('driveFavBtn');
+  if (driveFavoritesMode) {
+    btn.style.background = 'var(--primary-yellow)';
+    btn.style.color = 'var(--primary-black)';
+    renderDriveFavorites();
+  } else {
+    btn.style.background = '#fff';
+    btn.style.color = '#666';
+    document.getElementById('driveRecentsPanel').style.display = 'none';
+    filterAndRenderDrive();
+  }
+}
+
+function renderDriveFavorites() {
+  const panel = document.getElementById('driveRecentsPanel');
+  const list  = document.getElementById('driveRecentsList');
+  const combined = [
+    ...driveFavorites.map(f => ({ ...f, isFav: true })),
+    ...driveRecents.filter(r => !driveFavorites.find(f => f.id === r.id)).map(r => ({ ...r, isFav: false }))
+  ].slice(0, 20);
+  if (!combined.length) {
+    list.innerHTML = '<div style="color:#999;font-size:13px;">No favorites or recently used files yet.</div>';
+  } else {
+    list.innerHTML = combined.map(f => `
+      <div onclick="selectDriveFile(${JSON.stringify(f).replace(/"/g, '&quot;')})"
+           style="display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;border-radius:4px;font-size:13px;"
+           onmouseover="this.style.background='#fffbe6'" onmouseout="this.style.background='transparent'">
+        <span class="material-icons-outlined" style="font-size:18px;color:${f.isFav ? '#f59e0b' : '#5f6368'};">
+          ${f.isFav ? 'star' : 'history'}
+        </span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.name)}</span>
+        <span style="font-size:10px;color:#999;">${getDriveFileExt(f.name)}</span>
+        ${f.isFav
+          ? `<span onclick="event.stopPropagation();removeDriveFavorite('${f.id}')"
+                   title="Remove from favorites"
+                   style="color:#ccc;cursor:pointer;font-size:16px;" class="material-icons-outlined">star</span>`
+          : `<span onclick="event.stopPropagation();addDriveFavorite(${JSON.stringify(f).replace(/"/g, '&quot;')})"
+                   title="Add to favorites"
+                   style="color:#ccc;cursor:pointer;font-size:16px;" class="material-icons-outlined">star_border</span>`
+        }
+      </div>`).join('');
+  }
+  panel.style.display = 'block';
+  document.getElementById('driveList').innerHTML = '';
+}
+
+function addDriveFavorite(item) {
+  if (!driveFavorites.find(f => f.id === item.id)) {
+    driveFavorites.unshift(item);
+    localStorage.setItem('driveFavorites', JSON.stringify(driveFavorites.slice(0, 50)));
+  }
+  if (driveFavoritesMode) renderDriveFavorites();
+}
+
+function removeDriveFavorite(id) {
+  driveFavorites = driveFavorites.filter(f => f.id !== id);
+  localStorage.setItem('driveFavorites', JSON.stringify(driveFavorites));
+  if (driveFavoritesMode) renderDriveFavorites();
+}
+
+function addDriveRecent(item) {
+  driveRecents = [item, ...driveRecents.filter(r => r.id !== item.id)].slice(0, 30);
+  localStorage.setItem('driveRecents', JSON.stringify(driveRecents));
+}
+
+function loadDriveFolder(folderId) {
+  document.getElementById('driveList').innerHTML =
+    '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+  document.getElementById('driveSearchInput').value = '';
+  google.script.run
+    .withSuccessHandler(renderDriveList)
+    .withFailureHandler(e => {
+      document.getElementById('driveList').innerHTML =
+        `<div style="padding:30px;color:#d93025;text-align:center;">Error: ${escapeHtml(e.message)}</div>`;
+    })
+    .apiBrowseDrive(folderId);
+}
+
+function renderDriveList(data) {
+  const title   = document.getElementById('driveCurrentFolder');
+  const backBtn = document.getElementById('driveBackBtn');
+  title.innerText   = data.currentName || 'Google Drive';
+  currentFolderId   = data.currentId;
+  currentParentId   = data.parentId;
+  driveCurrentItems = data.contents || [];
+  backBtn.style.display   = data.parentId ? 'inline-flex' : 'none';
+  backBtn.onclick         = () => loadDriveFolder(data.parentId);
+  filterAndRenderDrive();
+}
+
+function filterAndRenderDrive() {
+  if (driveFavoritesMode) { renderDriveFavorites(); return; }
+  const query   = (document.getElementById('driveSearchInput').value || '').toLowerCase();
+  const sortVal = document.getElementById('driveSortSelect').value;
+  let items = driveCurrentItems.filter(item =>
+    !query || item.name.toLowerCase().includes(query)
+  );
+  items = sortDriveItems(items, sortVal);
+  const container = document.getElementById('driveList');
+  if (!items.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#5f6368;font-size:14px;">No files found.</div>';
+    return;
+  }
+  if (driveViewMode === 'grid') {
+    renderDriveGrid(items, container);
+  } else {
+    renderDriveListView(items, container);
+  }
+}
+
+function sortDriveItems(items, mode) {
+  return [...items].sort((a, b) => {
+    if (mode === 'type-name') {
+      if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    }
+    if (mode === 'name')
+      return a.name.localeCompare(b.name);
+    if (mode === 'name-desc') return b.name.localeCompare(a.name);
+    if (mode === 'type') {
+      const ea = getDriveFileExt(a.name), eb = getDriveFileExt(b.name);
+      if (ea !== eb) return ea.localeCompare(eb);
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
+  });
+}
+
+function renderDriveListView(items, container) {
+  container.innerHTML = `
+    <div style="display:flex;padding:8px 20px;border-bottom:1px solid #f0f0f0;font-size:11px;font-weight:800;text-transform:uppercase;color:#888;background:#fafafa;">
+      <div style="width:32px;"></div>
+      <div style="flex:1;">Name</div>
+      <div style="width:60px;text-align:right;">Type</div>
+      <div style="width:36px;"></div>
+    </div>` +
+    items.map(item => {
+      const isFolder = item.type === 'folder';
+      const isFav    = driveFavorites.find(f => f.id === item.id);
+      return `
+      <div class="drive-row" onclick="${isFolder ? `loadDriveFolder('${item.id}')` : `selectDriveFile(${JSON.stringify(item).replace(/"/g, '&quot;')})`}"
+           style="display:flex;align-items:center;padding:10px 20px;border-bottom:1px solid #f5f5f5;cursor:pointer;font-size:13px;gap:10px;"
+           onmouseover="this.style.background='#fffbe6'" onmouseout="this.style.background='transparent'">
+        <div style="width:32px;flex-shrink:0;">
+          ${getDriveFileIcon(item)}
+        </div>
+        <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:${isFolder ? '600' : '400'};">
+          ${escapeHtml(item.name)}
+        </div>
+        <div style="width:60px;text-align:right;font-size:11px;color:#999;text-transform:uppercase;">
+          ${isFolder ? 'Folder' : getDriveFileExt(item.name)}
+        </div>
+        <div style="width:36px;text-align:right;flex-shrink:0;">
+          ${!isFolder ? `
+            <span onclick="event.stopPropagation();${isFav ? `removeDriveFavorite('${item.id}')` : `addDriveFavorite(${JSON.stringify(item).replace(/"/g, '&quot;')})`}"
+                  title="${isFav ? 'Remove from favorites' : 'Add to favorites'}"
+                  class="material-icons-outlined"
+                  style="font-size:16px;color:${isFav ? '#f59e0b' : '#ddd'};cursor:pointer;vertical-align:middle;">
+              ${isFav ? 'star' : 'star_border'}
+            </span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function renderDriveGrid(items, container) {
+  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:16px;">` +
+    items.map(item => {
+      const isFolder = item.type === 'folder';
+      const isFav    = driveFavorites.find(f => f.id === item.id);
+      return `
+      <div onclick="${isFolder ? `loadDriveFolder('${item.id}')` : `selectDriveFile(${JSON.stringify(item).replace(/"/g, '&quot;')})`}"
+           style="border:1px solid #eee;padding:12px 10px;cursor:pointer;text-align:center;border-radius:4px;position:relative;background:#fff;"
+           onmouseover="this.style.background='#fffbe6';this.style.borderColor='#e6d500';"
+           onmouseout="this.style.background='#fff';this.style.borderColor='#eee';">
+        ${!isFolder ? `
+          <span onclick="event.stopPropagation();${isFav ? `removeDriveFavorite('${item.id}')` : `addDriveFavorite(${JSON.stringify(item).replace(/"/g, '&quot;')})`}"
+                class="material-icons-outlined"
+                style="position:absolute;top:6px;right:6px;font-size:14px;color:${isFav ? '#f59e0b' : '#ddd'};cursor:pointer;">
+            ${isFav ? 'star' : 'star_border'}
+          </span>` : ''}
+        <div style="font-size:36px;margin-bottom:8px;">${getDriveFileIcon(item, true)}</div>
+        <div style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:${isFolder ? '600' : '400'};color:#333;"
+             title="${escapeHtml(item.name)}">
+          ${escapeHtml(item.name)}
+        </div>
+        <div style="font-size:10px;color:#999;text-transform:uppercase;margin-top:3px;">
+          ${isFolder ? 'Folder' : getDriveFileExt(item.name)}
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function getDriveFileExt(name) {
+  const m = String(name || '').match(/\.([a-zA-Z0-9]{1,6})$/);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function getDriveFileIcon(item, large = false) {
+  if (item.type === 'folder') {
+    return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#5f6368;">folder</span>`;
+  }
+  const ext  = getDriveFileExt(item.name);
+  const mime = item.mimeType || '';
+  const iconMap = {
+    'xlsx': { icon: 'table_chart',      color: '#1e7e34' },
+    'xls':  { icon: 'table_chart',      color: '#1e7e34' },
+    'docx': { icon: 'description',      color: '#1a73e8' },
+    'doc':  { icon: 'description',      color: '#1a73e8' },
+    'pptx': { icon: 'slideshow',        color: '#d93025' },
+    'ppt':  { icon: 'slideshow',        color: '#d93025' },
+    'pdf':  { icon: 'picture_as_pdf',   color: '#d93025' },
+    'idml': { icon: 'auto_stories',     color: '#9c27b0' },
+    'txt':  { icon: 'text_snippet',     color: '#5f6368' },
+    'xml':  { icon: 'code',             color: '#f57c00' },
+    'html': { icon: 'html',             color: '#e65100' },
+    'zip':  { icon: 'folder_zip',       color: '#795548' },
+    'csv':  { icon: 'grid_on',          color: '#0f9d58' },
+  };
+  
+  if (mime.includes('spreadsheet')) return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#1e7e34;">table_chart</span>`;
+  if (mime.includes('document'))    return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#1a73e8;">description</span>`;
+  if (mime.includes('presentation'))return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#d93025;">slideshow</span>`;
+  if (mime.includes('shortcut'))    return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#888;">shortcut</span>`;
+  
+  const mapping = iconMap[ext];
+  if (mapping) return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:${mapping.color};">${mapping.icon}</span>`;
+  return `<span class="material-icons-outlined" style="font-size:${large ? '36' : '20'}px;color:#5f6368;">insert_drive_file</span>`;
+}
+
+function setupFileListeners(suffix) {
+  document.getElementById('mainFilePC'+suffix).addEventListener('change', function() {
+    for (let i=0; i<this.files.length; i++) {
+      const file = this.files[i];
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          showCustomAlert(i18n[currentLang]['alert_pdf_block'], "Format Error");
+          continue; 
+      }
+      if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, "Size Error"); continue; }
+      mainFilesMap[suffix].push({ source:'pc', fileObj:file, name:file.name });
+    }
+    this.value = "";
+    const pName = document.getElementById('projectName'+suffix);
+    if(pName && pName.value==="" && mainFilesMap[suffix].length===1) {
+      pName.value = mainFilesMap[suffix][0].name.split('.').slice(0,-1).join('.');
+    } else if(mainFilesMap[suffix].length > 1) {
+      showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+    }
+    renderFileList('main', suffix);
+  });
+
+  const xmlInput = document.getElementById('mainFileXML'+suffix);
+  if(xmlInput) {
+    xmlInput.addEventListener('change', function() {
+      for (let i=0; i<this.files.length; i++) {
+        const file = this.files[i];
+        if(!file.name.toLowerCase().endsWith('.xml')) {
+            showCustomAlert(`Die Datei ${file.name} ist keine XML-Datei.`, "Format Error");
+            continue;
+        }
+        if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, "Size Error"); continue; }
+        mainFilesMap[suffix].push({ source:'pc', fileObj:file, name:file.name });
+      }
+      this.value = "";
+      const pName = document.getElementById('projectName'+suffix);
+      if(pName && pName.value==="" && mainFilesMap[suffix].length===1) {
+        pName.value = mainFilesMap[suffix][0].name.split('.').slice(0,-1).join('.');
+      } else if(mainFilesMap[suffix].length > 1) {
+        showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+      }
+      renderFileList('main', suffix);
+    });
+  }
+
+  document.getElementById('refFilePC'+suffix).addEventListener('change', function() {
+    for (let i=0; i<this.files.length; i++) refFilesMap[suffix].push({ type:'pc', fileObj:this.files[i], name:this.files[i].name });
+    this.value = "";
+    renderFileList('ref', suffix);
+  });
+
+  setupDropzone_('main', suffix);
+  setupDropzone_('ref', suffix);
+  }
+
+/**
+ * Drag & Drop auf die Upload-Karten: die abgelegten Dateien werden in das
+ * versteckte PC-Upload-Input gesetzt und dessen change-Handler ausgeloest,
+ * damit exakt dieselben Pruefungen (PDF-Sperre, Groessenlimit, ...) greifen.
+ */
+function setupDropzone_(type, suffix) {
+  const zone = document.getElementById(type + 'Drop' + suffix);
+  const input = document.getElementById((type === 'main' ? 'mainFilePC' : 'refFilePC') + suffix);
+  if (!zone || !input) return;
+  const card = zone.closest('.card') || zone;
+  let depth = 0;
+  card.addEventListener('dragenter', e => { e.preventDefault(); depth++; zone.classList.add('dragover'); });
+  card.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  card.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; zone.classList.remove('dragover'); } });
+  card.addEventListener('drop', e => {
+    e.preventDefault();
+    depth = 0;
+    zone.classList.remove('dragover');
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    if (!checkPreconditions(suffix)) return;
+    try {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    } catch (err) {
+      showCustomAlert('Drag & drop is not supported in this browser. Please use "PC Upload".', 'Info');
+    }
+  });
+}
+
+function selectDriveFile(item) {
+  const suffix = activeDriveSuffix;
+  if (driveSelectionMode === 'main' && (item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'))) {
+    showCustomAlert(i18n[currentLang]['alert_pdf_block'], "Format Error");
+    return;
+  }
+  if (driveSelectionMode === 'main') {
+    mainFilesMap[suffix].push({ source: 'drive', id: item.id, name: item.name });
+    const pName = document.getElementById('projectName' + suffix);
+    if (mainFilesMap[suffix].length === 1 && pName && pName.value === '') {
+      pName.value = item.name.split('.').slice(0, -1).join('.') || item.name;
+    } else if (mainFilesMap[suffix].length >= 2) {
+      showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+    }
+  } else {
+    refFilesMap[suffix].push({ type: 'drive', id: item.id, name: item.name });
+  }
+  addDriveRecent({ id: item.id, name: item.name, type: 'file', mimeType: item.mimeType || '' });
+  renderFileList(driveSelectionMode, suffix);
+  closeDriveModal();
+}
+
+function goUp() {
+  if (currentParentId) loadDriveFolder(currentParentId);
+}
+
+const statusMsgs = [
+  "Analyzing files...",
+  "Juggling 50 languages at once...",
+  "Teaching myself a new language...",
+  "Doing some linguistic gymnastics...",
+  "Bribing the Translation Memory...",
+  "Consulting the Tower of Babel...",
+  "Polishing the termbase...",
+  "Chasing 100% fuzzy matches...",
+  "Untangling nested syntax...",
+  "Making peace with the Oxford comma...",
+  "Translating silence into punctuation...",
+  "Whispering sweet nothings to the Phrase API...",
+  "Sipping espresso while checking grammar...",
+  "Finalizing..."
+];
+let stInt=null, stIdx=0;
+function startStatusAnimation() {
+  const msgEl=document.getElementById('statusMsg'); stIdx=0; msgEl.innerText=statusMsgs[0]; msgEl.classList.add('msg-enter');
+  stInt=setInterval(()=>{
+    msgEl.classList.remove('msg-enter'); msgEl.classList.add('msg-exit');
+    setTimeout(()=>{stIdx=(stIdx+1)%statusMsgs.length;msgEl.innerText=statusMsgs[stIdx];msgEl.classList.remove('msg-exit');msgEl.classList.add('msg-enter');},500);
+  },5000);
+}
+function stopStatusAnimation(txt) { clearInterval(stInt); const m=document.getElementById('statusMsg'); m.classList.remove('msg-exit'); m.classList.add('msg-enter'); if(txt) m.innerText=txt; }
+function readFile(file) { return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res({name:file.name,mime:file.type,data:e.target.result}); r.onerror=rej; r.readAsDataURL(file); }); }
+
+function attachSubmitHandler(formId, suffix) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if(mainFilesMap[suffix].length === 0) { showCustomAlert("Please select a Main File."); return; }
+        if(!checkPreconditions(suffix)) return;
+        submitStandard(suffix);
+    });
+}
+
+function submitStandard(suffix) {
+    document.getElementById('overlay').style.display='flex';
+    document.getElementById('loadingSpinner').style.display='block';
+    document.getElementById('successIcon').style.display='none';
+    document.getElementById('statusTitle').innerText="PROCESSING"; document.getElementById('statusTitle').style.color="#000";
+    document.getElementById('overlayActions').style.display='none';
+    startStatusAnimation();
+
+    (async function() {
+        try {
+            const readyMain=[];
+            for(const f of mainFilesMap[suffix]) {
+              if(f.source==='pc'){const d=await readFile(f.fileObj);readyMain.push({source:'pc',name:f.name,data:d.data,mime:d.mime});}
+              else readyMain.push({source:'drive',id:f.id,name:f.name});
+            }
+            const readyRef=[]; const refIds=[];
+            for(const ref of refFilesMap[suffix]) {
+              if(ref.type==='drive') refIds.push(ref.id);
+              else readyRef.push(await readFile(ref.fileObj));
+            }
+
+            const sel=document.getElementById('templateUid'+suffix);
+            const targets=Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb=>cb.value);
+            const pivotTargets=Array.from(document.querySelectorAll(`#pivotTargetLangList${suffix} input:checked`)).map(cb=>cb.value);
+            let rDate=document.getElementById('dateDue'+suffix).value;
+            let fDate=rDate?new Date(rDate+"T12:00:00").toISOString():null;
+
+            const srcLang = document.getElementById('sourceLang'+suffix).value;
+            const variantData = selectedGroup.variants[srcLang];
+            const selectedUidsMap = {};
+            targets.forEach(t => {
+                selectedUidsMap[t] = variantData.targetUidMap[t] || finalSelectedUid;
+            });
+
+            const payload={
+              templateUid:finalSelectedUid,
+              targetUidMap: selectedUidsMap,
+              templateName:sel.options[sel.selectedIndex].text,
+              projectName:document.getElementById('projectName'+suffix).value,
+              sourceLang:srcLang,
+              targetLangs:targets,
+              pivotTargetLangs:pivotTargets,
+              dateDue:fDate, note:document.getElementById('note'+suffix).value,
+              allMainFiles:readyMain, refFiles:readyRef, refDriveIds:refIds,
+              portalType: suffix.replace(/^_/, '')
+            };
+
+            if (suffix === '_articulate') {
+              const reviewEl = document.getElementById('artReviewType');
+              payload.campusReviewType = reviewEl ? reviewEl.value.trim() : '';
+            }
+
+            _uploadWatchdog_ = setTimeout(function() {
+              _uploadWatchdog_ = null;
+              document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
+              stopStatusAnimation("\u26A0 This is taking longer than usual. Your project is likely being created in Phrase TMS. Please wait or check My Projects.");
+              document.getElementById('statusMsg').style.color = '#ff9800';
+              document.getElementById('overlayActions').style.display = 'block';
+              document.getElementById('overlayActions').innerHTML =
+                "<button class='btn btn-secondary' style='min-width:250px;margin-bottom:10px;' onclick='switchTab(\"history\");document.getElementById(\"overlay\").style.display=\"none\";'>CHECK MY PROJECTS</button>" +
+                "<br><small style='color:#999;font-size:12px;'>The project may still complete in the background.</small>";
+            }, 270000); 
+
+            google.script.run
+              .withSuccessHandler(function(res) {
+                onSuccess(res);
+                if (suffix === '_articulate' && res && res.success) triggerArticulateAutoPreview_(res);
+              })
+              .withFailureHandler(onFailure)
+              .apiHandleUpload(payload);
+        } catch(e) {
+            onFailure(e);
+        }
+    })();
+}
+
+/**
+ * Wird nach dem Einreichen eines Campus-Projekts aufgerufen, wenn im
+ * optionalen SCORM-Feld ein Drive-Ordner angegeben wurde: legt fuer jeden
+ * neu erzeugten Job (=Zielsprache) einen Articulate-Registry-Eintrag an.
+ * Erzeugt bewusst NOCH KEINE Preview direkt hier - unmittelbar nach dem
+ * Einreichen ist noch nichts uebersetzt, ein sofortiger Link wuerde nur
+ * den (unuebersetzten) Originaltext des SCORM-Exports zeigen. Stattdessen
+ * uebernimmt checkArticulateJobCompletions_ (AutoSync.gs / Articualtepreview.gs)
+ * die automatische Preview-Generierung, sobald einer der Workflow-Schritte
+ * (Translation / PE / Revision) tatsaechlich abgeschlossen ist - und zwar
+ * erneut bei jedem weiteren Schritt.
+ */
+function triggerArticulateAutoPreview_(uploadResult) {
+  const folderEl = document.getElementById('artSubmitScormFolder');
+  const folder = folderEl ? folderEl.value.trim() : '';
+  if (!folder) return;
+
+  const rawJobMapping = uploadResult.jobMapping || [];
+  if (!rawJobMapping.length) return;
+
+  // Bei Multi-Step-Workflows (Translation -> PE -> Revision) legt Phrase pro
+  // Zielsprache mehrere Jobs gleichzeitig an (ein Job je Workflow-Stufe).
+  // Fuer die SCORM-Preview soll nur der erste (aktive Uebersetzungs-)Job je
+  // Zielsprache verknuepft werden.
+  const seenLangs = {};
+  const jobMapping = rawJobMapping.filter(function(j) {
+    const lang = j.targetLang || '';
+    if (seenLangs[lang]) return false;
+    seenLangs[lang] = true;
+    return true;
+  });
+
+  const projectUid = uploadResult.projectUid;
+  const projectName = document.getElementById('projectName_articulate')
+    ? document.getElementById('projectName_articulate').value.trim()
+    : 'Campus Kurs';
+
+  const payloads = jobMapping.map(function(j) {
+    return {
+      courseName: projectName,
+      targetLang: j.targetLang,
+      projectUidOrUrl: projectUid,
+      jobUidOrUrl: j.jobUid,
+      driveFolderUrl: folder,
+      firebaseSite: '',
+      _fileLabel: (j.fileName || projectName) + ' (' + j.targetLang + ')'
+    };
+  });
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const results = res.results || [];
+      const ok = [];
+      const failed = [];
+      results.forEach(function(r, i) {
+        if (r.success) ok.push({ id: r.id, index: i });
+        else failed.push((r.courseName || ('Job ' + (i + 1))) + ': ' + (r.error || 'Unbekannter Fehler'));
+      });
+      loadArticulateProjects();
+      if (ok.length) {
+        showCustomAlert(
+          'SCORM-Preview für ' + ok.length + ' Zielsprache(n) eingerichtet. Sobald ein Übersetzungsschritt ' +
+          '(Translation / PE / Revision) abgeschlossen ist, wird automatisch ein aktueller Preview-Link erzeugt ' +
+          '– im Tab "Campus Projekte" unter "Gespeicherte Kurse" sichtbar.',
+          'SCORM-Preview eingerichtet'
+        );
+      }
+      if (failed.length) {
+        showCustomAlert(
+          'SCORM-Preview konnte für ' + failed.length + ' von ' + payloads.length + ' Zielsprache(n) nicht automatisch ' +
+          'verknüpft werden:\n\n' + failed.join('\n') +
+          '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
+          'über den Preview-Generator nachgeholt werden.',
+          'SCORM-Preview teilweise fehlgeschlagen'
+        );
+      }
+    })
+    .withFailureHandler(function(err) {
+      showCustomAlert(
+        'Automatische SCORM-Preview-Verknüpfung fehlgeschlagen: ' + err.message +
+        '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
+        'über den Preview-Generator nachgeholt werden.',
+        'SCORM-Preview fehlgeschlagen'
+      );
+    })
+    .apiBatchCreateArticulateProjectsFromUi(payloads);
+}
+
+function submitKecExisting(suffix, existingProjectUid) {
+    document.getElementById('overlay').style.display='flex';
+    document.getElementById('loadingSpinner').style.display='block';
+    document.getElementById('successIcon').style.display='none';
+    document.getElementById('statusTitle').innerText="UPLOADING TO PROJECT"; document.getElementById('statusTitle').style.color="#000";
+    document.getElementById('overlayActions').style.display='none';
+    startStatusAnimation();
+
+    (async function() {
+        try {
+            const readyMain=[];
+            for(const f of mainFilesMap[suffix]) {
+              if(f.source==='pc'){const d=await readFile(f.fileObj);readyMain.push({source:'pc',name:f.name,data:d.data,mime:d.mime});}
+              else readyMain.push({source:'drive',id:f.id,name:f.name});
+            }
+            const readyRef=[]; const refIds=[];
+            for(const ref of refFilesMap[suffix]) {
+              if(ref.type==='drive') refIds.push(ref.id);
+              else readyRef.push(await readFile(ref.fileObj));
+            }
+
+            let rDate=document.getElementById('dateDue'+suffix).value;
+            let fDate=rDate?new Date(rDate+"T12:00:00").toISOString():null;
+
+            const payload={
+              existingProjectUid: existingProjectUid,
+              dateDue:fDate, 
+              note:document.getElementById('note'+suffix).value,
+              allMainFiles:readyMain, 
+              refFiles:readyRef, 
+              refDriveIds:refIds
+            };
+
+            _uploadWatchdog_ = setTimeout(function() {
+              _uploadWatchdog_ = null;
+              document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
+              stopStatusAnimation("\u26A0 This is taking longer than usual. Please wait or check My Projects.");
+              document.getElementById('statusMsg').style.color = '#ff9800';
+              document.getElementById('overlayActions').style.display = 'block';
+              document.getElementById('overlayActions').innerHTML =
+                "<button class='btn btn-secondary' style='min-width:250px;margin-bottom:10px;' onclick='switchTab(\"history\");document.getElementById(\"overlay\").style.display=\"none\";'>CHECK MY PROJECTS</button>";
+            }, 270000); 
+
+            google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).apiUploadToExistingProject(payload);
+        } catch(e) {
+            onFailure(e);
+        }
+    })();
+}
+
+function onSuccess(res) {
+  if(_uploadWatchdog_) { clearTimeout(_uploadWatchdog_); _uploadWatchdog_ = null; }
+  if(!res.success) return onFailure({message:res.error || res.message});
+
+  if (res.timedOut) {
+    stopStatusAnimation("\u26A0 Upload took longer than expected...");
+    document.getElementById('loadingSpinner').style.display='none';
+    document.getElementById('successIcon').style.display='block';
+    document.getElementById('statusTitle').innerText="CHECK MY PROJECTS";
+    document.getElementById('statusTitle').style.color="#ff9800";
+    document.getElementById('overlayActions').style.display='block';
+    document.getElementById('overlayActions').innerHTML=
+      "<div style='max-width:500px;margin:0 auto;'>" +
+      "<div style='background:#fff3e0;border:1px solid #ffe0b2;padding:12px 15px;font-size:13px;color:#e65100;margin-bottom:15px;line-height:1.6;'>" +
+      "\u26A0 The upload took longer than expected.<br>" +
+      "<strong>Your files were processed</strong> \u2013 please check <em>My Projects</em> to confirm.<br>" +
+      (res.errors && res.errors.length ? "<br>Note: " + escapeHtml(res.errors.join(", ")) : "") +
+      "</div>" +
+      "<button class='btn btn-secondary' style='min-width:250px;' onclick='resetAppAndCloseOverlay()'>GO TO MY PROJECTS</button>" +
+      "</div>";
+    return;
+  }
+
+  const warnText = res.errors && res.errors.length ? "\nWarnings:\n" + res.errors.join("\n") : "";
+  const isExisting = res.existingProjectUid ? "Files added to existing project." : (res.createdProjects > 1 ? `${res.createdProjects} projects created.` : "Project created.");
+  stopStatusAnimation("Success! " + isExisting + warnText);
+  document.getElementById('loadingSpinner').style.display='none'; document.getElementById('successIcon').style.display='block';
+  document.getElementById('statusTitle').innerText="DONE"; document.getElementById('statusTitle').style.color="#0d652d";
+  document.getElementById('overlayActions').style.display='block';
+  document.getElementById('overlayActions').innerHTML="<div style='display:flex;gap:10px;justify-content:center;flex-wrap:wrap;'>"
+    + "<button class='btn btn-secondary' style='min-width:220px;flex:0 1 auto;' onclick='resetAppAndCloseOverlay()'>NEW PROJECT</button>"
+    + "<button class='btn btn-primary' style='min-width:220px;width:auto;' onclick=\"resetAppAndCloseOverlay();switchTab('history')\">GO TO MY PROJECTS <i class='material-icons-outlined' style='margin:0 0 0 8px;'>arrow_forward</i></button>"
+    + "</div>";
+}
+function onFailure(err) {
+  if(_uploadWatchdog_) { clearTimeout(_uploadWatchdog_); _uploadWatchdog_ = null; }
+  let msg = "";
+  if (err && err.message) {
+    msg = err.message;
+  } else if (typeof err === "string") {
+    msg = err;
+  } else {
+    try { msg = JSON.stringify(err); } catch(e) { msg = String(err); }
+  }
+  if (!msg) msg = "An unknown error occurred. Please check the Apps Script logs.";
+  
+  stopStatusAnimation(msg);
+  document.getElementById('loadingSpinner').style.display = 'none';
+  document.getElementById('statusTitle').innerText = "ERROR";
+  document.getElementById('statusTitle').style.color = "#d93025";
+  document.getElementById('statusMsg').style.color = "#d93025";
+  document.getElementById('overlayActions').style.display = 'block';
+  document.getElementById('overlayActions').innerHTML =
+    "<div style='max-width:500px;margin:0 auto;'>" +
+    "<div style='background:#fff3f3;border:1px solid #ffcdd2;padding:12px 15px;font-size:12px;color:#c62828;font-family:monospace;margin-bottom:15px;text-align:left;word-break:break-word;'>" +
+    escapeHtml(msg) +
+    "</div>" +
+    "<button class='btn btn-secondary' style='min-width:150px' onclick='document.getElementById(\"overlay\").style.display=\"none\"'>CLOSE</button>" +
+    "</div>";
+}
+
+function resetAppAndCloseOverlay() {
+  document.getElementById('overlay').style.display='none';
+  finalSelectedUid = null;
+  activePortals.forEach(suffix => {
+    const form = document.getElementById('projectForm'+suffix);
+    if(form) form.reset();
+    mainFilesMap[suffix]=[]; refFilesMap[suffix]=[];
+    renderFileList('main',suffix); renderFileList('ref',suffix);
+    const selT=document.getElementById('templateUid'+suffix); if(selT) selT.selectedIndex=0;
+    const tmplTxt=document.getElementById('tmplTriggerText'+suffix); if(tmplTxt){tmplTxt.textContent=i18n[currentLang]['opt_select_template']||'Select Template Type';tmplTxt.style.color='#999';}
+    const tmplPanel=document.getElementById('tmplPanel'+suffix); if(tmplPanel) tmplPanel.classList.remove('open');
+    const tmplTrig=document.getElementById('tmplTrigger'+suffix); if(tmplTrig) tmplTrig.classList.remove('open');
+    const tmplOpts=document.getElementById('tmplOptionsList'+suffix); if(tmplOpts) tmplOpts.querySelectorAll('.tmpl-option').forEach(o=>o.classList.remove('selected'));
+    const selS=document.getElementById('sourceLang'+suffix); if(selS) selS.innerHTML='';
+    const srcTrig=document.getElementById('sourceLangTrigger'+suffix); if(srcTrig) srcTrig.classList.add('disabled');
+    const srcDisp=document.getElementById('sourceLangDisplay'+suffix); if(srcDisp) srcDisp.innerHTML=`<span style='color:#999'>${i18n[currentLang]['txt_select_source']}</span>`;
+    const srcOpts=document.getElementById('sourceLangOptions'+suffix); if(srcOpts){srcOpts.innerHTML='';srcOpts.classList.remove('open');}
+    const ov=document.getElementById('sourceLangOverlay'+suffix); if(ov) ov.style.display='block';
+    const trig=document.getElementById('targetLangTrigger'+suffix); if(trig) trig.classList.add('disabled');
+    const txt=document.getElementById('targetLangText'+suffix); if(txt) txt.innerHTML=`<span style='color:#777'>${i18n[currentLang]['txt_select_target']}</span>`;
+    const tlist=document.getElementById('targetLangList'+suffix); if(tlist) tlist.innerHTML="";
+    const tover=document.getElementById('targetLangOverlay'+suffix); if(tover) tover.style.display='block';
+    
+    const exSel = document.getElementById('existingProjectUid' + suffix);
+    if (exSel) {
+        exSel.value = "";
+        toggleKecMode(suffix, 'new');
+    }
+    
+    setGlobalLang(currentLang);
+  });
+}</script>

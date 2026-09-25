@@ -1,0 +1,1019 @@
+<script>
+// JsForms.html - eingebunden in Index.html via include() (WebApp.gs)
+
+// --- DYNAMIC RENDERING --------------------------------------------------------
+function initForm(config) {
+  configData = config;
+  templateGroups = groupTemplates(config.templates);
+
+  document.querySelectorAll('.dynamic-nav-btn').forEach(el => el.remove());
+  document.querySelectorAll('.dynamic-tab-div').forEach(el => el.remove());
+  
+  const mktContainer = document.getElementById('marketing-form-container');
+  if (mktContainer) {
+      mktContainer.innerHTML = `<button id="marketingShowInfoBtn" class="btn-open-sidebar" onclick="toggleMarketingSidebar()">
+        <span class="material-icons-outlined">info</span> Show Help &amp; Options
+      </button>`;
+  }
+
+  _adminLightSubtabs_ = config.adminLightSubtabs || [];
+  // "dashboard" ist kein Admin-Subtab, sondern schaltet nur den Dashboard-Reiter frei.
+  const lightAdminSubtabs = _adminLightSubtabs_.filter(s => s !== 'dashboard');
+  if (config.isAdmin || _adminLightSubtabs_.includes('dashboard')) {
+    document.getElementById('btn-dashboard').style.display = 'block';
+  }
+  if (config.isAdmin || lightAdminSubtabs.length) {
+    document.getElementById('btn-admin').style.display = 'block';
+    // Admin-Bereich still im Hintergrund holen, sobald die Maske steht.
+    setTimeout(function() { loadAdminContent_(true); }, 1500);
+  }
+  if (config.isAdmin) {
+    document.getElementById('btn-nav-health').style.display = 'block';
+    document.getElementById('adminBypassBtn').style.display = 'inline-flex';
+  }
+
+  const btnRequest   = document.getElementById('btn-nav-request');
+  const btnMarketing = document.getElementById('btn-nav-marketing');
+  const btnKec       = document.getElementById('btn-nav-kec');
+
+  // "Allgemeine Projekte" nur fuer explizit auf der Whitelist stehende User (oder Admins),
+  // nicht mehr Default-sichtbar fuer jeden, der in keiner anderen Exklusiv-Kategorie steckt.
+  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Articulate/CustomPages) sehen weiterhin NUR ihren Spezial-Tab.
+  const showRequest = (config.isGeneral && !config.isExclusive) || (config.isAdmin && !config.isImpersonating);
+  if (showRequest) {
+    if (btnRequest) btnRequest.style.display = 'block';
+  } else {
+    if (btnRequest) btnRequest.style.display = 'none';
+  }
+
+  const showMarketing = config.isMarketing || (config.isAdmin && !config.isImpersonating);
+  if (showMarketing) {
+    if (btnMarketing) btnMarketing.style.display = 'block';
+  } else {
+    if (btnMarketing) btnMarketing.style.display = 'none';
+  }
+
+  const showKec = config.isKeC || (config.isAdmin && !config.isImpersonating);
+  if (showKec) {
+    if (btnKec) btnKec.style.display = 'block';
+  } else {
+    if (btnKec) btnKec.style.display = 'none';
+  }
+
+  const btnArticulate = document.getElementById('btn-nav-articulate');
+  const showArticulate = config.isArticulate || (config.isAdmin && !config.isImpersonating);
+  if (showArticulate) {
+    if (btnArticulate) btnArticulate.style.display = 'block';
+    const artContainer = document.getElementById('articulate-form-container');
+    if (artContainer && !artContainer.dataset.formInjected) {
+      const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
+      let articulateFormHtml = templateHtml.replace(/\{SUFFIX\}/g, 'articulate').replace(/\{NAME\}/g, 'Articulate');
+      // Review-Typ gehoert in die Kachel "Project Info" (direkt unter das
+      // Template), die optionale SCORM-Preview in die Kachel "Settings" -
+      // keine eigenen Kacheln mehr unterhalb des Formulars.
+      const reviewRow =
+        '<div class="form-row">' +
+          '<label><span data-i18n="art_review_type">Review-Typ</span> <span class="required">*</span></label>' +
+          '<select id="artReviewType" required>' +
+            '<option value="" disabled selected>-- Bitte auswählen --</option>' +
+            '<option value="Review Campus Sales H&amp;G">Review Campus Sales H&amp;G</option>' +
+            '<option value="Review Campus Sales Professional">Review Campus Sales Professional</option>' +
+            '<option value="Review Campus Product Trainings">Review Campus Product Trainings</option>' +
+            '<option value="Review Campus DSGVO Training">Review Campus DSGVO Training</option>' +
+          '</select>' +
+        '</div>';
+      const scormRow =
+        '<div class="form-row art-scorm-row">' +
+          '<label for="artSubmitScormFolder"><span class="material-icons-outlined" style="font-size:18px;color:#1a73e8;">play_circle</span>' +
+            '<span data-i18n="art_scorm_label">SCORM-Preview automatisch erzeugen</span> <span class="art-opt">optional</span></label>' +
+          '<div class="art-input-icon"><span class="material-icons-outlined">folder_zip</span>' +
+            '<input type="text" id="artSubmitScormFolder" placeholder="Drive-Ordner-Link (entpackter SCORM-Export)"></div>' +
+          '<div class="art-field-hint">Erzeugt direkt nach dem Einreichen eine Preview (noch unübersetzt) und erneut, sobald die Übersetzung fertig ist. ' +
+            'Leer lassen, um nur manuell über den Reiter „Preview-Generator“ zu arbeiten.</div>' +
+        '</div>';
+      articulateFormHtml = articulateFormHtml.replace(
+        /(<div class="form-row">\s*<label data-i18n="lbl_projectname">)/,
+        reviewRow + '$1'
+      );
+      articulateFormHtml = articulateFormHtml.replace(
+        /(<div class="form-row" id="noteRow_articulate">[\s\S]*?<\/textarea>\s*<\/div>)/,
+        '$1' + scormRow
+      );
+      artContainer.innerHTML += articulateFormHtml;
+      attachFormLogic('_articulate');
+      activePortals.push('_articulate');
+      artContainer.dataset.formInjected = '1';
+    } else if (artContainer) {
+      // Formular-HTML existiert schon (wird wegen "+=" oben nicht erneut eingefuegt,
+      // sonst gaebe es doppelte IDs) - aber das Template-Dropdown muss trotzdem neu
+      // aufgebaut werden, wenn sich config.templates geaendert hat (z.B. beim Start
+      // einer Admin-Simulation fuer einen anderen User).
+      renderTemplateOptions('_articulate');
+      activePortals.push('_articulate');
+    }
+  } else {
+    if (btnArticulate) btnArticulate.style.display = 'none';
+  }
+
+  const btnDoc = document.getElementById('btn-nav-documentation');
+  const showDoc = config.isDoc || (config.isAdmin && !config.isImpersonating);
+  if (showDoc) {
+    if (btnDoc) btnDoc.style.display = 'block';
+    attachDocImportFormLogic_();
+  } else {
+    if (btnDoc) btnDoc.style.display = 'none';
+  }
+
+  if (config.isImpersonating) {
+    document.getElementById('simulationBanner').style.display = 'flex';
+    document.getElementById('simulatedUserDisplay').innerText = config.effectiveUser;
+  } else {
+    document.getElementById('simulationBanner').style.display = 'none';
+  }
+
+  checkMaintenanceStatus(config.maintenance, config.isAdmin);
+
+  activePortals = [];
+
+  if (showRequest || config.effectiveIsAdmin) {
+    renderFormFromTemplate('request', 'Standard');
+    activePortals.push('_request');
+  }
+
+  if (showMarketing) {
+    const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
+    mktContainer.innerHTML += templateHtml.replace(/\{SUFFIX\}/g, 'marketing').replace(/\{NAME\}/g, 'Marketing');
+    attachFormLogic('_marketing');
+    const mktNote = document.getElementById('note_marketing');
+    if (mktNote) mktNote.placeholder = 'Angebot bitte an vorname.nachname@karcher.com schicken.';
+    activePortals.push('_marketing');
+  }
+  const btnWoma = document.getElementById('btn-nav-woma');
+  const showWoma = config.isWoma || (config.isAdmin && !config.isImpersonating);
+  if (showWoma) {
+    if (btnWoma) btnWoma.style.display = 'block';
+    renderFormFromTemplate('woma', 'WOMA');
+    activePortals.push('_woma');
+  } else {
+    if (btnWoma) btnWoma.style.display = 'none';
+  }
+  const btnCc = document.getElementById('btn-nav-cc');
+  const showCc = config.isCc || (config.isAdmin && !config.isImpersonating);
+  if (showCc) {
+    if (btnCc) btnCc.style.display = 'block';
+    renderFormFromTemplate('cc', 'Competence Center');
+    activePortals.push('_cc');
+  } else {
+    if (btnCc) btnCc.style.display = 'none';
+  }
+
+  if (showKec) {
+    const kecContainer = document.getElementById('tab-kec');
+    const tplHtml = document.getElementById('kec-form-template').innerHTML;
+    kecContainer.innerHTML = applyI18nToHtmlString_(tplHtml.replace(/\{SUFFIX\}/g, 'kec').replace(/\{NAME\}/g, 'KeC'), currentLang);
+    
+    // Debugger-Button ist im Template bereits display:inline-flex ? kein JS nötig.
+    // Fallback falls doch nicht gefunden:
+    document.querySelectorAll('[id^="kecShowDebugBtn_"]').forEach(b => b.style.display = 'inline-flex');
+
+    attachKecFormLogic('_kec');
+    activePortals.push('_kec');
+}
+
+  if (config.customPages && config.customPages.length > 0) {
+    config.customPages.forEach(page => {
+      const navBtn = document.createElement('button');
+      navBtn.className = 'tab-btn dynamic-nav-btn';
+      navBtn.id = 'btn-nav-' + page.id;
+      navBtn.innerText = page.name;
+      navBtn.onclick = () => switchTab(page.id);
+      document.getElementById('portalNav').appendChild(navBtn);
+
+      const tabDiv = document.createElement('div');
+      tabDiv.id = 'tab-' + page.id;
+      tabDiv.className = 'tab-content dynamic-tab-div';
+      document.querySelector('.container').insertBefore(tabDiv, document.getElementById('tab-history'));
+
+      renderFormFromTemplate(page.id, page.name, tabDiv, page.fields);
+      activePortals.push('_' + page.id);
+    });
+  }
+  const nav = document.getElementById('mainTabNav');
+  if (nav) nav.classList.add('app-ready');
+  updatePortalNav_();
+}
+
+// --- Navigation: "Neues Projekt" + Bereichszeile -------------------------------
+function visiblePortalButtons_() {
+  return Array.from(document.querySelectorAll('#portalNav .tab-btn')).filter(b => b.style.display !== 'none');
+}
+function isPortalTab_(tabName) {
+  const btn = document.getElementById('btn-nav-' + tabName);
+  const portalNav = document.getElementById('portalNav');
+  return !!(btn && portalNav && portalNav.contains(btn));
+}
+/** "Neues Projekt": zuletzt genutzter (sichtbarer) Bereich, sonst der erste. */
+function openNewProjectNav_() {
+  const visible = visiblePortalButtons_();
+  if (!visible.length) return;
+  let last = '';
+  try { last = localStorage.getItem('lastPortalTab') || ''; } catch (e) {}
+  const lastBtn = last && document.getElementById('btn-nav-' + last);
+  const target = (lastBtn && visible.indexOf(lastBtn) !== -1) ? last : visible[0].id.replace('btn-nav-', '');
+  switchTab(target);
+}
+function updatePortalNav_(activeTab) {
+  const nav = document.getElementById('portalNav');
+  const newBtn = document.getElementById('btn-nav-new');
+  if (!nav || !newBtn) return;
+  const visible = visiblePortalButtons_();
+  newBtn.style.display = visible.length ? '' : 'none';
+  const current = activeTab || (document.querySelector('.tab-content.active') || { id: '' }).id.replace('tab-', '');
+  const inPortal = isPortalTab_(current);
+  newBtn.classList.toggle('active', inPortal);
+  // Nur ein Bereich -> keine zweite Zeile noetig.
+  nav.classList.toggle('open', inPortal && visible.length > 1);
+}
+
+/**
+ * fieldsConfig (optional): { presets, dueDate, note, refFiles } - blendet die
+ * jeweiligen optionalen Bausteine aus, wenn ein Wert explizit false ist. Wird
+ * nur von Custom-Tabs (config.customPages) befuellt, siehe CustomPages.gs -
+ * die Standard-Portale (Allgemein/Marketing/WOMA/CC) zeigen weiterhin alles.
+ */
+function renderFormFromTemplate(id, name, targetDiv, fieldsConfig) {
+  const templateHtml = document.getElementById('dynamic-form-template').innerHTML;
+  let finalHtml = templateHtml
+    .replace(/\{SUFFIX\}/g, id)
+    .replace(/\{NAME\}/g, name);
+
+  finalHtml = applyI18nToHtmlString_(finalHtml, currentLang);
+
+  if (targetDiv) targetDiv.innerHTML = finalHtml;
+  else document.getElementById('tab-' + id).innerHTML = finalHtml;
+  attachFormLogic('_' + id);
+
+  if (fieldsConfig) {
+    const hide = (elId) => { const el = document.getElementById(elId); if (el) el.style.display = 'none'; };
+    if (fieldsConfig.presets === false) hide('presetRow_' + id);
+    if (fieldsConfig.dueDate === false) hide('dueDateRow_' + id);
+    if (fieldsConfig.note === false) hide('noteRow_' + id);
+    if (fieldsConfig.refFiles === false) hide('refFilesCard_' + id);
+    // Settings-Karte komplett ausblenden, wenn beide ihrer Felder deaktiviert sind.
+    if (fieldsConfig.dueDate === false && fieldsConfig.note === false) hide('settingsCard_' + id);
+  }
+}
+
+function applyI18nToHtmlString_(html, lang) {
+  const t = i18n[lang] || i18n['en'];
+
+  html = html.replace(
+    /(<[^>]+data-i18n="([^"]+)"[^>]*>)[^<]*/g,
+    (match, openTag, key) => {
+      const val = t[key];
+      if (!val) return match;
+      return openTag + val;
+    }
+  );
+
+  html = html.replace(
+    /data-i18n-placeholder="([^"]+)"/g,
+    (match, key) => {
+      const val = t[key];
+      return val ? `placeholder="${val}"` : match;
+    }
+  );
+
+  html = html.replace(
+    /placeholder="🔍 Search template\.\.\."/g,
+    `placeholder="${t['ph_search_template'] || '🔍 Search template...'}"`
+  );
+
+  html = html.replace(
+    /id="note_\{SUFFIX\}"[^>]*placeholder="\.\.\."/g,
+    (match) => match.replace('placeholder="..."', `placeholder="${t['ph_note_standard'] || '...'}"`)
+  );
+
+  html = html.replace(
+    />Select Source Language</g,
+    `>${t['txt_select_source'] || 'Select Source Language'}<`
+  );
+
+  html = html.replace(
+    /Select Template Type/g,
+    t['opt_select_template'] || 'Select Template Type'
+  );
+
+  html = html.replace(
+    /-- Select Preset --/g,
+    lang === 'de' ? '-- Vorlage wählen --' : '-- Select Preset --'
+  );
+
+  return html;
+}
+
+const templateSortState = {};
+
+function attachFormLogic(suffix) {
+  mainFilesMap[suffix] = [];
+  refFilesMap[suffix]  = [];
+  templateSortState[suffix] = 'asc'; 
+  
+  const tmplSelect = document.getElementById('templateUid' + suffix);
+  if(tmplSelect) tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+  
+  renderTemplateOptions(suffix);
+  
+  if(tmplSelect) tmplSelect.addEventListener('change', () => onTemplateGroupChange(suffix));
+  setupFileListeners(suffix);
+  attachSubmitHandler('projectForm' + suffix, suffix);
+  loadUserPresets(suffix);
+}
+
+function attachKecFormLogic(suffix) {
+    mainFilesMap[suffix] = [];
+    refFilesMap[suffix]  = [];
+    templateSortState[suffix] = 'asc';
+    
+    const tmplSelect = document.getElementById('templateUid' + suffix);
+    if(tmplSelect) {
+        tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+        renderTemplateOptions(suffix);
+        tmplSelect.addEventListener('change', () => {
+            onTemplateGroupChange(suffix);
+            const exSel = document.getElementById('existingProjectUid' + suffix);
+            if(exSel) exSel.value = "";
+            toggleKecMode(suffix, 'new');
+        });
+    }
+
+    setupFileListeners(suffix);
+    loadUserPresets(suffix);
+
+    const exSel = document.getElementById('existingProjectUid' + suffix);
+    if (exSel) {
+        exSel.addEventListener('change', () => {
+            if (exSel.value) {
+                const triggerText = document.getElementById('tmplTriggerText' + suffix);
+                if (triggerText) {
+                    triggerText.textContent = i18n[currentLang]['opt_select_template'] || 'Select Template Type';
+                    triggerText.style.color = '#999';
+                }
+                if (tmplSelect) tmplSelect.value = "";
+                finalSelectedUid = null;
+                toggleKecMode(suffix, 'existing');
+            } else {
+                toggleKecMode(suffix, 'new');
+            }
+        });
+    }
+
+    const form = document.getElementById('projectForm' + suffix);
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if(mainFilesMap[suffix].length===0) { showCustomAlert("Please select a Main File."); return; }
+
+            const exUid = document.getElementById('existingProjectUid' + suffix).value;
+            if (exUid) {
+                submitKecExisting(suffix, exUid);
+            } else {
+                if(!checkPreconditions(suffix)) return;
+                submitStandard(suffix);
+            }
+        });
+    }
+}
+
+
+function executeKecLiveDebug() {
+    const inputEl = document.getElementById('kecDirectDebugInput');
+    const resultEl = document.getElementById('kecDebugResult');
+    if (!inputEl || !resultEl) return;
+
+    let rawVal = inputEl.value.trim();
+    if (!rawVal) {
+        resultEl.style.display = 'block';
+        resultEl.style.background = '#fff3f3';
+        resultEl.style.color = '#c62828';
+        resultEl.style.border = '1px solid #ffcdD2';
+        resultEl.innerText = "Bitte gib eine gültige Phrase-URL oder UID ein.";
+        return;
+    }
+
+    // Robuste Regex filtert die reine 22-stellige alphanumerische Phrase UID heraus
+    const urlMatch = rawVal.match(/show\/([a-zA-Z0-9]{22})/);
+    const extractedUid = urlMatch ? urlMatch[1] : rawVal;
+
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#f5f5f5';
+    resultEl.style.color = '#333';
+    resultEl.style.border = '1px solid #ddd';
+    resultEl.innerText = "\u231B Verbindung zu Phrase TMS wird aufgebaut und Daten analysiert...";
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (!res.success) {
+                resultEl.style.background = '#fff3f3';
+                resultEl.style.color = '#c62828';
+                resultEl.style.border = '1px solid #ffcdD2';
+                resultEl.innerText = "\u2717 Fehler im Debugger: " + res.error;
+                return;
+            }
+
+            const r = res.report;
+            let log = `\uD83D\uDD0D **Live-Analysebericht für UID:** ${r.uid}\n\n`;
+
+            // Gate 1: Existenz
+            if (!r.exists) {
+                resultEl.style.background = '#fff3f3';
+                resultEl.style.color = '#c62828';
+                resultEl.style.border = '1px solid #ffcdD2';
+                resultEl.innerText = log + "\u2717 **Gate 1 (Existenz): FEHLGESCHLAGEN**\n" + r.details.existence;
+                return;
+            }
+            log += "\u2713 **Gate 1 (Existenz):** Projekt in Phrase TMS gefunden.\n";
+
+            // Gate 2: Status
+            if (!r.statusOk) {
+                resultEl.style.background = '#fff3f3';
+                resultEl.style.color = '#c62828';
+                resultEl.style.border = '1px solid #ffcdD2';
+                resultEl.innerText = log + "\u2717 **Gate 2 (Status): FEHLGESCHLAGEN**\n" + r.details.statusError;
+                return;
+            }
+            log += `\u2713 **Gate 2 (Status):** Projekt-Status ist 'NEW'.\n`;
+
+            // Gate 3, 4, 5: Metadaten
+            log += `   \u2013 Gefundener Client: ${r.details.client}\n`;
+            log += `   \u2013 Gefundene Domain: ${r.details.domain}\n`;
+            log += `   \u2013 Gefundene Business Unit: ${r.details.bu}\n`;
+
+            if (!r.clientOk || !r.domainOk || !r.buOk) {
+                resultEl.style.background = '#fff3f3';
+                resultEl.style.color = '#c62828';
+                resultEl.style.border = '1px solid #ffcdD2';
+                
+                let mismatches = [];
+                if (!r.clientOk) mismatches.push("Kunde (Client) stimmt nicht überein (Erwartet: AKW / ID: 620249)");
+                if (!r.domainOk) mismatches.push("Bereich (Domain) stimmt nicht überein (Erwartet: Marketing Content / ID: 23997)");
+                if (!r.buOk)     mismatches.push("Business Unit (BU)  stimmt nicht überein (Erwartet: MMV-P / ID: 56182)");
+                
+                resultEl.innerText = log + "\n? **Gate 3-5 (Metadaten): FEHLGESCHLAGEN**\n" + mismatches.join("\n");
+                return;
+            }
+            log += "\u2713 **Gate 3-5 (Metadaten):** Alle Kärcher-Metadaten stimmen perfekt überein.\n";
+
+            // Gate 6: Workflow-Zustand
+            if (!r.workflowOk) {
+                resultEl.style.background = '#fff3f3';
+                resultEl.style.color = '#c62828';
+                resultEl.style.border = '1px solid #ffcdD2';
+                resultEl.innerText = log + "\n? **Gate 6 (Workflow): FEHLGESCHLAGEN**\n" + r.details.workflowError;
+                return;
+            }
+
+            // Wenn alle Gates erfolgreich durchschritten wurden
+            resultEl.style.background = '#e8f5e9';
+            resultEl.style.color = '#2e7d32';
+            resultEl.style.border = '1px solid #c8e6c9';
+            resultEl.innerText = log + "\n? **ERFOLG:** Das Projekt erfüllt alle Kriterien zu 100%! Schließe dieses Fenster und klicke erneut auf 'SCAN PROJECTS', um es auszuwählen.";
+        })
+        .withFailureHandler(err => {
+            resultEl.style.background = '#fff3f3';
+            resultEl.style.color = '#c62828';
+            resultEl.style.border = '1px solid #ffcdD2';
+            resultEl.innerText = "\u2717 Verbindungsfehler zum Server: " + err.message;
+        })
+        .apiDebugSingleKeCProject(extractedUid);
+}
+
+function scanKeCProjects(suffix) {
+    const btn = document.getElementById('scanProjectsBtn' + suffix);
+    const exSel = document.getElementById('existingProjectUid' + suffix);
+    const overlay = document.getElementById('downloadOverlay');
+    const title = document.getElementById('downloadOverlayTitle');
+    
+    if (!overlay || !title) return;
+    
+    title.innerText = "Searching Phrase TMS for open projects...";
+    overlay.style.display = 'flex';
+    btn.disabled = true;
+    exSel.innerHTML = '<option value="">\u231B Scanning live data...</option>';
+    
+    google.script.run
+        .withSuccessHandler(res => {
+            overlay.style.display = 'none';
+            btn.disabled = false;
+            
+            if (res.success && res.projects && res.projects.length > 0) {
+                exSel.innerHTML = '<option value="">-- Select Existing Project --</option>';
+                window.kecEligibleProjects = res.projects;
+                res.projects.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.projectUid;
+                    opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")";
+                    exSel.appendChild(opt);
+                });
+                showCustomAlert("\u2713 " + res.projects.length + " eligible KeC projects loaded into dropdown.", "Scan Complete");
+            } else {
+               exSel.innerHTML = '<option value="">-- Keine passenden Projekte gefunden --</option>';
+                showCustomAlert(
+                  "Keine passenden offenen Projekte gefunden.\n\n" +
+                  "Geprüfte Kriterien:\n" +
+                  "\u2022 Status: NEW\n" +
+                  "\u2022 Client: AKW\n" +
+                  "\u2022 Domain: Marketing Content\n" +
+                  "\u2022 Business Unit: MMV-P\n\n" +
+                  "Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.\n\n" +
+                  "Nutze den \u2013 Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.",
+                  "Scan-Ergebnis"
+                ); 
+            }
+        })
+        .withFailureHandler(err => {
+            overlay.style.display = 'none';
+            btn.disabled = false;
+            exSel.innerHTML = '<option value="">\u26A0 Scan Failed</option>';
+            showCustomAlert("<span style='color:#d93025;'>\u2717 Error during Phrase connection: " + escapeHtml(err.message) + "</span>", "API Error");
+        })
+        .apiGetEligibleKeCProjects();
+}
+
+function toggleKecMode(suffix, mode) {
+    const srcTrigger = document.getElementById('sourceLangTrigger' + suffix);
+    const tgtTrigger = document.getElementById('targetLangTrigger' + suffix);
+    const presetDiv = document.getElementById('kecPresetRow' + suffix);
+    const pName = document.getElementById('projectName' + suffix);
+    const exSel = document.getElementById('existingProjectUid' + suffix);
+
+    if (mode === 'existing') {
+        if(srcTrigger) srcTrigger.classList.add('disabled');
+        if(tgtTrigger) tgtTrigger.classList.add('disabled');
+        const srcOver = document.getElementById('sourceLangOverlay' + suffix);
+        const tgtOver = document.getElementById('targetLangOverlay' + suffix);
+        if(srcOver) srcOver.style.display = 'block';
+        if(tgtOver) tgtOver.style.display = 'block';
+        if(presetDiv) presetDiv.style.display = 'none';
+
+        const p = (window.kecEligibleProjects || []).find(x => x.projectUid === exSel.value);
+        if (p) {
+            const srcDisp = document.getElementById('sourceLangDisplay' + suffix);
+            if(srcDisp) srcDisp.innerHTML = `<div class="chip-container"><div class="chip" style="cursor:default">${getPrettyLangName(p.sourceLang)}</div></div>`;
+            
+            const tNames = (p.targetLangs || []).map(l => `<div class="chip" style="cursor:default">${getPrettyLangName(l)}</div>`).join('');
+            const tgtTxt = document.getElementById('targetLangText' + suffix);
+            if(tgtTxt) tgtTxt.innerHTML = `<div class="chip-container">${tNames}</div>`;
+            
+            if(pName) pName.value = p.projectName;
+        }
+    } else {
+        if(presetDiv) presetDiv.style.display = 'flex';
+        const tmplSelect = document.getElementById('templateUid' + suffix);
+        if (!tmplSelect || !tmplSelect.value) {
+            const srcDisp = document.getElementById('sourceLangDisplay' + suffix);
+            const tgtTxt = document.getElementById('targetLangText' + suffix);
+            if(srcDisp) srcDisp.innerHTML = `<span style='color:#999'>${i18n[currentLang]['txt_select_source'] || 'Select Source Language'}</span>`;
+            if(tgtTxt) tgtTxt.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || 'Select Target Language(s)'}</span>`;
+            if(srcTrigger) srcTrigger.classList.add('disabled');
+            if(tgtTrigger) tgtTrigger.classList.add('disabled');
+            const srcOver = document.getElementById('sourceLangOverlay' + suffix);
+            const tgtOver = document.getElementById('targetLangOverlay' + suffix);
+            if(srcOver) srcOver.style.display = 'block';
+            if(tgtOver) tgtOver.style.display = 'block';
+        }
+    }
+}
+
+const TEMPLATE_PIN_TO_END_KEYWORDS = [
+  "maschinelle",
+  "machine translation",
+  "machine translat"
+];
+
+function renderTemplateOptions(suffix) {
+  const tmplSelect = document.getElementById('templateUid' + suffix);
+  const optionsList = document.getElementById('tmplOptionsList' + suffix);
+  if (!tmplSelect || !optionsList) return;
+
+  const direction = templateSortState[suffix] || 'asc';
+  const allKeys = Object.keys(templateGroups);
+
+  const normal = [];
+  const pinned = [];
+  allKeys.forEach(gName => {
+    const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim().toLowerCase();
+    const isPinned = TEMPLATE_PIN_TO_END_KEYWORDS.some(kw => label.includes(kw));
+    if (isPinned) pinned.push(gName);
+    else normal.push(gName);
+  });
+
+  const sortFn = (a, b) => {
+    const la = a.toLowerCase(), lb = b.toLowerCase();
+    return direction === 'asc' ? la.localeCompare(lb) : lb.localeCompare(la);
+  };
+  normal.sort(sortFn);
+  pinned.sort(sortFn);
+  const sortedKeys = [...normal, ...pinned];
+
+  const currentVal = tmplSelect.value;
+  tmplSelect.innerHTML = '<option disabled value="">Select Template Type</option>';
+  sortedKeys.forEach(gName => {
+    const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim();
+    const opt = document.createElement('option');
+    opt.value = gName;
+    opt.text  = label;
+    if (gName === currentVal) opt.selected = true;
+    tmplSelect.appendChild(opt);
+  });
+
+  optionsList.innerHTML = '';
+  if (sortedKeys.length === 0) {
+    optionsList.innerHTML = '<div class="tmpl-option-empty">No templates available.</div>';
+    return;
+  }
+  sortedKeys.forEach(gName => {
+    const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim();
+    const div = document.createElement('div');
+    div.className = 'tmpl-option' + (gName === currentVal ? ' selected' : '');
+    div.dataset.value = gName;
+    div.textContent = label;
+    div.onclick = () => selectTemplateOption_(suffix, gName, label);
+    optionsList.appendChild(div);
+  });
+}
+
+function openTemplateDropdown_(suffix) {
+  const panel   = document.getElementById('tmplPanel'   + suffix);
+  const trigger = document.getElementById('tmplTrigger' + suffix);
+  const search  = document.getElementById('tmplSearch'  + suffix);
+  if (!panel) return;
+
+  const isOpen = panel.classList.contains('open');
+
+  document.querySelectorAll('.tmpl-dropdown-panel.open').forEach(p => {
+    p.classList.remove('open');
+    const t = p.closest('.tmpl-dropdown-wrapper') &&
+              p.closest('.tmpl-dropdown-wrapper').querySelector('.tmpl-dropdown-trigger');
+    if (t) t.classList.remove('open');
+  });
+
+  if (!isOpen) {
+    panel.classList.add('open');
+    trigger.classList.add('open');
+    if (search) {
+      search.value = '';
+      filterTemplateDropdown_(suffix); 
+      setTimeout(() => search.focus(), 50);
+    }
+  }
+}
+
+function filterTemplateDropdown_(suffix) {
+  const search = document.getElementById('tmplSearch' + suffix);
+  const list   = document.getElementById('tmplOptionsList' + suffix);
+  if (!search || !list) return;
+  const q = search.value.toLowerCase();
+  let visibleCount = 0;
+  list.querySelectorAll('.tmpl-option').forEach(opt => {
+    const match = opt.textContent.toLowerCase().includes(q);
+    opt.classList.toggle('hidden', !match);
+    if (match) visibleCount++;
+  });
+  let empty = list.querySelector('.tmpl-option-empty');
+  if (visibleCount === 0) {
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.className = 'tmpl-option-empty';
+      empty.textContent = 'No templates found.';
+      list.appendChild(empty);
+    }
+    empty.style.display = 'block';
+  } else if (empty) {
+    empty.style.display = 'none';
+  }
+}
+
+function selectTemplateOption_(suffix, value, label) {
+  const tmplSelect = document.getElementById('templateUid' + suffix);
+  if (tmplSelect) {
+    tmplSelect.value = value;
+    const optionsList = document.getElementById('tmplOptionsList' + suffix);
+    if (optionsList) {
+      optionsList.querySelectorAll('.tmpl-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.value === value);
+      });
+    }
+  }
+  const triggerText = document.getElementById('tmplTriggerText' + suffix);
+  if (triggerText) {
+    triggerText.textContent = label;
+    triggerText.style.color = '#333';
+  }
+  const panel   = document.getElementById('tmplPanel'   + suffix);
+  const trigger = document.getElementById('tmplTrigger' + suffix);
+  if (panel)   panel.classList.remove('open');
+  if (trigger) trigger.classList.remove('open');
+
+  if(tmplSelect) tmplSelect.dispatchEvent(new Event('change'));
+}
+
+function toggleTemplateSort(suffix) {
+  const btn = document.getElementById('templateSortBtn' + suffix);
+  templateSortState[suffix] = (templateSortState[suffix] === 'asc') ? 'desc' : 'asc';
+  if (btn) btn.innerHTML = templateSortState[suffix] === 'asc' ? 'A→Z' : 'Z→A';
+  renderTemplateOptions(suffix);
+}
+
+function groupTemplates(rawTemplates) {
+  const groups = {};
+  Object.keys(rawTemplates).forEach(k => {
+    const t = rawTemplates[k];
+    let gName = k.trim().replace(/(\s*\[[A-Za-z0-9_\-]+\])+$/, '').trim();
+    if (!gName) gName = k.trim();
+    if (!groups[gName]) groups[gName] = { name: gName, variants: {} };
+    groups[gName].variants[t.source || "default"] = t;
+  });
+  return groups;
+}
+
+function onTemplateGroupChange(suffix) {
+  const tmplSelect = document.getElementById('templateUid' + suffix);
+  if(!tmplSelect || !tmplSelect.value) return;
+  selectedGroup = templateGroups[tmplSelect.value];
+  finalSelectedUid = null;
+  hidePivotTargetLangRow_(suffix);
+
+  const srcSelect  = document.getElementById('sourceLang' + suffix);
+  const srcTrigger = document.getElementById('sourceLangTrigger' + suffix);
+  const srcDisplay = document.getElementById('sourceLangDisplay' + suffix);
+  const srcOptions = document.getElementById('sourceLangOptions' + suffix);
+
+  if(srcSelect) srcSelect.innerHTML = '';
+  if(srcOptions) srcOptions.innerHTML = '';
+  if(srcDisplay) srcDisplay.innerHTML = `<span style='color:#999'>${i18n[currentLang]['txt_select_source']}</span>`;
+  if (srcTrigger) { srcTrigger.classList.remove('disabled'); }
+  const sOverlay = document.getElementById('sourceLangOverlay' + suffix);
+  if(sOverlay) sOverlay.style.display = 'none';
+
+  const trigger = document.getElementById('targetLangTrigger' + suffix);
+  if(trigger) trigger.classList.add('disabled');
+  const targetText = document.getElementById('targetLangText' + suffix);
+  if(targetText) targetText.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target']}</span>`;
+  const tList = document.getElementById('targetLangList' + suffix);
+  if(tList) tList.innerHTML = "";
+  const tOverlay = document.getElementById('targetLangOverlay' + suffix);
+  if(tOverlay) tOverlay.style.display = 'block';
+
+  if(!selectedGroup) return;
+
+  const availableSources = Object.keys(selectedGroup.variants).sort();
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text'; searchInput.className = 'multiselect-search';
+  searchInput.placeholder = i18n[currentLang]['ph_search_language'] || 'Search language...';
+  searchInput.oninput = function() {
+    const q = this.value.toLowerCase();
+    srcOptions.querySelectorAll('.multiselect-option').forEach(o => {
+      o.style.display = o.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+  if(srcOptions) srcOptions.appendChild(searchInput);
+
+  availableSources.forEach(code => {
+    const opt = document.createElement('div');
+    opt.className = 'multiselect-option';
+    opt.style.fontWeight = '500';
+    opt.textContent = getPrettyLangName(code);
+    opt.onclick = function() {
+      if(srcSelect) {
+          srcSelect.innerHTML = '';
+          const o = document.createElement('option');
+          o.value = code; o.selected = true;
+          srcSelect.appendChild(o);
+      }
+      if(srcDisplay) srcDisplay.innerHTML = `<div class="chip-container"><div class="chip" style="cursor:default">${getPrettyLangName(code)}</div></div>`;
+      if(srcOptions) srcOptions.classList.remove('open');
+      onSourceLangChange(suffix);
+    };
+    if(srcOptions) srcOptions.appendChild(opt);
+  });
+
+  if (availableSources.length === 1) {
+    const code = availableSources[0];
+    if(srcSelect) srcSelect.innerHTML = `<option value="${code}" selected></option>`;
+    if(srcDisplay) srcDisplay.innerHTML = `<div class="chip-container"><div class="chip" style="cursor:default">${getPrettyLangName(code)}</div></div>`;
+    onSourceLangChange(suffix);
+  }
+}
+
+function toggleSourceDropdown(suffix) {
+  const opts = document.getElementById('sourceLangOptions' + suffix);
+  if (!opts) return;
+  const isOpen = opts.classList.contains('open');
+  document.querySelectorAll('.multiselect-options').forEach(el => el.classList.remove('open'));
+  if (!isOpen) {
+    opts.classList.add('open');
+    const inp = opts.querySelector('.multiselect-search');
+    if (inp) { inp.value = ''; inp.dispatchEvent(new Event('input')); setTimeout(() => inp.focus(), 50); }
+  }
+}
+
+function onSourceLangChange(suffix) {
+  const srcSelect = document.getElementById('sourceLang' + suffix);
+  const value = srcSelect && srcSelect.value;
+  if (!selectedGroup || !value || !selectedGroup.variants[value]) return;
+  const tData = selectedGroup.variants[value];
+  finalSelectedUid = tData.uid;
+  initMultiSelect(suffix, tData.targets || []);
+  maybeLoadPivotTargetLanguages_(suffix, selectedGroup, tData);
+}
+
+/** Ein Template gilt clientseitig als Pivot-Template, wenn sein Name "pivot" enthaelt - Spiegel von isPivotTemplateName_ (PivotProjects.gs). */
+function isPivotGroupName_(name) {
+  return /pivot/i.test(String(name || ""));
+}
+
+function hidePivotTargetLangRow_(suffix) {
+  const row = document.getElementById('pivotTargetLangRow' + suffix);
+  if (row) row.style.display = 'none';
+  const list = document.getElementById('pivotTargetLangList' + suffix);
+  if (list) list.innerHTML = '';
+  const trigger = document.getElementById('pivotTargetLangTrigger' + suffix);
+  if (trigger) trigger.classList.add('disabled');
+  const text = document.getElementById('pivotTargetLangText' + suffix);
+  if (text) text.innerHTML = '-';
+}
+
+/**
+ * Bei einem Pivot-("Source Check")-Template zeigt das Formular zusaetzlich
+ * einen zweiten, unabhaengigen Zielsprachen-Picker ("Translation Target
+ * Language(s)") - die dort gewaehlten Sprachen gehen NICHT in targetLangs/
+ * die eigentliche Job-Erstellung ein, sondern nur ins Phrase-Custom-Field
+ * "Pivot languages" (siehe Upload.gs), das der Phrase-Orchestrator fuer die
+ * automatische Child-Projekt-Erstellung liest. Die verfuegbaren Sprachen
+ * stammen aus den admin-verlinkten Child-Templates (Admin -> Pivot Templates).
+ */
+function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
+  if (!isPivotGroupName_(group && group.name)) { hidePivotTargetLangRow_(suffix); return; }
+
+  const row = document.getElementById('pivotTargetLangRow' + suffix);
+  const srcDisplay = document.getElementById('pivotSourceLangDisplay' + suffix);
+  const text = document.getElementById('pivotTargetLangText' + suffix);
+  if (row) row.style.display = '';
+  if (srcDisplay) srcDisplay.innerText = '...';
+  if (text) text.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target'] || 'Loading...'}</span>`;
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res.ok) {
+        if (srcDisplay) srcDisplay.innerText = '-';
+        if (text) text.innerHTML = `<span style='color:#d93025'>${escapeHtml(res.error || 'Error')}</span>`;
+        return;
+      }
+      if (srcDisplay) srcDisplay.innerText = getPrettyLangName(res.sourceLang);
+      initMultiSelect(suffix, res.targets || [], 'pivotTargetLang');
+    })
+    .withFailureHandler(err => {
+      if (srcDisplay) srcDisplay.innerText = '-';
+      if (text) text.innerHTML = `<span style='color:#d93025'>Error: ${escapeHtml(err.message)}</span>`;
+    })
+    .apiGetPivotChildLanguageOptions(tData.uid);
+}
+
+function getPrettyLangName(code) {
+  if (!code) return "Unknown";
+  const key = code.toLowerCase().replace(/-/g, "_");
+  if (PRETTY_LANG_MAP[key]) return PRETTY_LANG_MAP[key];
+  const base = key.split("_")[0];
+  if (PRETTY_LANG_MAP[base]) return PRETTY_LANG_MAP[base];
+  return (configData.languages && configData.languages[key]) || code;
+}
+
+function initMultiSelect(suffix, targetCodes, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
+  if(!list) return;
+  list.innerHTML = "";
+  const searchInput = document.createElement("input");
+  searchInput.type = "text"; searchInput.className = "multiselect-search"; searchInput.placeholder = i18n[currentLang]['ph_search_language'] || "Search language...";
+  searchInput.onclick = (e) => e.stopPropagation();
+  searchInput.onkeyup = (e) => {
+    const filter = e.target.value.toLowerCase();
+    list.querySelectorAll('.multiselect-option').forEach(opt => {
+      opt.style.display = opt.innerText.toLowerCase().includes(filter) ? "block" : "none";
+    });
+  };
+  list.appendChild(searchInput);
+  targetCodes.forEach(code => {
+    const div = document.createElement("div"); div.className = "multiselect-option";
+    div.onclick = (e) => toggleOption(e, suffix, code, prefix);
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = code; cb.id = `cb${prefix}${suffix}_${code}`;
+    cb.onclick = (e) => e.stopPropagation(); cb.onchange = () => updateTriggerText(suffix, prefix);
+    const lbl = document.createElement("label"); lbl.htmlFor = cb.id; lbl.style.cursor = "pointer"; lbl.innerText = getPrettyLangName(code);
+    div.appendChild(cb); div.appendChild(lbl); list.appendChild(div);
+  });
+  const tOverlay = document.getElementById(prefix + 'Overlay' + suffix);
+  if(tOverlay) tOverlay.style.display = 'none';
+  const tTrigger = document.getElementById(prefix + 'Trigger' + suffix);
+  if(tTrigger) tTrigger.classList.remove('disabled');
+  updateTriggerText(suffix, prefix);
+}
+
+function toggleMultiselect(suffix, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
+  if(!list) return;
+  const isOpen = list.classList.contains('open');
+  document.querySelectorAll('.multiselect-options').forEach(el => el.classList.remove('open'));
+  if (!isOpen) list.classList.add('open');
+}
+function toggleOption(e, suffix, code, prefix) {
+  prefix = prefix || 'targetLang';
+  e.stopPropagation();
+  const cb = document.getElementById(`cb${prefix}${suffix}_${code}`);
+  if (e.target !== cb) cb.checked = !cb.checked;
+  updateTriggerText(suffix, prefix);
+}
+function removeChip(e, suffix, code, prefix) {
+  prefix = prefix || 'targetLang';
+  e.stopPropagation();
+  const cb = document.getElementById(`cb${prefix}${suffix}_${code}`);
+  if (cb) cb.checked = false;
+  updateTriggerText(suffix, prefix);
+}
+function updateTriggerText(suffix, prefix) {
+  prefix = prefix || 'targetLang';
+  const list = document.getElementById(prefix + 'List' + suffix);
+  if(!list) return;
+  const checkboxes = list.querySelectorAll('input[type="checkbox"]:checked');
+  const triggerDiv = document.getElementById(prefix + 'Text' + suffix);
+  if(!triggerDiv) return;
+
+  if (checkboxes.length === 0) {
+    triggerDiv.innerHTML = `<span style='color:#777'>${i18n[currentLang]['txt_select_target']}</span>`;
+  } else {
+    triggerDiv.innerHTML = "<div class='chip-container'></div>";
+    const container = triggerDiv.querySelector('.chip-container');
+    checkboxes.forEach(cb => {
+      const chip = document.createElement("div"); chip.className = "chip";
+      chip.innerHTML = `${getPrettyLangName(cb.value)} <span class="chip-remove" onclick="removeChip(event,'${suffix}','${cb.value}','${prefix}')">\u00D7</span>`;
+      container.appendChild(chip);
+    });
+  }
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.tmpl-dropdown-wrapper')) {
+    document.querySelectorAll('.tmpl-dropdown-panel.open').forEach(p => {
+      p.classList.remove('open');
+    });
+    document.querySelectorAll('.tmpl-dropdown-trigger.open').forEach(t => {
+      t.classList.remove('open');
+    });
+  }
+  if (!e.target.closest('.multiselect-wrapper') && !e.target.closest('.multiselect-trigger')) {
+    document.querySelectorAll('.multiselect-options.open').forEach(el => {
+      el.classList.remove('open');
+    });
+  }
+});
+
+function openPreferences() {
+  document.getElementById('preferencesModal').style.display = 'flex';
+  document.getElementById('prefsSaveMsg').style.display = 'none';
+  
+  const cb = document.getElementById('chatPrefToggle');
+  const text = document.getElementById('chatPrefStatusText');
+  
+  cb.disabled = true;
+  text.innerText = 'Loading...';
+  text.style.color = '#888';
+  
+  google.script.run
+    .withSuccessHandler(res => {
+      cb.checked = (res.enabled !== false);
+      cb.disabled = false;
+      text.innerText = cb.checked ? 'ON' : 'OFF';
+      text.style.color = cb.checked ? '#4CAF50' : '#888';
+    })
+    .withFailureHandler(err => {
+      text.innerText = 'Error';
+      showCustomAlert('Error loading preferences: ' + err.message, "Error");
+    })
+    .apiGetChatPreference();
+}
+
+function closePreferences() {
+  document.getElementById('preferencesModal').style.display = 'none';
+}
+
+function saveChatPreference() {
+  const enabled = document.getElementById('chatPrefToggle').checked;
+  google.script.run
+    .withSuccessHandler(() => {
+      document.getElementById('prefsSaveMsg').style.display = 'block';
+      setTimeout(closePreferences, 1200);
+    })
+    .withFailureHandler(err => showCustomAlert('Error: ' + err.message, "Error"))
+    .apiSetChatPreference(enabled);
+}</script>

@@ -1,0 +1,667 @@
+<script>
+// JsMisc.html - eingebunden in Index.html via include() (WebApp.gs)
+
+    function loadUserPresets(suffix) {
+      const dd = document.getElementById('presetsDropdown' + suffix);
+      if (!dd) return;
+      google.script.run.withSuccessHandler(res => {
+        if (!res.success) return;
+        dd.innerHTML = '<option value="">-- Select Preset --</option>';
+        res.presets.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.presetId;
+          opt.text = p.presetName;
+          opt.dataset.json = JSON.stringify(p);
+          dd.appendChild(opt);
+        });
+      }).apiLoadPresets();
+    }
+
+    function saveCurrentAsPreset(suffix) {
+      if (!finalSelectedUid) { showCustomAlert("Please select at least a Template and Source Language."); return; }
+      const tName = document.getElementById('templateUid' + suffix).options[document.getElementById('templateUid' + suffix).selectedIndex].text;
+      const sLang = document.getElementById('sourceLang' + suffix).value;
+      const tLangs = Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb => cb.value);
+      if (tLangs.length === 0) { showCustomAlert("Please select at least one Target Language."); return; }
+      
+      showCustomPrompt("Enter a name for this preset:", tName + " " + sLang + " -> " + tLangs.length + " langs", function(pName) {
+        if (!pName) return;
+        const data = {
+          presetName: pName,
+          templateUid: finalSelectedUid,
+          templateName: tName,
+          sourceLang: sLang,
+          targetLangs: tLangs,
+          note: document.getElementById('note' + suffix).value,
+          projectName: document.getElementById('projectName' + suffix).value
+        };
+        google.script.run.withSuccessHandler(r => {
+          if (r.success) { showCustomAlert("Preset saved!"); loadUserPresets(suffix); }
+          else showCustomAlert("Error: " + r.error, "Error");
+        }).apiSavePreset(data);
+      });
+    }
+
+    function loadPreset(suffix) {
+      const dd = document.getElementById('presetsDropdown' + suffix);
+      const sel = dd.options[dd.selectedIndex];
+      if (!sel || !sel.value) return;
+      try {
+        const p = JSON.parse(sel.dataset.json);
+        
+        const tmplSelect = document.getElementById('templateUid' + suffix);
+        let found = false;
+        for (let i=0; i<tmplSelect.options.length; i++) {
+          const gName = tmplSelect.options[i].value;
+          if (!gName) continue;
+          const group = templateGroups[gName];
+          if (group && group.variants && Object.values(group.variants).some(v => v.uid === p.templateUid)) {
+            tmplSelect.selectedIndex = i;
+            
+            const selectedLabel = tmplSelect.options[i].text;
+            const triggerText = document.getElementById('tmplTriggerText' + suffix);
+            if (triggerText) {
+              triggerText.textContent = selectedLabel;
+              triggerText.style.color = '#333';
+            }
+            selectedGroup = templateGroups[tmplSelect.options[i].value];
+            
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) { showCustomAlert("Template for this preset is no longer available.", "Warning"); return; }
+
+        onTemplateGroupChange(suffix);
+
+        setTimeout(() => {
+          const srcOptions = document.getElementById('sourceLangOptions' + suffix);
+          const srcSelect = document.getElementById('sourceLang' + suffix);
+          const alreadySet = srcSelect && srcSelect.value === p.sourceLang;
+
+          if (alreadySet) {
+            _presetSetTargets_(suffix, p);
+          } else {
+            const opts = Array.from(srcOptions.querySelectorAll('.multiselect-option'));
+            const srcOptDiv = opts.find(el => {
+              const txt = el.textContent.trim().toLowerCase();
+              const prettyName = getPrettyLangName(p.sourceLang).toLowerCase();
+              return txt.includes(prettyName) || txt === p.sourceLang.toLowerCase();
+            });
+
+            if (srcOptDiv) {
+              srcOptDiv.click();
+              setTimeout(() => _presetSetTargets_(suffix, p), 400);
+            } else {
+              showCustomAlert("Source language '" + p.sourceLang + "' not found in template variants.", "Warning");
+            }
+          }
+        }, 350);
+
+      } catch(e) { 
+        console.error("Error loading preset:", e); 
+        showCustomAlert("Error loading preset: " + e.message, "Error");
+      }
+    }
+
+    function _presetSetTargets_(suffix, p) {
+      let anyChecked = false;
+      p.targetLangs.forEach(tl => {
+        const cb = document.getElementById('cb' + suffix + '_' + tl);
+        if (cb) { cb.checked = true; anyChecked = true; }
+      });
+      if (anyChecked) updateTriggerText(suffix);
+
+      if (p.note) document.getElementById('note' + suffix).value = p.note;
+      if (p.projectName) document.getElementById('projectName' + suffix).value = p.projectName;
+
+      if (!anyChecked) {
+        showCustomAlert("Preset loaded \u2013 but target languages were not found in this template. Please re-select.", "Warning");
+      } else {
+        showCustomAlert("\u2713 Preset loaded successfully.");
+      }
+    }
+
+    function deletePreset(suffix) {
+      const dd = document.getElementById('presetsDropdown' + suffix);
+      const sel = dd.options[dd.selectedIndex];
+      
+      if (!sel || !sel.value) {
+          showCustomAlert("Please select a preset to delete.", "Info");
+          return;
+      }
+      
+      showCustomConfirm("Delete preset '" + sel.text + "'?", function() {
+        showCustomAlert("Deleting preset...", "Please wait");
+        
+        google.script.run
+          .withSuccessHandler(r => {
+            if(r.success) { 
+              showCustomAlert("\u2713 Preset deleted successfully.", "Success");
+              loadUserPresets(suffix); 
+            } else {
+              showCustomAlert("Error: " + r.error, "Error");
+            }
+          })
+          .withFailureHandler(e => {
+            showCustomAlert("Execution Error: " + e.message, "Error");
+          })
+          .apiDeletePreset(sel.value);
+      });
+    }
+
+    const MSG_KEY_LABELS = {
+      MSG_WELCOME:             "Welcome (first bot message)",
+      MSG_PROJECT_SUBMITTED: "Project Submitted",
+      MSG_COMPLETED:         "Translation Complete",
+      MSG_SHARED:             "Project Shared (recipient)",
+      MSG_CANCELLED:         "Project Cancelled",
+      MSG_DUE_DATE_UPDATED:  "Due Date Updated",
+      MSG_DEADLINE_REMINDER: "Deadline Reminder (24h)",
+      MSG_SHARE_CONFIRM:     "Share Confirmed (owner)",
+      MSG_ARTICULATE_COMPLETED: "Campus: Übersetzung fertig (automatisch)"
+    };
+
+
+
+
+    let kecEligUnlocked = false;
+
+
+
+
+    // --- ADMIN SUB-TABS ----------------------------------------------
+
+    // --- TEMPLATE MANAGER --------------------------------------------
+    let _tmplMgrRows = [];
+    let _tmplMgrSelected = {};   // uid -> true
+
+
+
+
+    let _tmplMgrSort = { field: null, dir: 'asc' };
+
+
+    // --- Batch-Auswahl -----------------------------------------------
+
+    // --- USER MANAGER ------------------------------------------------
+    let _userMgrRows = [];
+    let _userMgrSort = { field: null, dir: 'asc' };
+    let _userMgrExpanded = {};
+    const USER_MGR_PHRASE_SYNC_FIELDS = { firstName: true, lastName: true, role: true };
+    const USER_MGR_MULTI_FIELDS = ['clients','domains','subdomains','businessUnit','sourceLangs','targetLangs','workflowSteps'];
+    const USER_MGR_ROLES = ['ADMIN','PROJECT_MANAGER','LINGUIST','SUBMITTER','GUEST'];
+
+
+
+
+
+
+
+
+    function stopImpersonation() {
+      currentImpersonationEmail = "";
+      startStartupOverlay_();
+      google.script.run
+        .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab('admin'); })
+        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
+        .apiGetConfig(currentImpersonationEmail, currentLang);
+    }
+
+    function checkMaintenanceStatus(m, isAdmin) {
+        if (m && m.active) {
+            document.getElementById('maintenanceBanner').style.display = 'block';
+            document.getElementById('maintenanceBannerText').innerText = m.message;
+            
+            if (!isAdmin) {
+                document.getElementById('maintenanceLock').style.display = 'flex';
+                document.getElementById('maintenanceLockText').innerText = m.message;
+                document.getElementById('mainTabNav').style.pointerEvents = 'none'; document.getElementById('portalNav').style.pointerEvents = 'none';
+            }
+        } else {
+            document.getElementById('maintenanceBanner').style.display = 'none';
+            document.getElementById('maintenanceLock').style.display = 'none';
+            document.getElementById('mainTabNav').style.pointerEvents = 'auto'; document.getElementById('portalNav').style.pointerEvents = 'auto';
+        }
+    }
+
+    function closeMaintenanceLock() {
+        document.getElementById('maintenanceLock').style.display = 'none';
+        document.getElementById('mainTabNav').style.pointerEvents = 'auto'; document.getElementById('portalNav').style.pointerEvents = 'auto';
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+      function addDocWhitelistUser() {
+      const email = document.getElementById('newDocWhitelistEmail').value.trim();
+      if(!email) return;
+      google.script.run.withSuccessHandler(() => {
+        document.getElementById('newDocWhitelistEmail').value = "";
+        loadDocWhitelist();
+      }).apiAddDocWhitelist(email);
+      }
+
+
+
+    const ADMIN_LIGHT_LABELS_ = { users: 'User Manager', templates: 'Template Manager', custompages: 'Eigene Reiter', pivot: 'Pivot Templates', tests: 'Tests', dashboard: 'Dashboard' };
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Advanced token encryption boundary bypass guard
+
+
+
+    function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
+    function filterLogs() {
+      const q = document.getElementById('logsSearchInput').value.toLowerCase();
+      const rows = document.getElementById('logsModalBody').children;
+      for(let i=0; i<rows.length; i++) {
+        rows[i].style.display = rows[i].innerText.toLowerCase().includes(q) ? 'block' : 'none';
+      }
+    }
+
+    function runKecDebug(suffix) {
+      const inputEl = document.getElementById('kecDebugInput' + suffix);
+      const panelEl = document.getElementById('kecDebugPanel' + suffix);
+      if (!inputEl || !panelEl) return;
+
+      const rawVal = inputEl.value.trim();
+      if (!rawVal) {
+        panelEl.style.display = 'block';
+        panelEl.style.background = '#fff3f3';
+        panelEl.style.border = '1px solid #ffcdd2';
+        panelEl.innerHTML = '\u26A0 Bitte eine Phrase-URL oder UID eingeben.';
+        return;
+      }
+
+      const uidMatch = rawVal.match(/([a-zA-Z0-9]{22})/);
+      const uid = uidMatch ? uidMatch[1] : rawVal;
+
+      panelEl.style.display = 'block';
+      panelEl.style.background = '#f5f5f5';
+      panelEl.style.border = '1px solid #ddd';
+      panelEl.innerHTML = '\u231B Verbinde mit Phrase TMS...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res.success) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            panelEl.innerHTML = '\u2717 Server-Fehler: ' + escapeHtml(res.error);
+            return;
+          }
+          const r = res.report;
+          let log = '<strong>\u2022 Analysebericht für UID:</strong> ' + escapeHtml(r.uid) + '<br><br>';
+
+          if (!r.exists) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            log += '<span style="color:#d93025;">\u2022 Projekt nicht in Phrase TMS gefunden.</span>';
+            panelEl.innerHTML = log;
+            return;
+          }
+          log += '\u2022 Gate 1: Projekt existiert<br>';
+
+          if (!r.statusOk) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            log += '<span style="color:#d93025;">\u2022 Gate 2: Status ist <strong>' + escapeHtml(r.details.actualStatus) + '</strong> \u2013 erwartet: NEW</span>';
+            panelEl.innerHTML = log;
+            return;
+          }
+          log += '\u2022 Gate 2: Status ist NEW<br>';
+          log += '<span style="color:#666;">\u2022 Client: ' + escapeHtml(r.details.client) + '</span><br>';
+          log += '<span style="color:#666;">\u2022 Domain: ' + escapeHtml(r.details.domain) + '</span><br>';
+          log += '<span style="color:#666;">\u2022 BU: ' + escapeHtml(r.details.bu) + '</span><br>';
+
+          if (!r.clientOk || !r.domainOk || !r.buOk) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            log += '<br><span style="color:#d93025;">\u2022 Metadaten stimmen nicht überein:<br>';
+            if (!r.clientOk) log += '\u2022 Client \u2013 AKW<br>';
+            if (!r.domainOk) log += '\u2022 Domain \u2013 Marketing Content<br>';
+            if (!r.buOk)     log += '\u2022 BU \u2013 MMV-P<br>';
+            log += '</span>';
+            panelEl.innerHTML = log;
+            return;
+          }
+          log += '\u2022 Gate 3-5: Metadaten korrekt<br>';
+
+          if (!r.workflowOk) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            log += '<span style="color:#d93025;">\u2022 Gate 6: Workflow blockiert \u2013 ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.</span>';
+            panelEl.innerHTML = log;
+            return;
+          }
+
+          panelEl.style.background = '#e8f5e9';
+          panelEl.style.border = '1px solid #c8e6c9';
+          log += '<span style="color:#2e7d32;">\u2022 Alle Gates bestanden! Klicke erneut auf SCAN PROJECTS.</span>';
+          panelEl.innerHTML = log;
+        })
+        .withFailureHandler(err => {
+          panelEl.style.background = '#fff3f3';
+          panelEl.style.border = '1px solid #ffcdd2';
+          panelEl.innerHTML = '\u2717 Verbindungsfehler: ' + escapeHtml(err.message);
+        })
+        .apiDebugSingleKeCProject(uid);
+    }
+
+    function escapeHtml(unsafe) {
+      if (!unsafe) return "";
+      return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+    function escapeJs(unsafe) {
+      if (!unsafe) return "";
+      return String(unsafe).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"");
+    }
+
+    let currentTour = null;
+    let currentTourStep = 0;
+
+    // Sprachneutrale Schritt-Definitionen - der eigentliche Text kommt bei der
+    // Anzeige per t_i18n_(currentLang, textKey) aus dem i18n-Woerterbuch, damit
+    // die Tour IMMER in der aktuell angezeigten Sprache laeuft (nicht nur de/en).
+    const TOUR_STEPS_ = [
+      { target: '#btn-nav-request', textKey: 'tour_step_start' },
+      { target: '[id^="templateUid_"]', textKey: 'tour_step_template' },
+      { target: '[id^="sourceLangDisplay"]', textKey: 'tour_step_source' },
+      { target: '[id^="targetLangTrigger"]', textKey: 'tour_step_target' },
+      { target: '[id^="projectName_"]', textKey: 'tour_step_projectname' },
+      { target: '[id^="presetsDropdown_"]', textKey: 'tour_step_presets' },
+      { target: '[id^="dateDue_"]', textKey: 'tour_step_duedate' },
+      { target: '[id^="note_"]', textKey: 'tour_step_note' },
+      { target: '[id^="mainFilePC_"]', textKey: 'tour_step_mainfiles', isUploadBtn: true, type: 'main' },
+      { target: '[id^="refFilePC_"]', textKey: 'tour_step_reffiles', isUploadBtn: true, type: 'ref' },
+      { target: '[id^="submitBtn_"]', textKey: 'tour_step_submit' },
+      { target: '#btn-nav-history', textKey: 'tour_step_myprojects' },
+      { target: '#btn-dashboard', textKey: 'tour_step_dashboard' },
+      { target: '#prefsBtn', textKey: 'tour_step_preferences' },
+      { target: '.global-lang-switch', textKey: 'tour_step_langswitch' }
+    ];
+
+    function resolveTarget(step) {
+      // Zuerst im aktuell sichtbaren Tab suchen (vermeidet Treffer auf gleich
+      // benannte, aber unsichtbare Elemente eines anderen Portals/Tabs);
+      // Nav-Buttons, Sprachumschalter etc. liegen ausserhalb von .tab-content
+      // und werden per Fallback im gesamten Dokument gesucht.
+      const scope = document.querySelector('.tab-content.active');
+      if (step.isUploadBtn) {
+        const activeSuffix = activePortals[0];
+        const sel = `button[onclick="handlePcUploadClick('${step.type}', '${activeSuffix}')"]`;
+        return (scope && scope.querySelector(sel)) || document.querySelector(sel);
+      }
+      let el = scope && scope.querySelector(step.target);
+      if (!el && step.target.includes('_')) {
+        const activeSuffix = activePortals[0];
+        el = scope && scope.querySelector(step.target.replace('_', activeSuffix));
+      }
+      if (!el) el = document.querySelector(step.target);
+      if (!el && step.target.includes('_')) {
+        const activeSuffix = activePortals[0];
+        el = document.querySelector(step.target.replace('_', activeSuffix));
+      }
+      // Ausgeblendete Elemente (display:none, z.B. ein per Whitelist nicht
+      // sichtbarer Nav-Button) bleiben trotzdem im DOM - offsetParent ist dann
+      // null. Solche Treffer als "nicht gefunden" behandeln, damit der Schritt
+      // automatisch uebersprungen wird statt eine unsichtbare Bubble zu zeigen.
+      if (el && el.offsetParent === null) el = null;
+      return el;
+    }
+
+    window.tourStart = function(lang, force) {
+      const tourLang = lang || currentLang;
+      if (!force) {
+        const done = localStorage.getItem('tourDone_' + tourLang);
+        if (done === 'true') return;
+      }
+      currentTour = TOUR_STEPS_;
+      currentTourStep = 0;
+
+      if (document.getElementById('btn-nav-request')) {
+        switchTab('request');
+      } else if (activePortals.length > 0) {
+        switchTab(activePortals[0].replace('_',''));
+      }
+
+      renderTourBubble();
+    };
+
+    function renderTourBubble() {
+      let bubble = document.getElementById('tourBubble');
+      if (!bubble) {
+        bubble = document.createElement('div');
+        bubble.id = 'tourBubble';
+        bubble.style.cssText = 'position:absolute; z-index:9999; background:#fff; border:1px solid #ddd; padding:20px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border-left:4px solid var(--primary-yellow); width:320px; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); opacity:0; pointer-events:none; border-radius:4px;';
+        document.body.appendChild(bubble);
+      }
+      
+      const step = currentTour[currentTourStep];
+      const el = resolveTarget(step);
+      
+      if (!el) {
+        tourNext();
+        return;
+      }
+      
+      document.querySelectorAll('.tour-highlight').forEach(e => {
+        e.classList.remove('tour-highlight');
+        e.style.boxShadow = '';
+        e.style.position = '';
+        e.style.zIndex = '';
+        e.style.background = '';
+      });
+      
+      el.classList.add('tour-highlight');
+      el.style.position = 'relative';
+      el.style.zIndex = '9998';
+      el.style.boxShadow = '0 0 0 4px rgba(255, 237, 0, 0.5)';
+      if (window.getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' || window.getComputedStyle(el).backgroundColor === 'transparent') {
+        el.style.background = '#fff';
+      }
+      
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      const isLast = currentTourStep === currentTour.length - 1;
+      const isFirst = currentTourStep === 0;
+
+      const skipLabel = t_i18n_(currentLang, 'tour_skip') || 'Skip';
+      const prevLabel = t_i18n_(currentLang, 'tour_back') || 'Back';
+      const nextLabel = isLast ? (t_i18n_(currentLang, 'tour_done') || 'Done') : (t_i18n_(currentLang, 'tour_next') || 'Next');
+      const stepOfLabel = (t_i18n_(currentLang, 'tour_step_of') || 'Step {n} of {m}')
+        .replace('{n}', currentTourStep + 1).replace('{m}', currentTour.length);
+      const stepText = t_i18n_(currentLang, step.textKey) || step.textKey;
+
+      bubble.innerHTML = `
+        <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:#333;">${escapeHtml(stepOfLabel)}</div>
+        <div style="font-size:14px; color:#555; line-height:1.5; margin-bottom:20px;">${escapeHtml(stepText)}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <button onclick="tourEnd()" style="background:none; border:none; color:#999; cursor:pointer; font-size:13px; text-decoration:underline;">${skipLabel}</button>
+          <div style="display:flex; gap:8px;">
+            ${!isFirst ? `<button onclick="tourPrev()" class="btn btn-secondary" style="height:34px; padding:0 15px;">${prevLabel}</button>` : ''}
+            <button onclick="tourNext()" class="btn btn-primary" style="height:34px; padding:0 20px;">${nextLabel}</button>
+          </div>
+        </div>
+      `;
+      
+      setTimeout(() => positionBubble(el, step), 50);
+    }
+
+    function positionBubble(el, step) {
+      const bubble = document.getElementById('tourBubble');
+      if (!bubble) return;
+      const rect = el.getBoundingClientRect();
+      const bRect = bubble.getBoundingClientRect();
+      
+      let top = rect.bottom + window.scrollY + 15;
+      let left = rect.left + window.scrollX;
+      
+      if (top + bRect.height > window.innerHeight + window.scrollY) {
+        top = rect.top + window.scrollY - bRect.height - 15;
+      }
+      if (left + bRect.width > window.innerWidth + window.scrollX) {
+        left = window.innerWidth + window.scrollX - bRect.width - 20;
+      }
+      
+      bubble.style.top = top + 'px';
+      bubble.style.left = left + 'px';
+      bubble.style.opacity = '1';
+      bubble.style.pointerEvents = 'auto';
+    }
+
+    window.tourNext = function() {
+      if (currentTourStep >= currentTour.length - 1) { tourEnd(); return; }
+      currentTourStep++;
+      renderTourBubble();
+    };
+
+    window.tourPrev = function() {
+      if (currentTourStep <= 0) return;
+      currentTourStep--;
+      renderTourBubble();
+    };
+
+    window.tourEnd = function() {
+      const bubble = document.getElementById('tourBubble');
+      if (bubble) bubble.remove();
+      document.querySelectorAll('.tour-highlight').forEach(e => {
+        e.classList.remove('tour-highlight');
+        e.style.boxShadow = '';
+        e.style.position = '';
+        e.style.zIndex = '';
+        e.style.background = '';
+      });
+      localStorage.setItem('tourDone_' + currentLang, 'true');
+    };
+
+    function openSlidesModal() {
+      const iframe = document.getElementById('slidesModalIframe');
+      if (!iframe.src || iframe.src === window.location.href) {
+        iframe.src = 'https://docs.google.com/presentation/d/14-ypgP1PGtdRexF2HGCROgn6KXFsz3J7JEnH3VR-yL8/embed?start=false&loop=false&delayms=3000';
+      }
+      document.getElementById('slidesModal').style.display = 'flex';
+    }
+
+    function closeSlidesModal() {
+      document.getElementById('slidesModal').style.display = 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      var sm = document.getElementById('slidesModal');
+      if (sm) sm.addEventListener('click', function(e) { if (e.target === sm) closeSlidesModal(); });
+    });
+
+    // --- DRIVE LINK UPLOAD --------------------------------------------------------
+
+  function handleDriveLinkClick(type, suffix) {
+  if (!checkPreconditions(suffix)) return;
+  showCustomPrompt(
+    "Google Drive Link einfügen:\n\n\u26A0 Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.",
+    "",
+    function(url) {
+      if (!url || !url.trim()) return;
+      const fileId = extractDriveFileId_(url.trim());
+      if (!fileId) {
+        showCustomAlert("Ungültiger Google Drive Link. Bitte einen direkten Drive-Link einfügen (z.B. https://drive.google.com/file/d/...).", "Ungültiger Link");
+        return;
+      }
+      const fileName = extractDriveFileName_(url.trim()) || "Drive-Datei (" + fileId.substring(0, 8) + "...)";
+      const fileObj = { source: "drivelink", id: fileId, name: fileName };
+      if (type === "main") {
+        mainFilesMap[suffix].push(fileObj);
+        const pName = document.getElementById("projectName" + suffix);
+        if (pName && pName.value === "" && mainFilesMap[suffix].length === 1) {
+          pName.value = fileName.split(".").slice(0, -1).join(".") || fileName;
+        }
+      } else {
+        refFilesMap[suffix].push({ type: "drivelink", id: fileId, name: fileName });
+      }
+      renderFileList(type, suffix);
+    },
+    "Google Drive Link"
+  );
+}
+
+function extractDriveFileId_(url) {
+  // Unterstützt verschiedene Drive-URL-Formate
+  const patterns = [
+    /\/file\/d\/([a-zA-Z0-9_-]{25,})/,
+    /[?&]id=([a-zA-Z0-9_-]{25,})/,
+    /\/spreadsheets\/d\/([a-zA-Z0-9_-]{25,})/,
+    /\/document\/d\/([a-zA-Z0-9_-]{25,})/,
+    /\/presentation\/d\/([a-zA-Z0-9_-]{25,})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  // Direkter File-ID (25+ alphanumerische Zeichen)
+  if (/^[a-zA-Z0-9_-]{25,}$/.test(url.trim())) return url.trim();
+  return null;
+}
+
+function extractDriveFileName_(url) {
+  // Versucht Dateiname aus URL zu extrahieren (nicht immer möglich)
+  return "";
+}
+
+// --- WATCHER CONFIG ------------------------------------------------------------
+
+var _watcherConfig = [];
+
+// --- Admin: Selbsttests (Subtab "Tests", siehe SelfTests.gs) --------------------
+function runSelfTests_() {
+  const box = document.getElementById('selfTestResults');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:30px;"><div class="loader"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.authorized) { box.innerHTML = '<div class="dl-errors">Not authorized.</div>'; return; }
+    const icon = { ok: 'check_circle', warning: 'warning', error: 'error' };
+    const groups = {};
+    res.results.forEach(r => (groups[r.group] = groups[r.group] || []).push(r));
+    const sum = res.summary || {};
+    let html = `<div class="selftest-summary">
+        <span class="st-pill st-ok"><span class="material-icons-outlined">check_circle</span>${sum.ok || 0} OK</span>
+        <span class="st-pill st-warning"><span class="material-icons-outlined">warning</span>${sum.warning || 0} Hinweise</span>
+        <span class="st-pill st-error"><span class="material-icons-outlined">error</span>${sum.error || 0} Fehler</span>
+        <span class="st-time">${escapeHtml(new Date(res.timestamp).toLocaleString())}</span>
+      </div>`;
+    Object.keys(groups).forEach(g => {
+      html += `<h4 class="selftest-group">${escapeHtml(g)}</h4><div class="selftest-list">` + groups[g].map(r => `
+        <div class="selftest-row st-${escapeHtml(r.status)}">
+          <span class="material-icons-outlined">${icon[r.status] || 'help'}</span>
+          <div class="st-body"><div class="st-name">${escapeHtml(r.name)}</div><div class="st-msg">${escapeHtml(r.message)}</div></div>
+          <span class="st-ms">${r.ms} ms</span>
+        </div>`).join('') + '</div>';
+    });
+    box.innerHTML = html;
+  }).withFailureHandler(e => {
+    box.innerHTML = '<div class="dl-errors">' + escapeHtml(e.message) + '</div>';
+  }).apiRunSelfTests();
+}
+</script>

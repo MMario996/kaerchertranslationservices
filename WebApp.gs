@@ -7,6 +7,15 @@ function doGet(e) {
 }
 
 /**
+ * Bindet eine weitere HTML-Datei (Styles.html, Js*.html) in Index.html ein:
+ * <?!= include('JsCore'); ?>. Rein fuer die Wartbarkeit - die ausgelieferte
+ * Seite ist genauso gross wie vorher, nur der Quelltext ist aufgeteilt.
+ */
+function include(name) {
+  return HtmlService.createHtmlOutputFromFile(name).getContent();
+}
+
+/**
  * Liefert die ausgelagerten Guide-/FAQ-Inhalte (GuideContent.html) als HTML-String.
  * Diese ~144 KB stecken bewusst nicht mehr in Index.html: das ausgelieferte
  * Dokument wurde dadurch so gross, dass Apps Script es beim Schreiben in den
