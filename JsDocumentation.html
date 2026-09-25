@@ -64,13 +64,13 @@ function docArchiveFromHistory_(projectUid, projectName) {
       google.script.run
         .withSuccessHandler(function(res) {
           hideDownloadProgress_();
-          if (!res.success) { showCustomAlert('Fehler: ' + escapeHtml(res.error), 'Fehler'); return; }
+          if (!res.success) { showCustomAlert(tr_('jx_0aa2532', 'Fehler:') + ' ' + escapeHtml(res.error), tr_('jx_52e5304', 'Fehler')); return; }
           showToast_('\u2713 ' + tr_('da_done', 'Archived') + ' (' + res.archivedRows + ')', 'ok');
           loadMyProjects();
         })
         .withFailureHandler(function(err) {
           hideDownloadProgress_();
-          showCustomAlert('Fehler: ' + escapeHtml(err.message), 'Fehler');
+          showCustomAlert(tr_('jx_0aa2532', 'Fehler:') + ' ' + escapeHtml(err.message), tr_('jx_52e5304', 'Fehler'));
         })
         .apiArchiveDocQueueProject(projectUid, projectName);
     },
@@ -84,7 +84,7 @@ function docArchiveFromHistory_(projectUid, projectName) {
  */
 function exportDocProjectToFolder_(p) {
   const jobs = (p.docJobs || []).filter(j => j.status === 'COMPLETED' && j.jobUid);
-  if (!jobs.length) { showCustomAlert('Keine fertigen (COMPLETED) Dateien zum Zurückschreiben.', 'Hinweis'); return; }
+  if (!jobs.length) { showCustomAlert(tr_('jx_5780d67', 'Keine fertigen (COMPLETED) Dateien zum Zurückschreiben.'), tr_('jx_9874513', 'Hinweis')); return; }
   let idx = 0, ok = 0, folderUrl = '';
   const errors = [];
   const next = () => {
@@ -93,10 +93,10 @@ function exportDocProjectToFolder_(p) {
       if (ok && !errors.length) {
         showToast_('\u2713 ' + tr_('dl_docfolder_done', 'Written to the project folder') + ' (' + ok + ')', 'ok', folderUrl ? { href: folderUrl, label: tr_('dl_open_folder', 'Open folder') } : null);
       } else {
-        let msg = ok + ' von ' + jobs.length + ' Datei(en) geschrieben.';
-        if (folderUrl) msg += '<div style="margin-top:12px;"><a href="' + folderUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">Ordner in Drive öffnen →</a></div>';
+        let msg = ok + ' von ' + jobs.length + ' ' + tr_('jx_0f67b69', 'Datei(en) geschrieben.');
+        if (folderUrl) msg += '<div style="margin-top:12px;"><a href="' + folderUrl + ('" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + tr_('jx_f95a61e', 'Ordner in Drive öffnen →') + '</a></div>');
         if (errors.length) msg += '<div class="dl-errors">' + errors.join('<br>') + '</div>';
-        showCustomAlert(msg, 'Zurückschreiben');
+        showCustomAlert(msg, tr_('jx_057ce68', 'Zurückschreiben'));
       }
       loadMyProjects();
       return;
@@ -134,7 +134,7 @@ function attachDocImportFormLogic_() {
   refFilesMap['_docimport'] = [];
   templateSortState['_docimport'] = 'asc';
   const tmplSelect = document.getElementById('templateUid_docimport');
-  tmplSelect.innerHTML = '<option disabled selected value="">Select Template Type</option>';
+  tmplSelect.innerHTML = '<option disabled selected value="">' + tr_('opt_select_template', 'Select Template Type') + '</option>';
   renderTemplateOptions('_docimport');
   tmplSelect.addEventListener('change', () => {
     docImportOnTemplateChange_();
@@ -194,8 +194,8 @@ function docImportLoadHolidays_() {
 function docImportCheckNonWorkingDay_(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const day = d.getDay();
-  if (day === 0 || day === 6) return { blocked: true, reason: 'ein Wochenende' };
-  if (_germanHolidaySet_ && _germanHolidaySet_.has(dateStr)) return { blocked: true, reason: 'einen gesetzlichen Feiertag' };
+  if (day === 0 || day === 6) return { blocked: true, reason: tr_('jx_d6e825f', 'ein Wochenende') };
+  if (_germanHolidaySet_ && _germanHolidaySet_.has(dateStr)) return { blocked: true, reason: tr_('jx_e4ff7de', 'einen gesetzlichen Feiertag') };
   return { blocked: false, reason: '' };
 }
 
@@ -205,7 +205,7 @@ function docImportValidateDueDate_() {
   if (!val) return;
   const nonWorking = docImportCheckNonWorkingDay_(val);
   if (nonWorking.blocked) {
-    showCustomAlert('Das Due Date fällt auf ' + nonWorking.reason + '. Bitte ein anderes Datum wählen.', 'Ungültiges Datum');
+    showCustomAlert(tr_('jx_d48fd25', 'Das Due Date fällt auf') + ' ' + nonWorking.reason + tr_('jx_b67dd90', '. Bitte ein anderes Datum wählen.'), tr_('jx_3fa6e72', 'Ungültiges Datum'));
     input.value = '';
     return;
   }
@@ -213,7 +213,7 @@ function docImportValidateDueDate_() {
     const due = new Date(val + 'T12:00:00');
     const hoursUntil = (due.getTime() - Date.now()) / 36e5;
     if (hoursUntil < 0 || hoursUntil > 72) {
-      showCustomAlert('Bei dieser Express-Vorlage muss das Due Date innerhalb der nächsten 72 Stunden liegen.', 'Express-Vorlage');
+      showCustomAlert(tr_('jx_bca0988', 'Bei dieser Express-Vorlage muss das Due Date innerhalb der nächsten 72 Stunden liegen.'), tr_('jx_556ca8f', 'Express-Vorlage'));
       input.value = '';
     }
   }
@@ -249,11 +249,11 @@ function docImportSearchFolders_(query) {
   const hasCache = !query && _docImportFolderCache_;
   // Bei leerer Suche und vorhandenem Cache keinen Lade-Spinner zeigen - die
   // gecachten (aktuellen) Projekte bleiben sichtbar, bis die Aktualisierung durch ist.
-  if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">Suche...</div>';
+  if (!hasCache) list.innerHTML = ('<div class="tmpl-option-empty">' + tr_('jx_94d5b3b', 'Suche...') + '</div>');
   google.script.run
     .withSuccessHandler(res => {
       if (!res.success) {
-        if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || 'Fehler') + '</div>';
+        if (!hasCache) list.innerHTML = '<div class="tmpl-option-empty">' + escapeHtml(res.error || tr_('jx_52e5304', 'Fehler')) + '</div>';
         return;
       }
       const folders = res.folders || [];
@@ -339,9 +339,9 @@ function selectDocImportFolder_(folderId, folderName) {
       if (!warnBox) return;
       if (_docImportDuplicateHistory_.length) {
         const last = _docImportDuplicateHistory_[_docImportDuplicateHistory_.length - 1];
-        const dateStr = last.timestamp ? new Date(last.timestamp).toLocaleDateString('de-DE') : 'unbekanntem Datum';
-        warnBox.innerHTML = 'Dieser Ordner wurde bereits am ' + escapeHtml(dateStr) + ' importiert (Projekt "' + escapeHtml(last.projectName || '') + '"). ' +
-          '<label style="display:block;margin-top:6px;font-weight:600;cursor:pointer;"><input type="checkbox" id="docImportDuplicateConfirmCb" onchange="_docImportDuplicateConfirmed_=this.checked"> Ich möchte trotzdem fortfahren (z.B. weil Dateien aktualisiert wurden).</label>';
+        const dateStr = last.timestamp ? new Date(last.timestamp).toLocaleDateString('de-DE') : tr_('jx_9a7b480', 'unbekanntem Datum');
+        warnBox.innerHTML = tr_('jx_9fdf23a', 'Dieser Ordner wurde bereits am') + ' ' + escapeHtml(dateStr) + ' ' + 'importiert (Projekt "' + escapeHtml(last.projectName || '') + '"). ' +
+          ('<label style="display:block;margin-top:6px;font-weight:600;cursor:pointer;"><input type="checkbox" id="docImportDuplicateConfirmCb" onchange="_docImportDuplicateConfirmed_=this.checked"> ' + tr_('jx_b09cd11', 'Ich möchte trotzdem fortfahren (z.B. weil Dateien aktualisiert wurden).') + '</label>');
         warnBox.style.display = 'block';
       } else {
         warnBox.style.display = 'none';
@@ -365,7 +365,7 @@ function docImportRenderValidation_() {
     rows += `<tr><td>${escapeHtml(getPrettyLangName(lf.lang))}</td><td>${escapeHtml(lf.xmlFileName || '-')}</td><td class="docimport-status-ok">\u231B ${escapeHtml(tr_('di_will_import', 'will be imported'))}</td></tr>`;
   });
   container.innerHTML = langFolders.length
-    ? `<table class="docimport-validation-table"><thead><tr><th>${escapeHtml(tr_('di_lang', 'Language'))}</th><th>${escapeHtml(tr_('di_file', 'File name'))}</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`
+    ? `<table class="docimport-validation-table"><thead><tr><th>${escapeHtml(tr_('di_lang', 'Language'))}</th><th>${escapeHtml(tr_('di_file', 'File name'))}</th><th>${tr_('jx_ec53a8c', 'Status')}</th></tr></thead><tbody>${rows}</tbody></table>`
     : '<div style="color:#c62828;font-size:13px;">' + escapeHtml(tr_('di_no_langfolders', 'No language subfolders with files found in this folder.')) + '</div>';
   if (badge) {
     if (!langFolders.length) {
@@ -378,38 +378,38 @@ function docImportRenderValidation_() {
 }
 
 function docImportSubmit_() {
-  if (!finalSelectedUid) { showCustomAlert('Bitte Template und Quellsprache wählen.'); return; }
+  if (!finalSelectedUid) { showCustomAlert(tr_('jx_466cb3c', 'Bitte Template und Quellsprache wählen.')); return; }
   if (!_docImportSelectedFolderId_ || !_docImportDriveTree_ || !(_docImportDriveTree_.langFolders || []).length) {
-    showCustomAlert('Bitte zuerst einen Drive-Ordner mit Sprachunterordnern auswählen.');
+    showCustomAlert(tr_('jx_77fc6d6', 'Bitte zuerst einen Drive-Ordner mit Sprachunterordnern auswählen.'));
     return;
   }
 
   if (!refFilesMap['_docimport'] || refFilesMap['_docimport'].length === 0) {
-    showCustomAlert("\u231B Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist für Documentation Projects obligatorisch.", "Pflichtfeld");
+    showCustomAlert(tr_('jx_8a6b997', '⌛ Bitte laden Sie eine Referenzdatei hoch.\n\nDer Upload einer Referenzdatei ist für Documentation Projects obligatorisch.'), tr_('jx_6490b36', 'Pflichtfeld'));
     return;
   }
 
   const projectName = document.getElementById('projectName_docimport').value.trim();
   const iaNumber = document.getElementById('iaNumber_docimport').value.trim();
-  if (!projectName) { showCustomAlert('Projektname fehlt.'); return; }
-  if (!/^[0-9]+$/.test(iaNumber)) { showCustomAlert('IA Number ist Pflicht und muss numerisch sein.'); return; }
+  if (!projectName) { showCustomAlert(tr_('jx_9f7e7da', 'Projektname fehlt.')); return; }
+  if (!/^[0-9]+$/.test(iaNumber)) { showCustomAlert(tr_('jx_8b7a992', 'IA Number ist Pflicht und muss numerisch sein.')); return; }
   const tmplSelect = document.getElementById('templateUid_docimport');
   const templateName = tmplSelect.options[tmplSelect.selectedIndex] ? tmplSelect.options[tmplSelect.selectedIndex].text : '';
   const srcLang = document.getElementById('sourceLang_docimport').value;
   let rDate = document.getElementById('dateDue_docimport').value;
-  if (!rDate) { showCustomAlert('Due Date ist ein Pflichtfeld.'); return; }
+  if (!rDate) { showCustomAlert(tr_('jx_20befee', 'Due Date ist ein Pflichtfeld.')); return; }
   let fDate = new Date(rDate + "T12:00:00").toISOString();
 
   if (_docImportIsExpress_) {
     const cb = document.getElementById('docImportExpressConfirmCb');
     if (!cb || !cb.checked) {
-      showCustomAlert('Bitte bestätigen Sie den 15%-Express-Aufschlag, um mit dieser Vorlage fortzufahren.', 'Express-Aufschlag');
+      showCustomAlert(tr_('jx_d374801', 'Bitte bestätigen Sie den 15%-Express-Aufschlag, um mit dieser Vorlage fortzufahren.'), tr_('jx_a92c47a', 'Express-Aufschlag'));
       return;
     }
   }
 
   if (_docImportDuplicateHistory_.length && !_docImportDuplicateConfirmed_) {
-    showCustomAlert('Dieser Ordner wurde bereits importiert. Bitte bestätigen Sie im Warnhinweis, dass Sie trotzdem fortfahren möchten.', 'Bereits importiert');
+    showCustomAlert(tr_('jx_849c1c5', 'Dieser Ordner wurde bereits importiert. Bitte bestätigen Sie im Warnhinweis, dass Sie trotzdem fortfahren möchten.'), tr_('jx_397b815', 'Bereits importiert'));
     return;
   }
 
@@ -417,7 +417,7 @@ function docImportSubmit_() {
     .filter(lf => lf.xmlFileId)
     .map(lf => ({ targetLang: lf.lang, fileId: lf.xmlFileId, fileName: lf.xmlFileName }));
 
-  if (!filesPayload.length) { showCustomAlert('Keine XML-Dateien im Drive-Ordner gefunden.'); return; }
+  if (!filesPayload.length) { showCustomAlert(tr_('jx_71a8d5e', 'Keine XML-Dateien im Drive-Ordner gefunden.')); return; }
 
   document.getElementById('overlay').style.display = 'flex';
   document.getElementById('loadingSpinner').style.display = 'block';
@@ -478,7 +478,7 @@ function docImportSubmit_() {
             "<div style='max-width:450px;margin:0 auto;'>" +
             "<div style='margin-bottom:15px;'>" + res.createdCount + " von " + res.totalCount + " Dateien hochgeladen.</div>" +
             warnHtml +
-            "<a href='" + res.sheetUrl + "' target='_blank' class='btn btn-secondary' style='display:inline-flex;margin-bottom:10px;text-decoration:none;'>Queue-Sheet öffnen ?</a><br>" +
+            "<a href='" + res.sheetUrl + ('\' target=\'_blank\' class=\'btn btn-secondary\' style=\'display:inline-flex;margin-bottom:10px;text-decoration:none;\'>' + tr_('jx_cd5dfed', 'Queue-Sheet öffnen ?') + '</a><br>') +
             "<button class='btn btn-secondary' onclick='document.getElementById(\"overlay\").style.display=\"none\";location.reload()'>SCHLIESSEN</button>" +
             "</div>";
         })

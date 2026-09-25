@@ -1,198 +1,481 @@
 <script>
-// Pivot-Templates-Admin-JavaScript, ausgelagert aus AdminScript.html.
-// Wird von loadPivotAdminContent_() (Index.html) als Script-Element injiziert,
-// erst wenn der "Pivot Templates"-Subtab zum ersten Mal geoeffnet wird - siehe
-// Kommentar in PivotAdminConsole.html zum Truncation-Problem, das dadurch
-// vermieden wird. Laeuft im globalen Scope wie AdminScript.html selbst.
-    function loadPivotLinks() {
-        const tbody = document.getElementById('pivotLinksTableBody');
-        const loading = document.getElementById('pivotLinksLoading');
-        if (!tbody) return;
-        if (loading) loading.style.display = 'block';
-        google.script.run
-          .withSuccessHandler(res => {
-            if (loading) loading.style.display = 'none';
-            if (!res.success) {
-              tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
-              return;
-            }
-            renderPivotLinksTable(res.links || []);
-          })
-          .withFailureHandler(err => {
-            if (loading) loading.style.display = 'none';
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
-          })
-          .apiGetPivotTemplateLinks();
+// Pivot-Templates-Admin (Frontend), ausgelagert aus AdminScript.html.
+// Wird von loadPivotAdminContent_() als Script-Element injiziert, erst wenn der
+// Subtab zum ersten Mal geoeffnet wird. Laeuft im globalen Scope.
+//
+// Aufbau: Verknuepfungen gruppiert nach Parent-Template, Anlegen per
+// Template-Suche mit Mehrfachauswahl (Batch), Massen-Import aus einer
+// eingefuegten Liste und die Sprachen-Zuordnung als bearbeitbare Tabelle.
+
+let pvLinks_ = [];
+let pvMap_ = [];
+let pvTemplates_ = null;          // [{uid,name,sourceLang,targetLangs}]
+let pvFieldOptions_ = [];
+let pvMissingUids_ = {};
+let pvSelected_ = {};             // "parent|child" -> true (zum Entfernen)
+let pvMapEdits_ = {};             // langCode(lower) -> neuer Options-Wert
+let pvComposer_ = { parent: '', children: {} };
+let pvImportRows_ = [];
+
+function pvTemplateUrl_(uid) {
+  return 'https://cloud.memsource.com/tms/projectTemplate/edit/' + encodeURIComponent(uid);
+}
+function pvLangName_(code) {
+  return typeof getPrettyLangName === 'function' ? getPrettyLangName(code) : code;
+}
+function pvErr_(msg) { showCustomAlert(escapeHtml(msg || tr_('ax_902b0d5', 'Error')), tr_('pv_error', 'Fehler')); }
+
+/** Einstieg beim Oeffnen des Subtabs. */
+function pvInit_() {
+  pvLoadLinks_();
+  pvLoadMap_();
+  pvLoadTemplates_(false);
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) return;
+    pvFieldOptions_ = res.options || [];
+    document.getElementById('pvOptionDatalist').innerHTML = pvFieldOptions_.map(o => `<option value="${escapeHtml(o)}">`).join('');
+    pvRenderMap();
+  }).withFailureHandler(() => {}).apiGetPivotFieldOptionValues();
+  if (typeof PRETTY_LANG_MAP !== 'undefined') {
+    document.getElementById('pvLangDatalist').innerHTML = Object.keys(PRETTY_LANG_MAP).sort()
+      .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(PRETTY_LANG_MAP[c])}</option>`).join('');
+  }
+}
+
+function pvLoadLinks_() {
+  document.getElementById('pvLinksLoading').style.display = 'block';
+  google.script.run.withSuccessHandler(res => {
+    document.getElementById('pvLinksLoading').style.display = 'none';
+    if (!res.success) { document.getElementById('pvLinks').innerHTML = `<div class="pv-error">${escapeHtml(res.error)}</div>`; return; }
+    pvLinks_ = res.links || [];
+    pvAfterDataChange_();
+  }).withFailureHandler(err => {
+    document.getElementById('pvLinksLoading').style.display = 'none';
+    document.getElementById('pvLinks').innerHTML = `<div class="pv-error">${escapeHtml(err.message)}</div>`;
+  }).apiGetPivotTemplateLinks();
+}
+
+function pvLoadMap_() {
+  document.getElementById('pvMapLoading').style.display = 'block';
+  google.script.run.withSuccessHandler(res => {
+    document.getElementById('pvMapLoading').style.display = 'none';
+    if (!res.success) { document.getElementById('pvMapBody').innerHTML = `<tr><td colspan="4" class="pv-error">${escapeHtml(res.error)}</td></tr>`; return; }
+    pvMap_ = res.map || [];
+    pvMapEdits_ = {};
+    pvAfterDataChange_();
+  }).withFailureHandler(err => {
+    document.getElementById('pvMapLoading').style.display = 'none';
+    pvErr_(err.message);
+  }).apiGetPivotLanguageMap();
+}
+
+function pvLoadTemplates_(force, cb) {
+  if (pvTemplates_ && !force) { if (cb) cb(); return; }
+  google.script.run.withSuccessHandler(res => {
+    if (!res.success) { pvErr_(res.error); return; }
+    pvTemplates_ = res.templates || [];
+    if (document.getElementById('pvComposer').style.display !== 'none') pvRenderComposer_();
+    if (cb) cb();
+  }).withFailureHandler(err => pvErr_(err.message)).apiPivotListTemplates(!!force);
+}
+
+function pvAfterDataChange_() {
+  pvRenderStats_();
+  pvRenderLinks();
+  pvRenderMap();
+}
+
+// --- Kennzahlen & Hinweise ------------------------------------------------------
+
+function pvMapObj_() {
+  const m = {};
+  pvMap_.forEach(r => { m[r.langCode.toLowerCase()] = r.optionValue; });
+  return m;
+}
+
+/** Alle Zielsprachen, die ueber verknuepfte Children bestellbar sind. */
+function pvUsedLangs_() {
+  const used = {};
+  pvLinks_.forEach(l => (l.childTargetLangs || []).forEach(lang => {
+    const k = lang.toLowerCase();
+    (used[k] = used[k] || { code: lang, children: {} }).children[l.childName || l.childUid] = true;
+  }));
+  return used;
+}
+
+function pvRenderStats_() {
+  const parents = new Set(pvLinks_.map(l => l.parentUid)).size;
+  const used = pvUsedLangs_();
+  const map = pvMapObj_();
+  const missing = Object.keys(used).filter(k => !map[k]);
+  const stat = (icon, val, label, cls) =>
+    `<div class="pv-stat ${cls || ''}"><span class="material-icons-outlined">${icon}</span><div><div class="pv-stat-val">${val}</div><div class="pv-stat-lbl">${escapeHtml(label)}</div></div></div>`;
+  document.getElementById('pvStats').innerHTML =
+    stat('account_tree', parents, tr_('pv_stat_parents', 'Parent-Templates')) +
+    stat('link', pvLinks_.length, tr_('pv_stat_links', 'Verknüpfungen')) +
+    stat('translate', Object.keys(used).length, tr_('pv_stat_langs', 'Zielsprachen')) +
+    stat(missing.length ? 'warning_amber' : 'check_circle', missing.length, tr_('pv_stat_missing', 'ohne Zuordnung'), missing.length ? 'bad' : 'ok');
+
+  const issues = [];
+  if (missing.length) {
+    issues.push(tr_('pv_issue_unmapped', 'Diese Sprachen werden im Formular nicht angeboten, weil die Zuordnung fehlt:') + ' ' +
+      missing.map(k => `<button type="button" class="pv-lang-chip bad" onclick="pvFocusMapLang('${escapeJs(k)}')">${escapeHtml(used[k].code)}</button>`).join(' '));
+  }
+  const missingUids = Object.keys(pvMissingUids_);
+  if (missingUids.length) {
+    issues.push(tr_('pv_issue_notfound', 'Diese Templates gibt es in Phrase nicht mehr:') + ' ' + missingUids.map(u => `<code>${escapeHtml(u)}</code>`).join(', '));
+  }
+  const box = document.getElementById('pvIssues');
+  box.style.display = issues.length ? 'block' : 'none';
+  box.innerHTML = issues.map(i => `<div class="pv-issue"><span class="material-icons-outlined">error_outline</span><div>${i}</div></div>`).join('');
+}
+
+// --- Verknuepfungen -------------------------------------------------------------
+
+function pvRenderLinks() {
+  const box = document.getElementById('pvLinks');
+  const q = (document.getElementById('pvLinkSearch').value || '').trim().toLowerCase();
+  const map = pvMapObj_();
+  const groups = {};
+  pvLinks_.forEach(l => {
+    const hay = [l.parentName, l.parentUid, l.childName, l.childUid, l.childSourceLang].concat(l.childTargetLangs || []).join(' ').toLowerCase();
+    if (q && hay.indexOf(q) < 0) return;
+    (groups[l.parentUid] = groups[l.parentUid] || { uid: l.parentUid, name: l.parentName, children: [] }).children.push(l);
+  });
+  const list = Object.values(groups).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  document.getElementById('pvLinkCount').textContent = pvLinks_.length ? '(' + pvLinks_.length + ')' : '';
+  if (!list.length) {
+    box.innerHTML = `<div class="pv-empty"><span class="material-icons-outlined">link_off</span>${escapeHtml(pvLinks_.length ? tr_('pv_no_match', 'Keine Treffer.') : tr_('pv_no_links', 'Noch keine Verknüpfungen – oben „Neue Verknüpfung“ wählen.'))}</div>`;
+    pvUpdateBulk_();
+    return;
+  }
+  box.innerHTML = list.map(g => {
+    const missingParent = pvMissingUids_[g.uid];
+    const kids = g.children.sort((a, b) => (a.childName || '').localeCompare(b.childName || '')).map(c => {
+      const key = c.parentUid + '|' + c.childUid;
+      const langs = (c.childTargetLangs || []).map(lang => {
+        const ok = !!map[lang.toLowerCase()];
+        return `<span class="pv-lang-chip ${ok ? '' : 'bad'}" title="${escapeHtml(pvLangName_(lang) + (ok ? ' → ' + map[lang.toLowerCase()] : ' – ' + tr_('pv_unmapped', 'keine Zuordnung')))}">${escapeHtml(lang)}</span>`;
+      }).join('');
+      return `<div class="pv-child ${pvMissingUids_[c.childUid] ? 'missing' : ''}">
+        <input type="checkbox" ${pvSelected_[key] ? 'checked' : ''} onchange="pvToggleSel('${escapeJs(key)}', this.checked)" aria-label="${escapeHtml(tr_('pv_select', 'Auswählen'))}">
+        <div class="pv-child-main">
+          <a class="pv-name" href="${pvTemplateUrl_(c.childUid)}" target="_blank">${escapeHtml(c.childName || c.childUid)}</a>
+          <div class="pv-langs"><span class="pv-src">${escapeHtml(c.childSourceLang || '?')}</span><span class="material-icons-outlined pv-arrow">arrow_forward</span>${langs}</div>
+        </div>
+        <button type="button" class="pv-icon-btn danger" onclick="pvRemoveLinks([{parentUid:'${escapeJs(c.parentUid)}', childUid:'${escapeJs(c.childUid)}'}])" title="${escapeHtml(tr_('pv_remove_link', 'Verknüpfung entfernen'))}"><span class="material-icons-outlined">link_off</span></button>
+      </div>`;
+    }).join('');
+    return `<div class="pv-group ${missingParent ? 'missing' : ''}">
+      <div class="pv-group-head">
+        <span class="material-icons-outlined pv-group-ico">account_tree</span>
+        <div class="pv-group-main">
+          <a class="pv-name" href="${pvTemplateUrl_(g.uid)}" target="_blank">${escapeHtml(g.name || g.uid)}</a>
+          <div class="pv-muted">${escapeHtml(g.uid)} · ${g.children.length} ${escapeHtml(tr_('pv_children', 'Child-Templates'))}</div>
+        </div>
+        <button type="button" class="pv-btn pv-btn-sm" onclick="pvOpenComposer('${escapeJs(g.uid)}')"><span class="material-icons-outlined">add</span><span>${escapeHtml(tr_('pv_add_children', 'Children hinzufügen'))}</span></button>
+      </div>
+      <div class="pv-children">${kids}</div>
+    </div>`;
+  }).join('');
+  pvUpdateBulk_();
+}
+
+function pvToggleSel(key, on) {
+  if (on) pvSelected_[key] = true; else delete pvSelected_[key];
+  pvUpdateBulk_();
+}
+
+function pvUpdateBulk_() {
+  const n = Object.keys(pvSelected_).length;
+  const btn = document.getElementById('pvBulkRemoveBtn');
+  btn.style.display = n ? 'inline-flex' : 'none';
+  document.getElementById('pvBulkRemoveLbl').textContent = tr_('pv_remove_n', '{n} entfernen').replace('{n}', n);
+}
+
+function pvRemoveSelected() {
+  const pairs = Object.keys(pvSelected_).map(k => { const p = k.split('|'); return { parentUid: p[0], childUid: p[1] }; });
+  pvRemoveLinks(pairs);
+}
+
+function pvRemoveLinks(pairs) {
+  if (!pairs.length) return;
+  showCustomConfirm(tr_('pv_confirm_remove', '{n} Verknüpfung(en) entfernen?').replace('{n}', pairs.length), () => {
+    google.script.run.withSuccessHandler(res => {
+      if (!res.success) { pvErr_(res.error); return; }
+      pvLinks_ = res.links || [];
+      pvSelected_ = {};
+      pvAfterDataChange_();
+      showToast_('✓ ' + tr_('pv_removed', '{n} Verknüpfung(en) entfernt').replace('{n}', res.removed), 'ok');
+    }).withFailureHandler(err => pvErr_(err.message)).apiRemovePivotTemplateLinksBatch(pairs);
+  });
+}
+
+function pvRefreshFromPhrase() {
+  setDownloadProgress_(tr_('pv_refreshing', 'Aktualisiere aus Phrase...'), '');
+  google.script.run.withSuccessHandler(res => {
+    hideDownloadProgress_();
+    if (!res.success) { pvErr_(res.error); return; }
+    pvLinks_ = res.links || [];
+    pvMissingUids_ = {};
+    (res.missing || []).forEach(u => { pvMissingUids_[u] = true; });
+    pvTemplates_ = null;
+    pvLoadTemplates_(false);
+    pvAfterDataChange_();
+    showToast_('✓ ' + tr_('pv_refreshed', '{n} Verknüpfung(en) aktualisiert').replace('{n}', res.updated), 'ok');
+  }).withFailureHandler(err => { hideDownloadProgress_(); pvErr_(err.message); }).apiRefreshPivotLinkDetails();
+}
+
+// --- Template-Auswahl (Suche, Einfach- oder Mehrfachauswahl) ----------------------
+
+function pvPickerHtml_(id, multi) {
+  return `<input type="search" class="pv-input" id="${id}Search" oninput="pvRenderPickerList_('${id}', ${multi})" placeholder="${escapeHtml(tr_('pv_search_tpl', 'Template suchen (Name, UID, Sprache)...'))}">
+    <div class="pv-picker-list" id="${id}List"></div>`;
+}
+
+function pvRenderComposer_() {
+  const p = document.getElementById('pvParentPicker');
+  const c = document.getElementById('pvChildPicker');
+  if (!p.dataset.ready) { p.innerHTML = pvPickerHtml_('pvParentPicker', false); p.dataset.ready = '1'; }
+  if (!c.dataset.ready) { c.innerHTML = pvPickerHtml_('pvChildPicker', true); c.dataset.ready = '1'; }
+  pvRenderPickerList_('pvParentPicker', false);
+  pvRenderPickerList_('pvChildPicker', true);
+  pvUpdateComposerFoot_();
+}
+
+function pvRenderPickerList_(id, multi) {
+  const list = document.getElementById(id + 'List');
+  if (!pvTemplates_) { list.innerHTML = '<div class="pv-loading"><div class="loader"></div></div>'; return; }
+  const q = (document.getElementById(id + 'Search').value || '').trim().toLowerCase();
+  const existing = {};
+  if (multi && pvComposer_.parent) pvLinks_.filter(l => l.parentUid === pvComposer_.parent).forEach(l => { existing[l.childUid] = true; });
+  const selectedFirst = multi ? Object.keys(pvComposer_.children) : (pvComposer_.parent ? [pvComposer_.parent] : []);
+  let items = pvTemplates_.filter(t => {
+    if (multi && t.uid === pvComposer_.parent) return false;
+    if (!q) return true;
+    return (t.name + ' ' + t.uid + ' ' + t.sourceLang + ' ' + t.targetLangs.join(' ')).toLowerCase().indexOf(q) >= 0;
+  });
+  items.sort((a, b) => (selectedFirst.indexOf(b.uid) >= 0) - (selectedFirst.indexOf(a.uid) >= 0));
+  const total = items.length;
+  items = items.slice(0, 150);
+  list.innerHTML = items.map(t => {
+    const on = multi ? !!pvComposer_.children[t.uid] : pvComposer_.parent === t.uid;
+    const done = multi && existing[t.uid];
+    return `<label class="pv-opt ${on ? 'on' : ''} ${done ? 'done' : ''}">
+      <input type="${multi ? 'checkbox' : 'radio'}" name="${id}" ${on || done ? 'checked' : ''} ${done ? 'disabled' : ''} onchange="pvPick_('${id}', ${multi}, '${escapeJs(t.uid)}', this.checked)">
+      <div class="pv-opt-main">
+        <div class="pv-opt-name">${escapeHtml(t.name)}${done ? ` <span class="pv-tag">${escapeHtml(tr_('pv_already', 'bereits verknüpft'))}</span>` : ''}</div>
+        <div class="pv-muted">${escapeHtml(t.sourceLang || '?')} → ${escapeHtml(t.targetLangs.join(', ') || '–')}</div>
+      </div>
+    </label>`;
+  }).join('') + (total > items.length ? `<div class="pv-muted" style="padding:8px 10px;">${escapeHtml(tr_('pv_more_results', '{n} weitere – Suche verfeinern').replace('{n}', total - items.length))}</div>` : '')
+    || `<div class="pv-muted" style="padding:10px;">${escapeHtml(tr_('pv_no_match', 'Keine Treffer.'))}</div>`;
+}
+
+function pvPick_(id, multi, uid, on) {
+  if (multi) { if (on) pvComposer_.children[uid] = true; else delete pvComposer_.children[uid]; }
+  else { pvComposer_.parent = uid; delete pvComposer_.children[uid]; pvRenderPickerList_('pvChildPicker', true); }
+  pvRenderPickerList_(id, multi);
+  pvUpdateComposerFoot_();
+}
+
+function pvUpdateComposerFoot_() {
+  const n = Object.keys(pvComposer_.children).length;
+  const parent = (pvTemplates_ || []).find(t => t.uid === pvComposer_.parent);
+  document.getElementById('pvComposerSummary').innerHTML = parent
+    ? `<strong>${escapeHtml(parent.name)}</strong> → ${n} ${escapeHtml(tr_('pv_children', 'Child-Templates'))}`
+    : escapeHtml(tr_('pv_pick_parent_first', 'Bitte zuerst ein Parent-Template wählen.'));
+  document.getElementById('pvComposerSave').disabled = !(parent && n);
+  document.getElementById('pvComposerSaveLbl').textContent = tr_('pv_link_n', '{n} verknüpfen').replace('{n}', n);
+}
+
+function pvOpenComposer(parentUid) {
+  pvComposer_ = { parent: parentUid || '', children: {} };
+  pvCloseImport();
+  document.getElementById('pvComposer').style.display = 'block';
+  pvLoadTemplates_(false, pvRenderComposer_);
+  pvRenderComposer_();
+  document.getElementById('pvComposer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function pvCloseComposer() { document.getElementById('pvComposer').style.display = 'none'; }
+
+function pvSaveComposer() {
+  const pairs = Object.keys(pvComposer_.children).map(c => ({ parentUid: pvComposer_.parent, childUid: c }));
+  pvAddLinks_(pairs, () => pvCloseComposer());
+}
+
+function pvAddLinks_(pairs, onDone) {
+  setDownloadProgress_(tr_('pv_saving', 'Speichere Verknüpfungen...'), '');
+  google.script.run.withSuccessHandler(res => {
+    hideDownloadProgress_();
+    if (!res.success) { pvErr_(res.error); return; }
+    pvLinks_ = res.links || [];
+    pvAfterDataChange_();
+    const failed = (res.results || []).filter(r => !r.ok);
+    if (failed.length) {
+      showCustomAlert(tr_('pv_added_partial', '{a} angelegt, {f} übersprungen:').replace('{a}', res.added).replace('{f}', failed.length) +
+        '<div class="dl-errors">' + failed.map(r => escapeHtml(r.parentUid + ' → ' + r.childUid + ': ' + r.error)).join('<br>') + '</div>', tr_('pv_title', 'Pivot Templates'));
+    } else {
+      showToast_('✓ ' + tr_('pv_added', '{n} Verknüpfung(en) angelegt').replace('{n}', res.added), 'ok');
     }
+    if (onDone) onDone();
+  }).withFailureHandler(err => { hideDownloadProgress_(); pvErr_(err.message); }).apiAddPivotTemplateLinksBatch(pairs);
+}
 
-    // ============================================================================
-    // Sprachen-Mapping ("Pivot languages" Custom Field)
-    // ============================================================================
+// --- Massen-Import ----------------------------------------------------------------
 
-    /**
-     * Fuellt die Sprach-Datalist mit ALLEN bekannten Sprachen (PRETTY_LANG_MAP,
-     * dieselbe Liste wie im Upload-Formular) als Vorschlaege - das Feld selbst
-     * ist ein freies Textfeld, admin kann also jederzeit auch einen eigenen,
-     * dort nicht gelisteten Sprachcode eintippen.
-     */
-    function populatePivotLangMapDatalist_() {
-        const dl = document.getElementById('pivotLangMapLangDatalist');
-        if (!dl || typeof PRETTY_LANG_MAP === 'undefined') return;
-        const codes = Object.keys(PRETTY_LANG_MAP).sort();
-        dl.innerHTML = codes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(PRETTY_LANG_MAP[c])}</option>`).join('');
-    }
+function pvOpenImport() {
+  pvCloseComposer();
+  document.getElementById('pvImport').style.display = 'block';
+  pvLoadTemplates_(false);
+  document.getElementById('pvImportText').focus();
+}
+function pvCloseImport() {
+  document.getElementById('pvImport').style.display = 'none';
+  document.getElementById('pvImportPreview').innerHTML = '';
+  pvImportRows_ = [];
+}
 
-    /**
-     * Fuellt die Options-Wert-Datalist mit den vollstaendigen Optionen des
-     * "Pivot languages"-Custom-Fields als Vorschlaege - auch hier ein freies
-     * Textfeld, falls ein Options-Wert (noch) nicht ueber die API auftaucht
-     * oder ein eigener/neuer Kuerzel eingetragen werden soll.
-     */
-    function populatePivotLangMapValueDatalist_() {
-        const dl = document.getElementById('pivotLangMapValueDatalist');
-        if (!dl) return;
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.success) return;
-            dl.innerHTML = (res.options || []).map(o => `<option value="${escapeHtml(o)}">`).join('');
-          })
-          .withFailureHandler(() => {})
-          .apiGetPivotFieldOptionValues();
-    }
+/** UID oder exakter Name -> Template (bei mehrdeutigen Namen: null + Hinweis). */
+function pvResolveTpl_(token) {
+  const t = String(token || '').trim();
+  if (!t) return { tpl: null, error: tr_('pv_empty', 'leer') };
+  const byUid = pvTemplates_.find(x => x.uid === t);
+  if (byUid) return { tpl: byUid };
+  const byName = pvTemplates_.filter(x => x.name.toLowerCase() === t.toLowerCase());
+  if (byName.length === 1) return { tpl: byName[0] };
+  if (byName.length > 1) return { tpl: null, error: tr_('pv_ambiguous', 'Name mehrdeutig – bitte UID verwenden') };
+  return { tpl: null, error: tr_('pv_not_found', 'nicht gefunden') };
+}
 
-    function loadPivotLanguageMap() {
-        const tbody = document.getElementById('pivotLangMapTableBody');
-        const loading = document.getElementById('pivotLangMapLoading');
-        if (!tbody) return;
-        if (loading) loading.style.display = 'block';
-        google.script.run
-          .withSuccessHandler(res => {
-            if (loading) loading.style.display = 'none';
-            if (!res.success) {
-              tbody.innerHTML = '<tr><td colspan="3" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
-              return;
-            }
-            renderPivotLanguageMapTable(res.map || []);
-          })
-          .withFailureHandler(err => {
-            if (loading) loading.style.display = 'none';
-            tbody.innerHTML = '<tr><td colspan="3" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
-          })
-          .apiGetPivotLanguageMap();
-    }
+function pvPreviewImport() {
+  if (!pvTemplates_) { pvLoadTemplates_(false, pvPreviewImport); return; }
+  const lines = document.getElementById('pvImportText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const exists = {};
+  pvLinks_.forEach(l => { exists[l.parentUid + '|' + l.childUid] = true; });
+  const seen = {};
+  pvImportRows_ = lines.map(line => {
+    const parts = line.split(/\t|;|,/).map(s => s.trim()).filter(Boolean);
+    const p = pvResolveTpl_(parts[0]), c = pvResolveTpl_(parts[1]);
+    let error = p.error ? tr_('ax_f188075', 'Parent:') + ' ' + p.error : (c.error ? tr_('ax_398a771', 'Child:') + ' ' + c.error : '');
+    if (!error && p.tpl.uid === c.tpl.uid) error = tr_('pv_same', 'Parent und Child identisch');
+    const key = p.tpl && c.tpl ? p.tpl.uid + '|' + c.tpl.uid : '';
+    if (!error && exists[key]) error = tr_('pv_exists', 'existiert bereits');
+    if (!error && seen[key]) error = tr_('pv_duplicate', 'doppelt in der Liste');
+    if (key) seen[key] = true;
+    return { line, parent: p.tpl, child: c.tpl, error };
+  });
+  const ok = pvImportRows_.filter(r => !r.error).length;
+  document.getElementById('pvImportPreview').innerHTML = !pvImportRows_.length ? '' : `
+    <div class="pv-table-wrap"><table class="pv-table"><thead><tr><th></th><th>${tr_('ax_3026902', 'Parent')}</th><th>${tr_('ax_a82fea3', 'Child')}</th><th></th></tr></thead><tbody>
+    ${pvImportRows_.map(r => `<tr class="${r.error ? 'bad' : ''}">
+      <td><span class="material-icons-outlined" style="color:${r.error ? '#c62828' : '#2e7d32'};">${r.error ? 'error_outline' : 'check_circle'}</span></td>
+      <td>${escapeHtml(r.parent ? r.parent.name : r.line.split(/\t|;|,/)[0] || '')}</td>
+      <td>${escapeHtml(r.child ? r.child.name : (r.line.split(/\t|;|,/)[1] || ''))}</td>
+      <td class="pv-muted">${escapeHtml(r.error || (r.child ? r.child.targetLangs.join(', ') : ''))}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="pv-row-actions">
+      <span class="pv-muted">${escapeHtml(tr_('pv_import_summary', '{ok} von {n} Zeilen können angelegt werden.').replace('{ok}', ok).replace('{n}', pvImportRows_.length))}</span>
+      <button type="button" class="pv-btn pv-btn-primary" ${ok ? '' : 'disabled'} onclick="pvRunImport()"><span class="material-icons-outlined">done_all</span><span>${escapeHtml(tr_('pv_link_n', '{n} verknüpfen').replace('{n}', ok))}</span></button>
+    </div>`;
+}
 
-    function renderPivotLanguageMapTable(map) {
-        const tbody = document.getElementById('pivotLangMapTableBody');
-        if (!tbody) return;
-        if (!map.length) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px;">Noch keine Zuordnungen angelegt.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = map.map(m => `
-          <tr>
-            <td><strong>${escapeHtml(getPrettyLangName(m.langCode))}</strong> <span style="color:#888;font-size:11px;">(${escapeHtml(m.langCode)})</span></td>
-            <td><code>${escapeHtml(m.optionValue)}</code></td>
-            <td style="text-align:right;white-space:nowrap;">
-              <span class="material-icons-outlined icon-btn-danger" title="Zuordnung entfernen" style="cursor:pointer;" onclick="removePivotLanguageMapping('${escapeJs(m.langCode)}')">delete</span>
-            </td>
-          </tr>
-        `).join('');
-    }
+function pvRunImport() {
+  const pairs = pvImportRows_.filter(r => !r.error).map(r => ({ parentUid: r.parent.uid, childUid: r.child.uid }));
+  pvAddLinks_(pairs, () => { document.getElementById('pvImportText').value = ''; pvCloseImport(); });
+}
 
-    function savePivotLanguageMapping() {
-        const langSel = document.getElementById('newPivotLangMapLang');
-        const valSel  = document.getElementById('newPivotLangMapValue');
-        const lang = langSel ? langSel.value : '';
-        const val  = valSel  ? valSel.value  : '';
-        if (!lang || !val) { showCustomAlert('Bitte beide Felder auswaehlen.', 'Hinweis'); return; }
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
-            renderPivotLanguageMapTable(res.map || []);
-          })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiSetPivotLanguageMapping(lang, val);
-    }
+// --- Sprachen-Zuordnung -------------------------------------------------------------
 
-    function removePivotLanguageMapping(langCode) {
-        showCustomConfirm('Diese Zuordnung wirklich entfernen?', function() {
-            google.script.run
-              .withSuccessHandler(res => {
-                if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
-                renderPivotLanguageMapTable(res.map || []);
-              })
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiRemovePivotLanguageMapping(langCode);
-        });
-    }
+function pvRenderMap() {
+  const body = document.getElementById('pvMapBody');
+  if (!body) return;
+  const used = pvUsedLangs_();
+  const map = pvMapObj_();
+  const keys = {};
+  Object.keys(used).forEach(k => { keys[k] = used[k].code; });
+  pvMap_.forEach(r => { keys[r.langCode.toLowerCase()] = keys[r.langCode.toLowerCase()] || r.langCode; });
+  Object.keys(pvMapEdits_).forEach(k => { keys[k] = keys[k] || k; });
+  const onlyMissing = document.getElementById('pvMapOnlyMissing').checked;
+  let rows = Object.keys(keys).sort((a, b) => {
+    const ma = !(map[a] || pvMapEdits_[a]), mb = !(map[b] || pvMapEdits_[b]);
+    return (mb - ma) || a.localeCompare(b);
+  });
+  if (onlyMissing) rows = rows.filter(k => used[k] && !map[k]);
+  const missingCount = Object.keys(used).filter(k => !map[k]).length;
+  document.getElementById('pvMapCount').textContent = '(' + Object.keys(keys).length + (missingCount ? ' · ' + missingCount + ' ' + tr_('pv_missing_short', 'fehlen') : '') + ')';
+  body.innerHTML = rows.map(k => {
+    const cur = pvMapEdits_.hasOwnProperty(k) ? pvMapEdits_[k] : (map[k] || '');
+    const changed = pvMapEdits_.hasOwnProperty(k) && pvMapEdits_[k] !== (map[k] || '');
+    const isUsed = !!used[k];
+    const state = cur ? (changed ? 'changed' : 'ok') : (isUsed ? 'bad' : 'idle');
+    const usedBy = isUsed ? Object.keys(used[k].children) : [];
+    return `<tr class="pv-map-${state}" id="pvMapRow_${escapeHtml(k)}">
+      <td><strong>${escapeHtml(keys[k])}</strong> <span class="pv-muted">${escapeHtml(pvLangName_(keys[k]))}</span></td>
+      <td class="pv-muted" title="${escapeHtml(usedBy.join('\n'))}">${usedBy.length ? usedBy.length + ' ' + escapeHtml(tr_('pv_children', 'Child-Templates')) : '–'}</td>
+      <td><input type="text" class="pv-input pv-map-input" list="pvOptionDatalist" value="${escapeHtml(cur)}" placeholder="${escapeHtml(tr_('pv_option_ph', 'z. B. DE'))}" oninput="pvEditMap('${escapeJs(k)}', this.value)"></td>
+      <td>${state === 'ok' ? '<span class="material-icons-outlined" style="color:#2e7d32;">check_circle</span>' : state === 'bad' ? '<span class="material-icons-outlined" style="color:#c62828;">error_outline</span>' : state === 'changed' ? '<span class="material-icons-outlined" style="color:#b08d00;">edit</span>' : ''}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="4" class="pv-muted" style="text-align:center;padding:20px;">${escapeHtml(tr_('pv_map_empty', 'Keine Sprachen.'))}</td></tr>`;
+  pvUpdateMapSave_();
+}
 
-    function phraseTemplateEditUrl_(uid) {
-        return 'https://cloud.memsource.com/tms/projectTemplate/edit/' + encodeURIComponent(uid);
-    }
+function pvEditMap(k, val) {
+  pvMapEdits_[k] = String(val || '').trim();
+  const map = pvMapObj_();
+  if (pvMapEdits_[k] === (map[k] || '')) delete pvMapEdits_[k];
+  pvUpdateMapSave_();
+  const row = document.getElementById('pvMapRow_' + k);
+  if (row) row.className = 'pv-map-' + (pvMapEdits_.hasOwnProperty(k) ? 'changed' : (map[k] ? 'ok' : 'bad'));
+}
 
-    function openPivotTemplateFromInput_(inputId) {
-        const input = document.getElementById(inputId);
-        const uid = input ? input.value.trim() : '';
-        if (!uid) { showCustomAlert('Bitte zuerst eine UID eingeben.', 'Hinweis'); return; }
-        window.open(phraseTemplateEditUrl_(uid), '_blank');
-    }
+function pvUpdateMapSave_() {
+  const n = Object.keys(pvMapEdits_).length;
+  const btn = document.getElementById('pvMapSaveBtn');
+  btn.disabled = !n;
+  btn.querySelector('span:last-child').textContent = n ? tr_('pv_save_n', '{n} Änderung(en) speichern').replace('{n}', n) : tr_('pv_save_changes', 'Änderungen speichern');
+}
 
-    function renderPivotLinksTable(links) {
-        const tbody = document.getElementById('pivotLinksTableBody');
-        if (!tbody) return;
-        if (!links.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Noch keine Verknuepfungen angelegt.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = links.map(l => `
-          <tr>
-            <td><a href="${phraseTemplateEditUrl_(l.parentUid)}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;">${escapeHtml(l.parentName || l.parentUid)}</a><br><code style="font-size:11px;color:#888;">${escapeHtml(l.parentUid)}</code></td>
-            <td><a href="${phraseTemplateEditUrl_(l.childUid)}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;">${escapeHtml(l.childName || l.childUid)}</a><br><code style="font-size:11px;color:#888;">${escapeHtml(l.childUid)}</code></td>
-            <td>${escapeHtml(l.childSourceLang || '-')}</td>
-            <td>${(l.childTargetLangs || []).map(t => `<span class="pill-badge role" style="margin:1px;">${escapeHtml(t)}</span>`).join('') || '-'}</td>
-            <td style="text-align:right;white-space:nowrap;">
-              <span class="material-icons-outlined icon-btn-danger" title="Verknuepfung entfernen" style="cursor:pointer;" onclick="removePivotLink('${escapeJs(l.parentUid)}', '${escapeJs(l.childUid)}')">delete</span>
-            </td>
-          </tr>
-        `).join('');
-    }
+function pvAddMapLang() {
+  const inp = document.getElementById('pvMapNewLang');
+  const code = inp.value.trim();
+  if (!code) return;
+  const k = code.toLowerCase();
+  if (!pvMapEdits_.hasOwnProperty(k)) pvMapEdits_[k] = pvMapObj_()[k] || '';
+  inp.value = '';
+  pvRenderMap();
+  pvFocusMapLang(k);
+}
 
-    function addPivotLink() {
-        const parentInput = document.getElementById('newPivotParentUid');
-        const childInput  = document.getElementById('newPivotChildUid');
-        const parentUid = parentInput ? parentInput.value.trim() : '';
-        const childUid  = childInput  ? childInput.value.trim()  : '';
-        if (!parentUid || !childUid) { showCustomAlert('Bitte beide UIDs eingeben.', 'Hinweis'); return; }
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
-            if (parentInput) parentInput.value = '';
-            if (childInput) childInput.value = '';
-            renderPivotLinksTable(res.links || []);
+function pvFocusMapLang(k) {
+  document.getElementById('pvMapOnlyMissing').checked = false;
+  pvRenderMap();
+  const row = document.getElementById('pvMapRow_' + k);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const inp = row.querySelector('input');
+  if (inp) setTimeout(() => inp.focus(), 300);
+}
 
-            // Nach dem Speichern direkt zu beiden Templates springen - Browser
-            // blocken das ggf. als Popup (google.script.run ist async, also
-            // kein "direkter" Klick-Kontext mehr); Fallback dann ueber die
-            // anklickbaren Links in der Tabelle oben.
-            const wP = window.open(phraseTemplateEditUrl_(parentUid), '_blank');
-            const wC = window.open(phraseTemplateEditUrl_(childUid), '_blank');
-            if (!wP || !wC) {
-              showCustomAlert('Verknuepfung gespeichert. Dein Browser hat das automatische Oeffnen der Templates blockiert - bitte Pop-ups fuer diese Seite erlauben, oder die Namen in der Tabelle unten anklicken.', 'Gespeichert');
-            }
-          })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAddPivotTemplateLink(parentUid, childUid);
-    }
-
-    function removePivotLink(parentUid, childUid) {
-        showCustomConfirm('Diese Verknuepfung wirklich entfernen?', function() {
-            google.script.run
-              .withSuccessHandler(res => {
-                if (!res.success) { showCustomAlert('Error: ' + res.error, 'Error'); return; }
-                renderPivotLinksTable(res.links || []);
-              })
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiRemovePivotTemplateLink(parentUid, childUid);
-        });
-    }
+function pvSaveMap() {
+  const map = pvMapObj_();
+  const entries = Object.keys(pvMapEdits_).map(k => {
+    const orig = pvMap_.find(r => r.langCode.toLowerCase() === k);
+    return { langCode: orig ? orig.langCode : k, optionValue: pvMapEdits_[k] };
+  }).filter(e => e.optionValue || map[e.langCode.toLowerCase()]);
+  if (!entries.length) { pvMapEdits_ = {}; pvRenderMap(); return; }
+  const unknown = pvFieldOptions_.length ? entries.filter(e => e.optionValue && pvFieldOptions_.indexOf(e.optionValue) < 0) : [];
+  const run = () => {
+    google.script.run.withSuccessHandler(res => {
+      if (!res.success) { pvErr_(res.error); return; }
+      pvMap_ = res.map || [];
+      pvMapEdits_ = {};
+      pvAfterDataChange_();
+      showToast_('✓ ' + tr_('pv_map_saved', '{n} Zuordnung(en) gespeichert').replace('{n}', res.changed), 'ok');
+    }).withFailureHandler(err => pvErr_(err.message)).apiSetPivotLanguageMappingsBatch(entries);
+  };
+  if (unknown.length) {
+    showCustomConfirm(tr_('pv_unknown_option', 'Diese Werte gibt es im Phrase-Feld nicht: {v}. Trotzdem speichern?').replace('{v}', unknown.map(e => e.optionValue).join(', ')), run);
+  } else run();
+}
 </script>

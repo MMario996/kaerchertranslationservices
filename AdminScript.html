@@ -8,7 +8,7 @@ function loadDocDriveRootSettings() {
     .withSuccessHandler(res => {
       if (!res.success) return;
       document.getElementById('docDriveRootInput').value = res.folderId || '';
-      document.getElementById('docDriveRootCurrentName').innerText = res.folderName ? ('Aktuell: ' + res.folderName) : 'Noch nicht konfiguriert.';
+      document.getElementById('docDriveRootCurrentName').innerText = res.folderName ? (tr_('ax_c2e0370', 'Aktuell:') + ' ' + res.folderName) : tr_('ax_079e191', 'Noch nicht konfiguriert.');
     })
     .apiGetDocDriveRootSettings();
 }
@@ -18,38 +18,38 @@ function toggleDocDriveRootLock() {
     document.getElementById('docDriveRootInput').disabled = true;
     document.getElementById('docDriveRootSaveBtn').disabled = true;
     document.getElementById('docDriveRootLockIcon').innerText = 'lock';
-    document.getElementById('docDriveRootLockText').innerText = 'Locked \u2013 Click to unlock';
+    document.getElementById('docDriveRootLockText').innerText = tr_('ax_2f1a6f7', 'Locked – Click to unlock');
     loadDocDriveRootSettings();
     return;
   }
   showCustomConfirm(
-    "Dieser Ordner steuert, wo Documentation Import/Export nach Projektordnern suchen. Wirklich entsperren?",
+    tr_('ax_c788e05', 'Dieser Ordner steuert, wo Documentation Import/Export nach Projektordnern suchen. Wirklich entsperren?'),
     function() {
       docDriveRootUnlocked = true;
       document.getElementById('docDriveRootInput').disabled = false;
       document.getElementById('docDriveRootSaveBtn').disabled = false;
       document.getElementById('docDriveRootLockIcon').innerText = 'lock_open';
-      document.getElementById('docDriveRootLockText').innerText = 'Unlocked \u2013 Click to lock';
+      document.getElementById('docDriveRootLockText').innerText = tr_('ax_f82442e', 'Unlocked – Click to lock');
     },
-    "Entsperren bestätigen"
+    tr_('ax_7c9e206', 'Entsperren bestätigen')
   );
 }
 function saveDocDriveRootSettings_() {
   const val = document.getElementById('docDriveRootInput').value.trim();
-  if (!val) { showCustomAlert("Bitte Ordner-Link oder -ID eingeben.", "Fehlende Angabe"); return; }
+  if (!val) { showCustomAlert(tr_('ax_929c417', 'Bitte Ordner-Link oder -ID eingeben.'), tr_('ax_4696b3d', 'Fehlende Angabe')); return; }
   const btn = document.getElementById('docDriveRootSaveBtn');
-  btn.disabled = true; btn.innerText = 'Speichere...';
+  btn.disabled = true; btn.innerText = tr_('ax_e91df7b', 'Speichere...');
   google.script.run
     .withSuccessHandler(res => {
       btn.innerText = 'SPEICHERN';
-      if (!res.success) { btn.disabled = false; showCustomAlert("Fehler: " + res.error, "Error"); return; }
-      showCustomAlert("\u2713 Drive-Root gespeichert: " + res.folderName, "Gespeichert");
+      if (!res.success) { btn.disabled = false; showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + res.error, tr_('ax_902b0d5', 'Error')); return; }
+      showCustomAlert(tr_('ax_cc2e303', '✓ Drive-Root gespeichert:') + ' ' + res.folderName, tr_('ax_4e124da', 'Gespeichert'));
       toggleDocDriveRootLock();
     })
     .withFailureHandler(e => {
       btn.disabled = false;
       btn.innerText = 'SPEICHERN';
-      showCustomAlert("Fehler: " + e.message, "Error");
+      showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
     })
     .apiSaveDocDriveRootSettings(val);
 }
@@ -60,12 +60,12 @@ function toggleAdminHelp(id) {
     function loadMessageTemplates() {
       const container = document.getElementById('msgTemplatesContainer');
       if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;"><div class="loader" style="width:25px;height:25px;border-width:3px;margin:0 auto 10px;"></div>Loading...</div>';
+      container.innerHTML = ('<div style="padding:20px;text-align:center;color:#888;"><div class="loader" style="width:25px;height:25px;border-width:3px;margin:0 auto 10px;"></div>' + tr_('ax_8524de9', 'Loading...') + '</div>');
       
       google.script.run
         .withSuccessHandler(res => {
           if (!res.success || !res.templates) {
-            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error loading templates.</div>';
+            container.innerHTML = ('<div style="padding:15px;color:#d93025;">' + tr_('ax_c22389e', 'Error loading templates.') + '</div>');
             return;
           }
           let html = '';
@@ -83,9 +83,9 @@ function toggleAdminHelp(id) {
                   ${customBadge}
                   <button onclick="resetMessageTemplate('${escapeJs(t.key)}')"
                           style="background:none;border:1px solid #ddd;cursor:pointer;padding:3px 10px;font-size:11px;color:#888;border-radius:2px;"
-                          title="Reset to default">\u2022 Reset</button>
+                          title="Reset to default">${tr_('ax_09cd9c0', '• Reset')}</button>
                   <button onclick="saveMessageTemplateFromUI('${escapeJs(t.key)}')"
-                          style="background:var(--primary-yellow);border:none;cursor:pointer;padding:3px 12px;font-size:11px;font-weight:700;border-radius:2px;">Save</button>
+                          style="background:var(--primary-yellow);border:none;cursor:pointer;padding:3px 12px;font-size:11px;font-weight:700;border-radius:2px;">${tr_('ax_c9cc8cc', 'Save')}</button>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
@@ -102,7 +102,7 @@ function toggleAdminHelp(id) {
               </div>
             </div>`;
           });
-          container.innerHTML = html || '<div style="padding:15px;color:#888;">No templates found.</div>';
+          container.innerHTML = html || ('<div style="padding:15px;color:#888;">' + tr_('ax_9e0e871', 'No templates found.') + '</div>');
         })
         .withFailureHandler(err => {
           if (container) container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
@@ -115,20 +115,20 @@ function toggleAdminHelp(id) {
       if (!deEl || !enEl) return;
       google.script.run
         .withSuccessHandler(r => {
-          if (r.success) showCustomAlert("\u2713 Template saved!", "Saved");
-          else showCustomAlert("\u2717 " + r.error, "Error");
+          if (r.success) showCustomAlert(tr_('ax_1f61b3f', '✓ Template saved!'), tr_('ax_2483361', 'Saved'));
+          else showCustomAlert("\u2717 " + r.error, tr_('ax_902b0d5', 'Error'));
           loadMessageTemplates();
         })
-        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+        .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
         .apiSaveMessageTemplate(key, deEl.value, enEl.value);
     }
     function resetMessageTemplate(key) {
       showCustomConfirm('Reset "' + (MSG_KEY_LABELS[key] || key) + '" to default?', function() {
         google.script.run
-          .withSuccessHandler(() => { showCustomAlert("\u2713 Reset to default.", "Reset"); loadMessageTemplates(); })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .withSuccessHandler(() => { showCustomAlert(tr_('ax_a889de7', '✓ Reset to default.'), tr_('ax_526d688', 'Reset')); loadMessageTemplates(); })
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiResetMessageTemplate(key);
-      }, "Reset Template");
+      }, tr_('ax_887bcad', 'Reset Template'));
     }
     function loadKecEligSettings() {
       google.script.run
@@ -138,7 +138,7 @@ function toggleAdminHelp(id) {
           document.getElementById('kecBuIdInput').value      = res.businessUnitId || '';
         })
         .withFailureHandler(e => {
-          console.warn('KeC Eligibility Settings laden fehlgeschlagen:', e.message);
+          console.warn(tr_('ax_0faff03', 'KeC Eligibility Settings laden fehlgeschlagen:'), e.message);
         })
         .apiGetKecEligibilitySettings();
     }
@@ -151,13 +151,13 @@ function toggleAdminHelp(id) {
         document.getElementById('kecBuIdInput').disabled = true;
         document.getElementById('kecEligSaveBtn').disabled = true;
         document.getElementById('kecEligLockIcon').innerText = 'lock';
-        document.getElementById('kecEligLockText').innerText = 'Locked \u2013 Click to unlock';
+        document.getElementById('kecEligLockText').innerText = tr_('ax_2f1a6f7', 'Locked – Click to unlock');
         loadKecEligSettings(); // Änderungen ohne Speichern verwerfen
         return;
       }
 
       showCustomConfirm(
-        "Diese Werte steuern, welche Phrase-Projekte im KeC-Portal erscheinen. Falsche IDs können dazu führen, dass keine Projekte mehr gefunden werden.\n\nWirklich entsperren?",
+        tr_('ax_17af0d5', 'Diese Werte steuern, welche Phrase-Projekte im KeC-Portal erscheinen. Falsche IDs können dazu führen, dass keine Projekte mehr gefunden werden.\n\nWirklich entsperren?'),
         function() {
           kecEligUnlocked = true;
           document.getElementById('kecClientIdInput').disabled = false;
@@ -165,9 +165,9 @@ function toggleAdminHelp(id) {
           document.getElementById('kecBuIdInput').disabled = false;
           document.getElementById('kecEligSaveBtn').disabled = false;
           document.getElementById('kecEligLockIcon').innerText = 'lock_open';
-          document.getElementById('kecEligLockText').innerText = 'Unlocked \u2013 Click to lock';
+          document.getElementById('kecEligLockText').innerText = tr_('ax_f82442e', 'Unlocked – Click to lock');
         },
-        "Entsperren bestätigen"
+        tr_('ax_7c9e206', 'Entsperren bestätigen')
       );
     }
     function saveKecEligSettings() {
@@ -176,28 +176,28 @@ function toggleAdminHelp(id) {
       const buId     = document.getElementById('kecBuIdInput').value.trim();
 
       if (!clientId || !domainId || !buId) {
-        showCustomAlert("Bitte alle drei Felder ausfüllen.", "Fehlende Angaben");
+        showCustomAlert(tr_('ax_2e01501', 'Bitte alle drei Felder ausfüllen.'), tr_('ax_123f2ea', 'Fehlende Angaben'));
         return;
       }
 
       const btn = document.getElementById('kecEligSaveBtn');
       btn.disabled = true;
-      btn.innerText = 'Speichere...';
+      btn.innerText = tr_('ax_e91df7b', 'Speichere...');
 
       google.script.run
         .withSuccessHandler(() => {
           btn.innerText = 'SPEICHERN';
-          showCustomAlert("\u2713 KeC Eligibility Settings gespeichert.", "Gespeichert");
+          showCustomAlert(tr_('ax_e61bb94', '✓ KeC Eligibility Settings gespeichert.'), tr_('ax_4e124da', 'Gespeichert'));
           toggleKecEligLock(); // wieder sperren
         })
         .withFailureHandler(e => {
           btn.disabled = false;
           btn.innerText = 'SPEICHERN';
-          showCustomAlert("Fehler: " + e.message, "Error");
+          showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'custompages', 'pivot', 'tests'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'tests'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
@@ -226,10 +226,9 @@ function toggleAdminHelp(id) {
       });
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
-      if (name === 'custompages') loadCustomPages();
       if (name === 'pivot') {
         loadPivotAdminContent_(function () {
-          loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapDatalist_(); populatePivotLangMapValueDatalist_();
+          pvInit_();
         });
       }
     }
@@ -246,21 +245,21 @@ function toggleAdminHelp(id) {
         })
         .withFailureHandler(e => {
           document.getElementById('tmplMgrLoading').style.display = 'none';
-          showCustomAlert('Error: ' + e.message, 'Error');
+          showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
         })
         .apiGetTemplatesForManager();
     }
     function tmplMgrSyncFromPhrase() {
       const overlay = document.getElementById('downloadOverlay');
-      document.getElementById('downloadOverlayTitle').innerText = 'Hole Templates aus Phrase...';
+      document.getElementById('downloadOverlayTitle').innerText = tr_('ax_984186c', 'Hole Templates aus Phrase...');
       overlay.style.display = 'flex';
       google.script.run
         .withSuccessHandler(r => {
           overlay.style.display = 'none';
-          showCustomAlert(r.msg || 'Sync fertig.', 'Sync');
+          showCustomAlert(r.msg || tr_('ax_0950128', 'Sync fertig.'), tr_('ax_d8e87c0', 'Sync'));
           loadTemplateManager();
         })
-        .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
+        .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')); })
         .apiTriggerManualSync('templates', 'add_only');
     }
     function _tmplMgrFiltered() {
@@ -342,7 +341,7 @@ function toggleAdminHelp(id) {
         .withFailureHandler(e => {
           checkboxEl.disabled = false;
           checkboxEl.checked = !newState;
-          showCustomAlert('Error: ' + e.message, 'Error');
+          showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
         })
         .apiSetTemplateActive(uid, newState);
     }
@@ -373,9 +372,9 @@ function toggleAdminHelp(id) {
     function batchSetTemplateActive(newState) {
       const uids = Object.keys(_tmplMgrSelected);
       if (!uids.length) return;
-      showCustomConfirm(uids.length + ' Template(s) auf ' + (newState?'AKTIV':'INAKTIV') + ' setzen?', function() {
+      showCustomConfirm(uids.length + ' ' + tr_('ax_36357c1', 'Template(s) auf') + ' ' + (newState?'AKTIV':'INAKTIV') + ' ' + tr_('ax_4f70bb5', 'setzen?'), function() {
         const overlay = document.getElementById('downloadOverlay');
-        document.getElementById('downloadOverlayTitle').innerText = 'Aktualisiere ' + uids.length + ' Templates...';
+        document.getElementById('downloadOverlayTitle').innerText = tr_('ax_365912b', 'Aktualisiere') + ' ' + uids.length + ' ' + tr_('ax_ed90d1c', 'Templates...');
         overlay.style.display = 'flex';
         google.script.run
           .withSuccessHandler(() => {
@@ -386,9 +385,9 @@ function toggleAdminHelp(id) {
             if (master) master.checked = false;
             renderTemplateManager();
           })
-          .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert('Error: ' + e.message, 'Error'); })
+          .withFailureHandler(e => { overlay.style.display = 'none'; showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')); })
           .apiBatchSetTemplateActive(uids, newState);
-      }, 'Batch-Änderung');
+      }, tr_('ax_cb4b782', 'Batch-Änderung'));
     }
     function userMgrToggleExpand(username, group) {
       const key = username + '_' + group;
@@ -413,7 +412,7 @@ function toggleAdminHelp(id) {
         })
         .withFailureHandler(e => {
           document.getElementById('userMgrLoading').style.display = 'none';
-          showCustomAlert('Error: ' + e.message, 'Error');
+          showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
         })
         .apiGetUsersForManager();
     }
@@ -459,12 +458,12 @@ function toggleAdminHelp(id) {
         const roleOptions = USER_MGR_ROLES.map(role =>
           '<option value="' + role + '"' + (r.role === role ? ' selected' : '') + '>' + role + '</option>'
         ).join('');
-        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' \u2013 ') || '\u2022 keine Angaben ?';
+        const segSummary = [r.clients, r.domains, r.subdomains, r.businessUnit].filter(Boolean).join(' \u2013 ') || tr_('ax_62f260d', '• keine Angaben ?');
         const langSummary = [
-          r.sourceLangs ? ('Quelle: ' + r.sourceLangs) : '',
-          r.targetLangs ? ('Ziel: ' + r.targetLangs) : '',
-          r.workflowSteps ? ('Workflow: ' + r.workflowSteps) : ''
-        ].filter(Boolean).join(' \u2013 ') || '\u2022 keine Angaben ?';
+          r.sourceLangs ? (tr_('ax_dac174f', 'Quelle:') + ' ' + r.sourceLangs) : '',
+          r.targetLangs ? (tr_('ax_a381ffc', 'Ziel:') + ' ' + r.targetLangs) : '',
+          r.workflowSteps ? (tr_('ax_c474b62', 'Workflow:') + ' ' + r.workflowSteps) : ''
+        ].filter(Boolean).join(' \u2013 ') || tr_('ax_62f260d', '• keine Angaben ?');
         const segKey = r.username + '_seg';
         const langKey = r.username + '_lang';
         const segOpen = !!_userMgrExpanded[segKey];
@@ -489,17 +488,17 @@ function toggleAdminHelp(id) {
 
         if (segOpen) {
           html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'clients', r.clients, 'Clients') +
-            userMgrDetailField(uid, 'domains', r.domains, 'Domains') +
-            userMgrDetailField(uid, 'subdomains', r.subdomains, 'Subdomains') +
-            userMgrDetailField(uid, 'businessUnit', r.businessUnit, 'Business Unit') +
+            userMgrDetailField(uid, 'clients', r.clients, tr_('ax_0f55824', 'Clients')) +
+            userMgrDetailField(uid, 'domains', r.domains, tr_('ax_78cd2c7', 'Domains')) +
+            userMgrDetailField(uid, 'subdomains', r.subdomains, tr_('ax_51e2fe0', 'Subdomains')) +
+            userMgrDetailField(uid, 'businessUnit', r.businessUnit, tr_('ax_112588a', 'Business Unit')) +
             '</div></td></tr>';
         }
         if (langOpen) {
           html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, 'Source Langs') +
-            userMgrDetailField(uid, 'targetLangs', r.targetLangs, 'Target Langs') +
-            userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, 'Workflow Steps') +
+            userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, tr_('ax_646fcee', 'Source Langs')) +
+            userMgrDetailField(uid, 'targetLangs', r.targetLangs, tr_('ax_ef4411e', 'Target Langs')) +
+            userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, tr_('ax_cf42a0e', 'Workflow Steps')) +
             '</div></td></tr>';
         }
       });
@@ -515,16 +514,267 @@ function toggleAdminHelp(id) {
           if (el) el.style.opacity = '1';
           if (row) row[field] = value;
           if (res && res.phraseWarning) {
-            showCustomAlert('\u26A0 Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:\n' + res.phraseWarning, 'Teilweise gespeichert');
+            showCustomAlert(tr_('ax_a77bfff', '⚠ Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:') + '\n' + res.phraseWarning, tr_('ax_a13fa15', 'Teilweise gespeichert'));
           }
         })
         .withFailureHandler(e => {
           if (el) el.style.opacity = '1';
-          showCustomAlert('Error: ' + e.message, 'Error');
+          showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
         })
         .apiUpdateUserField(username, field, value, syncToPhrase);
     }
+    // --- Console: Unterreiter & Zugriffs-Uebersicht ----------------------
+    let consoleGroup_ = 'access';
+    let accData_ = null;
+    const ACC_AREA_ICONS_ = { general: 'public', marketing: 'campaign', woma: 'water_drop', cc: 'hub', kec: 'inventory_2', documentation: 'description', campus: 'school', admin: 'admin_panel_settings' };
+
+    function switchConsoleGroup(g) {
+        consoleGroup_ = g || 'access';
+        try { localStorage.setItem('consoleGroup', consoleGroup_); } catch (e) {}
+        const showLegacy = !!(document.getElementById('accShowLegacy') || {}).checked;
+        document.querySelectorAll('#adminGridContainer > [data-cgroup]').forEach(card => {
+            const on = card.getAttribute('data-cgroup') === consoleGroup_ && (!card.hasAttribute('data-legacy') || showLegacy);
+            card.style.display = on ? '' : 'none';
+        });
+        document.querySelectorAll('#consoleGroupNav .cgroup-btn').forEach(b => b.classList.toggle('active', b.dataset.cg === consoleGroup_));
+    }
+
+    function accAreaLabel_(id) {
+        return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
+    }
+
+    function loadAccessMatrix() {
+        const tbody = document.querySelector('#accTable tbody');
+        if (!tbody) return;
+        google.script.run.withSuccessHandler(res => {
+            if (!res || !res.success) { tbody.innerHTML = '<tr><td style="color:#d93025;padding:15px;">' + escapeHtml((res && res.error) || tr_('ax_902b0d5', 'Error')) + '</td></tr>'; return; }
+            accData_ = res;
+            const f = document.getElementById('accFilter');
+            const cur = f.value;
+            f.innerHTML = '<option value="">' + escapeHtml(tr_('acc_all_areas', 'Alle Bereiche')) + '</option>' +
+                '<option value="__none">' + escapeHtml(tr_('acc_no_area', 'Ohne Bereich')) + '</option>' +
+                res.areas.map(a => '<option value="' + a + '">' + escapeHtml(accAreaLabel_(a)) + '</option>').join('');
+            f.value = cur;
+            document.getElementById('accAddAreas').innerHTML = res.areas.map(a =>
+                '<label class="acc-area-opt"><input type="checkbox" value="' + a + '"> <span class="material-icons-outlined">' + (ACC_AREA_ICONS_[a] || 'label') + '</span>' + escapeHtml(accAreaLabel_(a)) + '</label>').join('');
+            renderAccessMatrix_();
+        }).withFailureHandler(err => {
+            tbody.innerHTML = '<tr><td style="color:#d93025;padding:15px;">' + escapeHtml(err.message) + '</td></tr>';
+        }).apiGetAccessMatrix();
+    }
+
+    function renderAccessMatrix_() {
+        if (!accData_) return;
+        const q = (document.getElementById('accSearch').value || '').trim().toLowerCase();
+        const filter = document.getElementById('accFilter').value;
+        const areas = accData_.areas;
+        const users = accData_.users.filter(u => {
+            if (q && u.email.indexOf(q) < 0) return false;
+            if (filter === '__none') return !areas.some(a => u.areas[a]);
+            if (filter) return !!u.areas[filter];
+            return true;
+        });
+        const counts = {};
+        areas.forEach(a => { counts[a] = accData_.users.filter(u => u.areas[a]).length; });
+        document.getElementById('accCount').textContent = '(' + users.length + (users.length !== accData_.users.length ? ' / ' + accData_.users.length : '') + ')';
+        document.querySelector('#accTable thead').innerHTML = '<tr><th>' + escapeHtml(tr_('acc_user', 'Nutzer')) + '</th>' +
+            areas.map(a => '<th title="' + escapeHtml(accAreaLabel_(a)) + '"><span class="material-icons-outlined">' + (ACC_AREA_ICONS_[a] || 'label') + '</span><div>' + escapeHtml(accAreaLabel_(a)) + '</div><small>' + counts[a] + '</small></th>').join('') +
+            ('<th>' + tr_('ax_f44a48c', 'Admin-Light') + '</th></tr>');
+        document.querySelector('#accTable tbody').innerHTML = users.slice(0, 400).map(u =>
+            '<tr><td class="acc-email">' + escapeHtml(u.email) + (u.email === accData_.me ? ' <span class="acc-me">' + escapeHtml(tr_('acc_you', 'du')) + '</span>' : '') + '</td>' +
+            areas.map(a => {
+                const lock = a === 'admin' && u.email === accData_.me;
+                return '<td class="acc-cell"><input type="checkbox" ' + (u.areas[a] ? 'checked ' : '') + (lock ? 'disabled ' : '') +
+                  'aria-label="' + escapeHtml(u.email + ' – ' + accAreaLabel_(a)) + '" onchange="toggleAccess_(\'' + escapeJs(u.email) + '\', \'' + a + '\', this)"></td>';
+            }).join('') +
+            '<td class="acc-light">' + (u.light || []).map(l => '<span>' + escapeHtml(l) + '</span>').join('') + '</td></tr>'
+        ).join('') || '<tr><td colspan="' + (areas.length + 2) + '" style="padding:20px;color:#888;text-align:center;">' + escapeHtml(tr_('acc_none', 'Keine Nutzer gefunden.')) + '</td></tr>';
+    }
+
+    function toggleAccess_(email, area, cb) {
+        const grant = cb.checked;
+        cb.disabled = true;
+        google.script.run.withSuccessHandler(res => {
+            cb.disabled = false;
+            if (!res || !res.success || (res.errors && res.errors.length)) {
+                cb.checked = !grant;
+                showCustomAlert(escapeHtml(((res && res.errors) || [res && res.error]).join('\n')), tr_('ax_902b0d5', 'Error'));
+                return;
+            }
+            const u = accData_.users.find(x => x.email === email);
+            if (u) { if (grant) u.areas[area] = true; else delete u.areas[area]; }
+            showToast_('✓ ' + email + ' – ' + accAreaLabel_(area) + (grant ? ' +' : ' –'), 'ok');
+        }).withFailureHandler(err => {
+            cb.disabled = false; cb.checked = !grant;
+            showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error'));
+        }).apiSetAccessBulk([email], [area], grant);
+    }
+
+    function bulkAccess_(grant) {
+        const emails = document.getElementById('accAddEmails').value.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(e => e.indexOf('@') > 0);
+        const areas = Array.from(document.querySelectorAll('#accAddAreas input:checked')).map(i => i.value);
+        if (!emails.length || !areas.length) { showCustomAlert(escapeHtml(tr_('acc_need_input', 'Bitte mindestens eine E-Mail und einen Bereich angeben.')), tr_('pv_error', 'Hinweis')); return; }
+        const run = () => {
+            setDownloadProgress_(tr_('acc_saving', 'Speichere Zugriffe...'), '');
+            google.script.run.withSuccessHandler(res => {
+                hideDownloadProgress_();
+                if (res.errors && res.errors.length) showCustomAlert('<div class="dl-errors">' + res.errors.map(escapeHtml).join('<br>') + '</div>', tr_('ax_4059b02', 'Info'));
+                else showToast_('✓ ' + tr_('acc_changed', '{n} Änderung(en) gespeichert').replace('{n}', res.changed), 'ok');
+                document.getElementById('accAddEmails').value = '';
+                loadAccessMatrix();
+            }).withFailureHandler(err => { hideDownloadProgress_(); showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error')); })
+              .apiSetAccessBulk(emails, areas, grant);
+        };
+        if (grant) run();
+        else showCustomConfirm(tr_('acc_confirm_revoke', 'Zugriff für {n} Nutzer entziehen?').replace('{n}', emails.length), run);
+    }
+
+    // --- Ankuendigungen ---------------------------------------------------------
+    let annList_ = [];
+    const ANN_AREAS_ = ['all', 'general', 'marketing', 'woma', 'cc', 'kec', 'documentation', 'campus', 'admin'];
+
+    function annAudienceLabel_(a) { return a === 'all' ? tr_('ann_all', 'Alle Nutzer') : accAreaLabel_(a); }
+
+    function annInitForm_() {
+        const box = document.getElementById('annAudience');
+        if (!box || box.dataset.ready) return;
+        box.dataset.ready = '1';
+        box.innerHTML = ANN_AREAS_.map(a => '<label class="acc-area-opt"><input type="checkbox" value="' + a + '"' + (a === 'all' ? ' checked' : '') +
+            ' onchange="annAudienceChange_(this)"> <span class="material-icons-outlined">' + (a === 'all' ? 'groups' : (ACC_AREA_ICONS_[a] || 'label')) + '</span>' + escapeHtml(annAudienceLabel_(a)) + '</label>').join('');
+        annPreview_();
+    }
+
+    function annAudienceChange_(cb) {
+        const all = document.querySelector('#annAudience input[value="all"]');
+        const others = Array.from(document.querySelectorAll('#annAudience input')).filter(i => i.value !== 'all');
+        if (cb.value === 'all' && cb.checked) others.forEach(i => { i.checked = false; });
+        else if (cb.value !== 'all') all.checked = !others.some(i => i.checked);
+    }
+
+    function annFormData_() {
+        const iso = id => { const v = document.getElementById(id).value; return v ? new Date(v).toISOString() : ''; };
+        const aud = Array.from(document.querySelectorAll('#annAudience input:checked')).map(i => i.value);
+        return {
+            id: document.getElementById('annId').value || '',
+            type: (document.querySelector('input[name="annType"]:checked') || {}).value || 'info',
+            titleDe: document.getElementById('annTitleDe').value, textDe: document.getElementById('annTextDe').value,
+            titleEn: document.getElementById('annTitleEn').value, textEn: document.getElementById('annTextEn').value,
+            start: iso('annStart'), end: iso('annEnd'),
+            audience: aud.indexOf('all') >= 0 || !aud.length ? ['all'] : aud
+        };
+    }
+
+    function annPreview_() {
+        const a = annFormData_();
+        const t = annText_(a);
+        document.getElementById('annPreview').innerHTML = (t.title || t.text)
+            ? '<div class="announce announce-' + a.type + '" style="margin:0;"><span class="material-icons-outlined announce-ico">' + (ANN_ICONS_[a.type] || 'info') + '</span><div class="announce-body">' +
+              (t.title ? '<strong>' + escapeHtml(t.title) + '</strong>' : '') + (t.text ? '<span>' + escapeHtml(t.text).replace(/\n/g, '<br>') + '</span>' : '') + '</div></div>'
+            : '<div style="color:#999;font-size:13px;padding:14px;border:1px dashed #ddd;border-radius:12px;">' + escapeHtml(tr_('ann_preview_empty', 'Titel oder Text eingeben …')) + '</div>';
+    }
+
+    function annResetForm_() {
+        ['annId', 'annTitleDe', 'annTextDe', 'annTitleEn', 'annTextEn', 'annStart', 'annEnd'].forEach(id => { document.getElementById(id).value = ''; });
+        document.querySelector('input[name="annType"][value="info"]').checked = true;
+        document.querySelectorAll('#annAudience input').forEach(i => { i.checked = i.value === 'all'; });
+        document.getElementById('annSaveBtn').textContent = tr_('ann_publish', 'Veröffentlichen');
+        annPreview_();
+    }
+
+    function annLocalInput_(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        const p = n => String(n).padStart(2, '0');
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function editAnnouncement_(id) {
+        const a = annList_.find(x => x.id === id);
+        if (!a) return;
+        document.getElementById('annId').value = a.id;
+        document.querySelector('input[name="annType"][value="' + a.type + '"]').checked = true;
+        document.getElementById('annTitleDe').value = a.titleDe; document.getElementById('annTextDe').value = a.textDe;
+        document.getElementById('annTitleEn').value = a.titleEn; document.getElementById('annTextEn').value = a.textEn;
+        document.getElementById('annStart').value = annLocalInput_(a.start);
+        document.getElementById('annEnd').value = annLocalInput_(a.end);
+        document.querySelectorAll('#annAudience input').forEach(i => { i.checked = a.audience.indexOf(i.value) >= 0 || (i.value === 'all' && !a.audience.length); });
+        document.getElementById('annSaveBtn').textContent = tr_('ann_update', 'Aktualisieren');
+        annPreview_();
+        document.querySelector('.ann-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function loadAnnouncementsAdmin() {
+        annInitForm_();
+        google.script.run.withSuccessHandler(res => {
+            if (!res || !res.success) { document.getElementById('annList').innerHTML = '<div style="color:#d93025;padding:10px;">' + escapeHtml((res && res.error) || tr_('ax_902b0d5', 'Error')) + '</div>'; return; }
+            renderAnnouncementsAdmin_(res.announcements || []);
+        }).withFailureHandler(err => {
+            document.getElementById('annList').innerHTML = '<div style="color:#d93025;padding:10px;">' + escapeHtml(err.message) + '</div>';
+        }).apiAdminListAnnouncements();
+    }
+
+    function renderAnnouncementsAdmin_(list) {
+        annList_ = list;
+        const now = Date.now();
+        const state = a => !a.active ? ['off', tr_('ann_s_off', 'Aus')] : a.live ? ['live', tr_('ann_s_live', 'Aktiv')]
+            : (a.start && new Date(a.start).getTime() > now ? ['planned', tr_('ann_s_planned', 'Geplant')] : ['expired', tr_('ann_s_expired', 'Abgelaufen')]);
+        const fmt = iso => iso ? new Date(iso).toLocaleString(calLocale_(), { dateStyle: 'short', timeStyle: 'short' }) : '';
+        document.getElementById('annList').innerHTML = list.map(a => {
+            const t = annText_(a), s = state(a);
+            return '<div class="ann-item">' +
+              '<span class="material-icons-outlined ann-item-ico ann-c-' + a.type + '">' + (ANN_ICONS_[a.type] || 'info') + '</span>' +
+              '<div class="ann-item-main"><div class="ann-item-title">' + escapeHtml(t.title || t.text.slice(0, 80)) + ' <span class="ann-state ann-state-' + s[0] + '">' + escapeHtml(s[1]) + '</span></div>' +
+              '<div class="ann-item-meta">' + escapeHtml(a.audience.map(annAudienceLabel_).join(', ')) +
+                (a.start || a.end ? ' · ' + escapeHtml(fmt(a.start) + ' – ' + fmt(a.end)) : '') +
+                (a.chatSentAt ? ' · <span class="material-icons-outlined" style="font-size:13px;vertical-align:-2px;">chat</span> ' + escapeHtml(fmt(a.chatSentAt)) : '') + '</div></div>' +
+              '<div class="ann-item-actions">' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(tr_('ann_edit', 'Bearbeiten')) + '" onclick="editAnnouncement_(\'' + a.id + '\')"><span class="material-icons-outlined">edit</span></button>' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(a.active ? tr_('ann_disable', 'Ausschalten') : tr_('ann_enable', 'Einschalten')) + '" onclick="toggleAnnouncement_(\'' + a.id + '\',' + !a.active + ')"><span class="material-icons-outlined">' + (a.active ? 'toggle_on' : 'toggle_off') + '</span></button>' +
+                '<button type="button" class="pv-icon-btn" title="' + escapeHtml(tr_('ann_send_chat', 'Per Chat senden')) + '" onclick="sendAnnouncementChat_(\'' + a.id + '\')"><span class="material-icons-outlined">send</span></button>' +
+                '<button type="button" class="pv-icon-btn danger" title="' + escapeHtml(tr_('ann_delete', 'Löschen')) + '" onclick="deleteAnnouncement_(\'' + a.id + '\')"><span class="material-icons-outlined">delete</span></button>' +
+              '</div></div>';
+        }).join('') || '<div class="pv-empty"><span class="material-icons-outlined">campaign</span>' + escapeHtml(tr_('ann_none', 'Noch keine Ankündigungen.')) + '</div>';
+    }
+
+    function annAfterChange_(res, msg) {
+        if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || tr_('ax_902b0d5', 'Error')), tr_('ax_902b0d5', 'Error')); return; }
+        renderAnnouncementsAdmin_(res.announcements || []);
+        if (msg) showToast_('✓ ' + msg, 'ok');
+    }
+
+    function saveAnnouncement_() {
+        const a = annFormData_();
+        if (!(a.titleDe || a.textDe || a.titleEn || a.textEn).trim()) { showCustomAlert(escapeHtml(tr_('ann_need_text', 'Bitte Titel oder Text eingeben.')), tr_('ax_4059b02', 'Info')); return; }
+        google.script.run.withSuccessHandler(res => { annAfterChange_(res, tr_('ann_saved', 'Ankündigung gespeichert')); if (res && res.success) annResetForm_(); })
+          .withFailureHandler(err => showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error'))).apiAdminSaveAnnouncement(a);
+    }
+    function toggleAnnouncement_(id, on) {
+        google.script.run.withSuccessHandler(res => annAfterChange_(res)).withFailureHandler(err => showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error'))).apiAdminSetAnnouncementActive(id, on);
+    }
+    function deleteAnnouncement_(id) {
+        showCustomConfirm(tr_('ann_confirm_delete', 'Ankündigung löschen?'), () => {
+            google.script.run.withSuccessHandler(res => annAfterChange_(res, tr_('ann_deleted', 'Gelöscht'))).withFailureHandler(err => showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error'))).apiAdminDeleteAnnouncement(id);
+        });
+    }
+    function sendAnnouncementChat_(id) {
+        showCustomConfirm(tr_('ann_confirm_chat', 'Ankündigung jetzt per Google Chat an alle Nutzer der Zielgruppe senden?'), () => {
+            setDownloadProgress_(tr_('ann_sending', 'Sende Chat-Nachrichten...'), tr_('ann_sending_sub', 'Das kann bei vielen Empfängern einige Minuten dauern.'));
+            google.script.run.withSuccessHandler(res => {
+                hideDownloadProgress_();
+                if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || tr_('ax_902b0d5', 'Error')), tr_('ax_902b0d5', 'Error')); return; }
+                showCustomAlert(escapeHtml(tr_('ann_chat_result', '{s} von {n} gesendet, {k} ohne Chat-Verbindung übersprungen.').replace('{s}', res.sent).replace('{n}', res.recipients).replace('{k}', res.skipped)) +
+                    (res.pending ? '<div class="dl-errors">' + escapeHtml(tr_('ann_chat_pending', '{p} Empfänger wegen Zeitlimit nicht erreicht.').replace('{p}', res.pending)) + '</div>' : ''), tr_('ann_title', 'Ankündigungen'));
+                loadAnnouncementsAdmin();
+            }).withFailureHandler(err => { hideDownloadProgress_(); showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error')); }).apiAdminSendAnnouncementChat(id);
+        });
+    }
+
     function loadAdminDashboardData() {
+        loadAnnouncementsAdmin();
+        let savedGroup = 'access';
+        try { savedGroup = localStorage.getItem('consoleGroup') || 'access'; } catch (e) {}
+        switchConsoleGroup(savedGroup);
+        loadAccessMatrix();
         loadWhitelist();
         loadMarketingWhitelist();
         loadWomaWhitelist();
@@ -541,7 +791,7 @@ function toggleAdminHelp(id) {
 
         google.script.run.withSuccessHandler(r => {
             document.getElementById('adminDriveClientId').value = (r && r.clientId) || '';
-            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? '\u2022 Save to Drive is active for all users.' : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users.';
+            document.getElementById('adminDriveClientIdStatus').innerText = (r && r.configured) ? tr_('ax_46df272', '• Save to Drive is active for all users.') : tr_('ax_6ad3f32', 'Not configured yet – the "Save to Drive" button is inactive for users.');
         }).apiGetDriveSaveConfig();
         
         const m = configData.maintenance || { active: false };
@@ -558,9 +808,9 @@ function toggleAdminHelp(id) {
             document.getElementById('autoSyncToggle').checked = r.enabled;
             document.getElementById('autoSyncStatusText').innerText = r.enabled ? 'ON' : 'OFF';
             if (r.lastRun) {
-                document.getElementById('autoSyncLastRun').innerText = `Last run: ${new Date(r.lastRun).toLocaleString()} (${r.lastUpdated} updated)`;
+                document.getElementById('autoSyncLastRun').innerText = `${tr_('ax_9d84f32', 'Last run:')} ${new Date(r.lastRun).toLocaleString()} (${r.lastUpdated} updated)`;
             } else {
-                document.getElementById('autoSyncLastRun').innerText = "Never run";
+                document.getElementById('autoSyncLastRun').innerText = tr_('ax_54219de', 'Never run');
             }
         }).apiGetAutoSyncStatus();
 
@@ -571,12 +821,12 @@ function toggleAdminHelp(id) {
     }
     function toggleImpersonation() {
       const email = document.getElementById('impersonateEmailInput').value.trim();
-      if (!email) { showCustomAlert("Please enter an email address.", "Error"); return; }
+      if (!email) { showCustomAlert(tr_('ax_9042fb2', 'Please enter an email address.'), tr_('ax_902b0d5', 'Error')); return; }
       currentImpersonationEmail = email;
       startStartupOverlay_();
       google.script.run
         .withSuccessHandler((config) => { stopStartupOverlay_(); initForm(config); switchTab(computeStartTab_(config)); })
-        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert("Error: " + err.message, "Error"); })
+        .withFailureHandler((err) => { stopStartupOverlay_(); showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + err.message, tr_('ax_902b0d5', 'Error')); })
         .apiGetConfig(currentImpersonationEmail, currentLang);
     }
     function saveMaintenanceSettings(btn) {
@@ -584,13 +834,13 @@ function toggleAdminHelp(id) {
         const end = document.getElementById('adminMaintEnd').value;
         const msg = document.getElementById('adminMaintMsg').value;
         
-        if (!start || !end) { showCustomAlert("Start and End time required.", "Error"); return; }
+        if (!start || !end) { showCustomAlert(tr_('ax_69f12f9', 'Start and End time required.'), tr_('ax_902b0d5', 'Error')); return; }
         
-        btn.disabled = true; btn.innerText = "Saving...";
+        btn.disabled = true; btn.innerText = tr_('ax_575f5f8', 'Saving...');
         google.script.run.withSuccessHandler(r => {
-            btn.disabled = false; btn.innerText = "ACTIVATE / UPDATE";
-            if(r.success) showCustomAlert("Maintenance window set.", "Success");
-            else showCustomAlert("Error: " + r.error, "Error");
+            btn.disabled = false; btn.innerText = tr_('ax_306910e', 'ACTIVATE / UPDATE');
+            if(r.success) showCustomAlert(tr_('ax_a430bdd', 'Maintenance window set.'), tr_('ax_505a83f', 'Success'));
+            else showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + r.error, tr_('ax_902b0d5', 'Error'));
         }).apiSetMaintenance(start + ":00Z", end + ":00Z", msg);
     }
     function clearMaintenanceSettings() {
@@ -598,15 +848,15 @@ function toggleAdminHelp(id) {
             if(r.success) {
                 document.getElementById('adminMaintStart').value = "";
                 document.getElementById('adminMaintEnd').value = "";
-                showCustomAlert("Maintenance cleared.", "Success");
+                showCustomAlert(tr_('ax_39a149e', 'Maintenance cleared.'), tr_('ax_505a83f', 'Success'));
             }
         }).apiClearMaintenance();
     }
     function saveAdminFileSize() {
         const size = parseInt(document.getElementById('adminFileSize').value);
-        if(isNaN(size) || size < 1) { showCustomAlert("Invalid size.", "Error"); return; }
+        if(isNaN(size) || size < 1) { showCustomAlert(tr_('ax_862abc3', 'Invalid size.'), tr_('ax_902b0d5', 'Error')); return; }
         google.script.run.withSuccessHandler(r => {
-            if(r.success) showCustomAlert("Size limit saved.", "Success");
+            if(r.success) showCustomAlert(tr_('ax_9d8d446', 'Size limit saved.'), tr_('ax_505a83f', 'Success'));
         }).apiSetFileSizeLimit(size);
     }
     function saveAdminDriveClientId() {
@@ -618,25 +868,25 @@ function toggleAdminHelp(id) {
                 document.getElementById('adminDriveClientSecret').value = '';
                 google.script.run.withSuccessHandler(cfg => {
                     document.getElementById('adminDriveClientIdStatus').innerText = (cfg && cfg.configured)
-                        ? '\u2022 Save to Drive is active for all users.'
-                        : 'Not configured yet \u2013 the "Save to Drive" button is inactive for users (need both Client ID and Secret).';
+                        ? tr_('ax_46df272', '• Save to Drive is active for all users.')
+                        : tr_('ax_2abde4c', 'Not configured yet – the "Save to Drive" button is inactive for users (need both Client ID and Secret).');
                 }).apiGetDriveSaveConfig();
-                showCustomAlert("Saved. Existing users will need to re-authorize once.", "Success");
+                showCustomAlert(tr_('ax_a5a9f62', 'Saved. Existing users will need to re-authorize once.'), tr_('ax_505a83f', 'Success'));
             } else {
-                showCustomAlert("Error: " + r.error, "Error");
+                showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + r.error, tr_('ax_902b0d5', 'Error'));
             }
         }).apiSaveDriveSaveClientId(clientId, clientSecret);
     }
     function loadWhitelist() {
         const c = document.getElementById('whitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run.withSuccessHandler(r => {
             c.innerHTML = r.emails.map(e => `
                 <div class="list-row">
                     <span>${e}</span>
                     <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'whitelist')">delete</span>
                 </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+            `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
         }).apiGetWhitelist();
     }
     function addWhitelistUser() {
@@ -649,14 +899,14 @@ function toggleAdminHelp(id) {
     }
     function loadMarketingWhitelist() {
         const c = document.getElementById('marketingWhitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run.withSuccessHandler(r => {
             c.innerHTML = r.emails.map(e => `
                 <div class="list-row">
                     <span>${e}</span>
                     <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'marketing')">delete</span>
                 </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+            `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
         }).apiGetMarketingWhitelist();
     }
     function addMarketingWhitelistUser() {
@@ -670,7 +920,7 @@ function toggleAdminHelp(id) {
     function loadCcWhitelist() {
         const c = document.getElementById('ccWhitelistContainer');
         if(!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run
           .withSuccessHandler(r => {
               c.innerHTML = r.emails.map(e => `
@@ -678,7 +928,7 @@ function toggleAdminHelp(id) {
                       <span>${e}</span>
                       <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'cc')">delete</span>
                   </div>
-              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+              `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
           })
           .withFailureHandler(e => {
               c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
@@ -693,13 +943,13 @@ function toggleAdminHelp(id) {
               document.getElementById('newCcWhitelistEmail').value = "";
               loadCcWhitelist();
           })
-          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiAddCcWhitelist(email);
     }
     function loadWomaWhitelist() {
         const c = document.getElementById('womaWhitelistContainer');
         if(!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run
           .withSuccessHandler(r => {
               c.innerHTML = r.emails.map(e => `
@@ -707,7 +957,7 @@ function toggleAdminHelp(id) {
                       <span>${e}</span>
                       <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'woma')">delete</span>
                   </div>
-              `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+              `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
           })
           .withFailureHandler(e => {
               c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
@@ -722,19 +972,19 @@ function toggleAdminHelp(id) {
               document.getElementById('newWomaWhitelistEmail').value = "";
               loadWomaWhitelist();
           })
-          .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiAddWomaWhitelist(email);
     }
     function loadKecWhitelist() {
         const c = document.getElementById('kecWhitelistContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run.withSuccessHandler(r => {
             c.innerHTML = r.emails.map(e => `
                 <div class="list-row">
                     <span>${e}</span>
                     <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'kec')">delete</span>
                 </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+            `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
         }).apiGetKecWhitelist();
     }
     function addKecWhitelistUser() {
@@ -748,27 +998,27 @@ function toggleAdminHelp(id) {
     function loadDocWhitelist() {
       const c = document.getElementById('docWhitelistContainer');
       if(!c) return;
-      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+      c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
       google.script.run.withSuccessHandler(r => {
         c.innerHTML = r.emails.map(e => `
           <div class="list-row">
             <span>${e}</span>
             <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'doc')">delete</span>
           </div>
-        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+        `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
       }).apiGetDocWhitelist();
       }
     function loadArticulateWhitelist() {
       const c = document.getElementById('articulateWhitelistContainer');
       if(!c) return;
-      c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+      c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
       google.script.run.withSuccessHandler(r => {
         c.innerHTML = r.emails.map(e => `
           <div class="list-row">
             <span>${e}</span>
             <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'articulate')">delete</span>
           </div>
-        `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
+        `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
       }).apiGetArticulateWhitelist();
     }
     function addArticulateWhitelistUser() {
@@ -780,210 +1030,9 @@ function toggleAdminHelp(id) {
       }).apiAddArticulateWhitelist(email);
     }
 
-    // --- CUSTOM PAGES (eigene Reiter) ---------------------------------
-    let _customPagesRows_ = [];
-    let _customPagesExpanded_ = {};
-
-    function loadCustomPages() {
-        const tbody = document.getElementById('customPagesTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>';
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.success) {
-              tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">' + escapeHtml(res.error || 'Error') + '</td></tr>';
-              return;
-            }
-            _customPagesRows_ = res.pages || [];
-            renderCustomPagesTable();
-          })
-          .withFailureHandler(err => {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#d93025;padding:15px;">Error: ' + escapeHtml(err.message) + '</td></tr>';
-          })
-          .apiAdminListCustomPages();
-    }
-
-    const CUSTOM_PAGE_FIELD_LABELS_ = { presets: 'Vorlagen', dueDate: 'Wunschtermin', note: 'Notiz', refFiles: 'Referenzdateien' };
-
-    function renderCustomPagesTable() {
-        const tbody = document.getElementById('customPagesTableBody');
-        if (!tbody) return;
-        if (!_customPagesRows_.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Noch keine eigenen Reiter angelegt.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = _customPagesRows_.map(p => {
-            const isOpen = !!_customPagesExpanded_[p.id];
-            const safeId = escapeHtml(p.id);
-            const fields = p.fields || {};
-            const badges = Object.keys(CUSTOM_PAGE_FIELD_LABELS_)
-                .filter(k => fields[k])
-                .map(k => `<span class="pill-badge role" style="margin:1px;">${CUSTOM_PAGE_FIELD_LABELS_[k]}</span>`)
-                .join('') || '<span style="color:#999;font-size:11px;">nur Pflichtfelder</span>';
-            const rowsHtml = [`
-              <tr>
-                <td><strong>${escapeHtml(p.name)}</strong></td>
-                <td><code style="font-size:11px;color:#888;">${safeId}</code></td>
-                <td>
-                  <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" ${p.active ? 'checked' : ''} onchange="toggleCustomPageActive('${escapeJs(p.id)}', this.checked)" style="width:auto;">
-                    <span style="font-size:11px;color:${p.active ? '#2e7d32' : '#999'};">${p.active ? 'Aktiv' : 'Inaktiv'}</span>
-                  </label>
-                </td>
-                <td style="max-width:220px;">${badges}</td>
-                <td>${p.userCount}</td>
-                <td style="text-align:right;white-space:nowrap;">
-                  <button class="expand-btn ${isOpen ? 'open' : ''}" onclick="toggleCustomPageWhitelist('${escapeJs(p.id)}')">
-                    <span class="material-icons-outlined" style="font-size:14px;">tune</span> Bearbeiten
-                  </button>
-                  <span class="material-icons-outlined icon-btn-danger" style="margin-left:8px;vertical-align:middle;cursor:pointer;" title="Umbenennen" onclick="renameCustomPage('${escapeJs(p.id)}', '${escapeJs(p.name)}')">edit</span>
-                  <span class="material-icons-outlined icon-btn-danger" style="vertical-align:middle;cursor:pointer;" title="Löschen" onclick="deleteCustomPage('${escapeJs(p.id)}', '${escapeJs(p.name)}')">delete</span>
-                </td>
-              </tr>
-            `];
-            if (isOpen) {
-                const fieldCheckboxes = Object.keys(CUSTOM_PAGE_FIELD_LABELS_).map(k => `
-                  <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin:0;">
-                    <input type="checkbox" id="customPageField_${safeId}_${k}" ${fields[k] ? 'checked' : ''} style="width:auto;"> ${CUSTOM_PAGE_FIELD_LABELS_[k]}
-                  </label>
-                `).join('');
-                rowsHtml.push(`
-                  <tr class="detail-row">
-                    <td colspan="6">
-                      <div class="detail-panel-grid">
-                        <div>
-                          <label>Sichtbare Bausteine</label>
-                          <div style="display:flex;flex-wrap:wrap;gap:14px;margin:8px 0 10px;">${fieldCheckboxes}</div>
-                          <button class="btn btn-secondary" style="width:auto;height:34px;padding:0 16px;font-size:12px;" onclick="saveCustomPageFields('${escapeJs(p.id)}')">
-                            <span class="material-icons-outlined" style="font-size:15px;vertical-align:middle;margin-right:4px;">save</span>Bausteine speichern
-                          </button>
-                        </div>
-                        <div>
-                          <label>Whitelist</label>
-                          <div style="display:flex; gap:10px; margin:8px 0 10px; max-width:420px;">
-                            <input type="email" id="newCustomPageWlEmail_${safeId}" placeholder="colleague@karcher.com">
-                            <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addCustomPageWhitelistUser('${escapeJs(p.id)}')">ADD</button>
-                          </div>
-                          <div id="customPageWlContainer_${safeId}" class="list-container" style="max-width:420px;"><div style="padding:15px;color:#888;">Loading...</div></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                `);
-            }
-            return rowsHtml.join('');
-        }).join('');
-
-        Object.keys(_customPagesExpanded_).forEach(id => {
-            if (_customPagesExpanded_[id]) loadCustomPageWhitelist(id);
-        });
-    }
-
-    function saveCustomPageFields(id) {
-        const fields = {};
-        Object.keys(CUSTOM_PAGE_FIELD_LABELS_).forEach(k => {
-            const cb = document.getElementById('customPageField_' + id + '_' + k);
-            fields[k] = cb ? cb.checked : true;
-        });
-        google.script.run
-          .withSuccessHandler(() => { showCustomAlert('✓ Bausteine gespeichert.', 'Gespeichert'); loadCustomPages(); })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAdminUpdateCustomPageFields(id, fields);
-    }
-
-    function toggleCustomPageWhitelist(id) {
-        _customPagesExpanded_[id] = !_customPagesExpanded_[id];
-        renderCustomPagesTable();
-    }
-
-    function loadCustomPageWhitelist(id) {
-        const c = document.getElementById('customPageWlContainer_' + id);
-        if (!c) return;
-        google.script.run
-          .withSuccessHandler(r => {
-            c.innerHTML = (r.emails || []).map(e => `
-              <div class="list-row">
-                <span>${escapeHtml(e)}</span>
-                <span class="material-icons-outlined icon-btn-danger" onclick="removeCustomPageWhitelistUser('${escapeJs(id)}', '${escapeJs(e)}')">delete</span>
-              </div>
-            `).join('') || '<div style="padding:15px;color:#888;">No users found.</div>';
-          })
-          .withFailureHandler(err => {
-            c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-          })
-          .apiGetCustomPageWhitelist(id);
-    }
-
-    function addCustomPageWhitelistUser(id) {
-        const input = document.getElementById('newCustomPageWlEmail_' + id);
-        const email = input ? input.value.trim() : '';
-        if (!email) return;
-        google.script.run
-          .withSuccessHandler(() => { if (input) input.value = ''; loadCustomPageWhitelist(id); loadCustomPages(); })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAddCustomPageWhitelist(id, email);
-    }
-
-    function removeCustomPageWhitelistUser(id, email) {
-        showCustomConfirm('"' + email + '" aus der Whitelist entfernen?', function() {
-            google.script.run
-              .withSuccessHandler(() => { loadCustomPageWhitelist(id); loadCustomPages(); })
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiRemoveCustomPageWhitelist(id, email);
-        });
-    }
-
-    function createCustomPage() {
-        const input = document.getElementById('newCustomPageName');
-        const name = input ? input.value.trim() : '';
-        if (!name) { showCustomAlert('Bitte einen Namen eingeben.', 'Hinweis'); return; }
-        const fields = {
-            presets: !!document.getElementById('newCustomPageFieldPresets').checked,
-            dueDate: !!document.getElementById('newCustomPageFieldDueDate').checked,
-            note: !!document.getElementById('newCustomPageFieldNote').checked,
-            refFiles: !!document.getElementById('newCustomPageFieldRefFiles').checked
-        };
-        google.script.run
-          .withSuccessHandler(res => {
-            if (input) input.value = '';
-            ['newCustomPageFieldPresets', 'newCustomPageFieldDueDate', 'newCustomPageFieldNote', 'newCustomPageFieldRefFiles']
-              .forEach(elId => { document.getElementById(elId).checked = true; });
-            showCustomAlert('✓ Reiter "' + res.name + '" angelegt (ID: ' + res.id + '). Bitte Nutzer über die Whitelist eintragen.', 'Angelegt');
-            loadCustomPages();
-          })
-          .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-          .apiAdminCreateCustomPage(name, name, fields);
-    }
-
-    function renameCustomPage(id, currentName) {
-        showCustomPrompt('Neuer Name für diesen Reiter:', currentName, function(newName) {
-            if (!newName || !newName.trim()) return;
-            google.script.run
-              .withSuccessHandler(() => loadCustomPages())
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiAdminRenameCustomPage(id, newName.trim());
-        }, 'Reiter umbenennen');
-    }
-
-    function toggleCustomPageActive(id, active) {
-        google.script.run
-          .withSuccessHandler(() => loadCustomPages())
-          .withFailureHandler(err => { showCustomAlert('Error: ' + err.message, 'Error'); loadCustomPages(); })
-          .apiAdminSetCustomPageActive(id, active);
-    }
-
-    function deleteCustomPage(id, name) {
-        showCustomConfirm('Reiter "' + name + '" wirklich löschen? Die Whitelist bleibt erhalten, falls er später neu angelegt wird.', function() {
-            google.script.run
-              .withSuccessHandler(() => loadCustomPages())
-              .withFailureHandler(err => showCustomAlert('Error: ' + err.message, 'Error'))
-              .apiAdminDeleteCustomPage(id);
-        });
-    }
-
     function loadAdmins() {
         const c = document.getElementById('adminListContainer');
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run.withSuccessHandler(r => {
             c.innerHTML = r.admins.map(e => `
                 <div class="list-row">
@@ -996,7 +1045,7 @@ function toggleAdminHelp(id) {
     function loadAdminLightUsers() {
         const c = document.getElementById('adminLightListContainer');
         if (!c) return;
-        c.innerHTML = '<div style="padding:15px;color:#888;">Loading...</div>';
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
         google.script.run
           .withSuccessHandler(r => {
             if (!r.success) { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(r.error) + '</div>'; return; }
@@ -1005,7 +1054,7 @@ function toggleAdminHelp(id) {
                     <span><strong>${escapeHtml(u.email)}</strong> <span style="color:#888;font-size:11px;">(${u.subtabs.map(s => ADMIN_LIGHT_LABELS_[s] || s).join(', ')})</span></span>
                     <span class="material-icons-outlined icon-btn-danger" onclick="removeAdminLightUser('${escapeJs(u.email)}')">delete</span>
                 </div>
-            `).join('') || '<div style="padding:15px;color:#888;text-align:center;">Keine Admin-Light-User.</div>';
+            `).join('') || ('<div style="padding:15px;color:#888;text-align:center;">' + tr_('ax_d049f8d', 'Keine Admin-Light-User.') + '</div>');
           })
           .withFailureHandler(e => { c.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml(e.message) + '</div>'; })
           .apiGetAdminLightUsers();
@@ -1016,31 +1065,29 @@ function toggleAdminHelp(id) {
         const subtabs = [];
         if (document.getElementById('adminLightSubtabUsers').checked) subtabs.push('users');
         if (document.getElementById('adminLightSubtabTemplates').checked) subtabs.push('templates');
-        if (document.getElementById('adminLightSubtabCustompages').checked) subtabs.push('custompages');
         if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
         if (document.getElementById('adminLightSubtabTests').checked) subtabs.push('tests');
         if (document.getElementById('adminLightSubtabDashboard').checked) subtabs.push('dashboard');
-        if (!subtabs.length) { showCustomAlert('Bitte mindestens einen Subtab auswählen.', 'Hinweis'); return; }
+        if (!subtabs.length) { showCustomAlert(tr_('ax_4e01f54', 'Bitte mindestens einen Subtab auswählen.'), tr_('ax_9874513', 'Hinweis')); return; }
         google.script.run
           .withSuccessHandler(r => {
-            if (!r.success) { showCustomAlert('Fehler: ' + r.error, 'Error'); return; }
+            if (!r.success) { showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + r.error, tr_('ax_902b0d5', 'Error')); return; }
             document.getElementById('newAdminLightEmail').value = '';
             document.getElementById('adminLightSubtabUsers').checked = false;
             document.getElementById('adminLightSubtabTemplates').checked = false;
-            document.getElementById('adminLightSubtabCustompages').checked = false;
             document.getElementById('adminLightSubtabPivot').checked = false;
             document.getElementById('adminLightSubtabTests').checked = false;
             document.getElementById('adminLightSubtabDashboard').checked = false;
             loadAdminLightUsers();
           })
-          .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
+          .withFailureHandler(e => showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiAddAdminLightUser(email, subtabs);
     }
     function removeAdminLightUser(email) {
-        showCustomConfirm('Admin-Light-Zugriff für ' + email + ' entfernen?', function() {
+        showCustomConfirm(tr_('ax_dad7b20', 'Admin-Light-Zugriff für') + ' ' + email + ' ' + tr_('ax_f90ac01', 'entfernen?'), function() {
             google.script.run
               .withSuccessHandler(loadAdminLightUsers)
-              .withFailureHandler(e => showCustomAlert('Fehler: ' + e.message, 'Error'))
+              .withFailureHandler(e => showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
               .apiRemoveAdminLightUser(email);
         });
     }
@@ -1075,27 +1122,28 @@ function toggleAdminHelp(id) {
     }
     function runUserTemplatesDebug() {
         const email = document.getElementById('debugEmail').value.trim();
-        if(!email) { showCustomAlert("Please enter an email.", "Error"); return; }
+        if(!email) { showCustomAlert(tr_('ax_d7ce638', 'Please enter an email.'), tr_('ax_902b0d5', 'Error')); return; }
         const c = document.getElementById('debugResultContainer');
-        c.style.display = 'block'; c.innerHTML = 'Analyzing...';
+        c.style.display = 'block'; c.innerHTML = tr_('ax_bc2e1c9', 'Analyzing...');
         google.script.run.withSuccessHandler(r => {
-            c.innerHTML = `<strong>Analyse für:</strong> ${r.email}\n\n` +
-                          `<strong>User Data (FetchTMS_USERS-Prod):</strong>\n` +
+            c.innerHTML = `<strong>${tr_('ax_ea6df25', 'Analyse für:')}</strong> ${r.email}\n\n` +
+                          `<strong>${tr_('ax_0447602', 'User Data (FetchTMS_USERS-Prod):')}</strong>
+` +
                           `Client: ${r.userData.client}\nDomain: ${r.userData.domain}\nSubdomain: ${r.userData.subdomain}\nBU: ${r.userData.bu}\n\n` +
-                          `<strong>Erlaubte Templates (${r.allowed.length}):</strong>\n` + 
+                          `<strong>${tr_('ax_4b67cec', 'Erlaubte Templates (')}${r.allowed.length}):</strong>\n` + 
                           r.allowed.map(x => `\u2713 ${x.name}`).join('\n') + `\n\n` +
-                          `<strong>Blockierte Templates (${r.denied.length}):</strong>\n` +
+                          `<strong>${tr_('ax_8c9ee70', 'Blockierte Templates (')}${r.denied.length}):</strong>\n` +
                           r.denied.map(x => `\u2717 ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
         }).apiDebugUserTemplates(email);
     }
     function testChatBot(btn) {
         const email = document.getElementById('chatTestEmail').value.trim();
-        if(!email) { showCustomAlert("E-Mail fehlt.", "Error"); return; }
-        btn.disabled = true; btn.innerText = "Sende...";
+        if(!email) { showCustomAlert(tr_('ax_9995bad', 'E-Mail fehlt.'), tr_('ax_902b0d5', 'Error')); return; }
+        btn.disabled = true; btn.innerText = tr_('ax_8271cb2', 'Sende...');
         google.script.run.withSuccessHandler(r => {
             btn.disabled = false; btn.innerText = "SENDEN";
-            if(r.success) showCustomAlert("Test-Nachricht erfolgreich gesendet!", "Success");
-            else showCustomAlert("Fehler: " + r.error, "Error");
+            if(r.success) showCustomAlert(tr_('ax_90b6305', 'Test-Nachricht erfolgreich gesendet!'), tr_('ax_505a83f', 'Success'));
+            else showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + r.error, tr_('ax_902b0d5', 'Error'));
         }).apiTestChatBot(email);
     }
     function triggerSync(type, btn) {
@@ -1106,18 +1154,18 @@ function toggleAdminHelp(id) {
       runSync(type, 'full', btn);
     }
     function showSyncModeDialog(type, btn) {
-      const label = type === 'templates' ? 'Templates' : 'User';
+      const label = type === 'templates' ? tr_('ax_7df96b1', 'Templates') : tr_('ax_8f9bfe9', 'User');
       const html = `
         <div style="font-size:13px;line-height:1.6;margin-bottom:16px;">
-          Wie soll der ${label}-Sync ausgeführt werden?
+          ${tr_('ax_cffcbba', 'Wie soll der')} ${label}${tr_('ax_e6436f2', '-Sync ausgeführt werden?')}
         </div>
         <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;"
                 onclick="closeCustomDialog(); runSync('${type}','add_only', document.getElementById('syncBtn_${type}'))">
-          \u2022 Nur neue ${label} ergänzen (bestehende Zeilen bleiben unverändert)
+          ${tr_('ax_f26686e', '• Nur neue')} ${label} ${tr_('ax_872bc9d', 'ergänzen (bestehende Zeilen bleiben unverändert)')}
         </button>
         <button class="btn btn-primary" style="width:100%;"
                 onclick="closeCustomDialog(); runSync('${type}','full', document.getElementById('syncBtn_${type}'))">
-          \u2022 Neue ergänzen + bestehende mit Phrase-Daten aktualisieren
+          ${tr_('ax_ffd2eed', '• Neue ergänzen + bestehende mit Phrase-Daten aktualisieren')}
         </button>`;
       btn.id = 'syncBtn_' + type;
       document.getElementById('customDialogTitle').innerText = label + ' synchronisieren';
@@ -1134,33 +1182,33 @@ function toggleAdminHelp(id) {
       google.script.run.withSuccessHandler(r => {
         btn.disabled = false;
         btn.innerHTML = originalText;
-        if (r.success) showCustomAlert(r.msg || "Sync successful.", "Success");
-        else showCustomAlert("Error: " + r.error, "Error");
+        if (r.success) showCustomAlert(r.msg || tr_('ax_838d947', 'Sync successful.'), tr_('ax_505a83f', 'Success'));
+        else showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + r.error, tr_('ax_902b0d5', 'Error'));
       }).withFailureHandler(e => {
         btn.disabled = false;
         btn.innerHTML = originalText;
-        showCustomAlert("Error: " + e.message, "Error");
+        showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
       }).apiTriggerManualSync(type, mode);
     }
     function toggleAutoSync(enable) {
         const txt = document.getElementById('autoSyncStatusText');
-        txt.innerText = 'Updating...';
+        txt.innerText = tr_('ax_a7d784a', 'Updating...');
         google.script.run.withSuccessHandler(() => {
             txt.innerText = enable ? 'ON' : 'OFF';
-            showCustomAlert(`Auto-Sync is now ${enable ? 'ENABLED' : 'DISABLED'}.`, "Success");
+            showCustomAlert(`Auto-Sync is now ${enable ? 'ENABLED' : 'DISABLED'}.`, tr_('ax_505a83f', 'Success'));
         }).apiToggleAutoSync(enable);
     }
     function loadScriptProperties() {
       const container = document.getElementById('scriptPropsContainer');
       if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
+      container.innerHTML = ('<div style="padding:20px;text-align:center;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
       google.script.run
         .withSuccessHandler(res => {
           let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #eee;">';
           html += '<thead><tr style="background:#f5f5f5;text-align:left;">' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:30%;">Key</th>' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;">Value</th>' +
-                  '<th style="padding:10px;border-bottom:2px solid #ddd;width:120px;text-align:center;">Actions</th>' +
+                  ('<th style="padding:10px;border-bottom:2px solid #ddd;width:30%;">' + tr_('ax_8973569', 'Key') + '</th>') +
+                  ('<th style="padding:10px;border-bottom:2px solid #ddd;">' + tr_('ax_6892024', 'Value') + '</th>') +
+                  ('<th style="padding:10px;border-bottom:2px solid #ddd;width:120px;text-align:center;">' + tr_('ax_06df330', 'Actions') + '</th>') +
                   '</tr></thead><tbody>';
           res.properties.forEach(p => {
             const isProt = p.protected;
@@ -1192,34 +1240,34 @@ function toggleAdminHelp(id) {
     function addNewScriptProperty() {
       const key = document.getElementById('newPropKey').value.trim();
       const val = document.getElementById('newPropValue').value.trim();
-      if (!key) { showCustomAlert("Key required."); return; }
+      if (!key) { showCustomAlert(tr_('ax_983fb76', 'Key required.')); return; }
       google.script.run
         .withSuccessHandler(r => {
           document.getElementById('newPropKey').value = "";
           document.getElementById('newPropValue').value = "";
-          showCustomAlert("Property added.");
+          showCustomAlert(tr_('ax_12432cc', 'Property added.'));
           loadScriptProperties();
         })
-        .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+        .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
         .apiAddScriptProperty(key, val);
     }
     function updateScriptProperty(key) {
-      showCustomPrompt("Enter new value for " + key + ":", "", function(newVal) {
+      showCustomPrompt(tr_('ax_f43bfba', 'Enter new value for') + ' ' + key + ":", "", function(newVal) {
         if (newVal === null) return; 
         google.script.run
           .withSuccessHandler(r => {
-            showCustomAlert("Property updated.");
+            showCustomAlert(tr_('ax_3da7b80', 'Property updated.'));
             loadScriptProperties();
           })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiUpdateScriptProperty(key, newVal);
-      }, "Edit Property");
+      }, tr_('ax_8572776', 'Edit Property'));
     }
     function deleteScriptProperty(key) {
       showCustomConfirm("Delete property '" + key + "'?", function() {
         google.script.run
           .withSuccessHandler(r => { loadScriptProperties(); })
-          .withFailureHandler(e => showCustomAlert("Error: " + e.message, "Error"))
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiDeleteScriptProperty(key);
       });
     }
@@ -1227,7 +1275,7 @@ function toggleAdminHelp(id) {
       google.script.run
         .withSuccessHandler(r => {
           if (r.blocked) {
-            showCustomAlert(r.message, "Protected Value");
+            showCustomAlert(r.message, tr_('ax_cc46931', 'Protected Value'));
           } else {
             const el = document.getElementById('prop_val_' + escapeHtmlId(key));
             if (el) {
@@ -1242,15 +1290,15 @@ function toggleAdminHelp(id) {
     function loadAuditLog() {
       const container = document.getElementById('auditLogContainer');
       if (!container) return;
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Loading...</div>';
+      container.innerHTML = ('<div style="padding:20px;text-align:center;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
       google.script.run
         .withSuccessHandler(res => {
           let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;">';
           html += '<thead style="position:sticky;top:0;background:#f0f0f0;"><tr style="text-align:left;">' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:130px;">Time</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:150px;">User</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">Action</th>' +
-                  '<th style="padding:8px;border-bottom:1px solid #ddd;">Details</th>' +
+                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:130px;">' + tr_('ax_a76d4ef', 'Time') + '</th>') +
+                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:150px;">' + tr_('ax_8f9bfe9', 'User') + '</th>') +
+                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">' + tr_('ax_004bf6c', 'Action') + '</th>') +
+                  ('<th style="padding:8px;border-bottom:1px solid #ddd;">' + tr_('ax_3ec365d', 'Details') + '</th>') +
                   '</tr></thead><tbody>';
           if (res.error) {
             container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(res.error) + '</div>';
@@ -1284,7 +1332,7 @@ function toggleAdminHelp(id) {
             <span style="color:#fff;">${l.project}</span> 
             <span style="color:#aaa;">(${l.user})</span>
           </div>`;
-        }).join('') || '<div style="color:#666;">No recent logs.</div>';
+        }).join('') || ('<div style="color:#666;">' + tr_('ax_11e1c45', 'No recent logs.') + '</div>');
       }).apiGetRecentLogs();
     }
     function openLogsModal() {
@@ -1299,7 +1347,7 @@ function toggleAdminHelp(id) {
 function loadWatcherConfig() {
   const container = document.getElementById('watcherConfigContainer');
   if (!container) return;
-  container.innerHTML = '<div style="padding:15px;text-align:center;color:#888;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto 8px;"></div>Loading...</div>';
+  container.innerHTML = ('<div style="padding:15px;text-align:center;color:#888;"><div class="loader" style="width:20px;height:20px;border-width:2px;margin:0 auto 8px;"></div>' + tr_('ax_8524de9', 'Loading...') + '</div>');
 
   google.script.run
     .withSuccessHandler(res => {
@@ -1316,7 +1364,7 @@ function renderWatcherConfig() {
   if (!container) return;
 
   if (!_watcherConfig.length) {
-    container.innerHTML = '<div style="padding:15px;color:#888;font-style:italic;">No watchers configured yet.</div>';
+    container.innerHTML = ('<div style="padding:15px;color:#888;font-style:italic;">' + tr_('ax_ac7bf29', 'No watchers configured yet.') + '</div>');
     return;
   }
 
@@ -1337,8 +1385,8 @@ function addWatcher() {
   const email = document.getElementById('newWatcherEmail').value.trim();
   const templatesRaw = document.getElementById('newWatcherTemplates').value.trim();
 
-  if (!email || !email.includes('@')) { showCustomAlert('Bitte eine gültige E-Mail eingeben.'); return; }
-  if (!templatesRaw) { showCustomAlert('Bitte mindestens ein Template angeben.'); return; }
+  if (!email || !email.includes('@')) { showCustomAlert(tr_('ax_cb16158', 'Bitte eine gültige E-Mail eingeben.')); return; }
+  if (!templatesRaw) { showCustomAlert(tr_('ax_8d38aad', 'Bitte mindestens ein Template angeben.')); return; }
 
   const templates = templatesRaw.split(',').map(t => t.trim()).filter(Boolean);
 
@@ -1353,21 +1401,21 @@ function addWatcher() {
           _watcherConfig = currentConfig;
           document.getElementById('newWatcherEmail').value = '';
           document.getElementById('newWatcherTemplates').value = '';
-          showCustomAlert('\u2713 Watcher hinzugefügt.', 'Gespeichert');
+          showCustomAlert(tr_('ax_9db34fd', '✓ Watcher hinzugefügt.'), tr_('ax_4e124da', 'Gespeichert'));
           renderWatcherConfig();
         })
-        .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+        .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
         .apiSaveWatcherConfig(currentConfig);
     })
-    .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+    .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
     .apiGetWatcherConfig();
 }
 function removeWatcher(idx) {
   showCustomConfirm('Watcher "' + _watcherConfig[idx].email + '" entfernen?', function() {
     _watcherConfig.splice(idx, 1);
     google.script.run
-      .withSuccessHandler(() => { showCustomAlert('\u2713 Watcher entfernt.'); renderWatcherConfig(); })
-      .withFailureHandler(e => showCustomAlert('Error: ' + e.message, 'Error'))
+      .withSuccessHandler(() => { showCustomAlert(tr_('ax_e33793e', '✓ Watcher entfernt.')); renderWatcherConfig(); })
+      .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
       .apiSaveWatcherConfig(_watcherConfig);
   });
 }

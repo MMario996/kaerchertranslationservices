@@ -1135,21 +1135,3 @@ function getQueueSheet_() {
 function openOpsSS_() {
   return openOpsSpreadsheet_();
 }
-
-function getDynamicWhitelist_(pageId) {
-  try {
-    const ss = openAccessSS_();
-    const sh = ss.getSheetByName("Whitelist_" + String(pageId || ""));
-    if (!sh) return [];
-    const rows = sh.getDataRange().getValues();
-    const emails = [];
-    for (let i = 1; i < rows.length; i++) {
-      const v = String(rows[i][0] || "").trim().toLowerCase();
-      if (v) emails.push(v);
-    }
-    return emails;
-  } catch(e) {
-    console.warn("getDynamicWhitelist_ failed for pageId=" + pageId + ": " + e.message);
-    return [];
-  }
-}

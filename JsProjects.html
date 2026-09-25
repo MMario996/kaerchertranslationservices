@@ -19,7 +19,7 @@ function loadMyProjects() {
 
 function fillTable(projects) {
   const t=document.querySelector('#projectsTable tbody'); t.innerHTML='';
-  if(!projects.length){t.innerHTML='<tr><td colspan="10" style="text-align:center;padding:15px;">No records.</td></tr>';return;}
+  if(!projects.length){t.innerHTML=('<tr><td colspan="10" style="text-align:center;padding:15px;">' + tr_('jx_2fdbcf0', 'No records.') + '</td></tr>');return;}
 
   // Pivot (Job-based-Trigger) Parent-Child-Projekte: das Child bekommt eine
   // eigene Queue-Zeile (fuer Status/Download), soll aber nicht als
@@ -38,10 +38,10 @@ function fillTable(projects) {
     tr.className = 'row-' + statusGroup_(p.status);
     let due=p.dueDate?`<span class="${dueClass_(p)}">${new Date(p.dueDate).toLocaleDateString()}</span>`:"-";
     let shText=p.isShared?(p.owner===configData.currentUser
-      ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">Shared with<br>${p.sharedWith}</span>`
-      :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">Shared by<br>${p.owner}</span>`
+      ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">${tr_('jx_b1a6757', 'Shared with')}<br>${p.sharedWith}</span>`
+      :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">${tr_('jx_17414ca', 'Shared by')}<br>${p.owner}</span>`
     ):(p.groupShared
-      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">WOMA Team<br>${p.owner}</span>`
+      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">${tr_('jx_2af27f5', 'WOMA Team')}<br>${p.owner}</span>`
       :"-");
 
     const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
@@ -51,7 +51,7 @@ function fillTable(projects) {
     // Dokumentationsprojekte: Download, sobald mindestens eine Sprache fertig ist.
     const docDone = p.docProject && (p.docJobs || []).some(j => ['COMPLETED','DELIVERED','NOTIFIED'].includes(j.status));
     const dlBtn=(['NOTIFIED','COMPLETED','DELIVERED'].includes(p.status) || docDone)
-      ?`<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
+      ?`<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${p.projectUid}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">${tr_('jx_801ab24', 'Download')}</span></button>`
       :'-';
 
     const isPivotParent = p.pivotRole === 'PARENT';
@@ -94,7 +94,7 @@ function fillTable(projects) {
 // --- Meine Projekte: Status-Chips, Archiv, Fristen, Mobile-Karten ----------
 let historyStatusFilter_ = 'all';
 let historyShowArchive_ = false;
-const HISTORY_COL_KEYS_ = [['th_name','Project'], [null,'Phrase ID'], ['th_uploaded','Uploaded'], ['th_source','Source'], ['th_targets','Target'], ['th_status','Status'], ['th_due','Due'], ['th_shared','Shared'], ['dl_btn_download','Download'], ['th_actions','Actions']];
+const HISTORY_COL_KEYS_ = [['th_name',tr_('jx_9e727fd', 'Project')], [null,tr_('jx_b3acfd2', 'Phrase ID')], ['th_uploaded',tr_('jx_fe8d588', 'Uploaded')], ['th_source',tr_('jx_f31bbdd', 'Source')], ['th_targets',tr_('jx_c41a318', 'Target')], ['th_status',tr_('jx_ec53a8c', 'Status')], ['th_due',tr_('jx_d036392', 'Due')], ['th_shared',tr_('jx_a6156ea', 'Shared')], ['dl_btn_download',tr_('jx_801ab24', 'Download')], ['th_actions',tr_('jx_06df330', 'Actions')]];
 const ARCHIVE_AFTER_DAYS_ = 30;
 
 function statusGroup_(status) {
@@ -172,7 +172,7 @@ function buildPivotDetailRow_(groupId, parent, child) {
       </div>`;
     }
     const dlBtn = ['NOTIFIED','COMPLETED','DELIVERED'].includes(proj.status)
-      ? `<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">Download</span></button>`
+      ? `<button class="btn-download" title="Download / Save to Drive" onclick="openSaveToDriveModal('${parent.projectUid}','${part}')"><span class="material-icons-outlined">download</span><span class="btn-download-label">${tr_('jx_801ab24', 'Download')}</span></button>`
       : '';
     return `<div style="padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:10px;border-top:1px solid #e8e8e8;">
       <strong style="min-width:90px;">${label}:</strong>
@@ -227,7 +227,7 @@ function globalSearch() {
 }
 
 function exportProjectsCSV() {
-  const headers = ['Project Name','Phrase ID','Upload Date','Source','Target','Status','Due Date','Template'];
+  const headers = [tr_('jx_8e3a421', 'Project Name'),tr_('jx_b3acfd2', 'Phrase ID'),tr_('jx_25e7568', 'Upload Date'),tr_('jx_f31bbdd', 'Source'),tr_('jx_c41a318', 'Target'),tr_('jx_ec53a8c', 'Status'),tr_('jx_14c841e', 'Due Date'),tr_('jx_278c491', 'Template')];
   const rows = globalProjects.map(p => [
     p.projectName, p.projectUid, p.uploadDate, p.sourceLang, p.targetLang,
     p.status, p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '', p.templateName || ''
@@ -245,12 +245,12 @@ function syncProjectStatuses() {
   google.script.run
     .withSuccessHandler(r => {
       btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
-      showCustomAlert(r.success ? `\u2713 ${r.updated} project(s) updated.` : '\u2717 ' + r.message, "Status Sync");
+      showCustomAlert(r.success ? `\u2713 ${r.updated} project(s) updated.` : '\u2717 ' + r.message, tr_('jx_aea586b', 'Status Sync'));
       if (r.success && r.updated > 0) loadMyProjects();
     })
     .withFailureHandler(e => {
       btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
-      showCustomAlert('Error: ' + e.message, "Error");
+      showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + e.message, tr_('jx_902b0d5', 'Error'));
     })
     .apiSyncProjectStatuses();
 }
@@ -474,10 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }).observe(document.body, { childList: true, subtree: true });
 });
 
-/** Kurzform fuer Uebersetzungen mit Fallback-Text. */
-function tr_(key, fallback) {
-  return t_i18n_(currentLang, key) || fallback || key;
-}
 
 // --- Projekt-Detailansicht (Seitenpanel) ---------------------------------------
 // Zusaetzliche Ansicht zu den Symbolen in der Zeile: alle Infos und Aktionen
@@ -526,25 +522,25 @@ function openProjectDetail_(uid) {
   } else {
     a.push(`<button class="pd-action" onclick="closeProjectDetail_();docArchiveFromHistory_('${escapeJs(uid)}','${escapeJs(p.projectName)}')"><span class="material-icons-outlined">archive</span>${escapeHtml(tr_('pd_archive', 'Archive'))}</button>`);
   }
-  if (p.phraseUrl) a.push(`<a class="pd-action" href="${p.phraseUrl}" target="_blank"><span class="material-icons-outlined">open_in_new</span>Phrase TMS</a>`);
+  if (p.phraseUrl) a.push(`<a class="pd-action" href="${p.phraseUrl}" target="_blank"><span class="material-icons-outlined">open_in_new</span>${tr_('jx_a77f4ec', 'Phrase TMS')}</a>`);
   document.getElementById('drawerActions').innerHTML = a.join('');
 
   const due = p.dueDate ? `<span class="${dueClass_(p)}">${escapeHtml(new Date(p.dueDate).toLocaleString())}</span>` : '';
   const langs = p.docProject ? docJobBadges_(p) : escapeHtml(p.targetLang || '');
   let html = '<section class="pd-section">' + pdStepsHtml_(p.status) + '</section>';
   html += '<section class="pd-section"><h4>' + escapeHtml(tr_('pd_facts', 'Project')) + '</h4>' +
-    pdRow_('Phrase ID', p.projectUid ? `<a href="${p.phraseUrl}" target="_blank">${escapeHtml(p.projectUid)}</a>` : '') +
+    pdRow_(tr_('jx_b3acfd2', 'Phrase ID'), p.projectUid ? `<a href="${p.phraseUrl}" target="_blank">${escapeHtml(p.projectUid)}</a>` : '') +
     pdRow_(tr_('pd_uploaded', 'Uploaded'), escapeHtml(p.uploadDate || '')) +
     pdRow_(tr_('pd_due', 'Due date'), due) +
-    (p.templateName ? pdRow_('Template', escapeHtml(p.templateName)) : '') +
+    (p.templateName ? pdRow_(tr_('jx_278c491', 'Template'), escapeHtml(p.templateName)) : '') +
     pdRow_(tr_('pd_targets', 'Target languages'), langs) +
-    (p.iaNumber ? pdRow_('IA Number', escapeHtml(p.iaNumber)) : '') +
+    (p.iaNumber ? pdRow_(tr_('jx_41bd17b', 'IA Number'), escapeHtml(p.iaNumber)) : '') +
     pdRow_(tr_('pd_owner', 'Owner'), escapeHtml(p.owner || '')) +
     (p.sharedWith ? pdRow_(tr_('pd_shared', 'Shared with'), escapeHtml(p.sharedWith)) : '') +
     (p.downloadedAt ? pdRow_(tr_('pd_downloaded', 'Last download'), escapeHtml(new Date(p.downloadedAt).toLocaleString())) : '') +
     '</section>';
   if (p.pivotRole === 'PARENT') {
-    html += '<section class="pd-section"><h4>Source-Check \u2192 Translation</h4>' +
+    html += ('<section class="pd-section"><h4>' + tr_('jx_f9a98cb', 'Source-Check → Translation') + '</h4>') +
       pdRow_('Source-Check', `<span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>`) +
       pdRow_('Translation', child ? `<span class="status-badge status-${escapeHtml(child.status)}">${escapeHtml(child.status)}</span>` : escapeHtml(tr_('pd_pending_child', 'will be created automatically'))) +
       '</section>';
@@ -579,20 +575,20 @@ function closeProjectDetail_() {
 }
 
 function shareProject(uid) {
-  showCustomPrompt("Enter email to share with:", "", function(e) {
+  showCustomPrompt(tr_('jx_cd391b5', 'Enter email to share with:'), "", function(e) {
     if(e && e.includes('@')) {
       const o = document.getElementById('downloadOverlay');
       o.style.display = 'flex';
-      document.getElementById('downloadOverlayTitle').innerText = "Sharing...";
+      document.getElementById('downloadOverlayTitle').innerText = tr_('jx_95a7e24', 'Sharing...');
       google.script.run.withSuccessHandler(r => {
         o.style.display = 'none';
-        if(r.success) showCustomAlert("Shared successfully!");
-        else showCustomAlert(r.error, "Error");
+        if(r.success) showCustomAlert(tr_('jx_d4ca573', 'Shared successfully!'));
+        else showCustomAlert(r.error, tr_('jx_902b0d5', 'Error'));
       }).apiShareProject(uid, e);
     } else if(e) {
-      showCustomAlert("Invalid email address.", "Error");
+      showCustomAlert(tr_('jx_e267e2b', 'Invalid email address.'), tr_('jx_902b0d5', 'Error'));
     }
-  }, "Share Project");
+  }, tr_('jx_cc327c0', 'Share Project'));
 }
 
 function cloneProject(uid) {
@@ -617,16 +613,16 @@ function cloneProject(uid) {
 }
 
 function cancelProject(uid, n) {
-  showCustomConfirm(`Cancel project "${n}"?`, function() {
+  showCustomConfirm(`${'Cancel project "'}${n}"?`, function() {
     const o = document.getElementById('downloadOverlay');
     o.style.display = 'flex';
-    document.getElementById('downloadOverlayTitle').innerText = "Cancelling...";
+    document.getElementById('downloadOverlayTitle').innerText = tr_('jx_ef5ba1f', 'Cancelling...');
     google.script.run.withSuccessHandler(r => {
       o.style.display = 'none';
       if(r.success) loadMyProjects();
-      else showCustomAlert(r.error, "Error");
+      else showCustomAlert(r.error, tr_('jx_902b0d5', 'Error'));
     }).apiCancelProject(uid);
-  }, "Cancel Project");
+  }, tr_('jx_9105668', 'Cancel Project'));
 }
 
 function filterProjects(){const i=document.querySelectorAll('.filter-input');const f={pn:i[0].value.toLowerCase(),ud:i[1].value.toLowerCase(),st:i[2].value.toLowerCase(),dd:i[3].value.toLowerCase()};fillTable(globalProjects.filter(p=>(p.projectName||"").toLowerCase().includes(f.pn)&&(p.uploadDate||"").toLowerCase().includes(f.ud)&&(p.status||"").toLowerCase().includes(f.st)&&(p.dueDate?new Date(p.dueDate).toLocaleDateString().toLowerCase():"").includes(f.dd)));}
@@ -635,11 +631,11 @@ function saveBase64AsFile(b,m,f){const l=document.createElement('a');l.href='dat
 
 function loadHealthCheck() {
   const content = document.getElementById('healthContent');
-  content.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div><p>Running checks...</p></div>';
+  content.innerHTML = ('<div style="text-align:center;padding:40px;"><div class="loader"></div><p>' + tr_('jx_9353917', 'Running checks...') + '</p></div>');
   google.script.run
     .withSuccessHandler(res => {
       if (!res.authorized) {
-        content.innerHTML = '<div style="padding:20px;color:#d93025;">\u2022 Not authorized.</div>';
+        content.innerHTML = ('<div style="padding:20px;color:#d93025;">' + tr_('jx_4a2557f', '• Not authorized.') + '</div>');
         return;
       }
       const cards = res.checks.map(c => {
@@ -680,10 +676,10 @@ const DBX_WIDGETS_ = [
 ];
 const DBX_LAYOUT_KEY_ = 'dbxLayout_v1';
 const DBX_STATUS_ = {
-  done:      { label: 'Erledigt',    color: '#2e7d32', icon: 'task_alt' },
-  open:      { label: 'Offen',       color: '#b08d00', icon: 'pending' },
-  overdue:   { label: 'Überfällig',  color: '#c62828', icon: 'warning' },
-  cancelled: { label: 'Abgebrochen', color: '#8a8a8a', icon: 'block' }
+  done:      { get label() { return tr_('db2_st_done', 'Erledigt'); }, color: '#2e7d32', icon: 'task_alt' },
+  open:      { get label() { return tr_('db2_st_open', 'Offen'); }, color: '#b08d00', icon: 'pending' },
+  overdue:   { get label() { return tr_('db2_st_overdue', 'Überfällig'); }, color: '#c62828', icon: 'warning' },
+  cancelled: { get label() { return tr_('db2_st_cancelled', 'Abgebrochen'); }, color: '#8a8a8a', icon: 'block' }
 };
 let dbxData_ = null;
 let dbxState_ = { range: '30', from: null, to: null, status: '', template: '', lang: '', user: '', q: '', bucket: 'auto', metric: 'projects' };
@@ -691,6 +687,8 @@ let dbxLayout_ = null;
 let dbxEditing_ = false;
 
 function renderDashboard() { dbxLoad(false); }
+
+function dbxWTitle_(def) { return tr_('db2_w_' + def.id, def.title); }
 
 function dbxLoad(force) {
   dbxInitControls_();
@@ -701,7 +699,7 @@ function dbxLoad(force) {
   google.script.run
     .withSuccessHandler(r => {
       document.getElementById('dbxLoading').style.display = 'none';
-      if (!r || r.success === false) { dbxShowError_((r && r.error) || 'Keine Daten.'); return; }
+      if (!r || r.success === false) { dbxShowError_((r && r.error) || tr_('db2_no_data', 'Keine Daten.')); return; }
       dbxData_ = {
         scope: r.scope,
         generatedAt: r.generatedAt,
@@ -725,7 +723,7 @@ function dbxLoad(force) {
 
 function dbxShowError_(msg) {
   const el = document.getElementById('dbxError');
-  el.textContent = 'Dashboard konnte nicht geladen werden: ' + msg;
+  el.textContent = tr_('db2_load_error', 'Dashboard konnte nicht geladen werden:') + ' ' + msg;
   el.style.display = 'block';
 }
 
@@ -807,9 +805,9 @@ function dbxFillSelects_() {
     document.getElementById(id).innerHTML = '<option value="">' + all + '</option>' +
       items.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join('');
   };
-  fill('dbxFTemplate', 'Alle Templates', count(r => r.template));
-  fill('dbxFLang', 'Alle Sprachen', count(r => r.langs));
-  fill('dbxFUser', 'Alle Einreicher', count(r => r.owner));
+  fill('dbxFTemplate', tr_('db2_all_templates', 'Alle Templates'), count(r => r.template));
+  fill('dbxFLang', tr_('db2_all_langs', 'Alle Sprachen'), count(r => r.langs));
+  fill('dbxFUser', tr_('db2_all_users', 'Alle Einreicher'), count(r => r.owner));
   document.getElementById('dbxFUser').style.display = dbxData_.scope === 'all' ? '' : 'none';
 }
 
@@ -892,24 +890,24 @@ function dbxRenderCustomize_() {
   panel.style.display = dbxEditing_ ? 'block' : 'none';
   if (!dbxEditing_) return;
   const layout = dbxLoadLayout_();
-  panel.innerHTML = '<h4>Dashboard anpassen</h4>' +
-    '<div style="font-size:12px;color:#777;margin-bottom:10px;">Kacheln ein-/ausblenden, per Drag &amp; Drop oder Pfeilen sortieren und die Breite wählen. Die Einstellung wird in diesem Browser gespeichert.</div>' +
+  panel.innerHTML = '<h4>' + escapeHtml(tr_('db2_customize_title', 'Dashboard anpassen')) + '</h4>' +
+    '<div style="font-size:12px;color:#777;margin-bottom:10px;">' + escapeHtml(tr_('db2_customize_hint', 'Kacheln ein-/ausblenden, per Drag & Drop oder Pfeilen sortieren und die Breite wählen. Die Einstellung wird in diesem Browser gespeichert.')) + '</div>' +
     layout.map((w, i) => {
       const def = DBX_WIDGETS_.find(d => d.id === w.id);
       if (def.scopeAll && dbxData_ && dbxData_.scope !== 'all') return '';
       return '<div class="dbx-cz-row" draggable="true" data-id="' + w.id + '">' +
         '<span class="material-icons-outlined h">drag_indicator</span>' +
-        '<label><input type="checkbox" ' + (w.show ? 'checked' : '') + ' onchange="dbxSetWidget_(\'' + w.id + '\', {show:this.checked})"> ' + escapeHtml(def.title) + '</label>' +
+        '<label><input type="checkbox" ' + (w.show ? 'checked' : '') + ' ' + 'onchange="dbxSetWidget_(\'' + w.id + '\', {show:this.checked})"> ' + escapeHtml(dbxWTitle_(def)) + '</label>' +
         '<select onchange="dbxSetWidget_(\'' + w.id + '\', {size:Number(this.value)})">' +
-          [[1, 'Schmal'], [2, 'Halb'], [4, 'Voll']].map(o => '<option value="' + o[0] + '"' + (w.size === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') +
+          [[1, tr_('db2_size_s', 'Schmal')], [2, tr_('db2_size_m', 'Halb')], [4, tr_('db2_size_l', 'Voll')]].map(o => '<option value="' + o[0] + '"' + (w.size === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') +
         '</select>' +
-        '<button type="button" title="Nach oben" onclick="dbxMove_(' + i + ',-1)"><span class="material-icons-outlined">arrow_upward</span></button>' +
-        '<button type="button" title="Nach unten" onclick="dbxMove_(' + i + ',1)"><span class="material-icons-outlined">arrow_downward</span></button>' +
+        '<button type="button" title="' + escapeHtml(tr_('db2_up', 'Nach oben')) + '" onclick="dbxMove_(' + i + ',-1)"><span class="material-icons-outlined">arrow_upward</span></button>' +
+        '<button type="button" title="' + escapeHtml(tr_('db2_down', 'Nach unten')) + '" onclick="dbxMove_(' + i + ',1)"><span class="material-icons-outlined">arrow_downward</span></button>' +
       '</div>';
     }).join('') +
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">' +
-      '<button type="button" class="dbx-btn" onclick="dbxResetLayout()"><span class="material-icons-outlined">restart_alt</span>Standard</button>' +
-      '<button type="button" class="dbx-btn active" onclick="dbxToggleCustomize()"><span class="material-icons-outlined">check</span>Fertig</button>' +
+      '<button type="button" class="dbx-btn" onclick="dbxResetLayout()"><span class="material-icons-outlined">restart_alt</span>' + escapeHtml(tr_('db2_reset', 'Standard')) + '</button>' +
+      '<button type="button" class="dbx-btn active" onclick="dbxToggleCustomize()"><span class="material-icons-outlined">check</span>' + escapeHtml(tr_('db2_done', 'Fertig')) + '</button>' +
     '</div>';
   let dragId = null;
   panel.querySelectorAll('.dbx-cz-row').forEach(row => {
@@ -967,9 +965,9 @@ function dbxRender_() {
   const ctx = { rows, prev, range, all };
 
   const sub = document.getElementById('dbxSub');
-  sub.textContent = rows.length + ' von ' + all.length + ' Projekten' +
-    (dbxData_.scope === 'all' ? ' · alle Einreicher' : ' · nur eigene / geteilte Projekte') +
-    ' · Stand ' + new Date(dbxData_.generatedAt).toLocaleString();
+  sub.textContent = tr_('db2_sub_count', '{n} von {t} Projekten').replace('{n}', rows.length).replace('{t}', all.length) +
+    ' · ' + (dbxData_.scope === 'all' ? tr_('db2_scope_all', 'alle Einreicher') : tr_('db2_scope_own', 'nur eigene / geteilte Projekte')) +
+    ' · ' + tr_('db2_as_of', 'Stand') + ' ' + new Date(dbxData_.generatedAt).toLocaleString(calLocale_());
 
   const grid = document.getElementById('dbxGrid');
   grid.style.display = 'grid';
@@ -979,24 +977,24 @@ function dbxRender_() {
     if (def.scopeAll && dbxData_.scope !== 'all') return '';
     const body = dbxWidgetBody_(w.id, ctx);
     return '<section class="dbx-w s' + w.size + (w.id === 'kpis' ? ' plain' : '') + '" data-wid="' + w.id + '">' +
-      '<div class="dbx-w-head"><div class="dbx-w-title">' + escapeHtml(def.title) + '</div>' +
+      '<div class="dbx-w-head"><div class="dbx-w-title">' + escapeHtml(dbxWTitle_(def)) + '</div>' +
       '<div class="dbx-w-tools">' + (body.tools || '') +
-      '<button type="button" class="dbx-w-hide" data-act="hide" data-val="' + w.id + '" title="Ausblenden"><span class="material-icons-outlined">visibility_off</span></button></div></div>' +
+      '<button type="button" class="dbx-w-hide" data-act="hide" data-val="' + w.id + '" title="' + escapeHtml(tr_('db2_hide', 'Ausblenden')) + '"><span class="material-icons-outlined">visibility_off</span></button></div></div>' +
       body.html + '</section>';
-  }).join('') || '<div class="dbx-empty" style="grid-column:1/-1;">Alle Kacheln ausgeblendet &ndash; über „Anpassen“ wieder einblenden.</div>';
+  }).join('') || '<div class="dbx-empty" style="grid-column:1/-1;">' + escapeHtml(tr_('db2_all_hidden', 'Alle Kacheln ausgeblendet – über „Anpassen“ wieder einblenden.')) + '</div>';
 }
 
 function dbxRenderChips_() {
   const s = dbxState_;
   const chips = [];
   const add = (key, label) => chips.push('<span class="dbx-chip">' + escapeHtml(label) +
-    '<button type="button" onclick="dbxSetFilter(\'' + key + '\',\'\')" title="Entfernen"><span class="material-icons-outlined">close</span></button></span>');
-  if (s.status) add('status', 'Status: ' + DBX_STATUS_[s.status].label);
-  if (s.template) add('template', 'Template: ' + s.template);
-  if (s.lang) add('lang', 'Sprache: ' + s.lang);
-  if (s.user) add('user', 'Einreicher: ' + s.user);
-  if (s.q) add('q', 'Suche: ' + s.q);
-  if (chips.length > 1) chips.push('<button type="button" class="dbx-chip-reset" onclick="dbxClearFilters()">Alle Filter zurücksetzen</button>');
+    '<button type="button" onclick="dbxSetFilter(\'' + key + '\',\'\')" title="' + escapeHtml(tr_('db2_remove', 'Entfernen')) + '"><span class="material-icons-outlined">close</span></button></span>');
+  if (s.status) add('status', tr_('db2_f_status', 'Status') + ': ' + DBX_STATUS_[s.status].label);
+  if (s.template) add('template', tr_('db2_f_template', 'Template') + ': ' + s.template);
+  if (s.lang) add('lang', tr_('db2_f_lang', 'Sprache') + ': ' + s.lang);
+  if (s.user) add('user', tr_('db2_f_user', 'Einreicher') + ': ' + s.user);
+  if (s.q) add('q', tr_('db2_f_search', 'Suche') + ': ' + s.q);
+  if (chips.length > 1) chips.push('<button type="button" class="dbx-chip-reset" onclick="dbxClearFilters()">' + escapeHtml(tr_('db2_clear_filters', 'Alle Filter zurücksetzen')) + '</button>');
   document.getElementById('dbxChips').innerHTML = chips.join('');
   document.getElementById('dbxFSearch').value = s.q;
 }
@@ -1012,7 +1010,7 @@ function dbxWidgetBody_(id, ctx) {
     case 'trend': return dbxTrend_(ctx);
     case 'status': return dbxStatus_(ctx);
     case 'deadlines': return dbxDeadlines_(ctx);
-    case 'templates': return dbxTop_(ctx.rows, r => r.template || '(ohne Template)', 'template', 8);
+    case 'templates': return dbxTop_(ctx.rows, r => r.template || tr_('db2_no_template', '(ohne Template)'), 'template', 8);
     case 'langs': return dbxTop_(ctx.rows, r => r.langs, 'lang', 10);
     case 'users': return dbxTop_(ctx.rows, r => r.owner, 'user', 8);
     case 'heat': return dbxHeat_(ctx);
@@ -1020,7 +1018,7 @@ function dbxWidgetBody_(id, ctx) {
   return { html: '' };
 }
 
-function dbxFmt_(n) { return Number(n || 0).toLocaleString(currentLang === 'de' ? 'de-DE' : 'en-US'); }
+function dbxFmt_(n) { return Number(n || 0).toLocaleString(calLocale_()); }
 
 function dbxKpis_(ctx) {
   const calc = rows => {
@@ -1064,24 +1062,24 @@ function dbxKpis_(ctx) {
     const pts = vals.map((v, i) => [i * W / (vals.length - 1), H - 3 - (v / max) * (H - 6)]);
     const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
     return '<svg class="dbx-spark" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
-      '<path d="' + line + ' L ' + W + ' ' + H + ' L 0 ' + H + ' Z" fill="' + color + '" opacity="0.12"/>' +
+      '<path d="' + line + ' L ' + W + ' ' + H + ' L 0 ' + H + ' ' + 'Z" fill="' + color + '" opacity="0.12"/>' +
       '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
   };
 
   const tile = (key, icon, label, color, filterVal, suffix, invert, tip) => {
     const val = cur[key];
-    let delta = '<span class="dbx-kpi-delta none">' + (prev ? 'ggü. Vorperiode' : 'Gesamtzeitraum') + '</span>';
+    let delta = '<span class="dbx-kpi-delta none">' + escapeHtml(prev ? tr_('db2_vs_prev', 'ggü. Vorperiode') : tr_('db2_all_time', 'Gesamtzeitraum')) + '</span>';
     if (prev && prev[key] !== null && val !== null && key !== 'overdue' && key !== 'open') {
       const diff = val - prev[key];
       const pct = prev[key] ? Math.round(100 * diff / prev[key]) : null;
       const good = invert ? diff < 0 : diff > 0;
-      const txt = (diff > 0 ? '↑ ' : diff < 0 ? '↓ ' : '') + (key === 'ontime' ? Math.abs(diff) + ' Pkt.' : (pct === null ? (diff > 0 ? '+' : '') + dbxFmt_(diff) : Math.abs(pct) + ' %'));
-      delta = '<span class="dbx-kpi-delta ' + (diff === 0 ? '' : good ? 'up' : 'down') + '" title="Vergleich zur Vorperiode (' + dbxFmt_(prev[key]) + ')">' + (diff === 0 ? '± 0' : txt) + '</span>';
+      const txt = (diff > 0 ? '↑ ' : diff < 0 ? '↓ ' : '') + (key === 'ontime' ? Math.abs(diff) + ' ' + tr_('db2_pts', 'Pkt.') : (pct === null ? (diff > 0 ? '+' : '') + dbxFmt_(diff) : Math.abs(pct) + ' %'));
+      delta = '<span class="dbx-kpi-delta ' + (diff === 0 ? '' : good ? 'up' : 'down') + '" title="' + escapeHtml(tr_('db2_prev_period', 'Vorperiode')) + ': ' + dbxFmt_(prev[key]) + '">' + (diff === 0 ? '± 0' : txt) + '</span>';
     }
-    const act = filterVal ? ' data-act="status" data-val="' + filterVal + '"' : '';
+    const act = filterVal ? ' ' + 'data-act="status" data-val="' + filterVal + '"' : '';
     const activeCls = filterVal && dbxState_.status === filterVal ? ' active' : '';
-    return '<button type="button" class="dbx-kpi' + activeCls + '"' + act + (tip ? ' data-tip="' + escapeHtml(tip) + '"' : '') +
-      ' style="--acc:' + color + ';--accbg:' + color + '1f;">' +
+    return '<button type="button" class="dbx-kpi' + activeCls + '"' + act + (tip ? ' ' + 'data-tip="' + escapeHtml(tip) + '"' : '') +
+      ' ' + 'style="--acc:' + color + ';--accbg:' + color + '1f;">' +
       '<div class="dbx-kpi-top"><span class="dbx-kpi-lbl">' + label + '</span>' +
         '<span class="dbx-kpi-ico"><span class="material-icons-outlined">' + icon + '</span></span></div>' +
       '<div class="dbx-kpi-num">' + (val === null ? '–' : dbxFmt_(val) + (suffix || '')) + '</div>' +
@@ -1090,14 +1088,14 @@ function dbxKpis_(ctx) {
   const hasWords = dbxData_.rows.some(r => r.words);
   const tileCount = 6 + (hasWords ? 1 : 0) + (dbxData_.scope === 'all' ? 1 : 0);
   let html = '<div class="dbx-kpis" style="--n:' + tileCount + ';">' +
-    tile('total', 'folder_open', 'Projekte', '#111111', '', '', false, 'Alle Projekte im Zeitraum. Klick auf eine Kachel filtert das Dashboard.') +
-    tile('open', 'pending', 'In Bearbeitung', '#b08d00', 'open') +
-    tile('overdue', 'warning_amber', 'Überfällig', '#c62828', 'overdue', '', true, 'Offene Projekte, deren Frist abgelaufen ist.') +
-    tile('done', 'task_alt', 'Erledigt', '#2e7d32', 'done') +
-    tile('ontime', 'schedule', 'Termintreue', '#2a78d6', '', ' %', false, 'Anteil erledigter Projekte, die vor Fristende heruntergeladen wurden (nur Projekte mit Download-Zeitpunkt).') +
-    (hasWords ? tile('words', 'notes', 'Wörter', '#6d4bd1', '', '', false, 'Summe der Wörter laut Phrase-Analyse.') : '') +
-    tile('jobs', 'translate', 'Sprach-Jobs', '#0f8f86', '', '', false, 'Summe der Zielsprachen über alle Projekte.');
-  if (dbxData_.scope === 'all') html += tile('users', 'group', 'Einreicher', '#555555', '', '', false, 'Anzahl unterschiedlicher Einreicher.');
+    tile('total', 'folder_open', tr_('db2_k_total', 'Projekte'), '#111111', '', '', false, tr_('db2_k_total_tip', 'Alle Projekte im Zeitraum. Klick auf eine Kachel filtert das Dashboard.')) +
+    tile('open', 'pending', tr_('db2_k_open', 'In Bearbeitung'), '#b08d00', 'open') +
+    tile('overdue', 'warning_amber', tr_('db2_st_overdue', 'Überfällig'), '#c62828', 'overdue', '', true, tr_('db2_k_overdue_tip', 'Offene Projekte, deren Frist abgelaufen ist.')) +
+    tile('done', 'task_alt', tr_('db2_st_done', 'Erledigt'), '#2e7d32', 'done') +
+    tile('ontime', 'schedule', tr_('db2_k_ontime', 'Termintreue'), '#2a78d6', '', ' %', false, tr_('db2_k_ontime_tip', 'Anteil erledigter Projekte, die vor Fristende heruntergeladen wurden (nur Projekte mit Download-Zeitpunkt).')) +
+    (hasWords ? tile('words', 'notes', tr_('db2_k_words', 'Wörter'), '#6d4bd1', '', '', false, tr_('db2_k_words_tip', 'Summe der Wörter laut Phrase-Analyse.')) : '') +
+    tile('jobs', 'translate', tr_('db2_k_jobs', 'Sprach-Jobs'), '#0f8f86', '', '', false, tr_('db2_k_jobs_tip', 'Summe der Zielsprachen über alle Projekte.'));
+  if (dbxData_.scope === 'all') html += tile('users', 'group', tr_('db2_f_user', 'Einreicher'), '#555555', '', '', false, tr_('db2_k_users_tip', 'Anzahl unterschiedlicher Einreicher.'));
   return { html: html + '</div>' };
 }
 
@@ -1136,10 +1134,10 @@ function dbxTrend_(ctx) {
 
   const seg = (act, cur, opts) => '<span class="dbx-mini-seg">' + opts.map(o =>
     '<button type="button" data-act="' + act + '" data-val="' + o[0] + '" class="' + (cur === o[0] ? 'active' : '') + '">' + o[1] + '</button>').join('') + '</span>';
-  const tools = seg('metric', metric, [['projects', 'Projekte'], ['jobs', 'Sprachen'], ['words', 'Wörter']]) + ' ' +
-    seg('bucket', dbxState_.bucket, [['auto', 'Auto'], ['day', 'Tag'], ['week', 'Woche'], ['month', 'Monat']]);
+  const tools = seg('metric', metric, [['projects', tr_('db2_k_total', 'Projekte')], ['jobs', tr_('db2_langs', 'Sprachen')], ['words', tr_('db2_k_words', 'Wörter')]]) + ' ' +
+    seg('bucket', dbxState_.bucket, [['auto', tr_('db2_auto', 'Auto')], ['day', tr_('db2_day', 'Tag')], ['week', tr_('db2_week', 'Woche')], ['month', tr_('db2_month', 'Monat')]]);
 
-  if (!buckets.length || !rows.length) return { tools, html: '<div class="dbx-empty">Keine Projekte im gewählten Zeitraum.</div>' };
+  if (!buckets.length || !rows.length) return { tools, html: '<div class="dbx-empty">' + escapeHtml(tr_('db2_no_projects', 'Keine Projekte im gewählten Zeitraum.')) + '</div>' };
 
   const W = 1000, H = 240, padL = 0, padB = 10, padT = 10;
   const max = Math.max(1, ...buckets.map(x => x.done + x.open + x.cancelled));
@@ -1156,8 +1154,8 @@ function dbxTrend_(ctx) {
   const y = v => padT + plotH - (v / niceMax) * plotH;
   const fmtB = ms => {
     const d = new Date(ms);
-    if (unit === 'month') return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-    return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+    if (unit === 'month') return d.toLocaleDateString(calLocale_(), { month: 'short', year: '2-digit' });
+    return d.toLocaleDateString(calLocale_(), { day: '2-digit', month: '2-digit' });
   };
   let svg = '<svg class="dbx-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="height:240px;">';
   for (let i = 0; i <= 4; i++) {
@@ -1175,13 +1173,13 @@ function dbxTrend_(ctx) {
       const y0 = y(acc), y1 = y(acc + bk[k]);
       const isTop = order.slice(oi + 1).every(k2 => !bk[k2]);
       const hgt = Math.max(1, y0 - y1 - (acc > 0 ? 1 : 0));
-      svg += '<rect x="' + x + '" y="' + y1 + '" width="' + w + '" height="' + hgt + '" fill="' + DBX_STATUS_[k].color + '"' + (isTop ? ' rx="2"' : '') + '/>';
+      svg += '<rect x="' + x + '" y="' + y1 + '" width="' + w + '" height="' + hgt + '" fill="' + DBX_STATUS_[k].color + '"' + (isTop ? ' ' + 'rx="2"' : '') + '/>';
       acc += bk[k];
     });
     const endIncl = new Date(bk.end - 86400000);
     const tip = '<strong>' + fmtB(bk.start) + (unit !== 'day' ? ' – ' + endIncl.toLocaleDateString() : '') + '</strong><br>' +
-      'Gesamt: ' + dbxFmt_(total) + '<br>' + order.map(k => DBX_STATUS_[k].label + ': ' + dbxFmt_(bk[k])).join('<br>') +
-      '<br><em style="color:#bbb;">Klick: auf diesen Zeitraum zoomen</em>';
+      escapeHtml(tr_('db2_total', 'Gesamt')) + ': ' + dbxFmt_(total) + '<br>' + order.map(k => DBX_STATUS_[k].label + ': ' + dbxFmt_(bk[k])).join('<br>') +
+      '<br><em style="color:#bbb;">' + escapeHtml(tr_('db2_click_zoom', 'Klick: auf diesen Zeitraum zoomen')) + '</em>';
     const f = new Date(bk.start), t2 = endIncl;
     const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     svg += '<rect x="' + (padL + i * bw) + '" y="' + padT + '" width="' + bw + '" height="' + plotH + '" fill="transparent" style="cursor:pointer" data-tip="' + escapeHtml(tip) + '" data-act="range" data-val="' + iso(f) + '|' + iso(t2) + '"/>';
@@ -1207,7 +1205,7 @@ function dbxStatus_(ctx) {
   const counts = { done: 0, open: 0, overdue: 0, cancelled: 0 };
   rows.forEach(r => { if (dbxIsOverdue_(r)) counts.overdue++; else counts[r.grp]++; });
   const total = rows.length;
-  if (!total) return { html: '<div class="dbx-empty">Keine Daten.</div>' };
+  if (!total) return { html: '<div class="dbx-empty">' + escapeHtml(tr_('db2_no_data', 'Keine Daten.')) + '</div>' };
   const R = 70, r0 = 46, C = 90;
   let a0 = -Math.PI / 2, svg = '<svg viewBox="0 0 180 180" style="width:180px;height:180px;flex-shrink:0;">';
   const keys = ['done', 'open', 'overdue', 'cancelled'];
@@ -1226,7 +1224,7 @@ function dbxStatus_(ctx) {
     a0 = a0 + frac * Math.PI * 2;
   });
   svg += '<text x="90" y="88" text-anchor="middle" style="font-size:26px;font-weight:800;fill:#111;">' + dbxFmt_(total) + '</text>' +
-    '<text x="90" y="108" text-anchor="middle" style="font-size:11px;fill:#777;">Projekte</text></svg>';
+    '<text x="90" y="108" text-anchor="middle" style="font-size:11px;fill:#777;">' + escapeHtml(tr_('db2_k_total', 'Projekte')) + '</text></svg>';
   const legend = '<div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:140px;">' + keys.map(k =>
     '<button type="button" data-act="status" data-val="' + k + '" style="display:flex;align-items:center;gap:8px;background:none;border:none;padding:4px 0;cursor:pointer;font:inherit;font-size:13px;text-align:left;' + (dbxState_.status === k ? 'font-weight:800;' : '') + '">' +
       '<span class="material-icons-outlined" style="font-size:18px;color:' + DBX_STATUS_[k].color + '">' + DBX_STATUS_[k].icon + '</span>' +
@@ -1239,18 +1237,18 @@ function dbxTop_(rows, keyFn, act, limit) {
   const m = {};
   rows.forEach(r => [].concat(keyFn(r)).forEach(k => { if (k) m[k] = (m[k] || 0) + 1; }));
   const list = Object.keys(m).map(k => ({ k, v: m[k] })).sort((a, b) => b.v - a.v);
-  if (!list.length) return { html: '<div class="dbx-empty">Keine Daten.</div>' };
+  if (!list.length) return { html: '<div class="dbx-empty">' + escapeHtml(tr_('db2_no_data', 'Keine Daten.')) + '</div>' };
   const shown = list.slice(0, limit);
   const rest = list.slice(limit).reduce((a, x) => a + x.v, 0);
   const max = shown[0].v;
   const total = list.reduce((a, x) => a + x.v, 0);
   let html = '<div class="dbx-hbar">' + shown.map((x, i) =>
-    '<div class="dbx-hbar-row' + (dbxState_[act] === x.k ? ' sel' : '') + '" data-act="' + act + '" data-val="' + escapeHtml(x.k) + '" data-tip="' + escapeHtml('<strong>' + escapeHtml(x.k) + '</strong><br>' + dbxFmt_(x.v) + ' (' + Math.round(100 * x.v / total) + ' %)<br><em style="color:#bbb;">Klick: filtern</em>') + '">' +
+    '<div class="dbx-hbar-row' + (dbxState_[act] === x.k ? ' sel' : '') + '" data-act="' + act + '" data-val="' + escapeHtml(x.k) + '" data-tip="' + escapeHtml('<strong>' + escapeHtml(x.k) + '</strong><br>' + dbxFmt_(x.v) + ' (' + Math.round(100 * x.v / total) + ' %)<br><em style="color:#bbb;">' + escapeHtml(tr_('db2_click_filter', 'Klick: filtern')) + '</em>') + '">' +
       '<span class="dbx-hbar-rank">' + (i + 1) + '</span>' +
       '<div class="dbx-hbar-lbl">' + escapeHtml(x.k) + '</div>' +
       '<div class="dbx-hbar-track"><div class="dbx-hbar-fill" style="width:' + (100 * x.v / max) + '%"></div></div>' +
       '<div class="dbx-hbar-val">' + dbxFmt_(x.v) + '</div></div>').join('') + '</div>';
-  if (rest) html += '<div style="font-size:12px;color:#888;margin-top:10px;">+ ' + (list.length - limit) + ' weitere (' + dbxFmt_(rest) + ')</div>';
+  if (rest) html += '<div style="font-size:12px;color:#888;margin-top:10px;">' + escapeHtml(tr_('db2_more', '+ {n} weitere').replace('{n}', list.length - limit)) + ' (' + dbxFmt_(rest) + ')</div>';
   return { html };
 }
 
@@ -1263,12 +1261,12 @@ function dbxDeadlines_(ctx) {
   const item = (r, over) => {
     const days = Math.round((r.d - now) / 86400000);
     const badge = over
-      ? '<span class="dbx-badge" style="background:#fdecea;color:#c62828;">' + Math.abs(days) + ' T überfällig</span>'
-      : '<span class="dbx-badge" style="background:' + (days <= 2 ? '#fff4e0;color:#a15c00' : '#f1f5fb;color:#335') + ';">' + (days <= 0 ? 'heute' : 'in ' + days + ' T') + '</span>';
-    return '<li style="cursor:pointer;" data-act="open" data-val="' + escapeHtml(r.uid) + '" data-tip="' + escapeHtml('Frist: ' + new Date(r.d).toLocaleString() + (r.owner ? '<br>' + escapeHtml(r.owner) : '') + '<br><em style="color:#bbb;">Klick: in „Meine Projekte“ öffnen</em>') + '">' +
+      ? '<span class="dbx-badge" style="background:#fdecea;color:#c62828;">' + escapeHtml(tr_('db2_days_overdue', '{n} T überfällig').replace('{n}', Math.abs(days))) + '</span>'
+      : '<span class="dbx-badge" style="background:' + (days <= 2 ? '#fff4e0;color:#a15c00' : '#f1f5fb;color:#335') + ';">' + escapeHtml(days <= 0 ? tr_('db2_today', 'heute') : tr_('db2_in_days', 'in {n} T').replace('{n}', days)) + '</span>';
+    return '<li style="cursor:pointer;" data-act="open" data-val="' + escapeHtml(r.uid) + '" data-tip="' + escapeHtml(escapeHtml(tr_('db2_due', 'Frist')) + ': ' + new Date(r.d).toLocaleString(calLocale_()) + (r.owner ? '<br>' + escapeHtml(r.owner) : '') + '<br><em style="color:#bbb;">' + escapeHtml(tr_('db2_click_open', 'Klick: in „Meine Projekte“ öffnen')) + '</em>') + '">' +
       '<div style="min-width:0;"><div class="n">' + escapeHtml(r.name || r.uid) + '</div><div class="m">' + escapeHtml(r.template || '') + (r.langs.length ? ' · ' + escapeHtml(r.langs.join(', ')) : '') + '</div></div>' + badge + '</li>';
   };
-  if (!overdue.length && !soon.length) return { html: '<div class="dbx-empty">Keine offenen Fristen in den nächsten 14 Tagen. 🎉</div>' };
+  if (!overdue.length && !soon.length) return { html: '<div class="dbx-empty">' + escapeHtml(tr_('db2_no_deadlines', 'Keine offenen Fristen in den nächsten 14 Tagen.')) + ' 🎉</div>' };
   return { html: '<ul class="dbx-list">' + overdue.map(r => item(r, true)).join('') + soon.map(r => item(r, false)).join('') + '</ul>' };
 }
 
@@ -1276,19 +1274,20 @@ function dbxHeat_(ctx) {
   const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
   ctx.rows.forEach(r => { if (isNaN(r.t)) return; const d = new Date(r.t); grid[(d.getDay() + 6) % 7][d.getHours()]++; });
   const max = Math.max(0, ...grid.map(row => Math.max(...row)));
-  if (!max) return { html: '<div class="dbx-empty">Keine Daten.</div>' };
-  const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  if (!max) return { html: '<div class="dbx-empty">' + escapeHtml(tr_('db2_no_data', 'Keine Daten.')) + '</div>' };
+  // 1.1.2024 war ein Montag -> Wochentagskuerzel in der Oberflaechensprache.
+  const days = [0, 1, 2, 3, 4, 5, 6].map(i => new Date(2024, 0, 1 + i).toLocaleDateString(calLocale_(), { weekday: 'short' }));
   let html = '<div class="dbx-heat"><div></div>';
   for (let h = 0; h < 24; h++) html += '<div style="text-align:center;">' + (h % 3 === 0 ? h : '') + '</div>';
   grid.forEach((row, di) => {
     html += '<div style="display:flex;align-items:center;">' + days[di] + '</div>';
     row.forEach((v, h) => {
       const a = v ? 0.15 + 0.85 * (v / max) : 0;
-      html += '<div class="c" style="' + (v ? 'background:rgba(42,120,214,' + a.toFixed(2) + ');' : '') + '" data-tip="' + escapeHtml('<strong>' + days[di] + ', ' + h + ':00–' + (h + 1) + ':00</strong><br>' + v + ' Einreichung(en)') + '"></div>';
+      html += '<div class="c" style="' + (v ? 'background:rgba(42,120,214,' + a.toFixed(2) + ');' : '') + '" data-tip="' + escapeHtml('<strong>' + days[di] + ', ' + h + ':00–' + (h + 1) + ':00</strong><br>' + escapeHtml(tr_('db2_submissions', '{n} Einreichung(en)').replace('{n}', v))) + '"></div>';
     });
   });
-  html += '</div><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#777;margin-top:8px;">weniger ' +
-    [0.15, 0.4, 0.65, 1].map(a => '<i style="width:12px;height:12px;display:inline-block;border-radius:2px;background:rgba(42,120,214,' + a + ');"></i>').join('') + ' mehr</div>';
+  html += '</div><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#777;margin-top:8px;">' + escapeHtml(tr_('db2_less', 'weniger')) + ' ' +
+    [0.15, 0.4, 0.65, 1].map(a => '<i style="width:12px;height:12px;display:inline-block;border-radius:2px;background:rgba(42,120,214,' + a + ');"></i>').join('') + ' ' + escapeHtml(tr_('db2_more_word', 'mehr')) + '</div>';
   return { html };
 }
 
@@ -1304,7 +1303,7 @@ function dbxExportCsv() {
   if (!dbxData_) return;
   const range = dbxRange_();
   const rows = dbxData_.rows.filter(r => dbxInRange_(r, range) && dbxMatch_(r));
-  const head = ['Project Name', 'Phrase ID', 'Submitted', 'Submitter', 'Template', 'Status', 'Due Date', 'Target Languages', 'Words'];
+  const head = [tr_('jx_8e3a421', 'Project Name'), tr_('jx_b3acfd2', 'Phrase ID'), tr_('jx_5c835c2', 'Submitted'), tr_('jx_ba8c2c3', 'Submitter'), tr_('jx_278c491', 'Template'), tr_('jx_ec53a8c', 'Status'), tr_('jx_14c841e', 'Due Date'), tr_('jx_01efc27', 'Target Languages'), tr_('jx_6f15b8d', 'Words')];
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const lines = rows.map(r => [r.name, r.uid, r.ts ? new Date(r.ts).toLocaleString() : '', r.owner, r.template,
     dbxIsOverdue_(r) ? 'OVERDUE' : r.status, r.due ? new Date(r.due).toLocaleString() : '', r.langs.join(' '), r.words || ''].map(q).join(','));

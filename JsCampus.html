@@ -40,61 +40,61 @@ function openArticulateHelp() {
     '<div style="text-align:left;font-size:13px;line-height:1.65;color:#333;">' +
 
     '<p style="margin:0 0 14px;">Der Preview-Generator zeigt dir, wie ein Rise-Kurs mit den ' +
-    '<strong>aktuell in Phrase übersetzten Texten</strong> aussehen würde \u2013 ohne dass du auf die ' +
-    'fertige Übersetzung warten musst. Ideal, um schon während der Übersetzung mal reinzuschauen ' +
+    ('<strong>' + tr_('jx_782c743', 'aktuell in Phrase übersetzten Texten') + '</strong> aussehen würde – ohne dass du auf die ') +
+    tr_('jx_7ce35b8', 'fertige Übersetzung warten musst. Ideal, um schon während der Übersetzung mal reinzuschauen') + ' ' +
     'oder einem Reviewer den Zwischenstand zu zeigen.</p>' +
 
-    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Einen einzelnen Kurs erzeugen</h4>' +
+    ('<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">' + tr_('jx_a91d01a', 'Einen einzelnen Kurs erzeugen') + '</h4>') +
     '<ol style="margin:0 0 14px;padding-left:18px;">' +
-      '<li style="margin-bottom:6px;"><strong>Projekt wählen</strong> \u2013 das Phrase-Projekt, in dem der Übersetzungsjob liegt.</li>' +
-      '<li style="margin-bottom:6px;"><strong>Job wählen</strong> \u2013 die konkrete Übersetzungsdatei (i. d. R. eine Sprache).</li>' +
-      '<li style="margin-bottom:6px;"><strong>Drive-Ordner</strong> einfügen \u2013 das ist der Ordner mit dem <em>entpackten</em> ' +
+      ('<li style="margin-bottom:6px;"><strong>' + tr_('jx_70eb91c', 'Projekt wählen') + '</strong> ' + tr_('jx_af6d95a', '– das Phrase-Projekt, in dem der Übersetzungsjob liegt.') + '</li>') +
+      ('<li style="margin-bottom:6px;"><strong>' + tr_('jx_93cd8dc', 'Job wählen') + '</strong> ' + tr_('jx_06075f4', '– die konkrete Übersetzungsdatei (i. d. R. eine Sprache).') + '</li>') +
+      ('<li style="margin-bottom:6px;"><strong>' + tr_('jx_6049600', 'Drive-Ordner') + '</strong> ' + tr_('jx_1408761', 'einfügen – das ist der Ordner mit dem') + ' ' + '<em>entpackten</em> ') +
       'SCORM-Export des Rise-Kurses (muss einen Unterordner "scormcontent" enthalten \u2013 als ZIP funktioniert es nicht).</li>' +
-      '<li style="margin-bottom:6px;">Kursname und Zielsprache prüfen, dann auf <strong>"? Eingaben prüfen"</strong> klicken. ' +
+      ('<li style="margin-bottom:6px;">' + tr_('jx_50ffbcb', 'Kursname und Zielsprache prüfen, dann auf') + ' ' + '<strong>' + '"? Eingaben prüfen"' + '</strong> klicken. ') +
       'Hier siehst du sofort, ob alles gefunden wurde und ob der Job wirklich zu diesem Kurs passt.</li>' +
-      '<li><strong>"? Preview erzeugen"</strong> klicken \u2013 die Preview öffnet sich nach kurzer Wartezeit automatisch.</li>' +
+      ('<li><strong>' + '"? Preview erzeugen"' + '</strong> ' + tr_('jx_f9a9b6e', 'klicken – die Preview öffnet sich nach kurzer Wartezeit automatisch.') + '</li>') +
     '</ol>' +
 
-    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Mehrere Jobs auf einmal (Batch)</h4>' +
+    ('<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">' + tr_('jx_4dab7a4', 'Mehrere Jobs auf einmal (Batch)') + '</h4>') +
     '<p style="margin:0 0 10px;">Hat ein Projekt mehrere Jobs \u2013 etwa mehrere Zielsprachen oder mehrere ' +
     'Kurse in einem Projekt \u2013 musst du nicht jeden einzeln durchklicken:</p>' +
     '<ol style="margin:0 0 14px;padding-left:18px;">' +
-      '<li style="margin-bottom:6px;">Projekt wählen, dann auf <strong>"? Alle Jobs im Projekt batch-patchen"</strong> klicken. ' +
+      ('<li style="margin-bottom:6px;">' + tr_('jx_51c4307', 'Projekt wählen, dann auf') + ' ' + '<strong>' + '"? Alle Jobs im Projekt batch-patchen"' + '</strong> klicken. ') +
       'Es erscheint eine Zeile pro Job, alle sind vorausgewählt.</li>' +
       '<li style="margin-bottom:6px;">Jedem Job den passenden Drive-Ordner zuordnen. Wenn alle Jobs zum ' +
       '<em>selben</em> Kurs gehören (z. B. mehrere Sprachen), kannst du oben einmal den Ordner-Link eintragen \u2013 ' +
       'er wird automatisch für alle leeren, angehakten Zeilen übernommen.</li>' +
-      '<li style="margin-bottom:6px;">Auf <strong>"? Alle prüfen"</strong> klicken, <em>bevor</em> du startest. ' +
-      'Das prüft für jede Zeile, ob der Job wirklich zum zugeordneten Ordner passt, und zeigt dir das Ergebnis direkt ' +
-      'darunter an \u2013 grün heißt "passt", rot heißt "hier stimmt vermutlich die Zuordnung nicht, bitte Ordner-Link ' +
+      ('<li style="margin-bottom:6px;">' + tr_('jx_6ba889b', 'Auf') + ' ' + '<strong>' + '"? Alle prüfen"' + '</strong> klicken, <em>bevor</em> du startest. ') +
+      tr_('jx_6e712b4', 'Das prüft für jede Zeile, ob der Job wirklich zum zugeordneten Ordner passt, und zeigt dir das Ergebnis direkt') + ' ' +
+      tr_('jx_033c0d9', 'darunter an – grün heißt "passt", rot heißt "hier stimmt vermutlich die Zuordnung nicht, bitte Ordner-Link') + ' ' +
       'nochmal prüfen".</li>' +
-      '<li style="margin-bottom:6px;">Nicht benötigte Jobs kannst du einfach abhaken.</li>' +
-      '<li><strong>"? Ausgewählte Kurse starten"</strong> \u2013 die Kurse werden nacheinander erzeugt, jede Zeile zeigt ' +
+      ('<li style="margin-bottom:6px;">' + tr_('jx_c95338f', 'Nicht benötigte Jobs kannst du einfach abhaken.') + '</li>') +
+      ('<li><strong>' + '"? Ausgewählte Kurse starten"' + '</strong> – die Kurse werden nacheinander erzeugt, jede Zeile zeigt ') +
       'ihren eigenen Fortschritt (? angelegt \u2013 \u2013 wird erzeugt \u2013 \u2013 fertig).</li>' +
     '</ol>' +
 
-    '<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">Nach der Erzeugung</h4>' +
-    '<p style="margin:0 0 10px;">Jeder erzeugte Kurs erscheint unter "Gespeicherte Kurse". Von dort kannst du:</p>' +
+    ('<h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:#1a73e8;">' + tr_('jx_4d21a2b', 'Nach der Erzeugung') + '</h4>') +
+    ('<p style="margin:0 0 10px;">' + tr_('jx_62986eb', 'Jeder erzeugte Kurs erscheint unter "Gespeicherte Kurse". Von dort kannst du:') + '</p>') +
     '<ul style="margin:0 0 14px;padding-left:18px;">' +
-      '<li style="margin-bottom:6px;">die Preview jederzeit erneut erzeugen (z. B. wenn die Übersetzung weiter fortgeschritten ist),</li>' +
+      ('<li style="margin-bottom:6px;">' + tr_('jx_5536fc8', 'die Preview jederzeit erneut erzeugen (z. B. wenn die Übersetzung weiter fortgeschritten ist),') + '</li>') +
       '<li style="margin-bottom:6px;">über das Kopier-Symbol den Link direkt an einen Reviewer weitergeben \u2013 der braucht dafür ' +
       'keinen Zugang zum Portal oder zu Phrase,</li>' +
-      '<li>und bekommst bei jeder neuen Version automatisch eine Nachricht im ursprünglichen Google-Chat-Thread.</li>' +
+      ('<li>' + tr_('jx_9e2ee68', 'und bekommst bei jeder neuen Version automatisch eine Nachricht im ursprünglichen Google-Chat-Thread.') + '</li>') +
     '</ul>' +
 
     '<div style="background:#fff3e0;border:1px solid #ffe0b2;padding:10px 12px;font-size:12px;color:#e65100;">' +
-    '\u2022 Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext \u2013 du kannst die Preview also ' +
-    'auch mitten in der Übersetzung schon anschauen. Videos werden aus Geschwindigkeitsgründen weggelassen, ' +
-    'das Vorschaubild bleibt aber sichtbar.' +
+    tr_('jx_a975891', '• Nicht übersetzte Textstellen behalten in der Preview einfach den Originaltext – du kannst die Preview also') + ' ' +
+    tr_('jx_6d702b3', 'auch mitten in der Übersetzung schon anschauen. Videos werden aus Geschwindigkeitsgründen weggelassen,') + ' ' +
+    tr_('jx_572cf35', 'das Vorschaubild bleibt aber sichtbar.') +
     '</div>' +
 
     '</div>';
 
-  document.getElementById('customDialogTitle').innerText = 'Wie funktioniert der Preview-Generator?';
+  document.getElementById('customDialogTitle').innerText = tr_('jx_f817f75', 'Wie funktioniert der Preview-Generator?');
   document.getElementById('customDialogMessage').innerHTML = html;
   document.getElementById('customDialogInput').style.display = 'none';
   document.getElementById('customDialogCancelBtn').style.display = 'none';
-  document.getElementById('customDialogConfirmBtn').innerText = 'Verstanden';
+  document.getElementById('customDialogConfirmBtn').innerText = tr_('jx_30b8641', 'Verstanden');
   customDialogCallback = null;
   document.getElementById('customDialogOverlay').style.display = 'flex';
 }
@@ -246,7 +246,7 @@ function renderArticulateList() {
           ? '<a class="art-btn" href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank">' +
               '<span class="material-icons-outlined">open_in_new</span>' + t_('art_btn_open_last', 'Letzte öffnen') + '</a>' +
             '<button type="button" class="art-btn" onclick="copyArticulateLink(\'' + escapeHtmlJs(r.liveUrl) + '\')" title="Link für Reviewer kopieren">' +
-              '<span class="material-icons-outlined">content_copy</span>Link</button>'
+              ('<span class="material-icons-outlined">content_copy</span>' + tr_('jx_97e7c9a', 'Link') + '</button>')
           : '') +
         '<button type="button" class="art-btn" onclick="deleteArticulateProject(\'' + r.id + '\')" title="' +
           t_('art_btn_delete', 'Löschen') + '" style="margin-left:auto;color:#c62828;">' +
@@ -265,12 +265,12 @@ function openArticulateBatchPanel() {
   var panel = document.getElementById('articulateBatchPanel');
   var projSel = document.getElementById('artQuickProject');
   if (!projSel.value) {
-    showCustomAlert('Bitte zuerst oben ein Projekt auswählen.', 'Hinweis');
+    showCustomAlert(tr_('jx_a90777d', 'Bitte zuerst oben ein Projekt auswählen.'), tr_('jx_9874513', 'Hinweis'));
     return;
   }
   if (!artPickerJobs.length) {
     panel.style.display = 'block';
-    panel.innerHTML = '<div style="color:#888;padding:8px;">Keine Jobs in diesem Projekt gefunden.</div>';
+    panel.innerHTML = ('<div style="color:#888;padding:8px;">' + tr_('jx_27dd33a', 'Keine Jobs in diesem Projekt gefunden.') + '</div>');
     return;
   }
   panel.style.display = 'block';
@@ -279,7 +279,7 @@ function openArticulateBatchPanel() {
     var defaultName = j.filename.replace(/\.[^.]+$/, '');
     return (
       '<div class="art-batch-row" style="display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #f0f0f0;">' +
-        '<input type="checkbox" id="batchCheck_' + idx + '" checked ' +
+        '<input type="checkbox" id="batchCheck_' + idx + '" checked' + ' ' +
           'style="width:16px;height:16px;flex-shrink:0;cursor:pointer;">' +
         '<div style="flex:1.3;min-width:0;">' +
           '<div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtmlJs(j.filename) + '">' +
@@ -287,9 +287,9 @@ function openArticulateBatchPanel() {
           '</div>' +
           '<div style="font-size:10px;color:#888;">' + escapeHtmlJs(j.targetLang) + '</div>' +
         '</div>' +
-        '<input type="text" id="batchName_' + idx + '" value="' + escapeHtmlJs(defaultName) + '" placeholder="Kursname" ' +
+        '<input type="text" id="batchName_' + idx + '" value="' + escapeHtmlJs(defaultName) + '" placeholder="Kursname"' + ' ' +
           'style="flex:1;min-width:0;height:30px;font-size:11px;padding:0 8px;border:1px solid #ddd;box-sizing:border-box;">' +
-        '<input type="text" id="batchFolder_' + idx + '" class="art-batch-folder" placeholder="Drive-Ordner-Link" ' +
+        '<input type="text" id="batchFolder_' + idx + '" class="art-batch-folder" placeholder="Drive-Ordner-Link"' + ' ' +
           'style="flex:1.4;min-width:0;height:30px;font-size:11px;padding:0 8px;border:1px solid #ddd;box-sizing:border-box;">' +
       '</div>'
     );
@@ -300,24 +300,24 @@ function openArticulateBatchPanel() {
       '<div style="font-weight:700;font-size:13px;">\u2022 ' + artPickerJobs.length + ' Jobs im Projekt</div>' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#555;cursor:pointer;">' +
         '<input type="checkbox" id="batchSelectAll" checked onchange="toggleAllBatchJobs(this.checked)" style="width:16px;height:16px;cursor:pointer;">' +
-        'Alle auswählen' +
+        tr_('jx_f687cca', 'Alle auswählen') +
       '</label>' +
     '</div>' +
     '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;background:#f5f9ff;border:1px solid #d6e4f7;padding:8px 10px;">' +
       '<span class="material-icons-outlined" style="font-size:16px;color:#1a73e8;">content_paste</span>' +
       '<input type="text" id="batchFolderAll" placeholder="Gleichen Drive-Ordner für alle Jobs übernehmen?" ' +
-        'oninput="applyBatchFolderToAll(this.value)" ' +
+        'oninput="applyBatchFolderToAll(this.value)"' + ' ' +
         'style="flex:1;height:30px;font-size:11px;padding:0 8px;border:1px solid #ccd8e8;box-sizing:border-box;background:#fff;">' +
     '</div>' +
     '<div style="border:1px solid #eee;max-height:280px;overflow-y:auto;">' + rowsHtml + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px;">' +
       '<button type="button" onclick="checkArticulateBatchCompatibility()" ' +
         'style="flex:1;background:#fff;color:#1a73e8;border:1px solid #1a73e8;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
-        '\uD83D\uDD0D Alle prüfen' +
+        tr_('jx_8191a73', '🔍 Alle prüfen') +
       '</button>' +
       '<button type="button" onclick="startArticulateBatch()" ' +
         'style="flex:1.4;background:#1a73e8;color:#fff;border:none;height:38px;font-size:12px;font-weight:700;cursor:pointer;">' +
-        '\u25B6 Ausgewählte Kurse starten' +
+        tr_('jx_0aec374', '▶ Ausgewählte Kurse starten') +
       '</button>' +
     '</div>' +
     '<div id="articulateBatchStatus" style="margin-top:10px;"></div>';
@@ -370,17 +370,17 @@ function startArticulateBatch() {
   if (!payloads.length) {
     showCustomAlert(
       skippedNoFolder.length
-        ? 'Bitte für jeden ausgewählten Job einen Drive-Ordner eintragen (oder oben den gemeinsamen Ordner nutzen).'
-        : 'Bitte mindestens einen Job auswählen.',
-      'Hinweis'
+        ? tr_('jx_cbe345a', 'Bitte für jeden ausgewählten Job einen Drive-Ordner eintragen (oder oben den gemeinsamen Ordner nutzen).')
+        : tr_('jx_1de3674', 'Bitte mindestens einen Job auswählen.'),
+      tr_('jx_9874513', 'Hinweis')
     );
     return;
   }
   if (skippedNoFolder.length) {
     showCustomAlert(
-      skippedNoFolder.length + ' ausgewählte(r) Job(s) ohne Drive-Ordner werden übersprungen:\n' +
+      skippedNoFolder.length + ' ' + tr_('jx_af18052', 'ausgewählte(r) Job(s) ohne Drive-Ordner werden übersprungen:') + '\n' +
       skippedNoFolder.join('\n'),
-      'Hinweis'
+      tr_('jx_9874513', 'Hinweis')
     );
   }
 
@@ -388,9 +388,9 @@ function startArticulateBatch() {
   var etaLowSec = payloads.length * 30, etaHighSec = payloads.length * 90;
   var etaText = 'ca. ' +
     (etaHighSec >= 120
-      ? Math.round(etaLowSec / 60) + '\u2013' + Math.round(etaHighSec / 60) + ' Min.'
-      : etaLowSec + '\u2013' + etaHighSec + ' Sek.') +
-    ' für ' + payloads.length + ' Kurse';
+      ? Math.round(etaLowSec / 60) + '\u2013' + Math.round(etaHighSec / 60) + ' ' + tr_('jx_3121868', 'Min.')
+      : etaLowSec + '\u2013' + etaHighSec + ' ' + tr_('jx_5496b2c', 'Sek.')) +
+    ' ' + tr_('jx_5b061ce', 'für') + ' ' + payloads.length + ' ' + tr_('jx_36a5a24', 'Kurse');
 
   _renderBatchProgressList(payloads, etaText);
 
@@ -406,7 +406,7 @@ function startArticulateBatch() {
       if (ok.length) runArticulateBatchSequential(ok, 0, payloads.length);
       else if (statusEl) {
         var summary = document.getElementById('articulateBatchSummary');
-        if (summary) summary.innerText = '\u2022 Keine Kurse konnten angelegt werden.';
+        if (summary) summary.innerText = tr_('jx_19558ad', '• Keine Kurse konnten angelegt werden.');
       }
     })
     .withFailureHandler(function (err) {
@@ -442,13 +442,13 @@ function checkArticulateBatchCompatibility() {
   });
 
   if (!toCheck.length) {
-    showCustomAlert('Bitte zuerst Drive-Ordner für die ausgewählten Jobs ausfüllen.', 'Hinweis');
+    showCustomAlert(tr_('jx_46814d0', 'Bitte zuerst Drive-Ordner für die ausgewählten Jobs ausfüllen.'), tr_('jx_9874513', 'Hinweis'));
     return;
   }
 
   toCheck.forEach(function (item) {
     var resEl = document.getElementById('batchCheckResult_' + item.idx);
-    if (resEl) { resEl.style.color = '#888'; resEl.innerText = '\uD83D\uDD0D prüfe...'; }
+    if (resEl) { resEl.style.color = '#888'; resEl.innerText = tr_('jx_7613317', '🔍 prüfe...'); }
     google.script.run
       .withSuccessHandler(function (info) {
         if (!resEl) return;
@@ -457,11 +457,11 @@ function checkArticulateBatchCompatibility() {
           resEl.innerText = '\u26A0 ' + info.scormMatchWarning;
         } else if (info.scormMatchRatio !== null) {
           resEl.style.color = '#2e7d32';
-          resEl.innerText = '\u2713 ' + info.scormMatchRatio + '% übereinstimmung (' +
+          resEl.innerText = '\u2713 ' + info.scormMatchRatio + tr_('jx_7464c23', '% übereinstimmung (') +
             info.scormMatchedSegments + '/' + info.scormTotalSegments + ')';
         } else {
           resEl.style.color = '#888';
-          resEl.innerText = '\u2022 Kein Abgleich möglich.';
+          resEl.innerText = tr_('jx_aca7808', '• Kein Abgleich möglich.');
         }
       })
       .withFailureHandler(function (err) {
@@ -508,11 +508,11 @@ function _setBatchRowStatus(i, status, msg) {
 function runArticulateBatchSequential(ok, pos, total) {
   var summary = document.getElementById('articulateBatchSummary');
   if (pos >= ok.length) {
-    if (summary) summary.innerText = '\u2713 Batch abgeschlossen (' + ok.length + ' von ' + total + ' Kursen erzeugt).';
+    if (summary) summary.innerText = tr_('jx_28d21d5', '✓ Batch abgeschlossen (') + ok.length + ' von ' + total + ' ' + tr_('jx_57ddc2e', 'Kursen erzeugt).');
     return;
   }
   var current = ok[pos];
-  if (summary) summary.innerText = '\u25B6 Erzeuge Preview ' + (pos + 1) + ' / ' + ok.length + '...';
+  if (summary) summary.innerText = tr_('jx_89bd288', '▶ Erzeuge Preview') + ' ' + (pos + 1) + ' / ' + ok.length + '...';
   _setBatchRowStatus(current.index, 'generating');
   runArticulatePreview(current.id, function () {
     _setBatchRowStatus(current.index, 'done');
@@ -523,11 +523,11 @@ function runArticulateBatchSequential(ok, pos, total) {
 /* ---------- Link kopieren für Reviewer ---------- */
 
 function copyArticulateLink(url) {
-  if (!url) { showCustomAlert('Für diesen Kurs wurde noch keine Preview erzeugt.', 'Kein Link'); return; }
+  if (!url) { showCustomAlert(tr_('jx_3f6d96a', 'Für diesen Kurs wurde noch keine Preview erzeugt.'), tr_('jx_040d8b0', 'Kein Link')); return; }
   navigator.clipboard.writeText(url).then(function () {
-    showCustomAlert('\u2713 Link kopiert:\n' + url, 'Kopiert');
+    showCustomAlert(tr_('jx_97f0515', '✓ Link kopiert:') + '\n' + url, tr_('jx_3a11657', 'Kopiert'));
   }).catch(function () {
-    showCustomPrompt('Konnte nicht automatisch kopiert werden \u2013 hier manuell kopieren:', url, function () {}, 'Link');
+    showCustomPrompt(tr_('jx_64c5162', 'Konnte nicht automatisch kopiert werden – hier manuell kopieren:'), url, function () {}, tr_('jx_97e7c9a', 'Link'));
   });
 }
 
@@ -588,7 +588,7 @@ function deleteArticulateProject(id) {
   if (!confirm(t_('art_confirm_delete', 'Diesen Kurs wirklich löschen?'))) return;
   google.script.run
     .withSuccessHandler(function () { loadArticulateProjects(); })
-    .withFailureHandler(function (err) { alert('Fehler: ' + err.message); })
+    .withFailureHandler(function (err) { alert(tr_('jx_0aa2532', 'Fehler:') + ' ' + err.message); })
     .apiDeleteArticulateProjectFromUi(id);
 }
 
@@ -600,10 +600,10 @@ function _articulateStartElapsedTimer() {
   _articulateStopElapsedTimer();
   _articulateElapsedSeconds = 0;
   var etaEl = document.getElementById('articulateProgressEta');
-  if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: 0s';
+  if (etaEl) etaEl.innerText = tr_('jx_ebcaa8d', 'Geschätzte Dauer: ca. 120-300 Sekunden – Verstrichen: 0s');
   _articulateElapsedTimer = setInterval(function () {
     _articulateElapsedSeconds++;
-    if (etaEl) etaEl.innerText = 'Geschätzte Dauer: ca. 120-300 Sekunden \u2013 Verstrichen: ' + _articulateElapsedSeconds + 's';
+    if (etaEl) etaEl.innerText = tr_('jx_29b3af7', 'Geschätzte Dauer: ca. 120-300 Sekunden – Verstrichen:') + ' ' + _articulateElapsedSeconds + 's';
   }, 1000);
 }
 function _articulateStopElapsedTimer() {
@@ -752,7 +752,7 @@ function renderArticulateTable() {
       : '<span style="color:#999;">\u2013</span>';
 
     var pathHtml = r.liveUrl
-      ? '<a href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank" ' +
+      ? '<a href="' + escapeHtmlJs(r.liveUrl) + '" target="_blank"' + ' ' +
         'style="color:#1a73e8;font-size:11px;font-family:monospace;" ' +
         'title="' + escapeHtmlJs(r.liveUrl) + '">' +
         escapeHtmlJs(r.firebasePath || '') + ' ?</a>'
@@ -848,7 +848,7 @@ function articulateValidateInputs() {
           ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">\u26A0 ' +
             escapeHtmlJs(info.scormMatchWarning) + '</div>'
           : (info.scormMatchRatio !== null
-              ? '<div style="margin-top:8px;color:#2e7d32;">\u2022 Kurs-Abgleich: <strong>' +
+              ? ('<div style="margin-top:8px;color:#2e7d32;">' + tr_('jx_7632aa9', '• Kurs-Abgleich:') + ' ' + '<strong>') +
                 info.scormMatchRatio + '%</strong> der Textstellen (' +
                 info.scormMatchedSegments + '/' + info.scormTotalSegments +
                 ') passen zu diesem Kurs.</div>'

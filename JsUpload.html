@@ -21,7 +21,7 @@ function checkTemplateSelected(suffix, type) {
   
   if (!finalSelectedUid) {
     const tmplSelect = document.getElementById('templateUid' + suffix);
-    if(tmplSelect && tmplSelect.value) showCustomAlert("\u26A0 Please select the Source Language first.");
+    if(tmplSelect && tmplSelect.value) showCustomAlert(tr_('jx_232a559', '⚠ Please select the Source Language first.'));
     else showInstruction();
   }
 }
@@ -30,17 +30,17 @@ function checkPreconditions(suffix) {
   const exUid = document.getElementById('existingProjectUid' + suffix);
   if (exUid && exUid.value) return true;
 
-  if(!finalSelectedUid) { showCustomAlert("Please select a Template and Source Language."); return false; }
+  if(!finalSelectedUid) { showCustomAlert(tr_('jx_89352fd', 'Please select a Template and Source Language.')); return false; }
   
   if (suffix !== '_docimport') {
     const tList = document.getElementById(`targetLangList${suffix}`);
-    if(tList && tList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select Target Language."); return false; }
+    if(tList && tList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert(tr_('jx_1e33de8', 'Please select Target Language.')); return false; }
   }
 
   const pivotRow = document.getElementById('pivotTargetLangRow' + suffix);
   if (pivotRow && pivotRow.style.display !== 'none') {
     const pList = document.getElementById(`pivotTargetLangList${suffix}`);
-    if (pList && pList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert("Please select at least one Translation Target Language (Pivot)."); return false; }
+    if (pList && pList.querySelectorAll(`input:checked`).length === 0) { showCustomAlert(tr_('jx_e9885ab', 'Please select at least one Translation Target Language (Pivot).')); return false; }
   }
 
   return true;
@@ -145,7 +145,7 @@ function renderDriveFavorites() {
     ...driveRecents.filter(r => !driveFavorites.find(f => f.id === r.id)).map(r => ({ ...r, isFav: false }))
   ].slice(0, 20);
   if (!combined.length) {
-    list.innerHTML = '<div style="color:#999;font-size:13px;">No favorites or recently used files yet.</div>';
+    list.innerHTML = ('<div style="color:#999;font-size:13px;">' + tr_('jx_594fff4', 'No favorites or recently used files yet.') + '</div>');
   } else {
     list.innerHTML = combined.map(f => `
       <div onclick="selectDriveFile(${JSON.stringify(f).replace(/"/g, '&quot;')})"
@@ -205,7 +205,7 @@ function loadDriveFolder(folderId) {
 function renderDriveList(data) {
   const title   = document.getElementById('driveCurrentFolder');
   const backBtn = document.getElementById('driveBackBtn');
-  title.innerText   = data.currentName || 'Google Drive';
+  title.innerText   = data.currentName || tr_('jx_e0daf39', 'Google Drive');
   currentFolderId   = data.currentId;
   currentParentId   = data.parentId;
   driveCurrentItems = data.contents || [];
@@ -224,7 +224,7 @@ function filterAndRenderDrive() {
   items = sortDriveItems(items, sortVal);
   const container = document.getElementById('driveList');
   if (!items.length) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:#5f6368;font-size:14px;">No files found.</div>';
+    container.innerHTML = ('<div style="padding:40px;text-align:center;color:#5f6368;font-size:14px;">' + tr_('jx_ad07ee0', 'No files found.') + '</div>');
     return;
   }
   if (driveViewMode === 'grid') {
@@ -256,8 +256,8 @@ function renderDriveListView(items, container) {
   container.innerHTML = `
     <div style="display:flex;padding:8px 20px;border-bottom:1px solid #f0f0f0;font-size:11px;font-weight:800;text-transform:uppercase;color:#888;background:#fafafa;">
       <div style="width:32px;"></div>
-      <div style="flex:1;">Name</div>
-      <div style="width:60px;text-align:right;">Type</div>
+      <div style="flex:1;">${tr_('jx_49ee308', 'Name')}</div>
+      <div style="width:60px;text-align:right;">${tr_('jx_a1fa277', 'Type')}</div>
       <div style="width:36px;"></div>
     </div>` +
     items.map(item => {
@@ -274,12 +274,12 @@ function renderDriveListView(items, container) {
           ${escapeHtml(item.name)}
         </div>
         <div style="width:60px;text-align:right;font-size:11px;color:#999;text-transform:uppercase;">
-          ${isFolder ? 'Folder' : getDriveFileExt(item.name)}
+          ${isFolder ? tr_('jx_b0f2b97', 'Folder') : getDriveFileExt(item.name)}
         </div>
         <div style="width:36px;text-align:right;flex-shrink:0;">
           ${!isFolder ? `
             <span onclick="event.stopPropagation();${isFav ? `removeDriveFavorite('${item.id}')` : `addDriveFavorite(${JSON.stringify(item).replace(/"/g, '&quot;')})`}"
-                  title="${isFav ? 'Remove from favorites' : 'Add to favorites'}"
+                  title="${isFav ? tr_('jx_7188286', 'Remove from favorites') : tr_('jx_9108854', 'Add to favorites')}"
                   class="material-icons-outlined"
                   style="font-size:16px;color:${isFav ? '#f59e0b' : '#ddd'};cursor:pointer;vertical-align:middle;">
               ${isFav ? 'star' : 'star_border'}
@@ -311,7 +311,7 @@ function renderDriveGrid(items, container) {
           ${escapeHtml(item.name)}
         </div>
         <div style="font-size:10px;color:#999;text-transform:uppercase;margin-top:3px;">
-          ${isFolder ? 'Folder' : getDriveFileExt(item.name)}
+          ${isFolder ? tr_('jx_b0f2b97', 'Folder') : getDriveFileExt(item.name)}
         </div>
       </div>`;
     }).join('') + '</div>';
@@ -359,10 +359,10 @@ function setupFileListeners(suffix) {
     for (let i=0; i<this.files.length; i++) {
       const file = this.files[i];
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-          showCustomAlert(i18n[currentLang]['alert_pdf_block'], "Format Error");
+          showCustomAlert(i18n[currentLang]['alert_pdf_block'], tr_('jx_52c1823', 'Format Error'));
           continue; 
       }
-      if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, "Size Error"); continue; }
+      if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, tr_('jx_da0597c', 'Size Error')); continue; }
       mainFilesMap[suffix].push({ source:'pc', fileObj:file, name:file.name });
     }
     this.value = "";
@@ -370,7 +370,7 @@ function setupFileListeners(suffix) {
     if(pName && pName.value==="" && mainFilesMap[suffix].length===1) {
       pName.value = mainFilesMap[suffix][0].name.split('.').slice(0,-1).join('.');
     } else if(mainFilesMap[suffix].length > 1) {
-      showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+      showCustomAlert(i18n[currentLang]['alert_multifile_name'], tr_('jx_4059b02', 'Info'));
     }
     renderFileList('main', suffix);
   });
@@ -381,10 +381,10 @@ function setupFileListeners(suffix) {
       for (let i=0; i<this.files.length; i++) {
         const file = this.files[i];
         if(!file.name.toLowerCase().endsWith('.xml')) {
-            showCustomAlert(`Die Datei ${file.name} ist keine XML-Datei.`, "Format Error");
+            showCustomAlert(`${tr_('jx_b5ca221', 'Die Datei') + ' '} ${file.name} ${' ' + tr_('jx_e6b1808', 'ist keine XML-Datei.')}`, tr_('jx_52c1823', 'Format Error'));
             continue;
         }
-        if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, "Size Error"); continue; }
+        if(file.size > (configData.sizeLimitMb||100)*1024*1024) { showCustomAlert(`Datei ${file.name} ist zu groß.`, tr_('jx_da0597c', 'Size Error')); continue; }
         mainFilesMap[suffix].push({ source:'pc', fileObj:file, name:file.name });
       }
       this.value = "";
@@ -392,7 +392,7 @@ function setupFileListeners(suffix) {
       if(pName && pName.value==="" && mainFilesMap[suffix].length===1) {
         pName.value = mainFilesMap[suffix][0].name.split('.').slice(0,-1).join('.');
       } else if(mainFilesMap[suffix].length > 1) {
-        showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+        showCustomAlert(i18n[currentLang]['alert_multifile_name'], tr_('jx_4059b02', 'Info'));
       }
       renderFileList('main', suffix);
     });
@@ -432,7 +432,7 @@ function setupDropzone_(type, suffix) {
       input.files = e.dataTransfer.files;
       input.dispatchEvent(new Event('change'));
     } catch (err) {
-      showCustomAlert('Drag & drop is not supported in this browser. Please use "PC Upload".', 'Info');
+      showCustomAlert(tr_('jx_5a0f83b', 'Drag & drop is not supported in this browser. Please use "PC Upload".'), tr_('jx_4059b02', 'Info'));
     }
   });
 }
@@ -440,7 +440,7 @@ function setupDropzone_(type, suffix) {
 function selectDriveFile(item) {
   const suffix = activeDriveSuffix;
   if (driveSelectionMode === 'main' && (item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'))) {
-    showCustomAlert(i18n[currentLang]['alert_pdf_block'], "Format Error");
+    showCustomAlert(i18n[currentLang]['alert_pdf_block'], tr_('jx_52c1823', 'Format Error'));
     return;
   }
   if (driveSelectionMode === 'main') {
@@ -449,7 +449,7 @@ function selectDriveFile(item) {
     if (mainFilesMap[suffix].length === 1 && pName && pName.value === '') {
       pName.value = item.name.split('.').slice(0, -1).join('.') || item.name;
     } else if (mainFilesMap[suffix].length >= 2) {
-      showCustomAlert(i18n[currentLang]['alert_multifile_name'], "Info");
+      showCustomAlert(i18n[currentLang]['alert_multifile_name'], tr_('jx_4059b02', 'Info'));
     }
   } else {
     refFilesMap[suffix].push({ type: 'drive', id: item.id, name: item.name });
@@ -464,20 +464,20 @@ function goUp() {
 }
 
 const statusMsgs = [
-  "Analyzing files...",
-  "Juggling 50 languages at once...",
-  "Teaching myself a new language...",
-  "Doing some linguistic gymnastics...",
-  "Bribing the Translation Memory...",
-  "Consulting the Tower of Babel...",
-  "Polishing the termbase...",
-  "Chasing 100% fuzzy matches...",
-  "Untangling nested syntax...",
-  "Making peace with the Oxford comma...",
-  "Translating silence into punctuation...",
-  "Whispering sweet nothings to the Phrase API...",
-  "Sipping espresso while checking grammar...",
-  "Finalizing..."
+  tr_('jx_169d746', 'Analyzing files...'),
+  tr_('jx_29b7e48', 'Juggling 50 languages at once...'),
+  tr_('jx_887bad7', 'Teaching myself a new language...'),
+  tr_('jx_e30a3f2', 'Doing some linguistic gymnastics...'),
+  tr_('jx_74d98f5', 'Bribing the Translation Memory...'),
+  tr_('jx_2afbca0', 'Consulting the Tower of Babel...'),
+  tr_('jx_a00cb5f', 'Polishing the termbase...'),
+  tr_('jx_1392f72', 'Chasing 100% fuzzy matches...'),
+  tr_('jx_3578193', 'Untangling nested syntax...'),
+  tr_('jx_c3d7de7', 'Making peace with the Oxford comma...'),
+  tr_('jx_d6ad2ea', 'Translating silence into punctuation...'),
+  tr_('jx_76c9b06', 'Whispering sweet nothings to the Phrase API...'),
+  tr_('jx_fdf65b0', 'Sipping espresso while checking grammar...'),
+  tr_('jx_0584ed8', 'Finalizing...')
 ];
 let stInt=null, stIdx=0;
 function startStatusAnimation() {
@@ -495,7 +495,7 @@ function attachSubmitHandler(formId, suffix) {
     if (!form) return;
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        if(mainFilesMap[suffix].length === 0) { showCustomAlert("Please select a Main File."); return; }
+        if(mainFilesMap[suffix].length === 0) { showCustomAlert(tr_('jx_de7a362', 'Please select a Main File.')); return; }
         if(!checkPreconditions(suffix)) return;
         submitStandard(suffix);
     });
@@ -555,13 +555,13 @@ function submitStandard(suffix) {
 
             _uploadWatchdog_ = setTimeout(function() {
               _uploadWatchdog_ = null;
-              document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
-              stopStatusAnimation("\u26A0 This is taking longer than usual. Your project is likely being created in Phrase TMS. Please wait or check My Projects.");
+              document.getElementById('statusTitle').innerText = tr_('jx_2d7170d', 'STILL PROCESSING...');
+              stopStatusAnimation(tr_('jx_ab30b45', '⚠ This is taking longer than usual. Your project is likely being created in Phrase TMS. Please wait or check My Projects.'));
               document.getElementById('statusMsg').style.color = '#ff9800';
               document.getElementById('overlayActions').style.display = 'block';
               document.getElementById('overlayActions').innerHTML =
-                "<button class='btn btn-secondary' style='min-width:250px;margin-bottom:10px;' onclick='switchTab(\"history\");document.getElementById(\"overlay\").style.display=\"none\";'>CHECK MY PROJECTS</button>" +
-                "<br><small style='color:#999;font-size:12px;'>The project may still complete in the background.</small>";
+                ('<button class=\'btn btn-secondary\' style=\'min-width:250px;margin-bottom:10px;\' onclick=\'switchTab("history");document.getElementById("overlay").style.display="none";\'>' + tr_('jx_5b3a54b', 'CHECK MY PROJECTS') + '</button>') +
+                ('<br><small style=\'color:#999;font-size:12px;\'>' + tr_('jx_815cfdf', 'The project may still complete in the background.') + '</small>');
             }, 270000); 
 
             google.script.run
@@ -633,33 +633,33 @@ function triggerArticulateAutoPreview_(uploadResult) {
       const failed = [];
       results.forEach(function(r, i) {
         if (r.success) ok.push({ id: r.id, index: i });
-        else failed.push((r.courseName || ('Job ' + (i + 1))) + ': ' + (r.error || 'Unbekannter Fehler'));
+        else failed.push((r.courseName || (tr_('jx_cf51066', 'Job') + ' ' + (i + 1))) + ': ' + (r.error || tr_('jx_2a73840', 'Unbekannter Fehler')));
       });
       loadArticulateProjects();
       if (ok.length) {
         showCustomAlert(
-          'SCORM-Preview für ' + ok.length + ' Zielsprache(n) eingerichtet. Sobald ein Übersetzungsschritt ' +
-          '(Translation / PE / Revision) abgeschlossen ist, wird automatisch ein aktueller Preview-Link erzeugt ' +
-          '– im Tab "Campus Projekte" unter "Gespeicherte Kurse" sichtbar.',
-          'SCORM-Preview eingerichtet'
+          tr_('jx_01a8eb1', 'SCORM-Preview für') + ' ' + ok.length + ' ' + tr_('jx_6005e1e', 'Zielsprache(n) eingerichtet. Sobald ein Übersetzungsschritt') + ' ' +
+          tr_('jx_60481cd', '(Translation / PE / Revision) abgeschlossen ist, wird automatisch ein aktueller Preview-Link erzeugt') + ' ' +
+          tr_('jx_22b37e2', '– im Tab "Campus Projekte" unter "Gespeicherte Kurse" sichtbar.'),
+          tr_('jx_b7ba2c8', 'SCORM-Preview eingerichtet')
         );
       }
       if (failed.length) {
         showCustomAlert(
-          'SCORM-Preview konnte für ' + failed.length + ' von ' + payloads.length + ' Zielsprache(n) nicht automatisch ' +
-          'verknüpft werden:\n\n' + failed.join('\n') +
-          '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
-          'über den Preview-Generator nachgeholt werden.',
-          'SCORM-Preview teilweise fehlgeschlagen'
+          tr_('jx_7079307', 'SCORM-Preview konnte für') + ' ' + failed.length + ' von ' + payloads.length + ' ' + tr_('jx_3e126ef', 'Zielsprache(n) nicht automatisch') + ' ' +
+          tr_('jx_587fe77', 'verknüpft werden:') + '\n\n' + failed.join('\n') +
+          '\n\n' + tr_('jx_b5013c9', 'Das Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell') + ' ' +
+          tr_('jx_57d4a6c', 'über den Preview-Generator nachgeholt werden.'),
+          tr_('jx_02e4f21', 'SCORM-Preview teilweise fehlgeschlagen')
         );
       }
     })
     .withFailureHandler(function(err) {
       showCustomAlert(
-        'Automatische SCORM-Preview-Verknüpfung fehlgeschlagen: ' + err.message +
-        '\n\nDas Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell ' +
-        'über den Preview-Generator nachgeholt werden.',
-        'SCORM-Preview fehlgeschlagen'
+        tr_('jx_56760f2', 'Automatische SCORM-Preview-Verknüpfung fehlgeschlagen:') + ' ' + err.message +
+        '\n\n' + tr_('jx_b5013c9', 'Das Projekt selbst wurde trotzdem normal eingereicht – die Preview kann jederzeit manuell') + ' ' +
+        tr_('jx_57d4a6c', 'über den Preview-Generator nachgeholt werden.'),
+        tr_('jx_22d8d4e', 'SCORM-Preview fehlgeschlagen')
       );
     })
     .apiBatchCreateArticulateProjectsFromUi(payloads);
@@ -669,7 +669,7 @@ function submitKecExisting(suffix, existingProjectUid) {
     document.getElementById('overlay').style.display='flex';
     document.getElementById('loadingSpinner').style.display='block';
     document.getElementById('successIcon').style.display='none';
-    document.getElementById('statusTitle').innerText="UPLOADING TO PROJECT"; document.getElementById('statusTitle').style.color="#000";
+    document.getElementById('statusTitle').innerText=tr_('jx_2c6d991', 'UPLOADING TO PROJECT'); document.getElementById('statusTitle').style.color="#000";
     document.getElementById('overlayActions').style.display='none';
     startStatusAnimation();
 
@@ -700,12 +700,12 @@ function submitKecExisting(suffix, existingProjectUid) {
 
             _uploadWatchdog_ = setTimeout(function() {
               _uploadWatchdog_ = null;
-              document.getElementById('statusTitle').innerText = "STILL PROCESSING...";
-              stopStatusAnimation("\u26A0 This is taking longer than usual. Please wait or check My Projects.");
+              document.getElementById('statusTitle').innerText = tr_('jx_2d7170d', 'STILL PROCESSING...');
+              stopStatusAnimation(tr_('jx_ae40c0d', '⚠ This is taking longer than usual. Please wait or check My Projects.'));
               document.getElementById('statusMsg').style.color = '#ff9800';
               document.getElementById('overlayActions').style.display = 'block';
               document.getElementById('overlayActions').innerHTML =
-                "<button class='btn btn-secondary' style='min-width:250px;margin-bottom:10px;' onclick='switchTab(\"history\");document.getElementById(\"overlay\").style.display=\"none\";'>CHECK MY PROJECTS</button>";
+                ('<button class=\'btn btn-secondary\' style=\'min-width:250px;margin-bottom:10px;\' onclick=\'switchTab("history");document.getElementById("overlay").style.display="none";\'>' + tr_('jx_5b3a54b', 'CHECK MY PROJECTS') + '</button>');
             }, 270000); 
 
             google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).apiUploadToExistingProject(payload);
@@ -720,33 +720,33 @@ function onSuccess(res) {
   if(!res.success) return onFailure({message:res.error || res.message});
 
   if (res.timedOut) {
-    stopStatusAnimation("\u26A0 Upload took longer than expected...");
+    stopStatusAnimation(tr_('jx_7072a41', '⚠ Upload took longer than expected...'));
     document.getElementById('loadingSpinner').style.display='none';
     document.getElementById('successIcon').style.display='block';
-    document.getElementById('statusTitle').innerText="CHECK MY PROJECTS";
+    document.getElementById('statusTitle').innerText=tr_('jx_5b3a54b', 'CHECK MY PROJECTS');
     document.getElementById('statusTitle').style.color="#ff9800";
     document.getElementById('overlayActions').style.display='block';
     document.getElementById('overlayActions').innerHTML=
       "<div style='max-width:500px;margin:0 auto;'>" +
       "<div style='background:#fff3e0;border:1px solid #ffe0b2;padding:12px 15px;font-size:13px;color:#e65100;margin-bottom:15px;line-height:1.6;'>" +
       "\u26A0 The upload took longer than expected.<br>" +
-      "<strong>Your files were processed</strong> \u2013 please check <em>My Projects</em> to confirm.<br>" +
+      ('<strong>' + tr_('jx_e0d00f0', 'Your files were processed') + '</strong> ' + tr_('jx_4d66f20', '– please check') + ' ' + '<em>' + tr_('jx_024c2f1', 'My Projects') + '</em> ' + tr_('jx_c55cced', 'to confirm.') + '<br>') +
       (res.errors && res.errors.length ? "<br>Note: " + escapeHtml(res.errors.join(", ")) : "") +
       "</div>" +
-      "<button class='btn btn-secondary' style='min-width:250px;' onclick='resetAppAndCloseOverlay()'>GO TO MY PROJECTS</button>" +
+      ('<button class=\'btn btn-secondary\' style=\'min-width:250px;\' onclick=\'resetAppAndCloseOverlay()\'>' + tr_('jx_90bafe8', 'GO TO MY PROJECTS') + '</button>') +
       "</div>";
     return;
   }
 
-  const warnText = res.errors && res.errors.length ? "\nWarnings:\n" + res.errors.join("\n") : "";
-  const isExisting = res.existingProjectUid ? "Files added to existing project." : (res.createdProjects > 1 ? `${res.createdProjects} projects created.` : "Project created.");
-  stopStatusAnimation("Success! " + isExisting + warnText);
+  const warnText = res.errors && res.errors.length ? '\n' + tr_('jx_c9c8347', 'Warnings:') + '\n' + res.errors.join("\n") : "";
+  const isExisting = res.existingProjectUid ? tr_('jx_29da62d', 'Files added to existing project.') : (res.createdProjects > 1 ? `${res.createdProjects} ${' ' + tr_('jx_d96fc54', 'projects created.')}` : tr_('jx_5c9b674', 'Project created.'));
+  stopStatusAnimation(tr_('jx_402e7a0', 'Success!') + ' ' + isExisting + warnText);
   document.getElementById('loadingSpinner').style.display='none'; document.getElementById('successIcon').style.display='block';
   document.getElementById('statusTitle').innerText="DONE"; document.getElementById('statusTitle').style.color="#0d652d";
   document.getElementById('overlayActions').style.display='block';
   document.getElementById('overlayActions').innerHTML="<div style='display:flex;gap:10px;justify-content:center;flex-wrap:wrap;'>"
-    + "<button class='btn btn-secondary' style='min-width:220px;flex:0 1 auto;' onclick='resetAppAndCloseOverlay()'>NEW PROJECT</button>"
-    + "<button class='btn btn-primary' style='min-width:220px;width:auto;' onclick=\"resetAppAndCloseOverlay();switchTab('history')\">GO TO MY PROJECTS <i class='material-icons-outlined' style='margin:0 0 0 8px;'>arrow_forward</i></button>"
+    + ('<button class=\'btn btn-secondary\' style=\'min-width:220px;flex:0 1 auto;\' onclick=\'resetAppAndCloseOverlay()\'>' + tr_('jx_8e0c9db', 'NEW PROJECT') + '</button>')
+    + ('<button class=\'btn btn-primary\' style=\'min-width:220px;width:auto;\' onclick="resetAppAndCloseOverlay();switchTab(\'history\')">' + tr_('jx_90bafe8', 'GO TO MY PROJECTS') + ' ' + '<i class=\'material-icons-outlined\' style=\'margin:0 0 0 8px;\'>arrow_forward</i></button>')
     + "</div>";
 }
 function onFailure(err) {
@@ -759,7 +759,7 @@ function onFailure(err) {
   } else {
     try { msg = JSON.stringify(err); } catch(e) { msg = String(err); }
   }
-  if (!msg) msg = "An unknown error occurred. Please check the Apps Script logs.";
+  if (!msg) msg = tr_('jx_f2d9b9b', 'An unknown error occurred. Please check the Apps Script logs.');
   
   stopStatusAnimation(msg);
   document.getElementById('loadingSpinner').style.display = 'none';

@@ -74,8 +74,8 @@ function updateDownloadDialog_() {
   document.getElementById('dlConfirmLabel').textContent = toDocFolder
     ? tr_('dl_btn_docfolder', 'Write to project folder')
     : toDrive
-      ? (t_i18n_(currentLang, 'sd_btn_save') || 'Save to Drive')
-      : (t_i18n_(currentLang, 'dl_btn_download') || 'Download');
+      ? (t_i18n_(currentLang, 'sd_btn_save') || tr_('jx_05a6c49', 'Save to Drive'))
+      : (t_i18n_(currentLang, 'dl_btn_download') || tr_('jx_801ab24', 'Download'));
 }
 
 function closeSaveToDriveModal() {
@@ -137,9 +137,9 @@ function downloadPartsToComputer_(p, parts) {
       if (agg.files && !agg.errors.length) {
         showToast_('\u2713 ' + tr_('dl_done', 'Download complete') + (agg.jobs > 1 ? ' (' + agg.jobs + ')' : ''), 'ok');
       } else if (agg.files) {
-        showCustomAlert('✓ ' + agg.jobs + ' file(s) downloaded.<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>', 'Download');
+        showCustomAlert('✓ ' + agg.jobs + ' file(s) downloaded.<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>', tr_('jx_801ab24', 'Download'));
       } else {
-        showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to download.') + '</div>', 'Download Error');
+        showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || tr_('jx_11401ac', 'Nothing to download.')) + '</div>', tr_('jx_d96d2ea', 'Download Error'));
       }
       return;
     }
@@ -190,7 +190,7 @@ function ensureDriveAuthorized_(authPopup, cb) {
         return;
       }
       if (!authPopup || authPopup.closed) {
-        cb(false, 'Popup was blocked. Please allow popups for this site and try again.');
+        cb(false, tr_('jx_d6a92f5', 'Popup was blocked. Please allow popups for this site and try again.'));
         return;
       }
       authPopup.location.href = urlRes.url;
@@ -206,11 +206,11 @@ function ensureDriveAuthorized_(authPopup, cb) {
             cb(true);
           } else if (popupClosed || elapsedMs > 120000) {
             clearInterval(timer);
-            cb(false, popupClosed ? 'Authorization window closed.' : 'Authorization timed out.');
+            cb(false, popupClosed ? tr_('jx_e75176a', 'Authorization window closed.') : tr_('jx_f3198ed', 'Authorization timed out.'));
           }
         }).withFailureHandler(() => {
           clearInterval(timer);
-          cb(false, 'Could not verify authorization status.');
+          cb(false, tr_('jx_083d22b', 'Could not verify authorization status.'));
         }).apiCheckDriveAuthStatus();
       }, 1500);
     }).apiGetDriveAuthUrl();
@@ -228,7 +228,7 @@ function confirmSaveToGoogleDrive(parts) {
   ensureDriveSaveConfig_(cfg => {
     if (!cfg || !cfg.configured) {
       if (authPopup) authPopup.close();
-      showCustomAlert('Saving to Google Drive is not set up yet. Please contact an administrator.', 'Not available');
+      showCustomAlert(tr_('jx_ff8a1f1', 'Saving to Google Drive is not set up yet. Please contact an administrator.'), tr_('jx_2d25c72', 'Not available'));
       return;
     }
 
@@ -238,7 +238,7 @@ function confirmSaveToGoogleDrive(parts) {
     ensureDriveAuthorized_(authPopup, (authorized, err) => {
       if (!authorized) {
         hideDownloadProgress_();
-        showCustomAlert('Could not get Google Drive access: ' + escapeHtml(err || 'permission denied'), 'Drive Error');
+        showCustomAlert(tr_('jx_2f4f608', 'Could not get Google Drive access:') + ' ' + escapeHtml(err || 'permission denied'), tr_('jx_bf50253', 'Drive Error'));
         return;
       }
 
@@ -246,17 +246,17 @@ function confirmSaveToGoogleDrive(parts) {
       const finish = () => {
         hideDownloadProgress_();
         if (!agg.folderUrl) {
-          showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || 'Nothing to save.') + '</div>', 'Drive Error');
+          showCustomAlert('<div class="dl-errors">' + (agg.errors.map(escapeHtml).join('<br>') || tr_('jx_2c1bef9', 'Nothing to save.')) + '</div>', tr_('jx_bf50253', 'Drive Error'));
           return;
         }
         if (!agg.errors.length) {
           showToast_('\u2713 ' + tr_('dl_saved_drive', 'Saved to Google Drive') + ' (' + agg.uploaded + ')', 'ok', { href: agg.folderUrl, label: tr_('dl_open_folder', 'Open folder') });
           return;
         }
-        let msg = '✓ Saved ' + agg.uploaded + ' of ' + agg.total + ' file(s) to Google Drive.';
-        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + '" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">Open folder in Drive →</a></div>';
+        let msg = tr_('jx_eed2e91', '✓ Saved') + ' ' + agg.uploaded + ' of ' + agg.total + ' ' + tr_('jx_84ae1ad', 'file(s) to Google Drive.');
+        msg += '<div style="margin-top:15px;"><a href="' + agg.folderUrl + ('" target="_blank" style="color:#1a73e8;text-decoration:none;font-weight:bold;">' + tr_('jx_06d7785', 'Open folder in Drive →') + '</a></div>');
         msg += '<div class="dl-errors">' + agg.errors.map(escapeHtml).join('<br>') + '</div>';
-        showCustomAlert(msg, 'Save to Drive');
+        showCustomAlert(msg, tr_('jx_05a6c49', 'Save to Drive'));
       };
 
       // Nacheinander, damit jeder Teil sein eigenes Apps-Script-Zeitlimit hat.
@@ -316,7 +316,7 @@ function openJobNoteModal(projectUid) {
   const saveBtn = document.getElementById('projectNoteSaveBtn');
   const status = document.getElementById('projectNoteStatus');
   noteTa.value = ''; noteTa.disabled = true; saveBtn.disabled = true;
-  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_loading') || 'Loading...';
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_loading') || tr_('jx_8524de9', 'Loading...');
   noteTa.oninput = () => { saveBtn.disabled = noteTa.value.trim() === currentNoteOriginal_.trim(); status.textContent = ''; };
 
   document.getElementById('jobNoteModal').style.display = 'flex';
@@ -325,16 +325,16 @@ function openJobNoteModal(projectUid) {
     if (currentNoteProjectUid !== projectUid) return;
     if (!res || !res.success) {
       status.className = 'note-status err';
-      status.textContent = 'Error: ' + ((res && res.error) || 'unknown');
+      status.textContent = tr_('jx_3d9f514', 'Error:') + ' ' + ((res && res.error) || 'unknown');
       return;
     }
     currentNoteOriginal_ = res.note || '';
     noteTa.value = currentNoteOriginal_;
     noteTa.disabled = !res.canEdit;
-    status.textContent = res.canEdit ? '' : (t_i18n_(currentLang, 'jn_readonly') || 'Read only');
+    status.textContent = res.canEdit ? '' : (t_i18n_(currentLang, 'jn_readonly') || tr_('jx_3583888', 'Read only'));
   }).withFailureHandler(e => {
     status.className = 'note-status err';
-    status.textContent = 'Error: ' + e.message;
+    status.textContent = tr_('jx_3d9f514', 'Error:') + ' ' + e.message;
   }).apiGetProjectNote(projectUid);
 }
 
@@ -344,18 +344,18 @@ function saveProjectNote() {
   const status = document.getElementById('projectNoteStatus');
   const projectUid = currentNoteProjectUid;
   btn.disabled = true; noteTa.disabled = true;
-  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_saving') || 'Saving...';
+  status.className = 'note-status'; status.textContent = t_i18n_(currentLang, 'jn_saving') || tr_('jx_575f5f8', 'Saving...');
   google.script.run.withSuccessHandler(res => {
     noteTa.disabled = false;
     if (res && res.success) {
       currentNoteOriginal_ = res.note || '';
       noteTa.value = currentNoteOriginal_;
       status.className = 'note-status ok';
-      status.textContent = '✓ ' + (t_i18n_(currentLang, 'jn_saved') || 'Saved');
+      status.textContent = '✓ ' + (t_i18n_(currentLang, 'jn_saved') || tr_('jx_2483361', 'Saved'));
     } else {
       btn.disabled = false;
       status.className = 'note-status err';
-      status.textContent = '✗ ' + ((res && res.error) || 'Error');
+      status.textContent = '✗ ' + ((res && res.error) || tr_('jx_902b0d5', 'Error'));
     }
   }).withFailureHandler(e => {
     noteTa.disabled = false; btn.disabled = false;
@@ -373,7 +373,7 @@ function closeJobNoteModal() {
     let currentDueDateUid = null;
     function openDueDateModal(uid, name, currentDate) {
       currentDueDateUid = uid;
-      document.getElementById('dueDateProjectName').innerText = "Project: " + name;
+      document.getElementById('dueDateProjectName').innerText = tr_('jx_f234603', 'Project:') + ' ' + name;
       const inp = document.getElementById('dueDateInput');
       if (currentDate) {
         try { inp.value = new Date(currentDate).toISOString().split('T')[0]; } catch(e) { inp.value = ""; }
@@ -384,18 +384,18 @@ function closeJobNoteModal() {
     function closeDueDateModal() { document.getElementById('dueDateModal').style.display = 'none'; }
     function saveDueDate() {
       const dateVal = document.getElementById('dueDateInput').value;
-      if (!dateVal) { showCustomAlert("Please select a date."); return; }
+      if (!dateVal) { showCustomAlert(tr_('jx_51310db', 'Please select a date.')); return; }
       const fDate = new Date(dateVal + "T12:00:00").toISOString();
       const btn = document.getElementById('dueDateSaveBtn');
-      btn.disabled = true; btn.innerHTML = "Saving...";
+      btn.disabled = true; btn.innerHTML = tr_('jx_575f5f8', 'Saving...');
       google.script.run.withSuccessHandler(r => {
         btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';
         if(r.success) {
           document.getElementById('dueDateSaveMsg').style.display = 'block';
           setTimeout(() => { closeDueDateModal(); loadMyProjects(); }, 1500);
-        } else { showCustomAlert("Error: " + r.error, "Error"); }
+        } else { showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + r.error, tr_('jx_902b0d5', 'Error')); }
       }).withFailureHandler(e => {
         btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';
-        showCustomAlert("Error: " + e.message, "Error");
+        showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + e.message, tr_('jx_902b0d5', 'Error'));
       }).apiUpdateDueDate(currentDueDateUid, fDate);
     }</script>
