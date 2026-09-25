@@ -228,7 +228,7 @@ function toggleAdminHelp(id) {
       if (name === 'users') loadUserManager();
       if (name === 'pivot') {
         loadPivotAdminContent_(function () {
-          loadPivotLinks(); loadPivotLanguageMap(); populatePivotLangMapDatalist_(); populatePivotLangMapValueDatalist_();
+          pvInit_();
         });
       }
     }

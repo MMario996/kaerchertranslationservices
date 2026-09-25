@@ -810,4 +810,88 @@
   .st-name { font-weight: 700; font-size: 14px; }
   .st-msg { color: #666; font-size: 13px; margin-top: 2px; word-break: break-word; }
   .st-ms { color: #aaa; font-size: 12px; white-space: nowrap; }
+
+  /* ===== Admin: Pivot Templates ===== */
+  .pv { --pv-line:#ececec; --pv-soft:#f6f6f4; --pv-r:14px; --pv-shadow:0 1px 2px rgba(16,16,16,0.04), 0 8px 24px rgba(16,16,16,0.05); }
+  .pv-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .pv-title { margin:0; font-size:24px; font-weight:800; letter-spacing:-0.3px; display:flex; align-items:center; gap:10px; }
+  .pv-title::before { content:""; width:10px; height:24px; background:var(--primary-yellow); border-radius:3px; }
+  .pv-sub { color:#666; font-size:13.5px; margin-top:6px; max-width:760px; line-height:1.5; }
+  .pv-actions, .pv-toolbar, .pv-row-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pv-row-actions { margin-top:12px; justify-content:space-between; }
+  .pv-btn { display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 14px; background:#fff; border:1px solid var(--pv-line); border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; color:#222; box-shadow:0 1px 2px rgba(0,0,0,0.04); font-family:inherit; }
+  .pv-btn:hover { border-color:#bbb; }
+  .pv-btn:disabled { opacity:0.45; cursor:not-allowed; }
+  .pv-btn .material-icons-outlined { font-size:18px; }
+  .pv-btn-primary { background:#111; color:var(--primary-yellow); border-color:#111; }
+  .pv-btn-primary:hover { border-color:#000; background:#000; }
+  .pv-btn-danger { color:#c62828; border-color:#f3c7c7; }
+  .pv-btn-sm { height:32px; padding:0 10px; font-size:12px; }
+  .pv-icon-btn { background:none; border:1px solid transparent; border-radius:8px; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:#777; flex-shrink:0; }
+  .pv-icon-btn:hover { border-color:var(--pv-line); color:#000; }
+  .pv-icon-btn.danger:hover { color:#c62828; border-color:#f3c7c7; }
+  .pv-input { height:38px; padding:0 12px; font-size:13px; border:1px solid var(--pv-line); border-radius:10px; background:var(--pv-soft); width:100%; box-sizing:border-box; font-family:inherit; }
+  .pv-toolbar .pv-input { width:260px; }
+  .pv-input:focus { outline:none; border-color:#111; background:#fff; }
+  .pv-textarea { width:100%; box-sizing:border-box; border:1px solid var(--pv-line); border-radius:10px; padding:10px 12px; font-family:monospace; font-size:13px; background:var(--pv-soft); }
+  .pv-check { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; margin:0; cursor:pointer; }
+  .pv-muted { color:#777; font-size:12.5px; }
+  .pv-count { color:#888; font-weight:600; font-size:13px; }
+  .pv-loading { text-align:center; padding:24px; display:none; }
+  .pv-error { color:#c62828; padding:14px; font-size:13px; }
+  .pv-stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  .pv-stat { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--pv-line); border-radius:var(--pv-r); padding:14px 16px; box-shadow:var(--pv-shadow); }
+  .pv-stat > .material-icons-outlined { width:38px; height:38px; border-radius:10px; background:var(--pv-soft); display:inline-flex; align-items:center; justify-content:center; color:#555; }
+  .pv-stat.bad > .material-icons-outlined { background:#fdecea; color:#c62828; }
+  .pv-stat.ok > .material-icons-outlined { background:#e8f5e9; color:#2e7d32; }
+  .pv-stat-val { font-size:22px; font-weight:800; line-height:1.1; }
+  .pv-stat-lbl { font-size:12px; color:#666; font-weight:600; }
+  .pv-issues { background:#fff8f7; border:1px solid #f6d3cf; border-radius:var(--pv-r); padding:12px 14px; margin-bottom:14px; }
+  .pv-issue { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.7; color:#6b1d1d; }
+  .pv-issue + .pv-issue { margin-top:8px; }
+  .pv-issue > .material-icons-outlined { color:#c62828; font-size:20px; margin-top:2px; }
+  .pv-card { background:#fff; border:1px solid var(--pv-line); border-radius:var(--pv-r); box-shadow:var(--pv-shadow); padding:18px 20px; margin-bottom:16px; }
+  .pv-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .pv-card-title { font-size:16px; font-weight:700; }
+  .pv-composer { border-color:#111; }
+  .pv-composer-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+  .pv-step { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:8px; }
+  .pv-step > span:first-child { width:22px; height:22px; border-radius:50%; background:var(--primary-yellow); display:inline-flex; align-items:center; justify-content:center; font-size:12px; }
+  .pv-picker-list { margin-top:8px; border:1px solid var(--pv-line); border-radius:10px; max-height:340px; overflow:auto; }
+  .pv-opt { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; margin:0; cursor:pointer; font-weight:400; border-bottom:1px solid #f4f4f4; }
+  .pv-opt:hover { background:var(--pv-soft); }
+  .pv-opt.on { background:#fffbe0; }
+  .pv-opt.done { opacity:0.55; cursor:default; }
+  .pv-opt input { margin-top:3px; }
+  .pv-opt-main { min-width:0; }
+  .pv-opt-name { font-size:13px; font-weight:600; word-break:break-word; }
+  .pv-tag { font-size:10.5px; font-weight:700; background:#eee; color:#555; border-radius:999px; padding:1px 7px; margin-left:4px; }
+  .pv-composer-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid #f0f0f0; }
+  .pv-group { border:1px solid var(--pv-line); border-radius:12px; margin-bottom:12px; overflow:hidden; }
+  .pv-group.missing { border-color:#f3c7c7; }
+  .pv-group-head { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--pv-soft); }
+  .pv-group-ico { width:34px; height:34px; border-radius:10px; background:#111; color:var(--primary-yellow); display:inline-flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .pv-group-main { flex:1; min-width:0; }
+  .pv-name { font-weight:700; font-size:14px; color:#111; text-decoration:none; word-break:break-word; }
+  .pv-name:hover { text-decoration:underline; }
+  .pv-children { padding:4px 0; }
+  .pv-child { display:flex; align-items:center; gap:12px; padding:10px 14px; }
+  .pv-child + .pv-child { border-top:1px solid #f4f4f4; }
+  .pv-child.missing { background:#fff8f7; }
+  .pv-child-main { flex:1; min-width:0; }
+  .pv-langs { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:5px; }
+  .pv-src { font-size:11.5px; font-weight:700; color:#555; }
+  .pv-arrow { font-size:14px; color:#aaa; }
+  .pv-lang-chip { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px; background:#eef4fc; color:#1f5fad; border:1px solid transparent; font-family:inherit; }
+  .pv-lang-chip.bad { background:#fdecea; color:#c62828; border-color:#f3c7c7; cursor:pointer; }
+  .pv-empty { text-align:center; color:#999; padding:36px 10px; display:flex; flex-direction:column; align-items:center; gap:8px; font-size:13px; }
+  .pv-empty .material-icons-outlined { font-size:36px; color:#ddd; }
+  .pv-table-wrap { overflow-x:auto; border:1px solid var(--pv-line); border-radius:10px; }
+  .pv-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .pv-table th { text-align:left; font-size:12px; color:#666; font-weight:700; padding:10px 12px; background:var(--pv-soft); border-bottom:1px solid var(--pv-line); }
+  .pv-table td { padding:8px 12px; border-bottom:1px solid #f3f3f3; vertical-align:middle; }
+  .pv-table tr.bad td, .pv-table tr.pv-map-bad td { background:#fff8f7; }
+  .pv-table tr.pv-map-changed td { background:#fffbe0; }
+  .pv-map-input { max-width:220px; height:34px; }
+  @media (max-width: 900px) { .pv-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } .pv-composer-grid { grid-template-columns:minmax(0,1fr); } .pv-toolbar .pv-input { width:100%; } }
 </style>

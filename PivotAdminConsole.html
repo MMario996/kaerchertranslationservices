@@ -1,104 +1,102 @@
 <!-- Inhalt des "Pivot Templates"-Admin-Subtabs, ausgelagert aus AdminConsole.html.
      Wird lazy via apiGetPivotAdminContent() nachgeladen (siehe loadPivotAdminContent_()
-     in Index.html), NICHT beim ersten Oeffnen des Admin-Bereichs - der kombinierte
+     in JsNavigation.html), NICHT beim ersten Oeffnen des Admin-Bereichs - der kombinierte
      AdminConsole.html+AdminScript.html-Payload war mit diesem Inhalt an derselben
      ~144KB-Grenze angekommen, die frueher schon GuideContent.html mitten im
      <script>-Block abgeschnitten hat (siehe Kommentar bei apiGetGuideContent() in
-     WebApp.gs) - Symptom war ein komplett unausgefuehrtes AdminScript.html
-     (switchAdminSubtab/applyAdminAccessRestrictions_ "is not defined"). -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
-          <div class="section-title" style="margin:0;border:none;font-size:18px;">Pivot Templates</div>
-          <button class="btn-refresh" onclick="loadPivotLinks()"><i class="material-icons-outlined">refresh</i> Neu laden</button>
-        </div>
-        <div style="font-size:12px;color:#888;margin-bottom:15px;line-height:1.6;">
-          Verknuepft ein Pivot-Parent-Template ("Source Check") mit den Child-Templates ("Translation"), die Phrases eigener
-          Orchestrator dafuer automatisch erstellen kann. Diese Liste steuert <strong>nur</strong>, welche Zielsprachen im
-          Upload-Formular fuer ein Pivot-Template zur Auswahl stehen (Vereinigung der Zielsprachen aller verlinkten Child-Templates) -
-          welches Child-Projekt Phrase beim Abschluss tatsaechlich erstellt, entscheidet weiterhin Phrase selbst
-          (Project-Based-Trigger-Workflow). Ein Parent kann mehrere Children haben, ein Child auch unter mehreren Parents stehen.
-        </div>
+     WebApp.gs). -->
+<div class="pv">
+  <div class="pv-head">
+    <div>
+      <h2 class="pv-title" data-i18n="pv_title">Pivot Templates</h2>
+      <div class="pv-sub" data-i18n="pv_sub">Source-Check-Templates (Parent) mit ihren Translation-Templates (Child) verknüpfen und die Sprachen dem Phrase-Feld „Pivot languages“ zuordnen.</div>
+    </div>
+    <div class="pv-actions">
+      <button type="button" class="pv-btn" onclick="pvRefreshFromPhrase()" data-i18n-title="pv_refresh_hint" title="Namen und Sprachen aller Verknüpfungen aus Phrase aktualisieren"><span class="material-icons-outlined">sync</span><span data-i18n="pv_refresh">Aus Phrase aktualisieren</span></button>
+      <button type="button" class="pv-btn" onclick="pvOpenImport()"><span class="material-icons-outlined">playlist_add</span><span data-i18n="pv_import">Massen-Import</span></button>
+      <button type="button" class="pv-btn pv-btn-primary" onclick="pvOpenComposer('')"><span class="material-icons-outlined">add_link</span><span data-i18n="pv_new_link">Neue Verknüpfung</span></button>
+    </div>
+  </div>
 
-        <div class="card" style="margin-bottom:20px;">
-          <div class="section-title" style="font-size:14px;">Neue Verknuepfung anlegen</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-            <div class="form-row" style="flex:1;min-width:240px;">
-              <label style="font-size:12px;">Parent-Template-UID (Source Check)</label>
-              <div style="display:flex;gap:6px;">
-                <input type="text" id="newPivotParentUid" placeholder="z.B. zPEhSs5Z659v0Gb7UF1pe" style="flex:1;">
-                <button type="button" class="btn-refresh" title="Template in Phrase oeffnen" style="width:auto;padding:0 10px;" onclick="openPivotTemplateFromInput_('newPivotParentUid')"><i class="material-icons-outlined" style="font-size:16px;">open_in_new</i></button>
-              </div>
-            </div>
-            <div class="form-row" style="flex:1;min-width:240px;">
-              <label style="font-size:12px;">Child-Template-UID (Translation)</label>
-              <div style="display:flex;gap:6px;">
-                <input type="text" id="newPivotChildUid" placeholder="z.B. 9zPRwZ0QO4ScmGG3thbS20" style="flex:1;">
-                <button type="button" class="btn-refresh" title="Template in Phrase oeffnen" style="width:auto;padding:0 10px;" onclick="openPivotTemplateFromInput_('newPivotChildUid')"><i class="material-icons-outlined" style="font-size:16px;">open_in_new</i></button>
-              </div>
-            </div>
-            <button class="btn btn-primary" style="width:auto;padding:0 25px;height:40px;" onclick="addPivotLink()">
-              <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>VERKNUEPFEN
-            </button>
-          </div>
-          <div style="font-size:11px;color:#888;margin-top:8px;">Beide UIDs stehen in Phrase in der Template-URL (.../projectTemplate/edit/&lt;UID&gt;). Name und Zielsprachen werden automatisch von Phrase geholt. Nach dem Speichern sind Parent/Child unten in der Liste direkt anklickbar.</div>
-        </div>
+  <div id="pvStats" class="pv-stats"></div>
+  <div id="pvIssues" class="pv-issues" style="display:none;"></div>
 
-        <div id="pivotLinksLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
-        <div class="modern-table-wrap">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Parent-Template (Source Check)</th>
-                <th>Child-Template (Translation)</th>
-                <th>Child Source</th>
-                <th>Child Targets</th>
-                <th style="text-align:right;">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="pivotLinksTableBody">
-              <tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
+  <!-- Verknuepfungen anlegen: ein Parent, mehrere Children (Batch) -->
+  <div id="pvComposer" class="pv-card pv-composer" style="display:none;">
+    <div class="pv-card-head">
+      <div class="pv-card-title" data-i18n="pv_composer_title">Verknüpfungen anlegen</div>
+      <button type="button" class="pv-icon-btn" onclick="pvCloseComposer()" data-i18n-title="btn_close" title="Schließen"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div class="pv-composer-grid">
+      <div>
+        <div class="pv-step"><span>1</span><span data-i18n="pv_pick_parent">Parent-Template (Source Check) wählen</span></div>
+        <div id="pvParentPicker" class="pv-picker"></div>
+      </div>
+      <div>
+        <div class="pv-step"><span>2</span><span data-i18n="pv_pick_children">Child-Templates (Translation) wählen – Mehrfachauswahl</span></div>
+        <div id="pvChildPicker" class="pv-picker"></div>
+      </div>
+    </div>
+    <div class="pv-composer-foot">
+      <div id="pvComposerSummary" class="pv-muted"></div>
+      <button type="button" class="pv-btn pv-btn-primary" id="pvComposerSave" onclick="pvSaveComposer()" disabled><span class="material-icons-outlined">link</span><span id="pvComposerSaveLbl" data-i18n="pv_link_selected">Verknüpfen</span></button>
+    </div>
+  </div>
 
-        <div class="section-title" style="font-size:18px;margin-top:35px;">Sprachen-Mapping ("Pivot languages" Custom Field)</div>
-        <div style="font-size:12px;color:#888;margin-bottom:15px;line-height:1.6;">
-          Das Phrase-Custom-Field <strong>"Pivot languages"</strong> nutzt eigene, kurze Options-Codes (z.B. "DE", "EN"), die
-          NICHT mit unseren Phrase-Sprachcodes (z.B. "de", "en_gb") uebereinstimmen. Ohne Mapping kann die im Formular
-          gewaehlte Translation-Zielsprache nicht ins Feld geschrieben werden. Hier je Sprache den passenden Options-Wert
-          zuordnen - nur fuer Sprachen noetig, die tatsaechlich als Pivot-Ziel vorkommen sollen.
-        </div>
+  <!-- Massen-Import -->
+  <div id="pvImport" class="pv-card" style="display:none;">
+    <div class="pv-card-head">
+      <div class="pv-card-title" data-i18n="pv_import_title">Massen-Import</div>
+      <button type="button" class="pv-icon-btn" onclick="pvCloseImport()" data-i18n-title="btn_close" title="Schließen"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div class="pv-muted" style="margin-bottom:10px;" data-i18n="pv_import_hint">Eine Zeile pro Verknüpfung: Parent und Child, getrennt durch Semikolon, Komma oder Tab. Erlaubt sind Template-UIDs oder exakte Template-Namen (z. B. direkt aus Excel kopiert).</div>
+    <textarea id="pvImportText" rows="6" class="pv-textarea" placeholder="zPEhSs5Z659v0Gb7UF1pe; 9zPRwZ0QO4ScmGG3thbS20&#10;Source Check DE; Translation DE-FR"></textarea>
+    <div class="pv-row-actions">
+      <button type="button" class="pv-btn" onclick="pvPreviewImport()"><span class="material-icons-outlined">preview</span><span data-i18n="pv_preview">Vorschau</span></button>
+    </div>
+    <div id="pvImportPreview"></div>
+  </div>
 
-        <div class="card" style="margin-bottom:20px;">
-          <div class="section-title" style="font-size:14px;">Neue Zuordnung anlegen</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-            <div class="form-row" style="flex:1;min-width:220px;">
-              <label style="font-size:12px;">Phrase-Sprache (Code, z.B. "de" oder "en_gb")</label>
-              <input type="text" id="newPivotLangMapLang" list="pivotLangMapLangDatalist" placeholder="Sprachcode eingeben oder aus Liste waehlen..." style="height:40px;">
-              <datalist id="pivotLangMapLangDatalist"></datalist>
-            </div>
-            <div class="form-row" style="flex:1;min-width:220px;">
-              <label style="font-size:12px;">Options-Wert im Custom Field</label>
-              <input type="text" id="newPivotLangMapValue" list="pivotLangMapValueDatalist" placeholder="Options-Wert eingeben oder aus Liste waehlen..." style="height:40px;">
-              <datalist id="pivotLangMapValueDatalist"></datalist>
-            </div>
-            <button class="btn btn-primary" style="width:auto;padding:0 25px;height:40px;" onclick="savePivotLanguageMapping()">
-              <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle;margin-right:6px;">add</span>ZUORDNEN
-            </button>
-          </div>
-        </div>
+  <!-- Verknuepfungen, gruppiert nach Parent -->
+  <div class="pv-card">
+    <div class="pv-card-head">
+      <div class="pv-card-title"><span data-i18n="pv_links_title">Verknüpfungen</span> <span id="pvLinkCount" class="pv-count"></span></div>
+      <div class="pv-toolbar">
+        <input type="search" id="pvLinkSearch" class="pv-input" oninput="pvRenderLinks()" data-i18n-placeholder="pv_search_links" placeholder="Template oder Sprache suchen...">
+        <button type="button" class="pv-btn pv-btn-danger" id="pvBulkRemoveBtn" onclick="pvRemoveSelected()" style="display:none;"><span class="material-icons-outlined">link_off</span><span id="pvBulkRemoveLbl"></span></button>
+      </div>
+    </div>
+    <div id="pvLinksLoading" class="pv-loading"><div class="loader"></div></div>
+    <div id="pvLinks"></div>
+  </div>
 
-        <div id="pivotLangMapLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
-        <div class="modern-table-wrap">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Phrase-Sprache</th>
-                <th>Options-Wert</th>
-                <th style="text-align:right;">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="pivotLangMapTableBody">
-              <tr><td colspan="3" style="text-align:center;color:#888;padding:20px;">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
+  <!-- Sprachen-Mapping -->
+  <div class="pv-card">
+    <div class="pv-card-head">
+      <div class="pv-card-title"><span data-i18n="pv_map_title">Sprachen-Zuordnung</span> <span id="pvMapCount" class="pv-count"></span></div>
+      <div class="pv-toolbar">
+        <label class="pv-check"><input type="checkbox" id="pvMapOnlyMissing" onchange="pvRenderMap()"> <span data-i18n="pv_only_missing">Nur fehlende</span></label>
+        <button type="button" class="pv-btn pv-btn-primary" id="pvMapSaveBtn" onclick="pvSaveMap()" disabled><span class="material-icons-outlined">save</span><span data-i18n="pv_save_changes">Änderungen speichern</span></button>
+      </div>
+    </div>
+    <div class="pv-muted" style="margin-bottom:12px;" data-i18n="pv_map_hint">Das Phrase-Feld „Pivot languages“ nutzt eigene Kürzel (z. B. „DE“, „EN“). Jede Zielsprache, die über Pivot bestellt werden kann, braucht hier eine Zuordnung – sonst wird sie im Formular nicht angeboten.</div>
+    <div id="pvMapLoading" class="pv-loading"><div class="loader"></div></div>
+    <div class="pv-table-wrap">
+      <table class="pv-table">
+        <thead><tr>
+          <th data-i18n="pv_col_lang">Sprache</th>
+          <th data-i18n="pv_col_used">Verwendet von</th>
+          <th data-i18n="pv_col_option">Wert im Feld „Pivot languages“</th>
+          <th style="width:60px;"></th>
+        </tr></thead>
+        <tbody id="pvMapBody"></tbody>
+      </table>
+    </div>
+    <div class="pv-row-actions">
+      <input type="text" id="pvMapNewLang" class="pv-input" list="pvLangDatalist" data-i18n-placeholder="pv_add_lang_ph" placeholder="Weitere Sprache (Code, z. B. en_gb)" style="max-width:260px;">
+      <datalist id="pvLangDatalist"></datalist>
+      <button type="button" class="pv-btn" onclick="pvAddMapLang()"><span class="material-icons-outlined">add</span><span data-i18n="pv_add_lang">Sprache hinzufügen</span></button>
+    </div>
+    <datalist id="pvOptionDatalist"></datalist>
+  </div>
+</div>
