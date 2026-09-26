@@ -313,6 +313,9 @@ function apiShareProject(projectUid, shareWithEmail) {
         }
       }
 
+      notifyUser_(share, "shared", projectUid, projectName, { by: caller });
+      try { calendarRefreshProject_(projectUid); } catch (calErr) {}
+
       logAuditEvent_(caller, "PROJECT_SHARE", "Shared '" + projectName + "' (" + projectUid + ") with " + share);
       return { success: true };
     }
@@ -361,6 +364,7 @@ function apiCancelProject(projectUid, callerOverride) {
       }
 
       _notifySharedUsers_(sharedWith, sharedThreads, cancelMsg);
+      notifyProjectParticipants_(owner, sharedWith, "cancelled", projectUid, projectName, { by: caller }, caller);
 
       sh.getRange(i + 1, 20).setValue("");
       sh.getRange(i + 1, 21).setValue("");
@@ -467,6 +471,7 @@ function apiSyncProjectStatuses() {
           }
 
           _notifySharedUsers_(sharedWith, sharedThreads, replyText);
+          notifyProjectParticipants_(rowUser, sharedWith, "completed", projectUid, projectName, { status: newStatus });
 
           props.setProperty(notifiedKey, "true");
           sh.getRange(i + 1, 20).setValue("");
@@ -869,6 +874,8 @@ function apiUpdateDueDate(projectUid, newDateIso, callerOverride) {
 
     const sharedThreads = _parseSharedThreads_(String(data[rowIdx][20] || "").trim());
     _notifySharedUsers_(sharedWith, sharedThreads, chatMsg, caller);
+    notifyProjectParticipants_(owner, sharedWith, "due_changed", projectUid, projectName, { due: isoDate, by: caller }, caller);
+    try { calendarRefreshProject_(projectUid); } catch (calErr) { console.warn("Calendar refresh failed:", calErr.message); }
 
     logAuditEvent_(caller, "DUE_DATE_UPDATE",
       "Updated due date for '" + projectName + "' (" + projectUid + ") \u2013 " + formattedDate);
@@ -948,6 +955,8 @@ function apiUpdateProjectName(projectUid, newName, callerOverride) {
 
     const sharedThreads = _parseSharedThreads_(String(data[rowIdx][20] || "").trim());
     _notifySharedUsers_(sharedWith, sharedThreads, chatMsg, caller);
+    notifyProjectParticipants_(owner, sharedWith, "renamed", projectUid, newName, { old: oldName, by: caller }, caller);
+    try { calendarRefreshProject_(projectUid); } catch (calErr) {}
 
     logAuditEvent_(caller, "PROJECT_RENAME",
       "Renamed '" + oldName + "' \u2192 '" + newName + "' (" + projectUid + ")");

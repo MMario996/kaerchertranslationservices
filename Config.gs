@@ -76,6 +76,7 @@ function getConfig_(impersonateEmail) {
     isExclusive: isExclusive,
     maintenance: maintenance,
     adminLightSubtabs: adminLightSubtabs,
+    userPrefs: (function () { try { return apiGetUserPrefs().prefs; } catch (e) { return {}; } })(),
     announcements: announcementsForUser_({
       isGeneral: isGeneral, isMarketing: isMarketing, isWoma: isWoma, isCc: isCc, isKeC: isKeC,
       isDoc: isDoc, isArticulate: isArticulate, effectiveIsAdmin: effectiveIsAdmin

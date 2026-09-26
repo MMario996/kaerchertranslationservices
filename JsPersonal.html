@@ -1,0 +1,747 @@
+<script>
+// JsPersonal.html - eingebunden in Index.html via include() (WebApp.gs)
+// Persoenliche Funktionen: Startseite, Benachrichtigungs-Glocke, Darstellung
+// (dunkler Modus, Schriftgroesse), Team-Ansicht, Kalender (Google-Sync +
+// .ics) und Kontexthilfe ("?" an den Feldern).
+
+// --- kleine Helfer ----------------------------------------------------------
+function fmt_(str, vars) {
+  return String(str || '').replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null) ? vars[k] : m);
+}
+
+function pDate_(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDay_(v) {
+  const d = pDate_(v);
+  if (!d) return '-';
+  try { return d.toLocaleDateString(calLocale_(), { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return d.toLocaleDateString(); }
+}
+
+function relTime_(v) {
+  const d = pDate_(v);
+  if (!d) return '';
+  const diff = (d.getTime() - Date.now()) / 1000;
+  const abs = Math.abs(diff);
+  const units = [['day', 86400], ['hour', 3600], ['minute', 60]];
+  try {
+    const rtf = new Intl.RelativeTimeFormat(calLocale_(), { numeric: 'auto' });
+    for (const [u, s] of units) if (abs >= s || u === 'minute') return rtf.format(Math.round(diff / s), u);
+  } catch (e) {}
+  return d.toLocaleString();
+}
+
+// ============================================================================
+// Darstellung: Theme + Schriftgroesse (lokal sofort, serverseitig fuer andere Geraete)
+// ============================================================================
+let userPrefs_ = {};
+let prefsDraft_ = {};
+let prefsSaved_ = false;
+let darkMql_ = null;
+
+function uiPrefsLocal_() {
+  try { return JSON.parse(localStorage.getItem('kts_ui') || '{}') || {}; } catch (e) { return {}; }
+}
+
+function applyUiPrefs_(p) {
+  p = p || {};
+  const theme = p.theme || 'light';
+  let dark = theme === 'dark';
+  if (theme === 'auto' && window.matchMedia) {
+    if (!darkMql_) {
+      darkMql_ = window.matchMedia('(prefers-color-scheme: dark)');
+      try { darkMql_.addEventListener('change', () => applyUiPrefs_(prefsDraft_.theme ? prefsDraft_ : userPrefs_)); } catch (e) {}
+    }
+    dark = darkMql_.matches;
+  }
+  const root = document.documentElement;
+  if (dark) root.setAttribute('data-theme', 'dark'); else root.removeAttribute('data-theme');
+  const fs = Number(p.fontScale) || 1;
+  if (fs !== 1) root.setAttribute('data-font', String(fs).replace('.', '')); else root.removeAttribute('data-font');
+}
+
+function storeUiPrefsLocal_(p) {
+  try { localStorage.setItem('kts_ui', JSON.stringify({ theme: p.theme || 'light', fontScale: Number(p.fontScale) || 1, startPage: p.startPage !== false })); } catch (e) {}
+}
+
+/** Aufruf aus loadAppConfig nach initForm(). */
+function initPersonal_(config) {
+  const server = (config && config.userPrefs) || {};
+  const local = uiPrefsLocal_();
+  // Server gewinnt (Einstellung folgt dem Nutzer auf andere Geraete).
+  userPrefs_ = Object.assign({}, local, server);
+  applyUiPrefs_(userPrefs_);
+  storeUiPrefsLocal_(userPrefs_);
+  updateTeamFilterOption_();
+  initNotifications_();
+  initContextHelp_(document);
+}
+
+function startTabWithHome_(startTab) {
+  return userPrefs_.startPage === false ? startTab : 'home';
+}
+
+// --- Einstellungsdialog ------------------------------------------------------
+function personalPrefsOpen_() {
+  prefsSaved_ = false;
+  prefsDraft_ = JSON.parse(JSON.stringify(userPrefs_ || {}));
+  renderPrefsChoices_();
+  const sp = document.getElementById('prefStartPage');
+  if (sp) sp.checked = prefsDraft_.startPage !== false;
+  const team = prefsDraft_.team || {};
+  document.getElementById('prefTeamEnabled').checked = !!team.enabled;
+  document.querySelectorAll('input[name="prefTeamMode"]').forEach(r => { r.checked = r.value === (team.mode || 'bu'); });
+  document.getElementById('prefTeamEmails').value = (team.emails || []).join(', ');
+  document.getElementById('prefTeamBuInfo').textContent = '';
+  updateTeamPrefsUi_();
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) return;
+    const info = document.getElementById('prefTeamBuInfo');
+    info.textContent = res.businessUnits && res.businessUnits.length
+      ? '(' + res.businessUnits.join(', ') + ' · ' + fmt_(tr_('pf_team_bu_count', '{n} colleagues'), { n: res.buColleagues }) + ')'
+      : '(' + tr_('pf_team_bu_none', 'no business unit stored for you') + ')';
+  }).apiGetTeamSettings();
+  const cs = document.getElementById('prefCalStatus');
+  cs.textContent = tr_('jx_8524de9', 'Loading...');
+  google.script.run.withSuccessHandler(st => { cs.textContent = calStatusLine_(st); })
+    .withFailureHandler(() => { cs.textContent = ''; }).apiGetCalendarSyncStatus();
+}
+
+function renderPrefsChoices_() {
+  const mark = (id, val) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === String(val)));
+  mark('prefTheme', prefsDraft_.theme || 'light');
+  mark('prefFont', Number(prefsDraft_.fontScale) || 1);
+}
+
+function setPrefChoice_(key, val) {
+  prefsDraft_[key] = val;
+  renderPrefsChoices_();
+  applyUiPrefs_(prefsDraft_); // Live-Vorschau
+}
+
+function updateTeamPrefsUi_() {
+  const on = document.getElementById('prefTeamEnabled').checked;
+  const opts = document.getElementById('prefTeamOptions');
+  opts.classList.toggle('disabled', !on);
+  opts.querySelectorAll('input,textarea').forEach(el => { el.disabled = !on; });
+  const mode = (document.querySelector('input[name="prefTeamMode"]:checked') || {}).value || 'bu';
+  document.getElementById('prefTeamEmails').style.display = mode === 'custom' ? 'block' : 'none';
+}
+
+function personalPrefsClosed_() {
+  if (!prefsSaved_) applyUiPrefs_(userPrefs_); // Vorschau verwerfen
+}
+
+function savePreferences_() {
+  const mode = (document.querySelector('input[name="prefTeamMode"]:checked') || {}).value || 'bu';
+  const patch = {
+    theme: prefsDraft_.theme || 'light',
+    fontScale: Number(prefsDraft_.fontScale) || 1,
+    startPage: document.getElementById('prefStartPage').checked,
+    team: {
+      enabled: document.getElementById('prefTeamEnabled').checked,
+      mode: mode,
+      emails: document.getElementById('prefTeamEmails').value.split(/[\s,;]+/).filter(Boolean)
+    }
+  };
+  const teamChanged = JSON.stringify(patch.team) !== JSON.stringify(userPrefs_.team || {});
+  userPrefs_ = Object.assign({}, userPrefs_, patch);
+  prefsSaved_ = true;
+  applyUiPrefs_(userPrefs_);
+  storeUiPrefsLocal_(userPrefs_);
+  if (teamChanged) { teamProjects_ = null; }
+  updateTeamFilterOption_();
+
+  let pending = 2;
+  const done = () => {
+    if (--pending > 0) return;
+    document.getElementById('prefsSaveMsg').style.display = 'block';
+    setTimeout(closePreferences, 900);
+    if (teamChanged && document.getElementById('tab-home').classList.contains('active')) renderHome_(true);
+  };
+  const fail = err => showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + (err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error'));
+  google.script.run.withSuccessHandler(res => {
+    if (res && res.success && res.prefs) userPrefs_ = Object.assign({}, userPrefs_, res.prefs);
+    done();
+  }).withFailureHandler(fail).apiSaveUserPrefs(patch);
+  const chat = document.getElementById('chatPrefToggle');
+  if (chat.disabled) done();
+  else google.script.run.withSuccessHandler(done).withFailureHandler(fail).apiSetChatPreference(chat.checked);
+}
+
+// ============================================================================
+// Startseite
+// ============================================================================
+let homeLoadedAt_ = 0;
+let homeLoading_ = false;
+
+/** Ende der Arbeitswoche (Sonntag); am Wochenende zaehlt schon die naechste Woche. */
+function endOfWeek_(now) {
+  const d = new Date(now);
+  const day = d.getDay(); // 0 = So, 6 = Sa
+  const add = day === 0 ? 7 : (day === 6 ? 8 : 7 - day);
+  d.setDate(d.getDate() + add);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+/** Reine Funktion (getestet): teilt Projekte in die Kacheln der Startseite auf. */
+function homeBuckets_(projects, nowMs) {
+  const now = nowMs || Date.now();
+  const eow = endOfWeek_(now).getTime();
+  const top = (projects || []).filter(p => p && p.pivotRole !== 'CHILD');
+  const open = top.filter(p => statusGroup_(p.status) === 'open');
+  const dueMs = p => { const d = pDate_(p.dueDate); return d ? d.getTime() : Infinity; };
+  const byDue = (a, b) => dueMs(a) - dueMs(b);
+  const dueWeek = open.filter(p => dueMs(p) <= eow).sort(byDue);
+  const overdue = open.filter(p => dueMs(p) < now);
+  // Kein Abschlussdatum in der Queue: Frist (sonst Upload) als Naeherung.
+  const doneRef = p => (pDate_(p.dueDate) || pDate_(p.timestamp) || new Date(0)).getTime();
+  const done = top.filter(p => statusGroup_(p.status) === 'done').sort((a, b) => doneRef(b) - doneRef(a));
+  const done30 = done.filter(p => now - doneRef(p) <= 30 * 86400000);
+  return { open: open.slice().sort(byDue), dueWeek, overdue, done, done30 };
+}
+
+function firstNameOf_(email) {
+  const local = String(email || '').split('@')[0].split(/[._-]/)[0] || '';
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : '';
+}
+
+function renderHome_(force) {
+  const root = document.getElementById('homeRoot');
+  if (!root) return;
+  const fresh = homeLoadedAt_ && (Date.now() - homeLoadedAt_ < 60000) && Array.isArray(globalProjects) && historyScope_ !== 'doc';
+  if (fresh && !force) { paintHome_(globalProjects); return; }
+  if (!homeLoadedAt_) root.innerHTML = homeSkeleton_();
+  if (homeLoading_) return;
+  homeLoading_ = true;
+  google.script.run.withSuccessHandler(r => {
+    homeLoading_ = false;
+    if (r && r.error) { root.innerHTML = `<div class="home-error">${escapeHtml(r.error)}</div>`; return; }
+    globalProjects = (r && (r.projects || r)) || [];
+    historyScope_ = 'all';
+    homeLoadedAt_ = Date.now();
+    paintHome_(globalProjects);
+    if (userPrefs_.team && userPrefs_.team.enabled) loadTeamProjects_(() => paintHome_(globalProjects));
+  }).withFailureHandler(e => {
+    homeLoading_ = false;
+    root.innerHTML = `<div class="home-error">${escapeHtml(e && e.message ? e.message : String(e))}</div>`;
+  }).apiGetMyProjects();
+}
+
+function homeSkeleton_() {
+  return `<div class="home-hero skel"></div><div class="home-kpis">${'<div class="home-kpi skel"></div>'.repeat(4)}</div>
+    <div class="home-grid">${'<div class="home-card skel" style="height:260px"></div>'.repeat(3)}</div>`;
+}
+
+function homeItem_(p, mode) {
+  const due = pDate_(p.dueDate);
+  const cls = dueClass_(p);
+  const dueTxt = due ? fmtDay_(due) : tr_('home_no_due', 'no due date');
+  const right = mode === 'done'
+    ? `<button type="button" class="home-dl" onclick="event.stopPropagation(); openSaveToDriveModal('${escapeJs(p.projectUid)}')" title="${escapeHtml(tr_('jx_801ab24', 'Download'))}"><span class="material-icons-outlined">download</span></button>`
+    : `<span class="home-due ${cls}">${cls === 'due-overdue' ? '<span class="material-icons-outlined">error</span>' : ''}${escapeHtml(dueTxt)}</span>`;
+  const sub = [p.targetLangs && p.targetLangs.length ? p.targetLangs.join(', ') : (p.targetLang || ''), p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '']
+    .filter(Boolean).join(' · ');
+  return `<li class="home-item" onclick="openFromHome_('${escapeJs(p.projectUid)}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${escapeJs(p.projectUid)}')">
+      <span class="home-dot st-${statusGroup_(p.status)}"></span>
+      <span class="home-item-main"><span class="home-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="home-item-sub">${escapeHtml(sub || (p.status || ''))}</span></span>
+      ${right}
+    </li>`;
+}
+
+function homeCard_(icon, titleKey, titleFb, items, mode, emptyKey, emptyFb, moreFilter) {
+  const list = items.slice(0, 6).map(p => homeItem_(p, mode)).join('');
+  const more = items.length > 6
+    ? `<button type="button" class="home-more" onclick="openHistoryFiltered_('${moreFilter}')">${escapeHtml(fmt_(tr_('home_more', 'Show all ({n})'), { n: items.length }))}<span class="material-icons-outlined">chevron_right</span></button>` : '';
+  return `<section class="home-card home-card-${mode}">
+      <div class="home-card-head"><span class="home-card-ico"><span class="material-icons-outlined">${icon}</span></span>
+        <h3>${escapeHtml(tr_(titleKey, titleFb))}</h3><span class="home-count">${items.length}</span></div>
+      ${list ? `<ul class="home-list">${list}</ul>` : `<div class="home-empty"><span class="material-icons-outlined">${mode === 'done' ? 'hourglass_empty' : 'celebration'}</span>${escapeHtml(tr_(emptyKey, emptyFb))}</div>`}
+      ${more}
+    </section>`;
+}
+
+function paintHome_(projects) {
+  const root = document.getElementById('homeRoot');
+  if (!root) return;
+  const b = homeBuckets_(projects);
+  const name = firstNameOf_(configData.effectiveUser || configData.currentUser);
+  const hour = new Date().getHours();
+  const greetKey = hour < 11 ? 'home_morning' : (hour < 18 ? 'home_day' : 'home_evening');
+  const greetFb = hour < 11 ? 'Good morning' : (hour < 18 ? 'Hello' : 'Good evening');
+  let today = '';
+  try { today = new Date().toLocaleDateString(calLocale_(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { today = new Date().toDateString(); }
+
+  const kpi = (icon, n, key, fb, cls, onclick) =>
+    `<button type="button" class="home-kpi ${cls}" onclick="${onclick}"><span class="material-icons-outlined">${icon}</span><span class="home-kpi-n">${n}</span><span class="home-kpi-l">${escapeHtml(tr_(key, fb))}</span></button>`;
+
+  const team = (userPrefs_.team && userPrefs_.team.enabled && Array.isArray(teamProjects_))
+    ? teamProjects_.filter(p => statusGroup_(p.status) === 'open') : null;
+
+  root.innerHTML = `
+    <div class="home-hero">
+      <div>
+        <div class="home-date">${escapeHtml(today)}</div>
+        <h2>${escapeHtml(tr_(greetKey, greetFb))}${name ? ', ' + escapeHtml(name) : ''} <span class="home-wave">👋</span></h2>
+        <div class="home-sub">${escapeHtml(b.overdue.length
+          ? fmt_(tr_('home_sub_overdue', '{n} project(s) are overdue - please take a look.'), { n: b.overdue.length })
+          : (b.dueWeek.length ? fmt_(tr_('home_sub_week', '{n} project(s) are due this week.'), { n: b.dueWeek.length })
+                              : tr_('home_sub_calm', 'Nothing urgent this week.')))}</div>
+      </div>
+      <div class="home-actions">
+        <button type="button" class="btn btn-primary home-btn" onclick="openNewProjectNav_()"><span class="material-icons-outlined">add_circle</span> <span>${escapeHtml(tr_('nav_new_project', 'New Project'))}</span></button>
+        <button type="button" class="btn btn-secondary home-btn" onclick="openCalendarSync_()"><span class="material-icons-outlined">event</span> <span>${escapeHtml(tr_('cal_title', 'Calendar'))}</span></button>
+        <button type="button" class="home-refresh" onclick="renderHome_(true)" title="${escapeHtml(tr_('hs_refresh', 'Refresh'))}"><span class="material-icons-outlined">refresh</span></button>
+      </div>
+    </div>
+    <div class="home-kpis">
+      ${kpi('pending_actions', b.open.length, 'home_k_open', 'Open', 'k-open', "openHistoryFiltered_('open')")}
+      ${kpi('event_upcoming', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('open')")}
+      ${kpi('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), "openHistoryFiltered_('open')")}
+      ${kpi('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', "openHistoryFiltered_('done')")}
+    </div>
+    <div class="home-grid">
+      ${homeCard_('pending_actions', 'home_open', 'Your open projects', b.open, 'open', 'home_open_empty', 'No open projects - all done!', 'open')}
+      ${homeCard_('event_upcoming', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'open')}
+      ${homeCard_('task_alt', 'home_done', 'Recently finished', b.done, 'done', 'home_done_empty', 'No finished projects yet.', 'done')}
+    </div>
+    ${team ? `<button type="button" class="home-team" onclick="openHistoryFiltered_('team')">
+        <span class="material-icons-outlined">groups</span>
+        <span>${escapeHtml(fmt_(tr_('home_team', 'Your team currently has {n} open project(s).'), { n: team.length }))}</span>
+        <span class="home-team-link">${escapeHtml(tr_('home_team_link', 'Show team projects'))}<span class="material-icons-outlined">chevron_right</span></span>
+      </button>` : ''}`;
+}
+
+function openFromHome_(uid) {
+  if (typeof openProjectDetail_ === 'function') openProjectDetail_(uid);
+}
+
+/** Wechselt nach "Meine Projekte" und setzt Status- bzw. Team-Filter. */
+function openHistoryFiltered_(filter) {
+  switchTab('history');
+  if (filter === 'team') {
+    const sel = document.getElementById('ownershipFilter');
+    if (sel) { sel.value = 'team'; }
+    historyStatusFilter_ = 'all';
+    setTimeout(globalSearch, 0);
+    return;
+  }
+  historyStatusFilter_ = filter === 'done' || filter === 'open' ? filter : 'all';
+}
+
+// ============================================================================
+// Benachrichtigungs-Glocke
+// ============================================================================
+let notifItems_ = [];
+let notifSeenAt_ = '';
+let notifTimer_ = null;
+let notifLastFetch_ = 0;
+
+const NOTIF_ICONS_ = {
+  completed: ['task_alt', 'n-ok'], shared: ['share', 'n-info'], due_changed: ['edit_calendar', 'n-warn'],
+  due_soon: ['alarm', 'n-warn'], renamed: ['drive_file_rename_outline', 'n-info'], cancelled: ['block', 'n-bad'],
+  pivot_step: ['account_tree', 'n-info'], submitted: ['visibility', 'n-info']
+};
+
+function initNotifications_() {
+  if (typeof currentImpersonationEmail !== 'undefined' && currentImpersonationEmail) return;
+  fetchNotifications_();
+  if (notifTimer_) clearInterval(notifTimer_);
+  notifTimer_ = setInterval(fetchNotifications_, 5 * 60000);
+  window.addEventListener('focus', () => { if (Date.now() - notifLastFetch_ > 60000) fetchNotifications_(); });
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('notifPanel');
+    if (panel && panel.style.display !== 'none' && !e.target.closest('.notif-wrap')) closeNotifPanel_();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNotifPanel_(); });
+}
+
+function fetchNotifications_(cb) {
+  notifLastFetch_ = Date.now();
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) return;
+    notifItems_ = res.items || [];
+    notifSeenAt_ = res.seenAt || '';
+    setNotifBadge_(res.unread || 0);
+    if (document.getElementById('notifPanel').style.display !== 'none') renderNotifList_();
+    if (cb) cb();
+  }).withFailureHandler(() => {}).apiGetNotifications();
+}
+
+function setNotifBadge_(n) {
+  const b = document.getElementById('notifBadge');
+  if (!b) return;
+  b.textContent = n > 9 ? '9+' : String(n);
+  b.style.display = n > 0 ? 'inline-flex' : 'none';
+  document.getElementById('notifBtn').classList.toggle('has-unread', n > 0);
+}
+
+/** Reine Funktion (getestet): Text einer Benachrichtigung in der aktuellen Sprache. */
+function notifText_(n) {
+  const d = n.data || {};
+  const vars = {
+    name: n.projectName || n.projectUid || '',
+    by: d.by || '',
+    date: d.due ? fmtDay_(d.due) : '',
+    status: d.status || '',
+    old: d.old || '',
+    template: d.template || ''
+  };
+  const key = n.type === 'pivot_step' ? 'ntf_pivot_step' : 'ntf_' + n.type;
+  const fallback = {
+    completed: '"{name}" is finished and ready for download.',
+    shared: '{by} shared "{name}" with you.',
+    due_changed: 'The due date of "{name}" was changed to {date}.',
+    due_soon: '"{name}" is due soon ({date}).',
+    renamed: '"{old}" was renamed to "{name}".',
+    cancelled: '"{name}" was cancelled.',
+    pivot_step: 'Step 1 of "{name}" is finished - the translation starts now.',
+    submitted: '{by} submitted "{name}" ({template}).'
+  }[n.type] || '{name}';
+  return fmt_(tr_(key, fallback), vars);
+}
+
+function renderNotifList_() {
+  const list = document.getElementById('notifList');
+  if (!notifItems_.length) {
+    list.innerHTML = `<div class="notif-empty"><span class="material-icons-outlined">notifications_none</span>
+      <b>${escapeHtml(tr_('ntf_empty', 'No notifications yet'))}</b>
+      <span>${escapeHtml(tr_('ntf_empty_desc', 'Finished projects, shares and changed due dates will show up here.'))}</span></div>`;
+    return;
+  }
+  const seenMs = notifSeenAt_ ? new Date(notifSeenAt_).getTime() : 0;
+  list.innerHTML = notifItems_.map((n, i) => {
+    const ic = NOTIF_ICONS_[n.type] || ['notifications', 'n-info'];
+    const unread = new Date(n.ts).getTime() > seenMs;
+    return `<button type="button" class="notif-item${unread ? ' unread' : ''}" onclick="openNotification_(${i})">
+        <span class="notif-ico ${ic[1]}"><span class="material-icons-outlined">${ic[0]}</span></span>
+        <span class="notif-body"><span class="notif-text">${escapeHtml(notifText_(n))}</span><span class="notif-time">${escapeHtml(relTime_(n.ts))}</span></span>
+        ${unread ? '<span class="notif-unread-dot"></span>' : ''}
+      </button>`;
+  }).join('');
+}
+
+function toggleNotifPanel_() {
+  const panel = document.getElementById('notifPanel');
+  if (panel.style.display !== 'none') { closeNotifPanel_(); return; }
+  panel.style.display = 'flex';
+  document.getElementById('notifBtn').setAttribute('aria-expanded', 'true');
+  renderNotifList_();
+  fetchNotifications_(() => {
+    // Beim Oeffnen gilt alles als gelesen; die Markierung bleibt bis zum Schliessen sichtbar.
+    if (document.getElementById('notifBadge').style.display !== 'none') {
+      google.script.run.withSuccessHandler(() => setNotifBadge_(0)).apiMarkNotificationsRead();
+    }
+  });
+}
+
+function closeNotifPanel_() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel || panel.style.display === 'none') return;
+  panel.style.display = 'none';
+  document.getElementById('notifBtn').setAttribute('aria-expanded', 'false');
+  notifSeenAt_ = new Date().toISOString();
+}
+
+function markNotificationsRead_() {
+  google.script.run.withSuccessHandler(res => {
+    notifSeenAt_ = (res && res.seenAt) || new Date().toISOString();
+    setNotifBadge_(0);
+    renderNotifList_();
+  }).apiMarkNotificationsRead();
+}
+
+function openNotification_(i) {
+  const n = notifItems_[i];
+  closeNotifPanel_();
+  if (!n || !n.projectUid) return;
+  const open = () => { if (globalProjects.some(p => p.projectUid === n.projectUid)) openProjectDetail_(n.projectUid); };
+  if (globalProjects.some(p => p.projectUid === n.projectUid)) { open(); return; }
+  switchTab('history');
+  const wait = setInterval(() => {
+    if (globalProjects.some(p => p.projectUid === n.projectUid)) { clearInterval(wait); open(); }
+  }, 400);
+  setTimeout(() => clearInterval(wait), 15000);
+}
+
+// ============================================================================
+// Team-Ansicht (nur lesen)
+// ============================================================================
+let teamProjects_ = null;
+
+function updateTeamFilterOption_() {
+  const opt = document.getElementById('ownershipTeamOpt');
+  if (!opt) return;
+  const on = !!(userPrefs_.team && userPrefs_.team.enabled);
+  opt.hidden = !on;
+  const sel = document.getElementById('ownershipFilter');
+  if (!on && sel && sel.value === 'team') { sel.value = 'all'; }
+}
+
+function loadTeamProjects_(cb) {
+  google.script.run.withSuccessHandler(res => {
+    teamProjects_ = (res && res.projects) || [];
+    if (cb) cb();
+  }).withFailureHandler(() => { teamProjects_ = []; if (cb) cb(); }).apiGetTeamProjects();
+}
+
+/** Aus globalSearch(): liefert die Team-Projekte oder laedt sie nach. */
+function teamProjectsForSearch_(render) {
+  if (Array.isArray(teamProjects_)) return teamProjects_;
+  const t = document.querySelector('#projectsTable tbody');
+  if (t) t.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:30px;"><div class="loader" style="margin:0 auto 10px;"></div>${escapeHtml(tr_('hs_loading', 'Loading...'))}</td></tr>`;
+  loadTeamProjects_(render);
+  return null;
+}
+
+/** Tabellenzeile fuer ein Team-Projekt: nur lesen, keine Aktionen. */
+function teamRowHtml_(p) {
+  const due = p.dueDate ? `<span class="${dueClass_(p)}">${new Date(p.dueDate).toLocaleDateString()}</span>` : '-';
+  const ro = `<span class="team-ro" title="${escapeHtml(tr_('team_ro', 'Read only'))}"><span class="material-icons-outlined">lock</span>${escapeHtml(tr_('team_ro', 'Read only'))}</span>`;
+  return `<td><span class="team-name">${escapeHtml(p.projectName || p.projectUid)}</span>${p.templateName ? `<div class="team-sub">${escapeHtml(p.templateName)}</div>` : ''}</td>
+    <td style="font-size:11px;">${escapeHtml(p.projectUid)}</td>
+    <td style="font-size:11px;">${escapeHtml(p.uploadDate || '-')}</td><td>${escapeHtml(p.sourceLang || '')}</td>
+    <td><span style="font-size:11px;">${escapeHtml(p.targetLang || '-')}</span></td>
+    <td><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status)}</span></td>
+    <td>${due}</td>
+    <td><span class="team-badge"><span class="material-icons-outlined">groups</span>${escapeHtml(p.owner)}</span></td>
+    <td style="text-align:center;">-</td>
+    <td style="text-align:center;">${ro}</td>`;
+}
+
+// ============================================================================
+// Kalender: Google-Kalender-Sync + .ics-Export
+// ============================================================================
+let calStatus_ = null;
+let calPoll_ = null;
+
+function calStatusLine_(st) {
+  if (!st || !st.configured) return tr_('cal_not_configured_short', 'Not available yet (admin setup missing)');
+  if (st.enabled) return tr_('cal_on', 'Connected') + (st.lastSync ? ' · ' + fmt_(tr_('cal_last_sync', 'last sync {t}'), { t: relTime_(st.lastSync) }) : '');
+  return tr_('cal_off', 'Not connected');
+}
+
+function openCalendarSync_() {
+  document.getElementById('calendarModal').style.display = 'flex';
+  const body = document.getElementById('calSyncBody');
+  body.innerHTML = `<div class="ksync-loading"><div class="loader" style="width:22px;height:22px;border-width:3px;margin:0;"></div>${escapeHtml(tr_('jx_8524de9', 'Loading...'))}</div>`;
+  google.script.run.withSuccessHandler(renderCalSync_).withFailureHandler(e => {
+    body.innerHTML = `<div class="ksync-msg ksync-err">${escapeHtml(e.message || String(e))}</div>`;
+  }).apiGetCalendarSyncStatus();
+}
+
+function closeCalendarSync_() {
+  document.getElementById('calendarModal').style.display = 'none';
+  if (calPoll_) { clearInterval(calPoll_); calPoll_ = null; }
+}
+
+function renderCalSync_(st, note) {
+  calStatus_ = st || {};
+  const body = document.getElementById('calSyncBody');
+  if (!st || !st.configured) {
+    body.innerHTML = `<div class="ksync-msg ksync-warn"><span class="material-icons-outlined">info</span>${escapeHtml(tr_('cal_not_configured', 'Calendar sync is not set up yet. An admin needs to enable the Google Calendar API and the OAuth client (same as "Save to Google Drive").'))}</div>`;
+    return;
+  }
+  if (!st.enabled) {
+    body.innerHTML = `${note ? `<div class="ksync-msg ksync-err">${escapeHtml(note)}</div>` : ''}
+      <ul class="ksync-points">
+        <li><span class="material-icons-outlined">check</span>${escapeHtml(tr_('cal_pt1', 'Own calendar - can be shown or hidden at any time'))}</li>
+        <li><span class="material-icons-outlined">check</span>${escapeHtml(tr_('cal_pt2', 'Updated automatically every hour and immediately when a due date changes'))}</li>
+        <li><span class="material-icons-outlined">check</span>${escapeHtml(tr_('cal_pt3', 'Reminder one day and one hour before the deadline'))}</li>
+      </ul>
+      <div class="ksync-actions">
+        <button type="button" class="btn btn-primary prefs-btn" id="calConnectBtn" onclick="connectCalendar_()"><span class="material-icons-outlined">link</span> <span>${escapeHtml(tr_('cal_connect', 'Connect Google Calendar'))}</span></button>
+      </div>`;
+    return;
+  }
+  const res = st.result && st.result.stats ? st.result.stats : null;
+  body.innerHTML = `
+    <div class="ksync-state"><span class="ksync-state-dot"></span><b>${escapeHtml(tr_('cal_on', 'Connected'))}</b>
+      <span class="prefs-muted">${st.lastSync ? escapeHtml(fmt_(tr_('cal_last_sync', 'last sync {t}'), { t: relTime_(st.lastSync) })) : ''}</span></div>
+    ${res ? `<div class="ksync-msg ksync-ok"><span class="material-icons-outlined">task_alt</span>${escapeHtml(fmt_(tr_('cal_result', '{n} deadline(s) in your calendar ({c} new, {u} updated, {d} removed).'), { n: st.result.events, c: res.created, u: res.updated, d: res.deleted }))}</div>` : ''}
+    ${note ? `<div class="ksync-msg ksync-err">${escapeHtml(note)}</div>` : ''}
+    <label class="prefs-check-inline"><input type="checkbox" id="calIncludeDone" ${st.includeDone ? 'checked' : ''} onchange="setCalIncludeDone_(this.checked)"> <span>${escapeHtml(tr_('cal_keep_done', 'Keep finished projects in the calendar (marked with ✅)'))}</span></label>
+    <div class="ksync-actions">
+      <button type="button" class="btn btn-primary prefs-btn" id="calSyncBtn" onclick="calendarSyncNow_()"><span class="material-icons-outlined">sync</span> <span>${escapeHtml(tr_('cal_sync_now', 'Sync now'))}</span></button>
+      <a class="btn btn-secondary prefs-btn" href="https://calendar.google.com/calendar/r" target="_blank" rel="noopener"><span class="material-icons-outlined">open_in_new</span> <span>${escapeHtml(tr_('cal_open', 'Open Google Calendar'))}</span></a>
+      <button type="button" class="btn btn-secondary prefs-btn ksync-disconnect" onclick="disconnectCalendar_()"><span class="material-icons-outlined">link_off</span> <span>${escapeHtml(tr_('cal_disconnect', 'Disconnect'))}</span></button>
+    </div>`;
+}
+
+function calErrorText_(err) {
+  if (err === 'needs_auth') return tr_('cal_err_auth', 'Access to Google Calendar has expired - please connect again.');
+  if (err === 'not_configured') return tr_('cal_not_configured', 'Calendar sync is not set up yet.');
+  return tr_('jx_3d9f514', 'Error:') + ' ' + err;
+}
+
+function connectCalendar_() {
+  const btn = document.getElementById('calConnectBtn');
+  if (btn) btn.disabled = true;
+  // Fenster sofort oeffnen (sonst blockiert der Popup-Blocker nach dem async-Aufruf).
+  const win = window.open('', '_blank');
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) {
+      if (win) win.close();
+      if (btn) btn.disabled = false;
+      renderCalSync_(calStatus_, calErrorText_(res && res.error));
+      return;
+    }
+    if (win) win.location.href = res.url; else window.open(res.url, '_blank');
+    const body = document.getElementById('calSyncBody');
+    body.insertAdjacentHTML('afterbegin', `<div class="ksync-msg ksync-info" id="calWaitMsg"><div class="loader" style="width:18px;height:18px;border-width:3px;margin:0;"></div>${escapeHtml(tr_('cal_waiting', 'Please confirm access in the new tab - this window updates automatically.'))}</div>`);
+    let tries = 0;
+    if (calPoll_) clearInterval(calPoll_);
+    calPoll_ = setInterval(() => {
+      if (++tries > 60) { clearInterval(calPoll_); calPoll_ = null; if (btn) btn.disabled = false; const m = document.getElementById('calWaitMsg'); if (m) m.remove(); return; }
+      google.script.run.withSuccessHandler(st => {
+        if (!st || !st.authorized || !calPoll_) return;
+        clearInterval(calPoll_); calPoll_ = null;
+        const m = document.getElementById('calWaitMsg');
+        if (m) m.innerHTML = `<div class="loader" style="width:18px;height:18px;border-width:3px;margin:0;"></div>${escapeHtml(tr_('cal_first_sync', 'Connected - transferring your deadlines...'))}`;
+        google.script.run.withSuccessHandler(st2 => renderCalSync_(st2, st2 && st2.success === false ? calErrorText_(st2.error) : ''))
+          .withFailureHandler(e => renderCalSync_(st, e.message)).apiSetCalendarSyncOptions({ enabled: true, lang: currentLang });
+      }).apiGetCalendarSyncStatus();
+    }, 3000);
+  }).withFailureHandler(e => {
+    if (win) win.close();
+    if (btn) btn.disabled = false;
+    renderCalSync_(calStatus_, e.message);
+  }).apiGetCalendarAuthUrl(currentLang);
+}
+
+function calendarSyncNow_() {
+  const btn = document.getElementById('calSyncBtn');
+  if (btn) { btn.disabled = true; btn.querySelector('.material-icons-outlined').classList.add('spin'); }
+  google.script.run.withSuccessHandler(st => renderCalSync_(st, st && st.success === false ? calErrorText_(st.error) : ''))
+    .withFailureHandler(e => renderCalSync_(calStatus_, e.message)).apiSetCalendarSyncOptions({ lang: currentLang });
+}
+
+function setCalIncludeDone_(on) {
+  google.script.run.withSuccessHandler(st => renderCalSync_(st, st && st.success === false ? calErrorText_(st.error) : ''))
+    .apiSetCalendarSyncOptions({ includeDone: !!on, lang: currentLang });
+}
+
+function disconnectCalendar_() {
+  showCustomConfirm(tr_('cal_disconnect_q', 'Disconnect Google Calendar? The calendar "Kärcher Translation Services" and its entries will be removed from your Google account.'), () => {
+    google.script.run.withSuccessHandler(st => renderCalSync_(st)).withFailureHandler(e => renderCalSync_(calStatus_, e.message)).apiDisconnectCalendar(true);
+  }, tr_('cal_title', 'Calendar'));
+}
+
+// --- .ics ---------------------------------------------------------------------
+function icsEscape_(s) {
+  return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+function icsStamp_(d) {
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+function icsFold_(line) {
+  // RFC 5545: Zeilen max. 75 Zeichen, Fortsetzung mit einem Leerzeichen.
+  const out = [];
+  let rest = line;
+  while (rest.length > 74) { out.push(rest.slice(0, 74)); rest = ' ' + rest.slice(74); }
+  out.push(rest);
+  return out.join('\r\n');
+}
+
+/** Reine Funktion (getestet): baut eine iCalendar-Datei aus Projekten. */
+function buildIcs_(projects, includeDone, nowMs) {
+  const stamp = icsStamp_(new Date(nowMs || Date.now()));
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kaercher//Translation Services//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + icsEscape_('Kärcher Translation Services')];
+  (projects || []).forEach(p => {
+    if (!p || !p.projectUid || p.pivotRole === 'CHILD' || p.teamView) return;
+    const due = pDate_(p.dueDate);
+    if (!due) return;
+    const group = statusGroup_(p.status);
+    if (group === 'cancelled' || (group === 'done' && !includeDone)) return;
+    const start = new Date(due.getTime() - 30 * 60000);
+    const prefix = group === 'done' ? '✅ ' + tr_('cal_ev_done', 'Done') : '⏰ ' + tr_('cal_ev_due', 'Due');
+    const desc = [tr_('jx_ec53a8c', 'Status') + ': ' + (p.status || '-'),
+      tr_('jx_c41a318', 'Target') + ': ' + ((p.targetLangs || []).join(', ') || p.targetLang || '-'),
+      p.phraseUrl ? 'Phrase: ' + p.phraseUrl : ''].filter(Boolean).join('\n');
+    lines.push('BEGIN:VEVENT', 'UID:' + icsEscape_(p.projectUid) + '@translation-services.kaercher', 'DTSTAMP:' + stamp,
+      'DTSTART:' + icsStamp_(start), 'DTEND:' + icsStamp_(due),
+      'SUMMARY:' + icsEscape_(prefix + ': ' + (p.projectName || p.projectUid)),
+      'DESCRIPTION:' + icsEscape_(desc), 'TRANSP:TRANSPARENT');
+    if (p.phraseUrl) lines.push('URL:' + p.phraseUrl);
+    if (group === 'open') lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEscape_(p.projectName || ''), 'TRIGGER:-P1D', 'END:VALARM');
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold_).join('\r\n') + '\r\n';
+}
+
+function downloadIcs_() {
+  const includeDone = document.getElementById('calIcsDone').checked;
+  const go = () => {
+    const ics = buildIcs_(globalProjects, includeDone);
+    const n = (ics.match(/BEGIN:VEVENT/g) || []).length;
+    if (!n) { showCustomAlert(tr_('cal_ics_none', 'There are no projects with a due date to export.'), tr_('cal_title', 'Calendar')); return; }
+    const a = document.createElement('a');
+    a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    a.download = 'translation-deadlines_' + new Date().toISOString().slice(0, 10) + '.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  if (globalProjects && globalProjects.length && historyScope_ !== 'doc') { go(); return; }
+  google.script.run.withSuccessHandler(r => { globalProjects = (r && (r.projects || r)) || []; historyScope_ = 'all'; go(); }).apiGetMyProjects();
+}
+
+// ============================================================================
+// Kontexthilfe: kleine "?"-Tipps direkt an den Feldern
+// ============================================================================
+// Label-Key (data-i18n am Label bzw. an einem Span darin) -> Hilfetext-Key help_*
+const CONTEXT_HELP_MAP_ = {
+  lbl_template: 'template', lbl_projectname: 'projectname', lbl_source: 'source', lbl_target: 'target',
+  ix_50c9763: 'pivot', lbl_duedate: 'duedate', th_due: 'duedate', lbl_note: 'note', lbl_presets: 'presets',
+  title_mainfiles: 'mainfiles', title_reffiles: 'reffiles', ix_41bd17b: 'ia',
+  art_step_source: 'art_source', art_step_folder: 'art_folder', art_step_meta: 'art_meta',
+  ix_af9e9e5: 'kec_mode', dd_label: 'duedate_change'
+};
+
+function initContextHelp_(root) {
+  root = root || document;
+  const hosts = new Set();
+  Object.keys(CONTEXT_HELP_MAP_).forEach(k => {
+    root.querySelectorAll(`label[data-i18n="${k}"], .section-title[data-i18n="${k}"], label > span[data-i18n="${k}"]`).forEach(el => {
+      const host = el.matches('span') ? el.parentElement : el;
+      host.setAttribute('data-help', CONTEXT_HELP_MAP_[k]);
+      hosts.add(host);
+    });
+  });
+  root.querySelectorAll('[data-help]').forEach(h => hosts.add(h));
+  hosts.forEach(host => {
+    if (host.querySelector(':scope > .ctx-help')) return;
+    const b = document.createElement('span');
+    b.className = 'ctx-help';
+    b.setAttribute('tabindex', '0');
+    b.setAttribute('role', 'button');
+    b.setAttribute('aria-label', '?');
+    b.innerHTML = '<span class="ctx-help-q">?</span><span class="ctx-help-pop" role="tooltip"></span>';
+    host.appendChild(b);
+  });
+}
+
+function fillContextHelp_(el) {
+  const host = el.closest('[data-help]');
+  const pop = el.querySelector('.ctx-help-pop');
+  if (!host || !pop) return;
+  pop.textContent = tr_('help_' + host.getAttribute('data-help'), '');
+  // Am rechten Rand nach links aufklappen.
+  const r = el.getBoundingClientRect();
+  el.classList.toggle('flip', r.left > window.innerWidth - 300);
+}
+
+document.addEventListener('mouseover', e => { const h = e.target.closest && e.target.closest('.ctx-help'); if (h) fillContextHelp_(h); });
+document.addEventListener('focusin', e => { const h = e.target.closest && e.target.closest('.ctx-help'); if (h) fillContextHelp_(h); });
+document.addEventListener('click', e => {
+  const h = e.target.closest && e.target.closest('.ctx-help');
+  document.querySelectorAll('.ctx-help.open').forEach(x => { if (x !== h) x.classList.remove('open'); });
+  if (h) { e.preventDefault(); e.stopPropagation(); fillContextHelp_(h); h.classList.toggle('open'); }
+}, true);
+</script>

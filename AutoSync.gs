@@ -154,6 +154,7 @@ function autoSyncProjectStatuses_() {
 
             // FIX: Shared Users via Thread-Reply benachrichtigen
             _notifySharedUsers_(sharedWith, sharedThreads, replyText);
+            notifyProjectParticipants_(rowUser, sharedWith, "completed", projectUid, projectName, { status: newStatus });
 
             // Status + notified Property setzen
             sh.getRange(i + 1, 8).setValue(newStatus);
@@ -177,6 +178,7 @@ function autoSyncProjectStatuses_() {
             // FIX: Bei Terminal-Status (Cancelled etc.) Thread-IDs auch löschen
             if (TERMINAL_STATUSES.indexOf(newStatus) !== -1) {
               _clearThreadIds_(sh, i + 1);
+              notifyUser_(rowUser, "cancelled", projectUid, projectName, { status: newStatus });
             }
           }
         }
@@ -220,6 +222,7 @@ function autoSyncProjectStatuses_() {
               }
 
               _notifySharedUsers_(sharedWith, sharedThreads, reminderText);
+              notifyProjectParticipants_(rowUser, sharedWith, "due_soon", projectUid, projectName, { due: dueDate.toISOString() });
 
               if (reminderSent) {
                 props.setProperty(reminderSentKey, "true");

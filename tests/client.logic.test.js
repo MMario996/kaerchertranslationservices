@@ -10,7 +10,7 @@ const vm = require('vm');
 const plain = (v) => JSON.parse(JSON.stringify(v));
 const { load, browserStubs } = require('./lib/load');
 
-const JS_FILES = ['JsCore', 'JsForms', 'JsCampus', 'JsNavigation', 'JsDocumentation', 'JsUpload', 'JsProjects', 'JsDownload', 'JsMisc'].map((n) => n + '.html');
+const JS_FILES = ['JsCore', 'JsForms', 'JsCampus', 'JsNavigation', 'JsDocumentation', 'JsUpload', 'JsProjects', 'JsDownload', 'JsMisc', 'JsPersonal'].map((n) => n + '.html');
 const ctx = load(JS_FILES, browserStubs());
 const run = (code) => vm.runInContext(code, ctx);
 const DAY = 86400000;
@@ -90,4 +90,58 @@ test('Download: Pivot-Projekte liefern die gewaehlten Teile', () => {
 test('escapeHtml / escapeJs', () => {
   assert.equal(ctx.escapeHtml('<a href="x">&'), '&lt;a href=&quot;x&quot;&gt;&amp;');
   assert.ok(!ctx.escapeJs("it's").includes("'") || ctx.escapeJs("it's").includes("\\'"));
+});
+
+test('Startseite: Kacheln offen / diese Woche / ueberfaellig / fertig', () => {
+  // Mittwoch, 10:00 Uhr
+  const now = new Date(2026, 8, 23, 10, 0, 0).getTime();
+  const day = (d) => new Date(2026, 8, 23 + d, 12, 0, 0).toISOString();
+  const b = ctx.homeBuckets_([
+    { projectUid: 'late', status: 'ASSIGNED', dueDate: day(-2) },
+    { projectUid: 'fri', status: 'NEW', dueDate: day(2) },
+    { projectUid: 'next', status: 'NEW', dueDate: day(9) },
+    { projectUid: 'nodue', status: 'NEW' },
+    { projectUid: 'done', status: 'COMPLETED', dueDate: day(-3) },
+    { projectUid: 'old', status: 'COMPLETED', dueDate: day(-60) },
+    { projectUid: 'child', status: 'NEW', dueDate: day(1), pivotRole: 'CHILD' },
+    { projectUid: 'x', status: 'CANCELLED', dueDate: day(1) }
+  ], now);
+  const ids = (list) => plain(list.map((p) => p.projectUid));
+  assert.deepEqual(ids(b.open), ['late', 'fri', 'next', 'nodue']);
+  assert.deepEqual(ids(b.dueWeek), ['late', 'fri']);
+  assert.deepEqual(ids(b.overdue), ['late']);
+  assert.deepEqual(ids(b.done), ['done', 'old']);
+  assert.deepEqual(ids(b.done30), ['done']);
+  // Samstag: "diese Woche" meint schon die kommende Arbeitswoche
+  const sat = new Date(2026, 8, 26, 10, 0, 0).getTime();
+  assert.equal(ctx.endOfWeek_(sat).getDate(), 4);
+  assert.equal(ctx.endOfWeek_(now).getDate(), 27);
+});
+
+test('Kalender: .ics mit offenen Fristen, fertige nur auf Wunsch', () => {
+  const projects = [
+    { projectUid: 'A1', projectName: 'Manual, v2; final', status: 'NEW', dueDate: '2026-10-01T10:00:00.000Z', targetLangs: ['fr', 'es'] },
+    { projectUid: 'B2', projectName: 'Done one', status: 'COMPLETED', dueDate: '2026-09-01T10:00:00.000Z' },
+    { projectUid: 'C3', projectName: 'Cancelled', status: 'CANCELLED', dueDate: '2026-09-01T10:00:00.000Z' },
+    { projectUid: 'D4', projectName: 'No due', status: 'NEW' }
+  ];
+  const ics = ctx.buildIcs_(projects, false, Date.UTC(2026, 8, 26));
+  assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n'));
+  assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
+  assert.ok(ics.includes('DTSTART:20261001T093000Z'));
+  assert.ok(ics.includes('DTEND:20261001T100000Z'));
+  assert.ok(ics.includes('Manual\\, v2\\; final'));
+  assert.ok(ics.includes('TRIGGER:-P1D'));
+  ics.split('\r\n').forEach((line) => assert.ok(line.length <= 75, line));
+  const withDone = ctx.buildIcs_(projects, true, Date.UTC(2026, 8, 26));
+  assert.equal((withDone.match(/BEGIN:VEVENT/g) || []).length, 2);
+});
+
+test('Benachrichtigungen: Text mit Platzhaltern, unbekannter Typ faellt zurueck', () => {
+  const txt = ctx.notifText_({ type: 'shared', projectName: 'Flyer', data: { by: 'a@b.c' } });
+  assert.ok(txt.includes('Flyer') && txt.includes('a@b.c'));
+  assert.ok(!txt.includes('{'));
+  assert.equal(ctx.notifText_({ type: 'whatever', projectName: 'X' }), 'X');
+  assert.equal(ctx.fmt_('{a}-{b}', { a: 1 }), '1-{b}');
 });
