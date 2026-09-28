@@ -87,3 +87,16 @@ test('Ausgeliefertes Startdokument bleibt unter der Apps-Script-Grenze', () => {
   const bytes = Buffer.byteLength(page, 'utf8');
   assert.ok(bytes < 560000, 'Startdokument ist ' + bytes + ' Bytes gross (Grenze 560000)');
 });
+
+test('Jeder <script>-Block parst noch, nachdem Apps Script "//"-Kommentare entfernt hat', () => {
+  // Apps Script entfernt beim Ausliefern Kommentare zeilenweise - auch ein
+  // "//" mitten in einem String ('PRODID:-//Kaercher//...'). Der String war
+  // dann offen, der ganze JsPersonal-Block brach mit "Invalid or unexpected
+  // token" ab: Startseite leer, Glocke und Einstellungen ohne Funktion.
+  // Nachgebildet: alles ab "//" entfernen, ausser nach ":" (URLs wie https://).
+  const page = index.replace(/<\?!= include\('(\w+)'\); \?>/g, (m, n) => read(n + '.html').replace(/^[ \t]+/gm, ''));
+  const stripped = page.split('\n').map((l) => l.replace(/(^|[^:])\/\/.*$/, '$1')).join('\n');
+  const blocks = [...stripped.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  assert.ok(blocks.length >= 5, 'Script-Bloecke gefunden');
+  blocks.forEach((code, i) => assert.doesNotThrow(() => new vm.Script(code), 'Block ' + (i + 1) + ': ' + code.slice(0, 80)));
+});

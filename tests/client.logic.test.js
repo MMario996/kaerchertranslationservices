@@ -133,6 +133,7 @@ test('Kalender: .ics mit offenen Fristen, fertige nur auf Wunsch', () => {
   assert.ok(ics.includes('DTEND:20261001T100000Z'));
   assert.ok(ics.includes('Manual\\, v2\\; final'));
   assert.ok(ics.includes('TRIGGER:-P1D'));
+  assert.ok(ics.includes('PRODID:-//Kaercher//Translation Services//EN\r\n'));
   ics.split('\r\n').forEach((line) => assert.ok(line.length <= 75, line));
   const withDone = ctx.buildIcs_(projects, true, Date.UTC(2026, 8, 26));
   assert.equal((withDone.match(/BEGIN:VEVENT/g) || []).length, 2);

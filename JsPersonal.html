@@ -680,7 +680,10 @@ function icsFold_(line) {
 /** Reine Funktion (getestet): baut eine iCalendar-Datei aus Projekten. */
 function buildIcs_(projects, includeDone, nowMs) {
   const stamp = icsStamp_(new Date(nowMs || Date.now()));
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kaercher//Translation Services//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+  // "\/\/" statt "//": Apps Script entfernt beim Ausliefern alles ab "//" als
+  // Kommentar - auch in Strings. Das zerschnitt diese Zeile und damit den
+  // ganzen JsPersonal-Block (Startseite, Glocke, Einstellungen tot).
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-\/\/Kaercher\/\/Translation Services\/\/EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'X-WR-CALNAME:' + icsEscape_('Kärcher Translation Services')];
   (projects || []).forEach(p => {
     if (!p || !p.projectUid || p.pivotRole === 'CHILD' || p.teamView) return;
