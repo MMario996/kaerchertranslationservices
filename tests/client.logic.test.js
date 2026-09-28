@@ -108,7 +108,8 @@ test('Startseite: Kacheln offen / diese Woche / ueberfaellig / fertig', () => {
   ], now);
   const ids = (list) => plain(list.map((p) => p.projectUid));
   assert.deepEqual(ids(b.open), ['late', 'fri', 'next', 'nodue']);
-  assert.deepEqual(ids(b.dueWeek), ['late', 'fri']);
+  // Ueberfaelliges hat eine eigene Karte und zaehlt nicht zu "diese Woche"
+  assert.deepEqual(ids(b.dueWeek), ['fri']);
   assert.deepEqual(ids(b.overdue), ['late']);
   assert.deepEqual(ids(b.done), ['done', 'old']);
   assert.deepEqual(ids(b.done30), ['done']);

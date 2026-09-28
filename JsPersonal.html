@@ -224,8 +224,10 @@ function homeBuckets_(projects, nowMs) {
   const open = top.filter(p => statusGroup_(p.status) === 'open');
   const dueMs = p => { const d = pDate_(p.dueDate); return d ? d.getTime() : Infinity; };
   const byDue = (a, b) => dueMs(a) - dueMs(b);
-  const dueWeek = open.filter(p => dueMs(p) <= eow).sort(byDue);
-  const overdue = open.filter(p => dueMs(p) < now);
+  // Ueberfaelliges steht in einer eigenen Karte - "diese Woche" zeigt nur,
+  // was noch kommt (sonst waren beide Listen fast identisch).
+  const overdue = open.filter(p => dueMs(p) < now).sort(byDue);
+  const dueWeek = open.filter(p => dueMs(p) >= now && dueMs(p) <= eow).sort(byDue);
   // Kein Abschlussdatum in der Queue: Frist (sonst Upload) als Naeherung.
   const doneRef = p => (pDate_(p.dueDate) || pDate_(p.timestamp) || new Date(0)).getTime();
   const done = top.filter(p => statusGroup_(p.status) === 'done').sort((a, b) => doneRef(b) - doneRef(a));
@@ -262,7 +264,7 @@ function renderHome_(force) {
 
 function homeSkeleton_() {
   return `<div class="home-hero skel"></div><div class="home-kpis">${'<div class="home-kpi skel"></div>'.repeat(4)}</div>
-    <div class="home-grid">${'<div class="home-card skel" style="height:260px"></div>'.repeat(3)}</div>`;
+    <div class="home-grid">${'<div class="home-card skel" style="height:320px"></div>'.repeat(4)}</div>`;
 }
 
 function homeItem_(p, mode) {
@@ -282,13 +284,13 @@ function homeItem_(p, mode) {
 }
 
 function homeCard_(icon, titleKey, titleFb, items, mode, emptyKey, emptyFb, moreFilter) {
-  const list = items.slice(0, 6).map(p => homeItem_(p, mode)).join('');
-  const more = items.length > 6
+  const list = items.slice(0, 8).map(p => homeItem_(p, mode)).join('');
+  const more = items.length > 8
     ? `<button type="button" class="home-more" onclick="openHistoryFiltered_('${moreFilter}')">${escapeHtml(fmt_(tr_('home_more', 'Show all ({n})'), { n: items.length }))}<span class="material-icons-outlined">chevron_right</span></button>` : '';
   return `<section class="home-card home-card-${mode}">
       <div class="home-card-head"><span class="home-card-ico"><span class="material-icons-outlined">${icon}</span></span>
         <h3>${escapeHtml(tr_(titleKey, titleFb))}</h3><span class="home-count">${items.length}</span></div>
-      ${list ? `<ul class="home-list">${list}</ul>` : `<div class="home-empty"><span class="material-icons-outlined">${mode === 'done' ? 'hourglass_empty' : 'celebration'}</span>${escapeHtml(tr_(emptyKey, emptyFb))}</div>`}
+      ${list ? `<ul class="home-list">${list}</ul>` : `<div class="home-empty"><span class="material-icons-outlined">${mode === 'done' ? 'hourglass_empty' : (mode === 'overdue' ? 'thumb_up' : 'celebration')}</span>${escapeHtml(tr_(emptyKey, emptyFb))}</div>`}
       ${more}
     </section>`;
 }
@@ -328,13 +330,14 @@ function paintHome_(projects) {
     </div>
     <div class="home-kpis">
       ${kpi('pending_actions', b.open.length, 'home_k_open', 'Open', 'k-open', "openHistoryFiltered_('open')")}
-      ${kpi('event_upcoming', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('open')")}
+      ${kpi('date_range', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('open')")}
       ${kpi('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), "openHistoryFiltered_('open')")}
       ${kpi('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', "openHistoryFiltered_('done')")}
     </div>
     <div class="home-grid">
+      ${homeCard_('error_outline', 'home_overdue', 'Overdue', b.overdue, 'overdue', 'home_overdue_empty', 'Nothing overdue - well done!', 'open')}
+      ${homeCard_('date_range', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'open')}
       ${homeCard_('pending_actions', 'home_open', 'Your open projects', b.open, 'open', 'home_open_empty', 'No open projects - all done!', 'open')}
-      ${homeCard_('event_upcoming', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'open')}
       ${homeCard_('task_alt', 'home_done', 'Recently finished', b.done, 'done', 'home_done_empty', 'No finished projects yet.', 'done')}
     </div>
     ${team ? `<button type="button" class="home-team" onclick="openHistoryFiltered_('team')">

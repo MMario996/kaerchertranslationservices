@@ -150,7 +150,7 @@ function prefixSelector(sel) {
 }
 
 // Bereiche, die bewusst dunkel gestaltet sind oder eigene Farben tragen.
-const SKIP_SELECTOR = /home-hero|ctx-help-pop|maintenance-overlay|#slidesModal|\.btn-black|lang-btn\.active/;
+const SKIP_SELECTOR = /ctx-help-pop|maintenance-overlay|#slidesModal|\.btn-black|lang-btn\.active/;
 
 function isLightBgValue(v) {
   // Nur Flaechen, die hell BLEIBEN (Gelb & Co.), behalten ihre dunkle Schrift.
@@ -272,7 +272,9 @@ const DARK_BASE_ = `
   ${D} .home-kpi.k-over.hot .material-icons-outlined { background:#3d1a18; color:#f28b82; } ${D} .home-kpi.k-over.hot .home-kpi-n { color:#f28b82; }
   ${D} .home-kpi.k-done .material-icons-outlined, ${D} .home-card-done .home-card-ico { background:#173522; color:#81c995; }
   ${D} .home-due.due-soon { background:#3a3410; color:#fdd663; } ${D} .home-due.due-overdue { background:#3d1a18; color:#f28b82; }
-  ${D} .home-hero { background:linear-gradient(120deg, #0b0b0c 0%, #1f2124 100%); box-shadow:inset 0 0 0 1px #2a2d31; }
+  ${D} .home-card-overdue .home-card-ico { background:#3d1a18; color:#f28b82; }
+  ${D} .home-card-week .home-card-ico { background:#3a3410; color:#fdd663; }
+  ${D} .home-card-open .home-card-ico { background:#172a45; color:#8ab4f8; }
   ${D} .ksync-ok { background:#173522; color:#a8dab5; } ${D} .ksync-err { background:#3d1a18; color:#f6aea9; }
   ${D} .ksync-warn { background:#3a2e10; color:#fde293; } ${D} .ksync-info { background:#172a45; color:#aecbfa; }
   ${D} .ctx-help-q { background:#34373c; color:#d0d0d0; }
