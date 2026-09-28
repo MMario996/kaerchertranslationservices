@@ -88,6 +88,27 @@ test('sanitizeClientPrefs_: nur erlaubte Werte, E-Mails bereinigt', () => {
   assert.deepEqual(plain(personal.sanitizeClientPrefs_({ team: { mode: 'x' } }).team), { enabled: false, mode: 'bu', emails: [] });
 });
 
+test('sanitizeClientPrefs_: neue Einstellungen (Anrede, Dichte, Startseite, Glocke, Anheften)', () => {
+  const out = plain(personal.sanitizeClientPrefs_({
+    displayName: '  <b>Max</b>\n  Muster ', density: 'tiny', reduceMotion: 'yes', startTab: 'history',
+    home: { widgets: { tips: false, quick: 0, evil: false }, tab: 'nope' },
+    pinned: ['A1', 'A1', 'bad uid', 'x'.repeat(65), 'B_2-c'], notifTypes: ['completed', 'hack', 'shared'],
+    notifToast: false, shortcuts: 0
+  }));
+  assert.equal(out.displayName, 'bMax/b Muster');
+  assert.equal(out.density, 'comfortable');
+  assert.equal(out.reduceMotion, false);
+  assert.equal(out.startTab, 'history');
+  assert.deepEqual(out.home, { widgets: { quick: true, kpis: true, focus: true, week: true, activity: true, tips: false }, tab: 'auto' });
+  assert.deepEqual(out.pinned, ['A1', 'B_2-c']);
+  assert.deepEqual(out.notifTypes, ['completed', 'shared']);
+  assert.equal(out.notifToast, false);
+  assert.equal(out.shortcuts, true);
+  assert.equal(personal.sanitizeClientPrefs_({ displayName: 'x'.repeat(80) }).displayName.length, 40);
+  assert.deepEqual(plain(personal.sanitizeClientPrefs_({ home: { tab: 'pinned' } }).home).tab, 'pinned');
+  assert.deepEqual(Object.keys(plain(personal.sanitizeClientPrefs_({ foo: 1 }))), []);
+});
+
 test('Kalender: Termin-IDs sind gueltig (base32hex) und stabil', () => {
   const id = personal.calEventId_('AbC123-xyz');
   assert.match(id, /^[a-v0-9]{5,1024}$/);

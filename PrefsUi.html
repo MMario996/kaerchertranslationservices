@@ -1,0 +1,182 @@
+<!-- PrefsUi.html - Einstellungsdialog. Nachgeladen ueber apiGetPrefsUi() (UserPrefs.gs) und
+     beim ersten Oeffnen (bzw. kurz nach dem Start im Hintergrund) an <body> angehaengt,
+     weil das Startdokument an der Apps-Script-Groessengrenze ist. Logik: JsPersonal.html. -->
+    <div id="preferencesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:5500;align-items:center;justify-content:center;" onclick="if(event.target===this)closePreferences()">
+      <div class="prefs-box prefs-wide" role="dialog" aria-modal="true" aria-labelledby="prefsTitle">
+        <div class="prefs-head">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="prefs-head-ico"><span class="material-icons-outlined">tune</span></span>
+            <h3 id="prefsTitle" style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;" data-i18n="prefs_title">Preferences</h3>
+          </div>
+          <button onclick="closePreferences()" class="prefs-close" title="Close" data-i18n-title="btn_close"><span class="material-icons-outlined">close</span></button>
+        </div>
+
+        <div class="prefs-layout">
+          <nav class="prefs-nav" id="prefsNav">
+            <button type="button" data-sec="general" onclick="prefsShowSec_('general')"><span class="material-icons-outlined">person</span><span data-i18n="pf_nav_general">General</span></button>
+            <button type="button" data-sec="display" onclick="prefsShowSec_('display')"><span class="material-icons-outlined">palette</span><span data-i18n="pf_display">Display</span></button>
+            <button type="button" data-sec="home" onclick="prefsShowSec_('home')"><span class="material-icons-outlined">space_dashboard</span><span data-i18n="pf_nav_home">Start page</span></button>
+            <button type="button" data-sec="notif" onclick="prefsShowSec_('notif')"><span class="material-icons-outlined">notifications</span><span data-i18n="pf_nav_notif">Notifications</span></button>
+            <button type="button" data-sec="team" onclick="prefsShowSec_('team')"><span class="material-icons-outlined">groups</span><span data-i18n="pf_team">Team view</span></button>
+            <button type="button" data-sec="cal" onclick="prefsShowSec_('cal')"><span class="material-icons-outlined">event</span><span data-i18n="cal_title">Calendar</span></button>
+            <button type="button" data-sec="keys" onclick="prefsShowSec_('keys')"><span class="material-icons-outlined">keyboard</span><span data-i18n="pf_nav_keys">Keyboard</span></button>
+          </nav>
+
+        <div class="prefs-body">
+          <div class="prefs-sec" data-sec="general">
+            <div class="prefs-section-title"><span class="material-icons-outlined">person</span><span data-i18n="pf_nav_general">General</span></div>
+            <div class="prefs-field">
+              <label for="prefName" class="prefs-label" data-i18n="pf_name">How should we greet you?</label>
+              <input type="text" id="prefName" maxlength="40" autocomplete="off">
+              <small class="prefs-muted" data-i18n="pf_name_desc">Leave empty to use the name from your e-mail address.</small>
+            </div>
+            <div class="prefs-field">
+              <label for="prefLang" class="prefs-label" data-i18n="pf_lang">Language of the interface</label>
+              <select id="prefLang">
+                <option value="de">Deutsch</option><option value="en">English</option><option value="fr">Français</option>
+                <option value="es">Español</option><option value="pt">Português</option><option value="zh">中文</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="display" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">palette</span><span data-i18n="pf_display">Display</span></div>
+            <div class="prefs-row">
+              <div class="prefs-label" data-i18n="pf_theme">Theme</div>
+              <div class="seg" id="prefTheme">
+                <button type="button" data-val="light" onclick="setPrefChoice_('theme','light')"><span class="material-icons-outlined">light_mode</span><span data-i18n="pf_theme_light">Light</span></button>
+                <button type="button" data-val="dark" onclick="setPrefChoice_('theme','dark')"><span class="material-icons-outlined">dark_mode</span><span data-i18n="pf_theme_dark">Dark</span></button>
+                <button type="button" data-val="auto" onclick="setPrefChoice_('theme','auto')"><span class="material-icons-outlined">contrast</span><span data-i18n="pf_theme_auto">System</span></button>
+              </div>
+            </div>
+            <div class="prefs-row">
+              <div class="prefs-label" data-i18n="pf_font">Font size</div>
+              <div class="seg" id="prefFont">
+                <button type="button" data-val="1" onclick="setPrefChoice_('fontScale',1)" style="font-size:12px;">A</button>
+                <button type="button" data-val="1.1" onclick="setPrefChoice_('fontScale',1.1)" style="font-size:15px;">A</button>
+                <button type="button" data-val="1.2" onclick="setPrefChoice_('fontScale',1.2)" style="font-size:18px;">A</button>
+              </div>
+            </div>
+            <div class="prefs-row">
+              <div class="prefs-label" data-i18n="pf_density">Density</div>
+              <div class="seg" id="prefDensity">
+                <button type="button" data-val="comfortable" onclick="setPrefChoice_('density','comfortable')"><span class="material-icons-outlined">density_medium</span><span data-i18n="pf_density_comfy">Comfortable</span></button>
+                <button type="button" data-val="compact" onclick="setPrefChoice_('density','compact')"><span class="material-icons-outlined">density_small</span><span data-i18n="pf_density_compact">Compact</span></button>
+              </div>
+            </div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefMotion" onchange="setPrefMotion_(this.checked)">
+              <span><b data-i18n="pf_motion">Reduce animations</b><small data-i18n="pf_motion_desc">Less movement, e.g. for transitions and loading effects.</small></span>
+            </label>
+          </div>
+
+          <div class="prefs-sec" data-sec="home" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">space_dashboard</span><span data-i18n="pf_nav_home">Start page</span></div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefStartPage" onchange="updateStartPrefsUi_()">
+              <span><b data-i18n="pf_start">Show start page when opening the app</b><small data-i18n="pf_start_desc">Your open projects, deadlines this week and recently finished projects at a glance.</small></span>
+            </label>
+            <div class="prefs-row prefs-indent" id="prefStartTabRow">
+              <div class="prefs-label" data-i18n="pf_start_tab">Otherwise open with</div>
+              <select id="prefStartTab" class="prefs-select">
+                <option value="auto" data-i18n="nav_new_project">New Project</option>
+                <option value="history" data-i18n="nav_history">My Projects</option>
+              </select>
+            </div>
+            <div id="prefHomeOptions">
+              <div class="prefs-label" style="margin:14px 0 6px;" data-i18n="pf_widgets">Blocks on the start page</div>
+              <div class="prefs-grid">
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_quick"> <span data-i18n="hm_quick">Quick start</span></label>
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_kpis"> <span data-i18n="pf_w_kpis">Key figures</span></label>
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_focus"> <span data-i18n="hm_focus">Next deadline</span></label>
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_week"> <span data-i18n="hm_next7">Next 7 days</span></label>
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_activity"> <span data-i18n="hm_activity">Recent activity</span></label>
+                <label class="prefs-check-inline"><input type="checkbox" id="prefW_tips"> <span data-i18n="pf_w_tips">Tips</span></label>
+              </div>
+              <div class="prefs-row">
+                <div class="prefs-label" data-i18n="pf_home_tab">List shown first</div>
+                <select id="prefHomeTab" class="prefs-select">
+                  <option value="auto" data-i18n="pf_home_tab_auto">Automatic (most urgent first)</option>
+                  <option value="overdue" data-i18n="home_overdue">Overdue</option>
+                  <option value="week" data-i18n="home_week">Due this week</option>
+                  <option value="open" data-i18n="home_open">Your open projects</option>
+                  <option value="done" data-i18n="home_done">Recently finished</option>
+                  <option value="pinned" data-i18n="hm_tab_pinned">Pinned</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="notif" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">notifications</span><span data-i18n="pf_bell">Show in the bell</span></div>
+            <div class="prefs-grid">
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_completed"> <span data-i18n="pf_nt_completed">Project finished</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_shared"> <span data-i18n="pf_nt_shared">Shared with me</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_due_soon"> <span data-i18n="pf_nt_due_soon">Deadline approaching</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_due_changed"> <span data-i18n="pf_nt_due_changed">Due date changed</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_renamed"> <span data-i18n="pf_nt_renamed">Renamed</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_cancelled"> <span data-i18n="pf_nt_cancelled">Cancelled</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_pivot_step"> <span data-i18n="pf_nt_pivot_step">Pivot step finished</span></label>
+              <label class="prefs-check-inline"><input type="checkbox" id="prefNt_submitted"> <span data-i18n="pf_nt_submitted">Submitted (as watcher)</span></label>
+            </div>
+            <label class="prefs-check" style="margin-top:8px;">
+              <input type="checkbox" id="prefToast">
+              <span><b data-i18n="pf_toast">Pop-up hint for new notifications</b><small data-i18n="pf_toast_desc">Shows a short message at the bottom right while the app is open.</small></span>
+            </label>
+            <div class="prefs-section-title" style="margin-top:18px;">
+              <span class="material-icons-outlined">chat</span><span data-i18n="prefs_chat_title">Google Chat Notifications</span>
+              <button onclick="openChatHelpManually()" title="How to activate" class="prefs-help-btn" data-i18n-title="ix_3de3fec"><span class="material-icons-outlined">question_mark</span></button>
+            </div>
+            <div class="prefs-row">
+              <div class="prefs-muted" data-i18n="prefs_chat_desc">Receive a direct message when your project is created.</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
+                  <input type="checkbox" id="chatPrefToggle" style="opacity:0;width:0;height:0;" disabled
+                        onchange="document.getElementById('chatPrefStatusText').innerText = this.checked ? 'ON' : 'OFF'; document.getElementById('chatPrefStatusText').style.color = this.checked ? '#4CAF50' : '#888';">
+                  <span id="chatPrefSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:24px;transition:.3s;"></span>
+                </label>
+                <span id="chatPrefStatusText" style="font-size:12px; font-weight:800; width:60px; color:#888;"><span data-i18n="ix_8524de9">Loading...</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="team" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">groups</span><span data-i18n="pf_team">Team view</span></div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefTeamEnabled" onchange="updateTeamPrefsUi_()">
+              <span><b data-i18n="pf_team_on">Show my team's projects (read only)</b><small data-i18n="pf_team_desc">Helps to avoid duplicate orders. You only see name, status, languages and due date.</small></span>
+            </label>
+            <div id="prefTeamOptions" class="prefs-sub">
+              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="bu" onchange="updateTeamPrefsUi_()"> <span><span data-i18n="pf_team_bu">Everyone in my business unit</span> <small id="prefTeamBuInfo"></small></span></label>
+              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="custom" onchange="updateTeamPrefsUi_()"> <span data-i18n="pf_team_custom">Only these colleagues</span></label>
+              <textarea id="prefTeamEmails" rows="3" placeholder="name@kaercher.com, ..." data-i18n-placeholder="pf_team_emails_ph"></textarea>
+            </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="cal" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">event</span><span data-i18n="cal_title">Calendar</span></div>
+            <div class="prefs-row">
+              <div><div class="prefs-label" data-i18n="cal_prefs_line">Deadlines in your Google Calendar</div><small id="prefCalStatus" class="prefs-muted"></small></div>
+              <button type="button" class="btn btn-secondary prefs-btn" onclick="closePreferences(); openCalendarSync_();"><span class="material-icons-outlined">settings</span> <span data-i18n="cal_setup">Set up</span></button>
+            </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="keys" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">keyboard</span><span data-i18n="pf_nav_keys">Keyboard</span></div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefKeys">
+              <span><b data-i18n="pf_keys_on">Enable keyboard shortcuts</b><small data-i18n="pf_keys_desc">Work faster: search with Ctrl+K or /, new project with N. Shortcuts never fire while you type in a field.</small></span>
+            </label>
+            <button type="button" class="btn btn-secondary prefs-btn" onclick="showShortcutsHelp_()"><span class="material-icons-outlined">list</span> <span data-i18n="pf_keys_title">Keyboard shortcuts</span></button>
+          </div>
+        </div>
+        </div>
+
+        <div class="prefs-foot">
+          <button type="button" class="prefs-reset" onclick="prefsResetDefaults_()"><span class="material-icons-outlined">restart_alt</span><span data-i18n="pf_reset">Reset to defaults</span></button>
+          <div id="prefsSaveMsg" style="display:none;font-size:13px;color:#4CAF50;margin-right:auto;" data-i18n="prefs_saved_msg">&#10003; Saved!</div>
+          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closePreferences()">Cancel</button>
+          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="btn_save" onclick="savePreferences_()">Save</button>
+        </div>
+      </div>
+    </div>

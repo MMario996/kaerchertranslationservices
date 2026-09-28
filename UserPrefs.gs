@@ -13,11 +13,24 @@
  *   fontScale    1 | 1.1 | 1.2
  *   startPage    true/false  (Startseite beim Oeffnen zeigen)
  *   team         { enabled: bool, mode: "bu" | "custom", emails: [..] }
+ *   displayName  Anrede auf der Startseite (leer = aus der E-Mail abgeleitet)
+ *   density      "comfortable" | "compact"
+ *   reduceMotion true/false  (Animationen reduzieren)
+ *   startTab     "auto" | "history"  (Startbereich, wenn die Startseite aus ist)
+ *   home         { widgets: { quick, kpis, focus, week, activity, tips: bool }, tab: "auto" | ... }
+ *   pinned       [projectUid, ..]  (angeheftete Projekte, max. 100)
+ *   notifTypes   [typ, ..]  (in der Glocke angezeigte Arten; fehlt = alle)
+ *   notifToast   true/false  (Hinweis unten rechts bei neuer Benachrichtigung)
+ *   shortcuts    true/false  (Tastenkuerzel)
  *   notifSeenAt  ISO-Zeitpunkt, bis zu dem die Glocke als gelesen gilt
  */
 var USER_PREFS_SHEET_NAME_ = "UserPrefs";
 var USER_PREFS_HEADERS_ = ["Email", "Prefs JSON", "Updated At"];
-var USER_PREFS_CLIENT_KEYS_ = ["theme", "fontScale", "startPage", "team"];
+var USER_PREFS_CLIENT_KEYS_ = ["theme", "fontScale", "startPage", "team", "displayName", "density", "reduceMotion",
+  "startTab", "home", "pinned", "notifTypes", "notifToast", "shortcuts"];
+var USER_PREFS_HOME_WIDGETS_ = ["quick", "kpis", "focus", "week", "activity", "tips"];
+var USER_PREFS_HOME_TABS_ = ["auto", "overdue", "week", "open", "done", "pinned"];
+var USER_PREFS_NOTIF_TYPES_ = ["completed", "shared", "due_changed", "due_soon", "renamed", "cancelled", "pivot_step", "submitted"];
 
 function userPrefsSheet_() {
   var ss = openAccessSS_();
@@ -88,6 +101,31 @@ function sanitizeClientPrefs_(p) {
       emails: emails.filter(function (e, i) { return emails.indexOf(e) === i; }).slice(0, 100)
     };
   }
+  if (p.hasOwnProperty("displayName")) {
+    out.displayName = String(p.displayName || "").replace(/[<>"`\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+  }
+  if (p.hasOwnProperty("density")) out.density = p.density === "compact" ? "compact" : "comfortable";
+  if (p.hasOwnProperty("reduceMotion")) out.reduceMotion = p.reduceMotion === true;
+  if (p.hasOwnProperty("startTab")) out.startTab = p.startTab === "history" ? "history" : "auto";
+  if (p.hasOwnProperty("home")) {
+    var h = p.home || {};
+    var w = h.widgets || {};
+    var widgets = {};
+    USER_PREFS_HOME_WIDGETS_.forEach(function (k) { widgets[k] = w[k] !== false; });
+    out.home = { widgets: widgets, tab: USER_PREFS_HOME_TABS_.indexOf(h.tab) >= 0 ? h.tab : "auto" };
+  }
+  if (p.hasOwnProperty("pinned")) {
+    var pins = (Array.isArray(p.pinned) ? p.pinned : [])
+      .map(function (u) { return String(u || "").trim(); })
+      .filter(function (u) { return /^[A-Za-z0-9_-]{1,64}$/.test(u); });
+    out.pinned = pins.filter(function (u, i) { return pins.indexOf(u) === i; }).slice(0, 100);
+  }
+  if (p.hasOwnProperty("notifTypes")) {
+    var types = Array.isArray(p.notifTypes) ? p.notifTypes : [];
+    out.notifTypes = USER_PREFS_NOTIF_TYPES_.filter(function (t) { return types.indexOf(t) >= 0; });
+  }
+  if (p.hasOwnProperty("notifToast")) out.notifToast = p.notifToast !== false;
+  if (p.hasOwnProperty("shortcuts")) out.shortcuts = p.shortcuts !== false;
   return out;
 }
 
@@ -190,6 +228,24 @@ function apiGetTeamProjects() {
   });
   projects.sort(function (a, b) { return new Date(b.timestamp || 0) - new Date(a.timestamp || 0); });
   return { success: true, enabled: true, members: members.length, projects: projects.slice(0, 500) };
+}
+
+/**
+ * Startseite (HomeUi.html: Styles + Skript). Steckt nicht im Startdokument
+ * (Groessengrenze, siehe tests/ui.consistency.test.js), sondern wird beim
+ * Start parallel zur Config nachgeladen und per <style>/<script> eingesetzt.
+ */
+function apiGetHomeUi() {
+  var src = HtmlService.createHtmlOutputFromFile("HomeUi").getContent();
+  return {
+    css: (src.match(/<style>([\s\S]*?)<\/style>/) || ["", ""])[1],
+    js: (src.match(/<script>([\s\S]*?)<\/script>/) || ["", ""])[1]
+  };
+}
+
+/** Einstellungsdialog (PrefsUi.html, Markup). Nachgeladen wie apiGetHomeUi(). */
+function apiGetPrefsUi() {
+  return HtmlService.createHtmlOutputFromFile("PrefsUi").getContent().replace(/^\s*<!--[\s\S]*?-->\s*/, "");
 }
 
 /**

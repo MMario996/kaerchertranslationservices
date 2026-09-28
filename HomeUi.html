@@ -1,0 +1,808 @@
+<style>
+  /* HomeUi.html - Startseite. Nachgeladen ueber apiGetHomeUi() (UserPrefs.gs), nicht im Startdokument.
+     Designsprache: Kaercher Glass (Styles.html) = Plass-UI-Prinzipien in Kaercher-CI. */
+  .home { --h-bad:#c5221f; --h-bad-bg:#fce8e6; --h-warn:#6d5b00; --h-warn-bg:#fff6bf; --h-ok:#1e8e3e; --h-ok-bg:#e6f4ea; --h-info:#1a73e8; --h-info-bg:#e8f0fe; }
+  .h-glass { background:var(--kg-glass); border:1px solid var(--kg-hair); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); box-shadow:var(--kg-elev), inset 0 1px 0 rgba(255,255,255,.55); }
+  .h-glow { position:relative; isolation:isolate; }
+  .h-glow::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1; opacity:0; transition:opacity .25s var(--kg-ease); background:radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), var(--kg-glow), transparent 65%); }
+  .h-glow:hover::after { opacity:1; }
+  .h-sec-head { display:flex; align-items:baseline; gap:10px; margin:26px 2px 12px; }
+  .h-sec-head h2, .h-card-head h2 { margin:0; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--k-ink); }
+
+  /* Hero */
+  .h-hero { display:flex; justify-content:space-between; align-items:center; gap:28px; flex-wrap:wrap; padding:30px 34px; border-radius:22px; border:1px solid var(--kg-hair); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur);
+    background:radial-gradient(460px 240px at 100% 0%, rgba(255,237,0,.42), transparent 70%), radial-gradient(300px 160px at 0% 100%, rgba(255,213,0,.12), transparent 70%), var(--kg-glass); box-shadow:var(--kg-elev), inset 0 1px 0 rgba(255,255,255,.6); position:relative; z-index:5; }
+  .h-hero-text { min-width:0; flex:1 1 360px; }
+  .h-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1.2px; color:var(--k-ink-2); }
+  .h-eyebrow::before { content:""; width:18px; height:4px; border-radius:2px; background:var(--kg-fill); }
+  .h-hero h1 { margin:10px 0 10px; font-size:34px; line-height:1.15; font-weight:800; letter-spacing:-.6px; color:var(--k-ink); }
+  .h-sub { margin:0; display:flex; align-items:center; gap:10px; font-size:15.5px; color:var(--k-ink-2); }
+  .h-pulse { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:var(--h-ok); box-shadow:0 0 0 4px var(--h-ok-bg); }
+  .h-pulse.h-bad { background:var(--h-bad); box-shadow:0 0 0 4px var(--h-bad-bg); animation:hPulse 2s ease-in-out infinite; }
+  .h-pulse.h-warn { background:#e0b400; box-shadow:0 0 0 4px var(--h-warn-bg); }
+  @keyframes hPulse { 50% { box-shadow:0 0 0 8px rgba(197,34,31,.08); } }
+  .h-hero-side { display:flex; flex-direction:column; gap:12px; flex:1 1 440px; max-width:640px; }
+  .h-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  /* Buttons (Plass: gedrueckt = getoente Flaeche; Glas = klar) */
+  .h-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:46px; padding:0 20px; border-radius:var(--kg-r); border:1px solid transparent; font:inherit; font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; cursor:pointer; white-space:nowrap; transition:box-shadow .15s var(--kg-ease), background-color .15s, filter .15s; }
+  .h-btn .material-icons-outlined { font-size:20px; }
+  .h-btn-fill { background:var(--kg-fill); color:#000; box-shadow:var(--kg-tint); }
+  .h-btn-fill:hover { box-shadow:var(--kg-tint-hi); filter:saturate(1.15); }
+  .h-btn-fill:active { box-shadow:0 2px 6px -2px rgba(204,170,0,.6); filter:brightness(.97); }
+  .h-btn-fill.h-glow::after { background:radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.55), transparent 60%); z-index:0; }
+  .h-btn-fill > * { position:relative; z-index:1; }
+  .h-btn-glass { background:var(--kg-glass-hi); border-color:var(--k-line); color:var(--k-ink); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .h-btn-glass:hover { box-shadow:var(--kg-elev); border-color:#1a1a1a; }
+  .h-btn-sm { height:36px; padding:0 14px; font-size:12px; }
+  .h-icon-btn { width:46px; height:46px; border-radius:50%; border:1px solid var(--k-line); background:var(--kg-glass-hi); color:var(--k-ink); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:box-shadow .15s, border-color .15s; }
+  .h-icon-btn:hover { box-shadow:var(--kg-elev); border-color:#1a1a1a; }
+  .h-btn:focus-visible, .h-icon-btn:focus-visible, .h-seg-btn:focus-visible, .h-tile:focus-visible, .h-kpi:focus-visible, .h-day:focus-visible, .h-link:focus-visible { outline:none; box-shadow:var(--kg-ring); }
+  .h-link { background:none; border:none; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:var(--k-ink); display:inline-flex; align-items:center; gap:2px; padding:4px 6px; border-radius:8px; white-space:nowrap; }
+  .h-ul { background:linear-gradient(var(--primary-yellow), var(--primary-yellow)) 0 100% / 100% 2px no-repeat; padding-bottom:2px; }
+  .h-link:hover { background:rgba(0,0,0,.04); }
+  .h-link .material-icons-outlined { font-size:18px; }
+
+  /* Suche / Befehle */
+  .h-search { position:relative; }
+  .h-search > .material-icons-outlined { position:absolute; left:15px; top:13px; color:var(--k-ink-2); pointer-events:none; }
+  .h-search input { width:100%; height:50px; box-sizing:border-box; padding:0 96px 0 46px; border:1px solid var(--k-line); border-radius:14px; font:inherit; font-size:15px; background:var(--kg-glass-hi); color:var(--k-ink); box-shadow:var(--kg-elev); transition:box-shadow .15s, border-color .15s; }
+  .h-search input:focus { outline:none; border-color:#1a1a1a; box-shadow:var(--kg-ring), var(--kg-elev); background:var(--k-surface); }
+  .h-search input::-webkit-search-cancel-button { display:none; }
+  .h-kbd { position:absolute; right:12px; top:14px; display:flex; gap:3px; pointer-events:none; }
+  .h-sr { display:none; position:absolute; z-index:60; left:0; right:0; top:58px; max-height:62vh; overflow:auto; padding:8px; border-radius:16px; background:var(--k-surface); border:1px solid var(--k-line); box-shadow:0 24px 60px -12px rgba(0,0,0,.3); }
+  .h-sr-h { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--k-ink-2); padding:8px 10px 4px; }
+  .h-sr-item { width:100%; display:flex; align-items:center; gap:12px; padding:9px 10px; border:none; border-radius:10px; background:none; cursor:pointer; font:inherit; color:var(--k-ink); text-align:left; }
+  .h-sr-item.active, .h-sr-item:hover { background:rgba(255,237,0,.22); }
+  .h-sr-item > .material-icons-outlined { font-size:20px; color:var(--k-ink-2); }
+  .h-sr-main { display:flex; flex-direction:column; min-width:0; flex:1; }
+  .h-sr-main b { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .h-sr-main small { font-size:12px; color:var(--k-ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .h-sr-meta { font-size:12px; color:var(--k-ink-2); white-space:nowrap; }
+  .h-sr-empty { padding:12px 10px; font-size:13px; color:var(--k-ink-2); }
+
+  /* Schnellstart */
+  .h-tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
+  .h-tile { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px; cursor:pointer; font:inherit; color:var(--k-ink); text-align:left; background:var(--kg-glass); border:1px solid var(--kg-hair); box-shadow:var(--kg-elev); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); transition:box-shadow .2s var(--kg-ease), transform .2s var(--kg-ease), background-color .2s; }
+  .h-tile:hover { box-shadow:var(--kg-elev-hi); transform:translateY(-2px); background:var(--kg-glass-hi); }
+  .h-tile-ico { width:42px; height:42px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--kg-fill); color:#000; box-shadow:var(--kg-tint); }
+  .h-tile-preset .h-tile-ico { background:var(--kg-ink); color:var(--primary-yellow); box-shadow:0 6px 14px -6px rgba(0,0,0,.5); }
+  .h-tile-txt { display:flex; flex-direction:column; min-width:0; }
+  .h-tile-txt b { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .h-tile-txt small { font-size:12px; color:var(--k-ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* Kennzahlen */
+  .h-kpis { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-top:18px; }
+  .h-kpi { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:14px; align-items:center; text-align:left; padding:18px 20px; border-radius:18px; cursor:pointer; font:inherit; color:var(--k-ink); background:var(--kg-glass); border:1px solid var(--kg-hair); box-shadow:var(--kg-elev); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); transition:box-shadow .2s var(--kg-ease), transform .2s var(--kg-ease); }
+  .h-kpi:hover { box-shadow:var(--kg-elev-hi); transform:translateY(-2px); }
+  .h-kpi-ico { grid-row:1 / span 2; width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; }
+  .h-kpi-n { font-size:30px; font-weight:800; line-height:1.1; letter-spacing:-.5px; }
+  .h-kpi-l { font-size:12px; color:var(--k-ink-2); font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+  .k-open .h-kpi-ico { background:var(--h-info-bg); color:var(--h-info); }
+  .k-week .h-kpi-ico { background:var(--h-warn-bg); color:var(--h-warn); }
+  .k-over .h-kpi-ico { background:var(--k-surface-2); color:var(--k-ink-2); }
+  .k-over.hot .h-kpi-ico { background:var(--h-bad-bg); color:var(--h-bad); } .k-over.hot .h-kpi-n { color:var(--h-bad); }
+  .k-done .h-kpi-ico { background:var(--h-ok-bg); color:var(--h-ok); }
+
+  /* Raster */
+  .h-main { display:grid; grid-template-columns:minmax(0,1fr) 370px; gap:18px; align-items:start; margin-top:18px; }
+  .h-main.h-main-full { grid-template-columns:minmax(0,1fr); }
+  .h-col { display:flex; flex-direction:column; gap:18px; min-width:0; }
+  .h-card { padding:20px; border-radius:20px; background:var(--kg-glass); border:1px solid var(--kg-hair); box-shadow:var(--kg-elev), inset 0 1px 0 rgba(255,255,255,.55); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); }
+  .h-card-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .h-card-head h2 { flex:1; }
+  .h-count { font-size:12px; font-weight:800; background:var(--k-surface-2); border:1px solid var(--k-line); border-radius:20px; padding:2px 9px; color:var(--k-ink-2); }
+
+  /* Meine Arbeit: Segmente */
+  .h-seg { display:flex; gap:4px; padding:4px; border-radius:14px; background:var(--k-surface-2); border:1px solid var(--k-line); overflow-x:auto; scrollbar-width:none; }
+  .h-seg::-webkit-scrollbar { display:none; }
+  .h-seg-btn { flex:1 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:8px 12px; border:none; border-radius:10px; background:none; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:var(--k-ink-2); white-space:nowrap; transition:background-color .15s, box-shadow .15s, color .15s; }
+  .h-seg-btn .material-icons-outlined { font-size:18px; }
+  .h-seg-btn:hover { color:var(--k-ink); background:rgba(0,0,0,.035); }
+  .h-seg-btn.active { background:var(--k-surface); color:var(--k-ink); box-shadow:0 1px 3px rgba(0,0,0,.1), inset 0 -3px 0 var(--primary-yellow); }
+  .h-seg-n { min-width:20px; padding:0 6px; height:20px; box-sizing:border-box; border-radius:10px; background:rgba(0,0,0,.07); font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+  .h-seg-btn.hot .h-seg-n { background:var(--h-bad); color:#fff; }
+  .h-daychip { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:5px 6px 5px 12px; border-radius:20px; background:var(--kg-ink); color:var(--primary-yellow); font-size:13px; font-weight:700; }
+  .h-daychip .material-icons-outlined { font-size:17px; }
+  .h-daychip button { width:24px; height:24px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .h-daychip button .material-icons-outlined { font-size:15px; }
+
+  /* Liste */
+  .h-list { list-style:none; margin:10px 0 0; padding:0; }
+  .h-item { display:flex; align-items:center; gap:12px; padding:11px 10px; border-radius:12px; cursor:pointer; transition:background-color .15s; }
+  .h-item + .h-item { border-top:1px solid var(--k-line); }
+  .h-item:hover, .h-item:focus { background:rgba(255,237,0,.12); outline:none; }
+  .h-item:hover + .h-item, .h-item:focus + .h-item { border-top-color:transparent; }
+  .h-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--h-info); box-shadow:0 0 0 3px var(--h-info-bg); }
+  .h-dot.st-done { background:var(--h-ok); box-shadow:0 0 0 3px var(--h-ok-bg); } .h-dot.st-cancelled { background:#9e9e9e; box-shadow:0 0 0 3px var(--k-surface-2); }
+  .h-item-main { display:flex; flex-direction:column; min-width:0; flex:1; }
+  .h-item-name { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .h-item-sub { font-size:12.5px; color:var(--k-ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .h-due { font-size:12.5px; font-weight:700; white-space:nowrap; padding:5px 10px; border-radius:20px; background:var(--k-surface-2); color:var(--k-ink-2); display:inline-flex; align-items:center; gap:4px; }
+  .h-due .material-icons-outlined { font-size:14px; }
+  .h-due.due-soon { background:var(--h-warn-bg); color:var(--h-warn); }
+  .h-due.due-overdue { background:var(--h-bad-bg); color:var(--h-bad); }
+  .h-due::before { content:none !important; }
+  .h-qa { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+  .h-item:hover .h-qa, .h-item:focus-within .h-qa { opacity:1; }
+  .h-qa-btn, .h-pin, .h-dl { width:32px; height:32px; border-radius:50%; border:1px solid var(--k-line); background:var(--k-surface); color:var(--k-ink); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0; transition:background-color .15s, border-color .15s, box-shadow .15s; }
+  .h-qa-btn:hover, .h-dl:hover { background:var(--kg-fill); border-color:transparent; color:#000; box-shadow:var(--kg-tint); }
+  .h-qa-btn .material-icons-outlined, .h-pin .material-icons-outlined, .h-dl .material-icons-outlined { font-size:17px; }
+  .h-pin { border-color:transparent; background:none; color:var(--k-ink-2); opacity:0; }
+  .h-item:hover .h-pin, .h-item:focus-within .h-pin, .h-pin.on { opacity:1; }
+  .h-pin.on { color:#d9a400; }
+  .h-pin:hover { background:rgba(255,237,0,.25); color:#000; }
+  @media (hover:none) { .h-qa, .h-pin { opacity:1; } }
+  .h-prog { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--k-ink-2); }
+  .h-prog.on { margin-top:5px; }
+  .h-prog-bar { width:120px; height:6px; border-radius:6px; background:var(--k-line); overflow:hidden; }
+  .h-prog-bar > span { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, #FFD500, #1e8e3e); }
+  .h-next-h { margin:16px 10px 0; padding-top:14px; border-top:1px dashed var(--k-line); font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--k-ink-2); }
+  .h-next-h + .h-list { margin-top:4px; }
+  .h-empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:34px 10px; color:var(--k-ink-2); font-size:13.5px; text-align:center; }
+  .h-empty .material-icons-outlined { font-size:26px; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--k-surface-2); color:var(--k-ink-2); }
+  .h-more { width:100%; margin-top:6px; background:none; border:none; border-top:1px solid var(--k-line); padding:12px 4px 4px; font:inherit; font-weight:700; font-size:13.5px; color:var(--k-ink); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; }
+
+  /* Naechste Frist */
+  .h-focus { position:relative; }
+  .h-focus-when { font-size:28px; font-weight:800; letter-spacing:-.4px; line-height:1.1; }
+  .h-focus.bad .h-focus-when { color:var(--h-bad); } .h-focus.warn .h-focus-when { color:var(--h-warn); }
+  .h-focus-date { font-size:13px; color:var(--k-ink-2); margin:4px 0 12px; }
+  .h-focus-name { font-weight:800; font-size:15px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .h-focus-sub { font-size:12.5px; color:var(--k-ink-2); margin-bottom:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .h-focus-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--kg-fill); color:#000; }
+  .h-focus.bad .h-focus-ico { background:var(--h-bad-bg); color:var(--h-bad); }
+  .h-focus-ico .material-icons-outlined, .h-tip-ico .material-icons-outlined { font-size:19px; }
+
+  /* Naechste 7 Tage */
+  .h-week { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
+  .h-day { display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 0 8px; border-radius:12px; border:1px solid var(--k-line); background:var(--k-surface); cursor:pointer; font:inherit; color:var(--k-ink); transition:box-shadow .15s, border-color .15s, background-color .15s; }
+  .h-day:hover { border-color:#1a1a1a; }
+  .h-day-w { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--k-ink-2); }
+  .h-day-n { font-size:17px; font-weight:800; }
+  .h-day-dots { display:flex; gap:3px; height:6px; }
+  .h-day-dots i { width:6px; height:6px; border-radius:50%; background:#e0b400; }
+  .h-day.today { border-color:#1a1a1a; box-shadow:inset 0 3px 0 var(--primary-yellow); }
+  .h-day.we .h-day-n { color:var(--k-ink-2); }
+  .h-day.sel { background:var(--kg-ink); border-color:transparent; color:#fff; }
+  .h-day.sel .h-day-w { color:var(--primary-yellow); } .h-day.sel .h-day-dots i { background:var(--primary-yellow); }
+  .h-week-note { font-size:12.5px; color:var(--k-ink-2); margin-top:10px; }
+
+  /* Aktivitaeten */
+  .h-act { width:100%; display:flex; align-items:flex-start; gap:12px; padding:9px 8px; border:none; border-radius:12px; background:none; cursor:pointer; font:inherit; color:var(--k-ink); text-align:left; }
+  .h-act:hover { background:rgba(255,237,0,.12); }
+  .h-act-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .h-act-text { font-size:13px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .h-act-time { font-size:11.5px; color:var(--k-ink-2); }
+
+  /* Tipp */
+  .h-tip { background:radial-gradient(260px 140px at 100% 0%, rgba(255,237,0,.30), transparent 70%), var(--kg-glass); }
+  .h-tip-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--kg-ink); color:var(--primary-yellow); }
+  .h-tip-n { font-size:12px; font-weight:700; color:var(--k-ink-2); }
+  .h-tip-body { display:flex; gap:12px; align-items:flex-start; }
+  .h-tip-body > .material-icons-outlined { font-size:22px; color:var(--k-ink-2); margin-top:1px; }
+  .h-tip-body p { margin:0; font-size:14px; line-height:1.55; }
+  .h-tip-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:14px; }
+  .h-tip-foot .h-link { margin-left:auto; }
+
+  /* Willkommen (noch keine Projekte) */
+  .h-welcome { padding:32px; text-align:left; }
+  .h-welcome-art { width:64px; height:64px; border-radius:20px; background:var(--kg-fill); box-shadow:var(--kg-tint); display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#000; }
+  .h-welcome-art .material-icons-outlined { font-size:32px; }
+  .h-welcome h2 { margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:-.3px; }
+  .h-welcome p { margin:0 0 16px; color:var(--k-ink-2); font-size:15px; }
+  .h-steps { list-style:none; margin:0 0 22px; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+  .h-steps li { display:flex; align-items:center; gap:10px; padding:14px; border-radius:14px; background:var(--k-surface-2); border:1px solid var(--k-line); font-size:13.5px; font-weight:700; }
+  .h-steps li span { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--kg-ink); color:var(--primary-yellow); font-weight:800; }
+
+  /* Team */
+  .h-team { width:100%; display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:16px; border:1px dashed var(--k-line); background:var(--kg-glass); color:var(--k-ink); cursor:pointer; font:inherit; font-size:14px; text-align:left; }
+  .h-team:hover { border-color:#1a1a1a; }
+  .h-team > .material-icons-outlined { color:var(--h-info); }
+  .h-team-link { margin-left:auto; font-weight:700; display:inline-flex; align-items:center; white-space:nowrap; }
+
+  /* Skelett */
+  .h-skel { border-radius:18px; background:linear-gradient(90deg, var(--k-surface-2) 25%, var(--k-line) 50%, var(--k-surface-2) 75%); background-size:200% 100%; animation:skel 1.3s infinite linear; }
+  @keyframes skel { from { background-position:200% 0; } to { background-position:-200% 0; } }
+  .home-error { padding:30px; text-align:center; color:var(--h-bad); }
+
+  /* Dichte */
+  html[data-density="compact"] .h-hero { padding:20px 24px; }
+  html[data-density="compact"] .h-hero h1 { font-size:26px; margin:6px 0; }
+  html[data-density="compact"] .h-kpi { padding:12px 14px; }
+  html[data-density="compact"] .h-kpi-n { font-size:24px; }
+  html[data-density="compact"] .h-card { padding:14px; }
+  html[data-density="compact"] .h-item { padding:7px 8px; }
+  html[data-density="compact"] .h-tile { padding:10px 12px; }
+
+  @media (max-width: 1100px) { .h-main { grid-template-columns:minmax(0,1fr); } .h-side { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 900px) { .h-kpis { grid-template-columns:repeat(2, minmax(0,1fr)); } .h-steps { grid-template-columns:minmax(0,1fr); } }
+  @media (max-width: 680px) { .h-side { grid-template-columns:minmax(0,1fr); } .h-hero { padding:22px 20px; border-radius:18px; } .h-hero h1 { font-size:26px; } .h-kpi { padding:12px; column-gap:10px; } .h-kpi-ico { width:40px; height:40px; } .h-kpi-n { font-size:22px; } .h-seg-l { display:none; } .h-kbd { display:none; } .h-search input { padding-right:14px; }
+    .h-hero .h-actions .h-btn-fill { flex:1 1 100%; } .h-hero .h-actions .h-btn-glass { flex:1; } .h-hide-sm { display:none; }
+    .h-tiles { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; } .h-tile { flex-direction:column; align-items:flex-start; gap:8px; padding:12px; }
+    .h-tile-txt b, .h-tile-txt small { white-space:normal; } .h-tile-ico { width:36px; height:36px; } }
+
+  /* Dunkler Modus */
+  html[data-theme="dark"] .home { --h-bad:#f28b82; --h-bad-bg:#3d1a18; --h-warn:#fdd663; --h-warn-bg:#3a3410; --h-ok:#81c995; --h-ok-bg:#173522; --h-info:#8ab4f8; --h-info-bg:#172a45; }
+  html[data-theme="dark"] .h-hero { background:radial-gradient(460px 240px at 100% 0%, rgba(255,237,0,.16), transparent 70%), var(--kg-glass); box-shadow:var(--kg-elev); }
+  html[data-theme="dark"] .h-card, html[data-theme="dark"] .h-glass { box-shadow:var(--kg-elev); }
+  html[data-theme="dark"] .h-tip { background:radial-gradient(260px 140px at 100% 0%, rgba(255,237,0,.12), transparent 70%), var(--kg-glass); }
+  html[data-theme="dark"] .h-seg-n { background:rgba(255,255,255,.1); }
+  html[data-theme="dark"] .h-seg-btn.active { background:#2d3035; }
+  html[data-theme="dark"] .h-item:hover, html[data-theme="dark"] .h-item:focus, html[data-theme="dark"] .h-act:hover { background:rgba(255,237,0,.07); }
+  html[data-theme="dark"] .h-sr-item.active, html[data-theme="dark"] .h-sr-item:hover { background:rgba(255,237,0,.12); }
+  html[data-theme="dark"] .h-day.today, html[data-theme="dark"] .h-day:hover, html[data-theme="dark"] .h-btn-glass:hover, html[data-theme="dark"] .h-icon-btn:hover, html[data-theme="dark"] .h-team:hover { border-color:#8a8a8a; }
+  html[data-theme="dark"] .h-search input:focus { border-color:#8a8a8a; }
+  html[data-theme="dark"] .h-link:hover, html[data-theme="dark"] .h-seg-btn:hover { background:rgba(255,255,255,.06); }
+  html[data-theme="dark"] .h-pin.on { color:#fdd663; }
+</style>
+<script>
+// HomeUi.html - Startseite. Nachgeladen ueber apiGetHomeUi() (UserPrefs.gs) und
+// per <script> eingesetzt (renderHome_/loadHomeUi_ in JsPersonal.html). Laeuft im
+// globalen Scope und nutzt die Helfer aus JsCore/JsProjects/JsPersonal.
+// Wichtig: keine doppelten Schraegstriche in Strings - Apps Script entfernt
+// beim Ausliefern Kommentare zeilenweise.
+let homeLoading_ = false;
+let homeTab_ = '';
+let homeDay_ = '';
+let homeTip_ = -1;
+let homePresets_ = null;
+let homeProg_ = {};
+let homeProgAt_ = 0;
+let homeSearchQ_ = '';
+let homeSr_ = [];
+let homeSrIdx_ = 0;
+
+const HOME_PORTAL_ICONS_ = { request: 'translate', marketing: 'campaign', woma: 'cleaning_services', cc: 'hub', kec: 'engineering', documentation: 'menu_book', articulate: 'school' };
+const HOME_TABS_ = [
+  ['overdue', 'error_outline', 'home_overdue', 'Overdue'],
+  ['week', 'date_range', 'home_week', 'Due this week'],
+  ['open', 'pending_actions', 'home_open', 'Your open projects'],
+  ['done', 'task_alt', 'home_done', 'Recently finished'],
+  ['pinned', 'star', 'hm_tab_pinned', 'Pinned']
+];
+const HOME_TIPS_ = [
+  ['keyboard', 'hm_tip_search', 'Press Ctrl+K or / anywhere to search projects and jump straight to actions.', ''],
+  ['star', 'hm_tip_pin', 'Pin important projects with the star - they stay in the "Pinned" list on this page.', ''],
+  ['bookmark', 'hm_tip_preset', 'Save template and languages as a preset in the order form - it then appears here under Quick start.', 'openNewProjectNav_()'],
+  ['event', 'hm_tip_cal', 'Sync your deadlines with Google Calendar - they are kept up to date automatically.', 'openCalendarSync_()'],
+  ['groups', 'hm_tip_team', 'Switch on the team view to see what your colleagues have ordered and avoid duplicate orders.', "homeCustomize_('team')"],
+  ['dark_mode', 'hm_tip_dark', 'Prefer it dark? Switch on dark mode or let it follow your system.', "homeCustomize_('display')"],
+  ['edit_note', 'hm_tip_note', 'Add a personal note to any project - only you can see it.', ''],
+  ['explore', 'hm_tip_tour', 'New here? The guided tour shows the order form step by step.', 'homeStartTour_()']
+];
+
+// --- Laden ------------------------------------------------------------------
+function homeRender_(force) {
+  const root = document.getElementById('homeRoot');
+  if (!root) return;
+  const fresh = homeLoadedAt_ && (Date.now() - homeLoadedAt_ < 60000) && Array.isArray(globalProjects) && historyScope_ !== 'doc';
+  if (fresh && !force) { paintHome_(globalProjects); return; }
+  if (!homeLoadedAt_) root.innerHTML = homeSkeleton_();
+  if (homeLoading_) return;
+  homeLoading_ = true;
+  if (force) homePresets_ = null;
+  const take = r => {
+    homeLoading_ = false;
+    if (r && r.error) { root.innerHTML = `<div class="home-error">${escapeHtml(r.error)}</div>`; return; }
+    globalProjects = (r && (r.projects || r)) || [];
+    historyScope_ = 'all';
+    homeLoadedAt_ = Date.now();
+    paintHome_(globalProjects);
+    if (userPrefs_.team && userPrefs_.team.enabled) loadTeamProjects_(() => paintHome_(globalProjects));
+  };
+  const fail = e => {
+    homeLoading_ = false;
+    root.innerHTML = `<div class="home-error">${escapeHtml(e && e.message ? e.message : String(e))}</div>`;
+  };
+  const retry = () => { homeLoading_ = false; homeRender_(true); };
+  const pf = homePrefetch_;
+  homePrefetch_ = null;
+  const impersonating = typeof currentImpersonationEmail !== 'undefined' && currentImpersonationEmail;
+  if (pf && !force && !impersonating && Date.now() - pf.at < 120000) {
+    if (pf.done) { if (pf.res) take(pf.res); else retry(); }
+    else pf.cbs.push(r => { if (r) take(r); else retry(); });
+    return;
+  }
+  google.script.run.withSuccessHandler(take).withFailureHandler(fail).apiGetMyProjects();
+}
+
+function homeSkeleton_() {
+  return `<div class="h-skel" style="height:150px;border-radius:22px"></div>
+    <div class="h-kpis">${'<div class="h-skel" style="height:86px"></div>'.repeat(4)}</div>
+    <div class="h-main"><div class="h-skel" style="height:420px"></div><div class="h-skel" style="height:420px"></div></div>`;
+}
+
+// --- Hilfen -------------------------------------------------------------------
+function homeDayDiff_(d, nowMs) {
+  const n = new Date(nowMs || Date.now());
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const b = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  return Math.round((a - b) / 86400000);
+}
+
+/** Kurzer Text zur Frist: "Heute", "Morgen", "In 3 Tagen", "2 T. ueberfaellig" oder Datum. */
+function homeDueText_(d) {
+  const diff = homeDayDiff_(d);
+  if (diff < 0) return fmt_(tr_('hm_overdue_by', '{n} d overdue'), { n: -diff });
+  if (diff === 0) return tr_('hm_due_today', 'Today');
+  if (diff === 1) return tr_('hm_due_tomorrow', 'Tomorrow');
+  if (diff < 7) return fmt_(tr_('hm_due_in', 'In {n} days'), { n: diff });
+  return fmtDay_(d);
+}
+
+function homeTime_(d) {
+  try { return d.toLocaleTimeString(calLocale_(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+}
+
+function homeSub_(p) {
+  const langs = p.targetLangs && p.targetLangs.length ? p.targetLangs.join(', ') : (p.targetLang || '');
+  const owner = p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '';
+  return [langs, owner].filter(Boolean).join(' · ') || p.status || '';
+}
+
+function homeCustomize_(sec) {
+  openPreferences();
+  prefsShowSec_(sec || 'home');
+}
+
+function homeStartTour_() {
+  if (document.getElementById('btn-nav-request') && document.getElementById('btn-nav-request').style.display !== 'none') switchTab('request');
+  else openNewProjectNav_();
+  if (typeof tourStart === 'function') setTimeout(() => tourStart(currentLang, true), 350);
+}
+
+function homeToggleTheme_() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  userPrefs_.theme = dark ? 'light' : 'dark';
+  applyUiPrefs_(userPrefs_);
+  storeUiPrefsLocal_(userPrefs_);
+  google.script.run.withFailureHandler(() => {}).apiSaveUserPrefs({ theme: userPrefs_.theme });
+}
+
+// --- Aufbau -------------------------------------------------------------------
+function homeLists_(projects) {
+  const b = homeBuckets_(projects);
+  const pinned = (projects || []).filter(p => p && p.pivotRole !== 'CHILD' && isPinned_(p.projectUid));
+  return { b: b, lists: { overdue: b.overdue, week: b.dueWeek, open: b.open, done: b.done, pinned: pinned } };
+}
+
+/** Reine Funktion (getestet): welche Liste beim Oeffnen zuerst gezeigt wird. */
+function homePickTab_(pref, lists) {
+  if (pref && pref !== 'auto' && lists[pref]) return pref;
+  if (lists.overdue.length) return 'overdue';
+  if (lists.week.length) return 'week';
+  if (lists.open.length) return 'open';
+  if (lists.pinned.length) return 'pinned';
+  return 'done';
+}
+
+function paintHome_(projects) {
+  const root = document.getElementById('homeRoot');
+  if (!root) return;
+  const P = prefsWithDefaults_(userPrefs_);
+  const W = P.home.widgets;
+  const L = homeLists_(projects);
+  if (!homeTab_ || !L.lists[homeTab_]) homeTab_ = homePickTab_(P.home.tab, L.lists);
+  const isNew = !(projects || []).length;
+  const side = [W.focus && !isNew ? homeFocusHtml_(L.b) : '', W.week && !isNew ? homeWeekHtml_(L.b) : '', W.activity ? homeActivityHtml_() : '', W.tips ? homeTipsHtml_() : ''].filter(Boolean);
+  const team = (userPrefs_.team && userPrefs_.team.enabled && Array.isArray(teamProjects_))
+    ? teamProjects_.filter(p => statusGroup_(p.status) === 'open') : null;
+  root.innerHTML = `
+    ${homeHeroHtml_(L.b)}
+    ${W.quick ? homeQuickHtml_() : ''}
+    ${W.kpis && !isNew ? homeKpisHtml_(L.b) : ''}
+    <div class="h-main${side.length ? '' : ' h-main-full'}">
+      <div class="h-col">${isNew ? homeWelcomeHtml_() : homeWorkHtml_(L.lists)}
+        ${team ? `<button type="button" class="h-team" onclick="openHistoryFiltered_('team')">
+          <span class="material-icons-outlined">groups</span>
+          <span>${escapeHtml(fmt_(tr_('home_team', 'Your team currently has {n} open project(s).'), { n: team.length }))}</span>
+          <span class="h-team-link">${escapeHtml(tr_('home_team_link', 'Show team projects'))}<span class="material-icons-outlined">chevron_right</span></span>
+        </button>` : ''}
+      </div>
+      ${side.length ? `<div class="h-col h-side">${side.join('')}</div>` : ''}
+    </div>`;
+  if (homeFocusSearch_) {
+    homeFocusSearch_ = false;
+    const inp = document.getElementById('homeSearch');
+    if (inp) inp.focus();
+  }
+  if (W.quick) homeLoadPresets_();
+  const seen = new Set();
+  [L.lists[homeTab_] || [], L.b.overdue, L.b.dueWeek].forEach(l => l.slice(0, 10).forEach(p => seen.add(p.projectUid)));
+  loadHomeProgress_([...seen].filter(Boolean).slice(0, 24));
+  if (typeof applyAriaLabels_ === 'function') applyAriaLabels_(root);
+}
+
+function homeHeroHtml_(b) {
+  const name = String(userPrefs_.displayName || '').trim() || firstNameOf_(configData.effectiveUser || configData.currentUser);
+  const hour = new Date().getHours();
+  const greet = hour < 11 ? tr_('home_morning', 'Good morning') : (hour < 18 ? tr_('home_day', 'Hello') : tr_('home_evening', 'Good evening'));
+  let today = '';
+  try { today = new Date().toLocaleDateString(calLocale_(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { today = new Date().toDateString(); }
+  const tone = b.overdue.length ? 'bad' : (b.dueWeek.length ? 'warn' : 'ok');
+  const sub = b.overdue.length
+    ? fmt_(tr_('home_sub_overdue', '{n} project(s) are overdue - please take a look.'), { n: b.overdue.length })
+    : (b.dueWeek.length ? fmt_(tr_('home_sub_week', '{n} project(s) are due this week.'), { n: b.dueWeek.length }) : tr_('home_sub_calm', 'Nothing urgent this week.'));
+  const mod = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : tr_('hm_kbd_ctrl', 'Ctrl');
+  const kbd = userPrefs_.shortcuts === false ? '' : `<span class="h-kbd"><kbd>${escapeHtml(mod)}</kbd><kbd>K</kbd></span>`;
+  return `<section class="h-hero">
+      <div class="h-hero-text">
+        <div class="h-eyebrow">${escapeHtml(today)}</div>
+        <h1>${escapeHtml(greet)}${name ? ', ' + escapeHtml(name) : ''}</h1>
+        <p class="h-sub"><span class="h-pulse h-${tone}"></span><span>${escapeHtml(sub)}</span></p>
+      </div>
+      <div class="h-hero-side">
+        <div class="h-search">
+          <span class="material-icons-outlined">search</span>
+          <input type="search" id="homeSearch" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="homeSearchRes" aria-expanded="false"
+            value="${escapeHtml(homeSearchQ_)}" placeholder="${escapeHtml(tr_('hm_search_ph', 'Search projects or actions...'))}"
+            oninput="homeSearch_(this.value)" onfocus="homeSearch_(this.value)" onblur="homeSearchBlur_()" onkeydown="homeSearchKey_(event)">
+          ${kbd}
+          <div id="homeSearchRes" class="h-sr" role="listbox"></div>
+        </div>
+        <div class="h-actions">
+          <button type="button" class="h-btn h-btn-fill h-glow" onclick="openNewProjectNav_()"><span class="material-icons-outlined">add_circle</span><span>${escapeHtml(tr_('nav_new_project', 'New Project'))}</span></button>
+          <button type="button" class="h-btn h-btn-glass" onclick="switchTab('history')"><span class="material-icons-outlined">folder_open</span><span>${escapeHtml(tr_('nav_history', 'My Projects'))}</span></button>
+          <button type="button" class="h-icon-btn h-hide-sm" onclick="openCalendarSync_()" title="${escapeHtml(tr_('cal_title', 'Calendar'))}"><span class="material-icons-outlined">event</span></button>
+          <button type="button" class="h-icon-btn" onclick="renderHome_(true)" title="${escapeHtml(tr_('hs_refresh', 'Refresh'))}"><span class="material-icons-outlined">refresh</span></button>
+          <button type="button" class="h-icon-btn" onclick="homeCustomize_('home')" title="${escapeHtml(tr_('hm_customize', 'Customize start page'))}"><span class="material-icons-outlined">dashboard_customize</span></button>
+        </div>
+      </div>
+    </section>`;
+}
+
+function homeQuickHtml_() {
+  const tile = (icon, title, sub, js, cls) => `<button type="button" class="h-tile h-glow ${cls || ''}" onclick="${js}">
+      <span class="h-tile-ico"><span class="material-icons-outlined">${icon}</span></span>
+      <span class="h-tile-txt"><b>${escapeHtml(title)}</b><small>${escapeHtml(sub)}</small></span></button>`;
+  const portals = (typeof visiblePortalButtons_ === 'function' ? visiblePortalButtons_() : []).map(btn => {
+    const id = btn.id.replace('btn-nav-', '');
+    return tile(HOME_PORTAL_ICONS_[id] || 'add_circle', btn.textContent.trim(), tr_('nav_new_project', 'New Project'), `switchTab('${escapeJs(id)}')`);
+  });
+  const presets = (homePresets_ || []).slice(0, 4).map(p => {
+    const langs = (p.targetLangs || []);
+    const sub = tr_('hm_quick_preset', 'Preset') + ' · ' + (p.sourceLang || '') + ' → ' + langs.slice(0, 3).join(', ') + (langs.length > 3 ? ' +' + (langs.length - 3) : '');
+    return tile('bookmark', p.presetName || p.templateName || '', sub, `homeStartPreset_('${escapeJs(p.presetId)}')`, 'h-tile-preset');
+  });
+  if (!portals.length && !presets.length) return '<div id="homeQuick"></div>';
+  return `<section id="homeQuick"><div class="h-sec-head"><h2>${escapeHtml(tr_('hm_quick', 'Quick start'))}</h2></div>
+      <div class="h-tiles">${portals.join('')}${presets.join('')}</div></section>`;
+}
+
+function homeLoadPresets_() {
+  if (homePresets_ !== null) return;
+  homePresets_ = [];
+  google.script.run.withSuccessHandler(r => {
+    homePresets_ = (r && r.presets) || [];
+    const el = document.getElementById('homeQuick');
+    if (el && homePresets_.length) el.outerHTML = homeQuickHtml_();
+  }).withFailureHandler(() => {}).apiLoadPresets();
+}
+
+/** Startet ein neues Projekt mit einer gespeicherten Vorlage (Template + Sprachen). */
+function homeStartPreset_(id) {
+  const p = (homePresets_ || []).find(x => x.presetId === id);
+  if (!p) return;
+  const req = document.getElementById('btn-nav-request');
+  if (req && req.style.display !== 'none') switchTab('request'); else openNewProjectNav_();
+  const tab = (document.querySelector('.tab-content.active') || { id: '' }).id.replace('tab-', '');
+  const dd = document.getElementById('presetsDropdown_' + tab);
+  if (!dd) return;
+  let opt = Array.from(dd.options).find(o => o.value === id);
+  if (!opt) { opt = document.createElement('option'); opt.value = id; opt.text = p.presetName; dd.appendChild(opt); }
+  opt.dataset.json = JSON.stringify(p);
+  dd.value = id;
+  loadPreset('_' + tab);
+}
+
+function homeKpisHtml_(b) {
+  const k = (icon, n, key, fb, cls, filter) => `<button type="button" class="h-kpi h-glow ${cls}" onclick="openHistoryFiltered_('${filter}')">
+      <span class="h-kpi-ico"><span class="material-icons-outlined">${icon}</span></span><span class="h-kpi-n">${n}</span><span class="h-kpi-l">${escapeHtml(tr_(key, fb))}</span></button>`;
+  return `<section class="h-kpis">
+      ${k('pending_actions', b.open.length, 'home_k_open', 'Open', 'k-open', 'open')}
+      ${k('date_range', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', 'week')}
+      ${k('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), 'overdue')}
+      ${k('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', 'done30')}
+    </section>`;
+}
+
+function homeWorkHtml_(lists) {
+  const dayItems = homeDay_ ? lists.open.filter(p => { const d = pDate_(p.dueDate); return d && calDayKey_(d) === homeDay_; }) : null;
+  const items = dayItems || lists[homeTab_] || [];
+  const seg = HOME_TABS_.map(([id, icon, key, fb]) => {
+    const on = !homeDay_ && id === homeTab_;
+    return `<button type="button" role="tab" aria-selected="${on}" class="h-seg-btn${on ? ' active' : ''}${id === 'overdue' && lists.overdue.length ? ' hot' : ''}" onclick="homeSetTab_('${id}')" title="${escapeHtml(tr_(key, fb))}">
+      <span class="material-icons-outlined">${icon}</span><span class="h-seg-l">${escapeHtml(tr_(key, fb))}</span><span class="h-seg-n">${lists[id].length}</span></button>`;
+  }).join('');
+  let chip = '';
+  if (homeDay_) {
+    const parts = homeDay_.split('-').map(Number);
+    chip = `<div class="h-daychip"><span class="material-icons-outlined">today</span>${escapeHtml(fmtDay_(new Date(parts[0], parts[1] - 1, parts[2])))}
+      <button type="button" onclick="homeSetDay_('')" title="${escapeHtml(tr_('hm_day_clear', 'Clear day filter'))}"><span class="material-icons-outlined">close</span></button></div>`;
+  }
+  const empties = {
+    overdue: ['thumb_up', 'home_overdue_empty', 'Nothing overdue - well done!'],
+    week: ['celebration', 'home_week_empty', 'Nothing due this week.'],
+    open: ['celebration', 'home_open_empty', 'No open projects - all done!'],
+    done: ['hourglass_empty', 'home_done_empty', 'No finished projects yet.'],
+    pinned: ['star_border', 'hm_pinned_empty', 'Nothing pinned yet - click the star next to a project.']
+  };
+  const e = homeDay_ ? ['event_available', 'hm_day_none', 'Nothing is due on this day.'] : empties[homeTab_];
+  const list = items.slice(0, 10).map(p => homeItem_(p, statusGroup_(p.status) === 'done' ? 'done' : 'open')).join('');
+  const filter = homeDay_ ? 'open' : ({ overdue: 'overdue', week: 'week', open: 'open', done: 'done' }[homeTab_] || 'all');
+  // Kurze Liste (z. B. nur ein Ueberfaelliges): darunter zeigen, was als Naechstes faellig wird.
+  const shown = new Set(items.slice(0, 10).map(p => p.projectUid));
+  const next = !homeDay_ && homeTab_ === 'overdue' && items.length < 4
+    ? lists.open.filter(p => !shown.has(p.projectUid) && pDate_(p.dueDate) && pDate_(p.dueDate).getTime() >= Date.now()).slice(0, 4 - items.length + 1) : [];
+  const nextHtml = next.length ? `<div class="h-next-h">${escapeHtml(tr_('hm_up_next', 'Up next'))}</div><ul class="h-list">${next.map(p => homeItem_(p, 'open')).join('')}</ul>` : '';
+  return `<section class="h-card h-work">
+      <div class="h-card-head"><h2>${escapeHtml(tr_('hm_work', 'My work'))}</h2>
+        <button type="button" class="h-link" onclick="openHistoryFiltered_('${filter}')"><span class="h-ul">${escapeHtml(tr_('hm_all', 'Open in My Projects'))}</span><span class="material-icons-outlined">chevron_right</span></button></div>
+      <div class="h-seg" role="tablist">${seg}</div>${chip}
+      ${list ? `<ul class="h-list">${list}</ul>` : `<div class="h-empty"><span class="material-icons-outlined">${e[0]}</span>${escapeHtml(tr_(e[1], e[2]))}</div>`}
+      ${nextHtml}
+      ${items.length > 10 ? `<button type="button" class="h-more" onclick="openHistoryFiltered_('${filter}')">${escapeHtml(fmt_(tr_('home_more', 'Show all ({n})'), { n: items.length }))}<span class="material-icons-outlined">chevron_right</span></button>` : ''}
+    </section>`;
+}
+
+function homeSetTab_(id) {
+  homeTab_ = id;
+  homeDay_ = '';
+  paintHome_(globalProjects);
+}
+
+function homeSetDay_(key) {
+  homeDay_ = homeDay_ === key ? '' : key;
+  paintHome_(globalProjects);
+  if (homeDay_ && window.matchMedia && window.matchMedia('(max-width: 1100px)').matches) {
+    const w = document.querySelector('#homeRoot .h-work');
+    if (w) try { w.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+  }
+}
+
+function homeItem_(p, mode) {
+  const due = pDate_(p.dueDate);
+  const cls = dueClass_(p);
+  const u = escapeJs(p.projectUid);
+  const right = mode === 'done'
+    ? `<button type="button" class="h-dl" onclick="event.stopPropagation(); openSaveToDriveModal('${u}')" title="${escapeHtml(tr_('jx_801ab24', 'Download'))}"><span class="material-icons-outlined">download</span></button>`
+    : `<span class="h-due ${cls}" title="${escapeHtml(due ? fmtDay_(due) + ' ' + homeTime_(due) : '')}">${cls === 'due-overdue' ? '<span class="material-icons-outlined">error</span>' : ''}${escapeHtml(due ? homeDueText_(due) : tr_('home_no_due', 'no due date'))}</span>`;
+  const qa = (icon, key, fb, js) => `<button type="button" class="h-qa-btn" title="${escapeHtml(tr_(key, fb))}" onclick="event.stopPropagation(); ${js}"><span class="material-icons-outlined">${icon}</span></button>`;
+  const actions = (mode !== 'done' && !p.teamView ? qa('edit_calendar', 'pd_due', 'Due date', `openDueDateModal('${u}','${escapeJs(p.projectName || '')}','${escapeJs(p.dueDate || '')}')`) : '') +
+    (!p.teamView ? qa('edit_note', 'pd_note', 'Note', `openJobNoteModal('${u}')`) : '') +
+    (p.phraseUrl ? qa('open_in_new', 'jx_a77f4ec', 'Phrase TMS', `window.open('${escapeJs(p.phraseUrl)}','_blank','noopener')`) : '');
+  const pinned = isPinned_(p.projectUid);
+  const pin = p.teamView ? '' : `<button type="button" class="h-pin${pinned ? ' on' : ''}" aria-pressed="${pinned}" onclick="event.stopPropagation(); togglePin_('${u}')" title="${escapeHtml(pinned ? tr_('hm_unpin', 'Unpin') : tr_('hm_pin', 'Pin'))}"><span class="material-icons-outlined">${pinned ? 'star' : 'star_border'}</span></button>`;
+  return `<li class="h-item" data-uid="${escapeHtml(p.projectUid)}" onclick="openFromHome_('${u}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${u}')">
+      <span class="h-dot st-${statusGroup_(p.status)}"></span>
+      <span class="h-item-main"><span class="h-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="h-item-sub">${escapeHtml(homeSub_(p))}</span>${mode !== 'done' ? homeProgHtml_(p.projectUid) : ''}</span>
+      <span class="h-qa">${actions}</span>${pin}${right}
+    </li>`;
+}
+
+function homeFocusHtml_(b) {
+  const p = b.overdue[0] || b.open.find(x => pDate_(x.dueDate));
+  const head = (cls) => `<div class="h-card-head"><span class="h-focus-ico"><span class="material-icons-outlined">${cls === 'bad' ? 'alarm' : 'flag'}</span></span><h2>${escapeHtml(tr_('hm_focus', 'Next deadline'))}</h2></div>`;
+  if (!p) return `<section class="h-card h-focus">${head('')}<div class="h-empty"><span class="material-icons-outlined">event_available</span>${escapeHtml(tr_('hm_focus_none', 'No upcoming deadlines.'))}</div></section>`;
+  const d = pDate_(p.dueDate);
+  const diff = homeDayDiff_(d);
+  const cls = d.getTime() < Date.now() ? 'bad' : (diff <= 2 ? 'warn' : '');
+  return `<section class="h-card h-focus ${cls}">${head(cls)}
+      <div class="h-focus-when">${escapeHtml(homeDueText_(d))}</div>
+      <div class="h-focus-date">${escapeHtml(fmtDay_(d) + ' · ' + homeTime_(d))}</div>
+      <div class="h-focus-name">${escapeHtml(p.projectName || p.projectUid)}</div>
+      <div class="h-focus-sub">${escapeHtml(homeSub_(p))}</div>
+      <div class="h-actions"><button type="button" class="h-btn h-btn-glass h-btn-sm" onclick="openFromHome_('${escapeJs(p.projectUid)}')"><span class="material-icons-outlined">open_in_full</span><span>${escapeHtml(tr_('hm_open_project', 'Open project'))}</span></button>
+        <button type="button" class="h-btn h-btn-glass h-btn-sm" onclick="openDueDateModal('${escapeJs(p.projectUid)}','${escapeJs(p.projectName || '')}','${escapeJs(p.dueDate || '')}')"><span class="material-icons-outlined">edit_calendar</span><span>${escapeHtml(tr_('pd_due', 'Due date'))}</span></button></div>
+    </section>`;
+}
+
+function homeWeekHtml_(b) {
+  const now = new Date();
+  let total = 0;
+  const cells = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const key = calDayKey_(d);
+    const n = b.open.filter(p => { const x = pDate_(p.dueDate); return x && calDayKey_(x) === key; }).length;
+    total += n;
+    let wd = '';
+    try { wd = d.toLocaleDateString(calLocale_(), { weekday: 'short' }).replace('.', ''); } catch (e) {}
+    const cls = (i === 0 ? ' today' : '') + (homeDay_ === key ? ' sel' : '') + (d.getDay() === 0 || d.getDay() === 6 ? ' we' : '');
+    cells.push(`<button type="button" class="h-day${cls}" onclick="homeSetDay_('${key}')" title="${escapeHtml(fmtDay_(d))}${n ? ' · ' + n : ''}" aria-pressed="${homeDay_ === key}">
+      <span class="h-day-w">${escapeHtml(wd)}</span><span class="h-day-n">${d.getDate()}</span><span class="h-day-dots">${'<i></i>'.repeat(Math.min(n, 3))}</span></button>`);
+  }
+  return `<section class="h-card"><div class="h-card-head"><h2>${escapeHtml(tr_('hm_next7', 'Next 7 days'))}</h2><span class="h-count">${total}</span></div>
+      <div class="h-week">${cells.join('')}</div>
+      <div class="h-week-note">${escapeHtml(tr_('hm_week_note', 'Click a day to see what is due.'))}</div></section>`;
+}
+
+function homeActivityHtml_() {
+  const all = typeof notifItems_ !== 'undefined' ? notifItems_ : [];
+  const items = all.map((n, i) => ({ n: n, i: i })).filter(x => notifAllowed_(x.n)).slice(0, 5);
+  const list = items.map(({ n, i }) => {
+    const ic = NOTIF_ICONS_[n.type] || ['notifications', 'n-info'];
+    return `<button type="button" class="h-act" onclick="openNotification_(${i})">
+        <span class="notif-ico ${ic[1]}"><span class="material-icons-outlined">${ic[0]}</span></span>
+        <span class="h-act-body"><span class="h-act-text">${escapeHtml(notifText_(n))}</span><span class="h-act-time">${escapeHtml(relTime_(n.ts))}</span></span></button>`;
+  }).join('');
+  return `<section class="h-card" id="homeActivity"><div class="h-card-head"><h2>${escapeHtml(tr_('hm_activity', 'Recent activity'))}</h2>
+      <button type="button" class="h-link" onclick="event.stopPropagation(); toggleNotifPanel_()"><span class="h-ul">${escapeHtml(tr_('hm_activity_all', 'Show all'))}</span><span class="material-icons-outlined">chevron_right</span></button></div>
+      ${list || `<div class="h-empty"><span class="material-icons-outlined">notifications_none</span>${escapeHtml(tr_('hm_activity_empty', 'No activity yet. Finished projects, shares and changed deadlines will show up here.'))}</div>`}</section>`;
+}
+
+/** Aus fetchNotifications_(): Aktivitaeten-Karte aktualisieren, ohne die Seite neu zu zeichnen. */
+function homeRefreshActivity_() {
+  const el = document.getElementById('homeActivity');
+  if (el) el.outerHTML = homeActivityHtml_();
+}
+
+function homeTipsHtml_() {
+  if (homeTip_ < 0) homeTip_ = Math.floor(Date.now() / 86400000) % HOME_TIPS_.length;
+  const t = HOME_TIPS_[homeTip_];
+  return `<section class="h-card h-tip" id="homeTip"><div class="h-card-head"><span class="h-tip-ico"><span class="material-icons-outlined">lightbulb</span></span>
+      <h2>${escapeHtml(tr_('hm_tips', 'Tip'))}</h2><span class="h-tip-n">${homeTip_ + 1}/${HOME_TIPS_.length}</span></div>
+      <div class="h-tip-body"><span class="material-icons-outlined">${t[0]}</span><p>${escapeHtml(tr_(t[1], t[2]))}</p></div>
+      <div class="h-tip-foot">${t[3] ? `<button type="button" class="h-btn h-btn-glass h-btn-sm" onclick="${t[3]}">${escapeHtml(tr_('hm_tip_try', 'Try it'))}</button>` : ''}
+        <button type="button" class="h-link" onclick="homeNextTip_()"><span class="h-ul">${escapeHtml(tr_('hm_tip_next', 'Next tip'))}</span><span class="material-icons-outlined">chevron_right</span></button></div></section>`;
+}
+
+function homeNextTip_() {
+  homeTip_ = (homeTip_ + 1) % HOME_TIPS_.length;
+  const el = document.getElementById('homeTip');
+  if (el) el.outerHTML = homeTipsHtml_();
+}
+
+function homeWelcomeHtml_() {
+  const step = (n, key, fb) => `<li><span>${n}</span>${escapeHtml(tr_(key, fb))}</li>`;
+  return `<section class="h-card h-welcome">
+      <div class="h-welcome-art"><span class="material-icons-outlined">translate</span></div>
+      <h2>${escapeHtml(tr_('hm_welcome_title', 'Welcome to Translation-Services!'))}</h2>
+      <p>${escapeHtml(tr_('hm_welcome_text', 'Your first translation in three steps:'))}</p>
+      <ol class="h-steps">${step(1, 'hm_step1', 'Choose a template')}${step(2, 'hm_step2', 'Pick source and target languages')}${step(3, 'hm_step3', 'Upload files and submit')}</ol>
+      <div class="h-actions">
+        <button type="button" class="h-btn h-btn-fill h-glow" onclick="openNewProjectNav_()"><span class="material-icons-outlined">rocket_launch</span><span>${escapeHtml(tr_('hm_first_project', 'Create first project'))}</span></button>
+        <button type="button" class="h-btn h-btn-glass" onclick="homeStartTour_()"><span class="material-icons-outlined">explore</span><span>${escapeHtml(tr_('hm_cmd_tour', 'Start guided tour'))}</span></button>
+        <button type="button" class="h-btn h-btn-glass" onclick="switchTab('guide')"><span class="material-icons-outlined">menu_book</span><span>${escapeHtml(tr_('nav_guide', 'User Guide'))}</span></button>
+      </div></section>`;
+}
+
+// --- Fortschritt (Phrase-Jobs erledigt / gesamt), gecacht fuer 5 Minuten ---
+function homeProgHtml_(uid) {
+  const g = homeProg_[uid];
+  if (!g || !g.total) return '<span class="h-prog"></span>';
+  const pct = Math.round(100 * g.done / g.total);
+  return `<span class="h-prog on" title="${escapeHtml(fmt_(tr_('home_prog', '{d} of {t} steps done'), { d: g.done, t: g.total }))}"><span class="h-prog-bar"><span style="width:${pct}%"></span></span>${pct}%</span>`;
+}
+
+function loadHomeProgress_(uids) {
+  if (!uids.length) return;
+  if (Date.now() - homeProgAt_ < 300000 && uids.every(u => u in homeProg_)) { homePaintProgress_(); return; }
+  homeProgAt_ = Date.now();
+  google.script.run.withSuccessHandler(r => {
+    Object.assign(homeProg_, r || {});
+    homePaintProgress_();
+  }).withFailureHandler(() => {}).apiGetProjectsProgress(uids);
+}
+
+function homePaintProgress_() {
+  document.querySelectorAll('#homeRoot .h-item[data-uid]').forEach(li => {
+    const el = li.querySelector('.h-prog');
+    if (el) el.outerHTML = homeProgHtml_(li.getAttribute('data-uid'));
+  });
+}
+
+// --- Suche + Befehle ------------------------------------------------------------
+function homeSearchHits_(projects, q) {
+  const s = String(q || '').trim().toLowerCase();
+  if (!s) return [];
+  return (projects || []).filter(p => p && p.pivotRole !== 'CHILD' &&
+    [p.projectName, p.projectUid, p.targetLang, (p.targetLangs || []).join(' '), p.owner, p.templateName, p.iaNumber]
+      .some(v => String(v || '').toLowerCase().includes(s)));
+}
+
+function homeCommands_() {
+  return [
+    ['add_circle', 'nav_new_project', 'New Project', () => openNewProjectNav_()],
+    ['folder_open', 'nav_history', 'My Projects', () => switchTab('history')],
+    ['event', 'cal_title', 'Calendar', () => openCalendarSync_()],
+    ['tune', 'prefs_title', 'Preferences', () => openPreferences()],
+    ['contrast', 'hm_cmd_theme', 'Switch light / dark mode', () => homeToggleTheme_()],
+    ['explore', 'hm_cmd_tour', 'Start guided tour', () => homeStartTour_()],
+    ['menu_book', 'nav_guide', 'User Guide', () => switchTab('guide')],
+    ['support_agent', 'nav_help', 'Help & Support', () => switchTab('help')],
+    ['keyboard', 'pf_keys_title', 'Keyboard shortcuts', () => showShortcutsHelp_()]
+  ].map(([icon, key, fb, run]) => ({ icon: icon, label: tr_(key, fb), run: run }));
+}
+
+function homeSearch_(q) {
+  homeSearchQ_ = q;
+  const box = document.getElementById('homeSearchRes');
+  const inp = document.getElementById('homeSearch');
+  if (!box) return;
+  const s = String(q || '').trim().toLowerCase();
+  const cmds = homeCommands_().filter(c => !s || c.label.toLowerCase().includes(s)).slice(0, s ? 4 : 6);
+  const hits = homeSearchHits_(globalProjects, s).slice(0, 8);
+  homeSr_ = [];
+  const row = (i, inner) => `<button type="button" role="option" class="h-sr-item" data-i="${i}" onmousedown="event.preventDefault()" onclick="homeSrRun_(${i})">${inner}</button>`;
+  let html = '';
+  if (hits.length) {
+    html += `<div class="h-sr-h">${escapeHtml(tr_('hm_projects', 'Projects'))}</div>` + hits.map(p => {
+      const i = homeSr_.push(() => openFromHome_(p.projectUid)) - 1;
+      const d = pDate_(p.dueDate);
+      return row(i, `<span class="h-dot st-${statusGroup_(p.status)}"></span><span class="h-sr-main"><b>${escapeHtml(p.projectName || p.projectUid)}</b><small>${escapeHtml(homeSub_(p))}</small></span><span class="h-sr-meta">${escapeHtml(d ? fmtDay_(d) : '')}</span>`);
+    }).join('');
+  } else if (s) {
+    html += `<div class="h-sr-empty">${escapeHtml(tr_('home_search_none', 'No matching projects.'))}</div>`;
+  }
+  if (cmds.length) {
+    html += `<div class="h-sr-h">${escapeHtml(tr_('hm_cmds', 'Actions'))}</div>` + cmds.map(c => {
+      const i = homeSr_.push(c.run) - 1;
+      return row(i, `<span class="material-icons-outlined">${c.icon}</span><span class="h-sr-main"><b>${escapeHtml(c.label)}</b></span>`);
+    }).join('');
+  }
+  box.innerHTML = html;
+  box.style.display = html ? 'block' : 'none';
+  if (inp) inp.setAttribute('aria-expanded', html ? 'true' : 'false');
+  homeSrIdx_ = 0;
+  homeSrMark_();
+}
+
+function homeSrMark_() {
+  document.querySelectorAll('#homeSearchRes .h-sr-item').forEach(el => {
+    const on = Number(el.getAttribute('data-i')) === homeSrIdx_;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (on) try { el.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  });
+}
+
+function homeSrRun_(i) {
+  const fn = homeSr_[i];
+  const inp = document.getElementById('homeSearch');
+  if (inp) inp.blur();
+  homeSearchClose_();
+  if (fn) fn();
+}
+
+function homeSearchClose_() {
+  const box = document.getElementById('homeSearchRes');
+  if (box) box.style.display = 'none';
+  const inp = document.getElementById('homeSearch');
+  if (inp) inp.setAttribute('aria-expanded', 'false');
+}
+
+function homeSearchBlur_() {
+  setTimeout(homeSearchClose_, 150);
+}
+
+function homeSearchKey_(e) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!homeSr_.length) return;
+    homeSrIdx_ = (homeSrIdx_ + (e.key === 'ArrowDown' ? 1 : -1) + homeSr_.length) % homeSr_.length;
+    homeSrMark_();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (homeSr_.length) homeSrRun_(homeSrIdx_);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    if (e.target.value) { e.target.value = ''; homeSearch_(''); } else { e.target.blur(); homeSearchClose_(); }
+  }
+}
+
+// --- Licht, das dem Zeiger folgt (Plass "glow") -----------------------------------
+(function () {
+  const root = document.getElementById('homeRoot');
+  if (!root || root.dataset.glow) return;
+  root.dataset.glow = '1';
+  root.addEventListener('pointermove', e => {
+    const el = e.target && e.target.closest ? e.target.closest('.h-glow') : null;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+})();
+</script>

@@ -49,6 +49,8 @@ function browserStubs() {
     body: element()
   };
   const window = { addEventListener: noop, matchMedia: () => ({ matches: false }) };
+  // google.script.run ist verkettbar: withSuccessHandler(..).withFailureHandler(..).apiX().
+  const run = new Proxy({}, { get: () => () => run });
   return {
     document,
     window,
@@ -59,7 +61,7 @@ function browserStubs() {
     setTimeout: noop,
     setInterval: noop,
     clearTimeout: noop,
-    google: { script: { run: new Proxy({}, { get: () => () => ({}) }) } }
+    google: { script: { run } }
   };
 }
 

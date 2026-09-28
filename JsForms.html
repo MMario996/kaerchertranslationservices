@@ -944,6 +944,8 @@ document.addEventListener('click', function(e) {
 });
 
 function openPreferences() {
+  // Markup kommt nachgeladen (PrefsUi.html) - beim ersten Mal erst holen.
+  if (!document.getElementById('preferencesModal')) { loadPrefsUi_(openPreferences); return; }
   document.getElementById('preferencesModal').style.display = 'flex';
   document.getElementById('prefsSaveMsg').style.display = 'none';
   personalPrefsOpen_();

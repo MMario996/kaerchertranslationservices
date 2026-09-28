@@ -18,6 +18,8 @@
             if (css) { var st = document.createElement('style'); st.id = 'darkThemeCss'; st.textContent = css; document.head.appendChild(st); }
           }
           if (p.fontScale && p.fontScale !== 1) document.documentElement.setAttribute('data-font', String(p.fontScale).replace('.', ''));
+          if (p.density === 'compact') document.documentElement.setAttribute('data-density', 'compact');
+          if (p.reduceMotion) document.documentElement.setAttribute('data-motion', 'reduce');
         } catch (e) {}
       })();
     </script>
@@ -382,89 +384,6 @@
       </div>
     </div>
     
-    <div id="preferencesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:5500;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
-      <div class="prefs-box">
-        <div class="prefs-head">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="material-icons-outlined" style="font-size:22px;">tune</span>
-            <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;" data-i18n="prefs_title">Preferences</h3>
-          </div>
-          <button onclick="closePreferences()" class="prefs-close"><span class="material-icons-outlined">close</span></button>
-        </div>
-
-        <div class="prefs-body">
-          <div class="prefs-section">
-            <div class="prefs-section-title"><span class="material-icons-outlined">palette</span><span data-i18n="pf_display">Display</span></div>
-            <div class="prefs-row">
-              <div class="prefs-label" data-i18n="pf_theme">Theme</div>
-              <div class="seg" id="prefTheme">
-                <button type="button" data-val="light" onclick="setPrefChoice_('theme','light')"><span class="material-icons-outlined">light_mode</span><span data-i18n="pf_theme_light">Light</span></button>
-                <button type="button" data-val="dark" onclick="setPrefChoice_('theme','dark')"><span class="material-icons-outlined">dark_mode</span><span data-i18n="pf_theme_dark">Dark</span></button>
-                <button type="button" data-val="auto" onclick="setPrefChoice_('theme','auto')"><span class="material-icons-outlined">contrast</span><span data-i18n="pf_theme_auto">System</span></button>
-              </div>
-            </div>
-            <div class="prefs-row">
-              <div class="prefs-label" data-i18n="pf_font">Font size</div>
-              <div class="seg" id="prefFont">
-                <button type="button" data-val="1" onclick="setPrefChoice_('fontScale',1)" style="font-size:12px;">A</button>
-                <button type="button" data-val="1.1" onclick="setPrefChoice_('fontScale',1.1)" style="font-size:15px;">A</button>
-                <button type="button" data-val="1.2" onclick="setPrefChoice_('fontScale',1.2)" style="font-size:18px;">A</button>
-              </div>
-            </div>
-            <label class="prefs-check">
-              <input type="checkbox" id="prefStartPage">
-              <span><b data-i18n="pf_start">Show start page when opening the app</b><small data-i18n="pf_start_desc">Your open projects, deadlines this week and recently finished projects at a glance.</small></span>
-            </label>
-          </div>
-
-          <div class="prefs-section">
-            <div class="prefs-section-title"><span class="material-icons-outlined">groups</span><span data-i18n="pf_team">Team view</span></div>
-            <label class="prefs-check">
-              <input type="checkbox" id="prefTeamEnabled" onchange="updateTeamPrefsUi_()">
-              <span><b data-i18n="pf_team_on">Show my team's projects (read only)</b><small data-i18n="pf_team_desc">Helps to avoid duplicate orders. You only see name, status, languages and due date.</small></span>
-            </label>
-            <div id="prefTeamOptions" class="prefs-sub">
-              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="bu" onchange="updateTeamPrefsUi_()"> <span><span data-i18n="pf_team_bu">Everyone in my business unit</span> <small id="prefTeamBuInfo"></small></span></label>
-              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="custom" onchange="updateTeamPrefsUi_()"> <span data-i18n="pf_team_custom">Only these colleagues</span></label>
-              <textarea id="prefTeamEmails" rows="3" placeholder="name@kaercher.com, ..." data-i18n-placeholder="pf_team_emails_ph"></textarea>
-            </div>
-          </div>
-
-          <div class="prefs-section">
-            <div class="prefs-section-title"><span class="material-icons-outlined">event</span><span data-i18n="cal_title">Calendar</span></div>
-            <div class="prefs-row">
-              <div><div class="prefs-label" data-i18n="cal_prefs_line">Deadlines in your Google Calendar</div><small id="prefCalStatus" class="prefs-muted"></small></div>
-              <button type="button" class="btn btn-secondary prefs-btn" onclick="closePreferences(); openCalendarSync_();"><span class="material-icons-outlined">settings</span> <span data-i18n="cal_setup">Set up</span></button>
-            </div>
-          </div>
-
-          <div class="prefs-section">
-            <div class="prefs-section-title">
-              <span class="material-icons-outlined">chat</span><span data-i18n="prefs_chat_title">Google Chat Notifications</span>
-              <button onclick="openChatHelpManually()" title="How to activate" class="prefs-help-btn" data-i18n-title="ix_3de3fec"><span class="material-icons-outlined">question_mark</span></button>
-            </div>
-            <div class="prefs-row">
-              <div class="prefs-muted" data-i18n="prefs_chat_desc">Receive a direct message when your project is created.</div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
-                  <input type="checkbox" id="chatPrefToggle" style="opacity:0;width:0;height:0;" disabled
-                        onchange="document.getElementById('chatPrefStatusText').innerText = this.checked ? 'ON' : 'OFF'; document.getElementById('chatPrefStatusText').style.color = this.checked ? '#4CAF50' : '#888';">
-                  <span id="chatPrefSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:24px;transition:.3s;"></span>
-                </label>
-                <span id="chatPrefStatusText" style="font-size:12px; font-weight:800; width:60px; color:#888;"><span data-i18n="ix_8524de9">Loading...</span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="prefs-foot">
-          <div id="prefsSaveMsg" style="display:none;font-size:13px;color:#4CAF50;margin-right:auto;" data-i18n="prefs_saved_msg">&#10003; Saved!</div>
-          <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closePreferences()">Cancel</button>
-          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="btn_save" onclick="savePreferences_()">Save</button>
-        </div>
-      </div>
-    </div>
-
     <div id="calendarModal" class="kts-modal" style="display:none;" onclick="if(event.target===this)closeCalendarSync_()">
       <div class="kts-modal-box ksync-box">
         <div class="prefs-head">

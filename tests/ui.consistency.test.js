@@ -14,7 +14,9 @@ const { REPO_ROOT, read, scriptsOf } = require('./lib/load');
 const index = read('Index.html');
 const includes = [...index.matchAll(/<\?!= include\('(\w+)'\); \?>/g)].map((m) => m[1]);
 const jsFiles = includes.filter((n) => n.startsWith('Js')).map((n) => n + '.html');
-const uiFiles = ['Index.html', ...jsFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
+// Nachgeladene Teile der Nutzeroberflaeche (nicht im Startdokument, siehe UserPrefs.gs).
+const lazyUserFiles = ['HomeUi.html', 'PrefsUi.html'];
+const uiFiles = ['Index.html', ...jsFiles, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
 
 test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', () => {
   assert.ok(includes.includes('Styles'));
@@ -22,9 +24,18 @@ test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', (
   includes.forEach((n) => assert.ok(fs.existsSync(path.join(REPO_ROOT, n + '.html')), n + '.html fehlt'));
 });
 
-test('SelfTests.gs kennt alle eingebundenen Dateien', () => {
+test('SelfTests.gs kennt alle eingebundenen und nachgeladenen Dateien', () => {
   const selfTests = read('SelfTests.gs');
-  includes.forEach((n) => assert.ok(selfTests.includes('"' + n + '"'), n + ' fehlt in SELF_TEST_INCLUDE_FILES_'));
+  [...includes, ...lazyUserFiles.map((f) => f.replace('.html', ''))].forEach((n) => assert.ok(selfTests.includes('"' + n + '"'), n + ' fehlt in SELF_TEST_INCLUDE_FILES_'));
+});
+
+test('Nachgeladene Nutzer-Teile: Datei existiert und hat eine Server-Funktion', () => {
+  const prefs = read('UserPrefs.gs');
+  assert.ok(prefs.includes('createHtmlOutputFromFile("HomeUi")') && prefs.includes('function apiGetHomeUi('));
+  assert.ok(prefs.includes('createHtmlOutputFromFile("PrefsUi")') && prefs.includes('function apiGetPrefsUi('));
+  assert.ok(/<style>[\s\S]*<\/style>\s*<script>[\s\S]*<\/script>/.test(read('HomeUi.html')), 'HomeUi.html: <style> + <script>');
+  assert.ok(!/<script/.test(read('PrefsUi.html')), 'PrefsUi.html ist reines Markup (Skripte liefen per innerHTML nicht)');
+  assert.ok(/^\s*<!--[\s\S]*?-->\s*<div id="preferencesModal"/.test(read('PrefsUi.html')), 'PrefsUi.html: ein Wurzelelement');
 });
 
 test('Index.html enthaelt keine Template-Scriptlets ausser include()', () => {
@@ -33,7 +44,7 @@ test('Index.html enthaelt keine Template-Scriptlets ausser include()', () => {
 });
 
 test('Alle Skripte sind syntaktisch gueltig', () => {
-  [...jsFiles, 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
+  [...jsFiles, 'HomeUi.html', 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
     assert.doesNotThrow(() => new vm.Script(scriptsOf(f), { filename: f }), f);
   });
   fs.readdirSync(REPO_ROOT).filter((f) => f.endsWith('.gs')).forEach((f) => {
@@ -66,7 +77,7 @@ test('Jeder verwendete Uebersetzungsschluessel existiert auf Deutsch und Englisc
   const dictKeys = (lang) => new Set(Object.keys(dictCtx.__dicts[lang] || {}));
   const en = dictKeys('en');
   const de = dictKeys('de');
-  const code = [index, ...jsFiles.map(read)].join('\n');
+  const code = [index, ...jsFiles.map(read), ...lazyUserFiles.map(read)].join('\n');
   const used = new Set([
     ...[...code.matchAll(/data-i18n(?:-placeholder|-title)?="([a-z0-9_]+)"/g)].map((m) => m[1]),
     ...[...code.matchAll(/\btr_\('([a-z0-9_]+)'/g)].map((m) => m[1]),
@@ -99,4 +110,9 @@ test('Jeder <script>-Block parst noch, nachdem Apps Script "//"-Kommentare entfe
   const blocks = [...stripped.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
   assert.ok(blocks.length >= 5, 'Script-Bloecke gefunden');
   blocks.forEach((code, i) => assert.doesNotThrow(() => new vm.Script(code), 'Block ' + (i + 1) + ': ' + code.slice(0, 80)));
+});
+
+test('HomeUi.html parst noch, nachdem Apps Script "//"-Kommentare entfernt hat', () => {
+  const stripped = scriptsOf('HomeUi.html').split('\n').map((l) => l.replace(/(^|[^:])\/\/.*$/, '$1')).join('\n');
+  assert.doesNotThrow(() => new vm.Script(stripped), 'HomeUi.html');
 });

@@ -35,12 +35,21 @@ function relTime_(v) {
 }
 
 // ============================================================================
-// Darstellung: Theme + Schriftgroesse (lokal sofort, serverseitig fuer andere Geraete)
+// Darstellung + Einstellungen (lokal sofort, serverseitig fuer andere Geraete)
 // ============================================================================
 let userPrefs_ = {};
 let prefsDraft_ = {};
 let prefsSaved_ = false;
+let prefsSec_ = 'general';
 let darkMql_ = null;
+
+const HOME_WIDGETS_ = ['quick', 'kpis', 'focus', 'week', 'activity', 'tips'];
+const NOTIF_TYPES_ = ['completed', 'shared', 'due_changed', 'due_soon', 'renamed', 'cancelled', 'pivot_step', 'submitted'];
+const PREF_DEFAULTS_ = {
+  theme: 'light', fontScale: 1, density: 'comfortable', reduceMotion: false, startPage: true, startTab: 'auto',
+  displayName: '', home: { widgets: { quick: true, kpis: true, focus: true, week: true, activity: true, tips: true }, tab: 'auto' },
+  notifToast: true, shortcuts: true
+};
 
 function uiPrefsLocal_() {
   try { return JSON.parse(localStorage.getItem('kts_ui') || '{}') || {}; } catch (e) { return {}; }
@@ -61,6 +70,8 @@ function applyUiPrefs_(p) {
   if (dark) { root.setAttribute('data-theme', 'dark'); ensureDarkCss_(); } else root.removeAttribute('data-theme');
   const fs = Number(p.fontScale) || 1;
   if (fs !== 1) root.setAttribute('data-font', String(fs).replace('.', '')); else root.removeAttribute('data-font');
+  if (p.density === 'compact') root.setAttribute('data-density', 'compact'); else root.removeAttribute('data-density');
+  if (p.reduceMotion) root.setAttribute('data-motion', 'reduce'); else root.removeAttribute('data-motion');
 }
 
 // Das CSS des dunklen Modus steckt nicht im Startdokument (Apps Script schneidet
@@ -92,7 +103,10 @@ function ensureDarkCss_() {
 }
 
 function storeUiPrefsLocal_(p) {
-  try { localStorage.setItem('kts_ui', JSON.stringify({ theme: p.theme || 'light', fontScale: Number(p.fontScale) || 1, startPage: p.startPage !== false })); } catch (e) {}
+  try {
+    localStorage.setItem('kts_ui', JSON.stringify({ theme: p.theme || 'light', fontScale: Number(p.fontScale) || 1, startPage: p.startPage !== false,
+      density: p.density === 'compact' ? 'compact' : 'comfortable', reduceMotion: !!p.reduceMotion }));
+  } catch (e) {}
 }
 
 /** Aufruf aus loadAppConfig nach initForm(). */
@@ -106,25 +120,65 @@ function initPersonal_(config) {
   updateTeamFilterOption_();
   initNotifications_();
   initContextHelp_(document);
+  if (userPrefs_.startPage !== false) loadHomeUi_();
+  setTimeout(() => loadPrefsUi_(), 4000);
 }
 
 function startTabWithHome_(startTab) {
-  return userPrefs_.startPage === false ? startTab : 'home';
+  if (userPrefs_.startPage !== false) return 'home';
+  return userPrefs_.startTab === 'history' ? 'history' : startTab;
+}
+
+/** Reine Funktion (getestet): Einstellungen mit Standardwerten aufgefuellt. */
+function prefsWithDefaults_(p) {
+  const out = Object.assign({}, PREF_DEFAULTS_, p || {});
+  const home = (p && p.home) || {};
+  out.home = { widgets: Object.assign({}, PREF_DEFAULTS_.home.widgets, home.widgets || {}), tab: home.tab || 'auto' };
+  out.notifTypes = Array.isArray(p && p.notifTypes) ? p.notifTypes.slice() : NOTIF_TYPES_.slice();
+  out.pinned = Array.isArray(p && p.pinned) ? p.pinned.slice() : [];
+  return out;
 }
 
 // --- Einstellungsdialog ------------------------------------------------------
+// Das Markup liegt in PrefsUi.html (Groessengrenze des Startdokuments) und wird
+// kurz nach dem Start im Hintergrund bzw. beim ersten Oeffnen nachgeladen.
+let prefsUiState_ = 0; // 0 = nicht geladen, 1 = laedt, 2 = bereit
+let prefsUiCbs_ = [];
+
+function loadPrefsUi_(cb) {
+  if (prefsUiState_ === 2) { if (cb) cb(); return; }
+  if (cb) prefsUiCbs_.push(cb);
+  if (prefsUiState_ === 1) return;
+  prefsUiState_ = 1;
+  google.script.run.withSuccessHandler(html => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    const el = tmp.firstElementChild;
+    if (el) { document.body.appendChild(el); applyI18nIn_(el, currentLang); }
+    prefsUiState_ = 2;
+    prefsUiCbs_.splice(0).forEach(f => f());
+  }).withFailureHandler(err => {
+    prefsUiState_ = 0;
+    const waiting = prefsUiCbs_.length;
+    prefsUiCbs_ = [];
+    if (waiting) showCustomAlert(tr_('jx_69bccab', 'Error loading preferences:') + ' ' + escapeHtml(err && err.message ? err.message : String(err)), tr_('jx_902b0d5', 'Error'));
+  }).apiGetPrefsUi();
+}
+
+function prefsShowSec_(sec) {
+  prefsSec_ = sec || 'general';
+  document.querySelectorAll('#prefsNav button').forEach(b => b.classList.toggle('active', b.getAttribute('data-sec') === prefsSec_));
+  document.querySelectorAll('#preferencesModal .prefs-sec').forEach(s => { s.hidden = s.getAttribute('data-sec') !== prefsSec_; });
+  const body = document.querySelector('#preferencesModal .prefs-body');
+  if (body) body.scrollTop = 0;
+}
+
 function personalPrefsOpen_() {
   prefsSaved_ = false;
-  prefsDraft_ = JSON.parse(JSON.stringify(userPrefs_ || {}));
-  renderPrefsChoices_();
-  const sp = document.getElementById('prefStartPage');
-  if (sp) sp.checked = prefsDraft_.startPage !== false;
-  const team = prefsDraft_.team || {};
-  document.getElementById('prefTeamEnabled').checked = !!team.enabled;
-  document.querySelectorAll('input[name="prefTeamMode"]').forEach(r => { r.checked = r.value === (team.mode || 'bu'); });
-  document.getElementById('prefTeamEmails').value = (team.emails || []).join(', ');
+  prefsDraft_ = prefsWithDefaults_(JSON.parse(JSON.stringify(userPrefs_ || {})));
+  fillPrefsForm_();
+  prefsShowSec_(prefsSec_);
   document.getElementById('prefTeamBuInfo').textContent = '';
-  updateTeamPrefsUi_();
   google.script.run.withSuccessHandler(res => {
     if (!res || !res.success) return;
     const info = document.getElementById('prefTeamBuInfo');
@@ -138,16 +192,55 @@ function personalPrefsOpen_() {
     .withFailureHandler(() => { cs.textContent = ''; }).apiGetCalendarSyncStatus();
 }
 
+/** Schreibt prefsDraft_ in die Formularfelder (auch nach "Zuruecksetzen"). */
+function fillPrefsForm_() {
+  const d = prefsDraft_;
+  const set = (id, prop, v) => { const el = document.getElementById(id); if (el) el[prop] = v; };
+  renderPrefsChoices_();
+  set('prefName', 'value', d.displayName || '');
+  set('prefName', 'placeholder', firstNameOf_(configData.currentUser) || tr_('pf_name_ph', 'e.g. Alex'));
+  set('prefLang', 'value', currentLang);
+  set('prefMotion', 'checked', !!d.reduceMotion);
+  set('prefStartPage', 'checked', d.startPage !== false);
+  set('prefStartTab', 'value', d.startTab === 'history' ? 'history' : 'auto');
+  set('prefHomeTab', 'value', d.home.tab || 'auto');
+  HOME_WIDGETS_.forEach(w => set('prefW_' + w, 'checked', d.home.widgets[w] !== false));
+  NOTIF_TYPES_.forEach(t => set('prefNt_' + t, 'checked', d.notifTypes.indexOf(t) >= 0));
+  set('prefToast', 'checked', d.notifToast !== false);
+  set('prefKeys', 'checked', d.shortcuts !== false);
+  const team = d.team || {};
+  set('prefTeamEnabled', 'checked', !!team.enabled);
+  document.querySelectorAll('input[name="prefTeamMode"]').forEach(r => { r.checked = r.value === (team.mode || 'bu'); });
+  set('prefTeamEmails', 'value', (team.emails || []).join(', '));
+  updateTeamPrefsUi_();
+  updateStartPrefsUi_();
+}
+
 function renderPrefsChoices_() {
   const mark = (id, val) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === String(val)));
   mark('prefTheme', prefsDraft_.theme || 'light');
   mark('prefFont', Number(prefsDraft_.fontScale) || 1);
+  mark('prefDensity', prefsDraft_.density === 'compact' ? 'compact' : 'comfortable');
 }
 
 function setPrefChoice_(key, val) {
   prefsDraft_[key] = val;
   renderPrefsChoices_();
   applyUiPrefs_(prefsDraft_); // Live-Vorschau
+}
+
+function setPrefMotion_(on) {
+  prefsDraft_.reduceMotion = !!on;
+  applyUiPrefs_(prefsDraft_);
+}
+
+function updateStartPrefsUi_() {
+  const on = document.getElementById('prefStartPage').checked;
+  document.getElementById('prefStartTabRow').classList.toggle('disabled', on);
+  document.getElementById('prefStartTab').disabled = on;
+  const opts = document.getElementById('prefHomeOptions');
+  opts.classList.toggle('disabled', !on);
+  opts.querySelectorAll('input,select').forEach(el => { el.disabled = !on; });
 }
 
 function updateTeamPrefsUi_() {
@@ -159,36 +252,59 @@ function updateTeamPrefsUi_() {
   document.getElementById('prefTeamEmails').style.display = mode === 'custom' ? 'block' : 'none';
 }
 
+/** Setzt Darstellung, Startseite, Glocke und Tastatur zurueck (nicht Team, Kalender, Chat). */
+function prefsResetDefaults_() {
+  const keep = { team: prefsDraft_.team, pinned: prefsDraft_.pinned };
+  prefsDraft_ = prefsWithDefaults_(Object.assign(JSON.parse(JSON.stringify(PREF_DEFAULTS_)), keep));
+  fillPrefsForm_();
+  applyUiPrefs_(prefsDraft_);
+}
+
 function personalPrefsClosed_() {
   if (!prefsSaved_) applyUiPrefs_(userPrefs_); // Vorschau verwerfen
 }
 
 function savePreferences_() {
+  const val = id => document.getElementById(id);
   const mode = (document.querySelector('input[name="prefTeamMode"]:checked') || {}).value || 'bu';
+  const widgets = {};
+  HOME_WIDGETS_.forEach(w => { widgets[w] = val('prefW_' + w).checked; });
   const patch = {
     theme: prefsDraft_.theme || 'light',
     fontScale: Number(prefsDraft_.fontScale) || 1,
-    startPage: document.getElementById('prefStartPage').checked,
+    density: prefsDraft_.density === 'compact' ? 'compact' : 'comfortable',
+    reduceMotion: val('prefMotion').checked,
+    displayName: val('prefName').value.trim().slice(0, 40),
+    startPage: val('prefStartPage').checked,
+    startTab: val('prefStartTab').value === 'history' ? 'history' : 'auto',
+    home: { widgets: widgets, tab: val('prefHomeTab').value || 'auto' },
+    notifTypes: NOTIF_TYPES_.filter(t => val('prefNt_' + t).checked),
+    notifToast: val('prefToast').checked,
+    shortcuts: val('prefKeys').checked,
     team: {
-      enabled: document.getElementById('prefTeamEnabled').checked,
+      enabled: val('prefTeamEnabled').checked,
       mode: mode,
-      emails: document.getElementById('prefTeamEmails').value.split(/[\s,;]+/).filter(Boolean)
+      emails: val('prefTeamEmails').value.split(/[\s,;]+/).filter(Boolean)
     }
   };
   const teamChanged = JSON.stringify(patch.team) !== JSON.stringify(userPrefs_.team || {});
+  const newLang = val('prefLang').value;
   userPrefs_ = Object.assign({}, userPrefs_, patch);
   prefsSaved_ = true;
   applyUiPrefs_(userPrefs_);
   storeUiPrefsLocal_(userPrefs_);
   if (teamChanged) { teamProjects_ = null; }
   updateTeamFilterOption_();
+  setNotifBadge_(notifUnreadCount_());
+  if (userPrefs_.startPage !== false) loadHomeUi_();
 
   let pending = 2;
   const done = () => {
     if (--pending > 0) return;
     document.getElementById('prefsSaveMsg').style.display = 'block';
     setTimeout(closePreferences, 900);
-    if (teamChanged && document.getElementById('tab-home').classList.contains('active')) renderHome_(true);
+    if (newLang && newLang !== currentLang) switchLanguage_(newLang);
+    if (document.getElementById('tab-home').classList.contains('active')) renderHome_(teamChanged);
   };
   const fail = err => showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + (err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error'));
   google.script.run.withSuccessHandler(res => {
@@ -200,11 +316,113 @@ function savePreferences_() {
   else google.script.run.withSuccessHandler(done).withFailureHandler(fail).apiSetChatPreference(chat.checked);
 }
 
+// --- Angeheftete Projekte ---------------------------------------------------
+function isPinned_(uid) {
+  return Array.isArray(userPrefs_.pinned) && userPrefs_.pinned.indexOf(uid) >= 0;
+}
+
+function togglePin_(uid) {
+  const list = Array.isArray(userPrefs_.pinned) ? userPrefs_.pinned.slice() : [];
+  const i = list.indexOf(uid);
+  if (i >= 0) list.splice(i, 1); else list.unshift(uid);
+  userPrefs_.pinned = list.slice(0, 100);
+  if (typeof paintHome_ === 'function' && homeLoadedAt_) paintHome_(globalProjects);
+  google.script.run.withFailureHandler(() => {}).apiSaveUserPrefs({ pinned: userPrefs_.pinned });
+}
+
+// --- Tastenkuerzel ------------------------------------------------------------
+let homeFocusSearch_ = false;
+
+function anyOverlayOpen_() {
+  if (typeof ESC_CLOSERS_ !== 'undefined' && ESC_CLOSERS_.some(([id]) => { const el = document.getElementById(id); return el && el.style.display && el.style.display !== 'none'; })) return true;
+  return !!document.querySelector('.kts-modal[style*="flex"], .lang-switch-overlay.show');
+}
+
+function focusHomeSearch_() {
+  const inp = document.getElementById('homeSearch');
+  if (inp && document.getElementById('tab-home').classList.contains('active')) { inp.focus(); inp.select(); return; }
+  homeFocusSearch_ = true;
+  switchTab('home');
+}
+
+function showShortcutsHelp_() {
+  const mod = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : tr_('hm_kbd_ctrl', 'Ctrl');
+  const row = (keys, key, fb) => `<tr><td style="padding:6px 16px 6px 0;white-space:nowrap;">${keys.map(k => '<kbd>' + escapeHtml(k) + '</kbd>').join(' ')}</td><td style="padding:6px 0;">${escapeHtml(tr_(key, fb))}</td></tr>`;
+  showCustomAlert(`<table style="border-collapse:collapse;font-size:14px;">
+    ${row([mod, 'K'], 'pf_k_search', 'Search projects and actions')}${row(['/'], 'pf_k_search', 'Search projects and actions')}
+    ${row(['N'], 'pf_k_new', 'New project')}${row(['H'], 'pf_k_home', 'Start page')}${row(['P'], 'pf_k_history', 'My projects')}
+    ${row(['?'], 'pf_k_help', 'This overview')}${row(['Esc'], 'btn_close', 'Close')}</table>`, tr_('pf_keys_title', 'Keyboard shortcuts'));
+}
+
+document.addEventListener('keydown', e => {
+  if (userPrefs_.shortcuts === false || e.defaultPrevented) return;
+  const t = e.target || {};
+  const typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '');
+  const key = String(e.key || '');
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && key.toLowerCase() === 'k') {
+    if (anyOverlayOpen_() || typeof configData === 'undefined' || !configData.currentUser) return;
+    e.preventDefault(); focusHomeSearch_(); return;
+  }
+  if (typing || e.ctrlKey || e.metaKey || e.altKey || anyOverlayOpen_()) return;
+  if (typeof configData === 'undefined' || !configData.currentUser) return;
+  const actions = { '/': focusHomeSearch_, n: openNewProjectNav_, h: () => switchTab('home'), p: () => switchTab('history'), '?': showShortcutsHelp_ };
+  const fn = actions[key.length === 1 ? key.toLowerCase() : ''];
+  if (fn) { e.preventDefault(); fn(); }
+});
+
 // ============================================================================
-// Startseite
+// Startseite: Daten + Lader. Oberflaeche liegt in HomeUi.html (nachgeladen,
+// siehe apiGetHomeUi) - das Startdokument ist an der Apps-Script-Grenze.
 // ============================================================================
 let homeLoadedAt_ = 0;
-let homeLoading_ = false;
+let homeUiState_ = 0; // 0 = nicht geladen, 1 = laedt, 2 = bereit
+let homeUiCbs_ = [];
+let homePrefetch_ = null;
+
+function loadHomeUi_(cb) {
+  if (homeUiState_ === 2) { if (cb) cb(); return; }
+  if (cb) homeUiCbs_.push(cb);
+  if (homeUiState_ === 1) return;
+  homeUiState_ = 1;
+  google.script.run.withSuccessHandler(res => {
+    const st = document.createElement('style');
+    st.id = 'homeUiCss';
+    st.textContent = (res && res.css) || '';
+    document.head.appendChild(st);
+    const el = document.createElement('script');
+    el.text = (res && res.js) || '';
+    document.head.appendChild(el);
+    homeUiState_ = 2;
+    homeUiCbs_.splice(0).forEach(f => f());
+  }).withFailureHandler(err => {
+    homeUiState_ = 0;
+    homeUiCbs_ = [];
+    const root = document.getElementById('homeRoot');
+    if (root) root.innerHTML = `<div class="home-error">${escapeHtml(tr_('hm_load_err', 'The start page could not be loaded.'))} ${escapeHtml(err && err.message ? err.message : '')}
+      <div style="margin-top:14px;"><button type="button" class="btn btn-secondary" style="width:auto;height:40px;" onclick="renderHome_(true)">${escapeHtml(tr_('hm_retry', 'Try again'))}</button></div></div>`;
+  }).apiGetHomeUi();
+}
+
+/** Projekte fuer die Startseite schon beim Laden der Seite anfragen (parallel zur Config). */
+function prefetchHomeData_() {
+  const pf = { done: false, res: null, cbs: [], at: Date.now() };
+  homePrefetch_ = pf;
+  google.script.run.withSuccessHandler(r => { pf.done = true; pf.res = r; pf.cbs.splice(0).forEach(f => f(r)); })
+    .withFailureHandler(() => { if (homePrefetch_ === pf) homePrefetch_ = null; pf.cbs.splice(0).forEach(f => f(null)); }).apiGetMyProjects();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (uiPrefsLocal_().startPage === false) return;
+  try { loadHomeUi_(); prefetchHomeData_(); } catch (e) {}
+});
+
+function renderHome_(force) {
+  const root = document.getElementById('homeRoot');
+  if (!root) return;
+  if (homeUiState_ === 2 && typeof homeRender_ === 'function') { homeRender_(force); return; }
+  if (!root.children.length) root.innerHTML = '<div class="home-boot"><div class="loader"></div></div>';
+  loadHomeUi_(() => { if (document.getElementById('tab-home').classList.contains('active')) homeRender_(force); });
+}
 
 /** Ende der Arbeitswoche (Sonntag); am Wochenende zaehlt schon die naechste Woche. */
 function endOfWeek_(now) {
@@ -240,183 +458,11 @@ function firstNameOf_(email) {
   return local ? local.charAt(0).toUpperCase() + local.slice(1) : '';
 }
 
-function renderHome_(force) {
-  const root = document.getElementById('homeRoot');
-  if (!root) return;
-  const fresh = homeLoadedAt_ && (Date.now() - homeLoadedAt_ < 60000) && Array.isArray(globalProjects) && historyScope_ !== 'doc';
-  if (fresh && !force) { paintHome_(globalProjects); return; }
-  if (!homeLoadedAt_) root.innerHTML = homeSkeleton_();
-  if (homeLoading_) return;
-  homeLoading_ = true;
-  google.script.run.withSuccessHandler(r => {
-    homeLoading_ = false;
-    if (r && r.error) { root.innerHTML = `<div class="home-error">${escapeHtml(r.error)}</div>`; return; }
-    globalProjects = (r && (r.projects || r)) || [];
-    historyScope_ = 'all';
-    homeLoadedAt_ = Date.now();
-    paintHome_(globalProjects);
-    if (userPrefs_.team && userPrefs_.team.enabled) loadTeamProjects_(() => paintHome_(globalProjects));
-  }).withFailureHandler(e => {
-    homeLoading_ = false;
-    root.innerHTML = `<div class="home-error">${escapeHtml(e && e.message ? e.message : String(e))}</div>`;
-  }).apiGetMyProjects();
-}
-
-function homeSkeleton_() {
-  return `<div class="home-hero skel"></div><div class="home-kpis">${'<div class="home-kpi skel"></div>'.repeat(4)}</div>
-    <div class="home-grid">${'<div class="home-card skel" style="height:320px"></div>'.repeat(4)}</div>`;
-}
-
-function homeItem_(p, mode) {
-  const due = pDate_(p.dueDate);
-  const cls = dueClass_(p);
-  const dueTxt = due ? fmtDay_(due) : tr_('home_no_due', 'no due date');
-  const right = mode === 'done'
-    ? `<button type="button" class="home-dl" onclick="event.stopPropagation(); openSaveToDriveModal('${escapeJs(p.projectUid)}')" title="${escapeHtml(tr_('jx_801ab24', 'Download'))}"><span class="material-icons-outlined">download</span></button>`
-    : `<span class="home-due ${cls}">${cls === 'due-overdue' ? '<span class="material-icons-outlined">error</span>' : ''}${escapeHtml(dueTxt)}</span>`;
-  const sub = [p.targetLangs && p.targetLangs.length ? p.targetLangs.join(', ') : (p.targetLang || ''), p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '']
-    .filter(Boolean).join(' · ');
-  const u = escapeJs(p.projectUid);
-  const qa = (icon, key, fb, js) => `<button type="button" class="home-qa-btn" title="${escapeHtml(tr_(key, fb))}" onclick="event.stopPropagation(); ${js}"><span class="material-icons-outlined">${icon}</span></button>`;
-  const actions = (mode !== 'done' && !p.teamView ? qa('edit_calendar', 'pd_due', 'Due date', `openDueDateModal('${u}','${escapeJs(p.projectName || '')}','${escapeJs(p.dueDate || '')}')`) : '') +
-    (!p.teamView ? qa('edit_note', 'pd_note', 'Note', `openJobNoteModal('${u}')`) : '') +
-    (p.phraseUrl ? qa('open_in_new', 'jx_a77f4ec', 'Phrase TMS', `window.open('${escapeJs(p.phraseUrl)}','_blank','noopener')`) : '');
-  return `<li class="home-item" data-uid="${escapeHtml(p.projectUid)}" onclick="openFromHome_('${u}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${u}')">
-      <span class="home-dot st-${statusGroup_(p.status)}"></span>
-      <span class="home-item-main"><span class="home-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="home-item-sub">${escapeHtml(sub || (p.status || ''))}</span>${mode !== 'done' ? homeProgHtml_(p.projectUid) : ''}</span>
-      <span class="home-qa">${actions}</span>
-      ${right}
-    </li>`;
-}
-
-// --- Fortschritt (Phrase-Jobs erledigt / gesamt), gecacht fuer 5 Minuten ---
-let homeProg_ = {};
-let homeProgAt_ = 0;
-
-function homeProgHtml_(uid) {
-  const g = homeProg_[uid];
-  if (!g || !g.total) return '<span class="home-prog"></span>';
-  const pct = Math.round(100 * g.done / g.total);
-  return `<span class="home-prog on" title="${escapeHtml(fmt_(tr_('home_prog', '{d} of {t} steps done'), { d: g.done, t: g.total }))}"><span class="home-prog-bar"><span style="width:${pct}%"></span></span>${pct}%</span>`;
-}
-
-function loadHomeProgress_(uids) {
-  if (!uids.length || Date.now() - homeProgAt_ < 300000 && uids.every(u => u in homeProg_)) return;
-  homeProgAt_ = Date.now();
-  google.script.run.withSuccessHandler(r => {
-    Object.assign(homeProg_, r || {});
-    document.querySelectorAll('#homeRoot .home-item[data-uid]').forEach(li => {
-      const el = li.querySelector('.home-prog');
-      if (el) el.outerHTML = homeProgHtml_(li.getAttribute('data-uid'));
-    });
-  }).withFailureHandler(() => {}).apiGetProjectsProgress(uids);
-}
-
-// --- Schnellsuche ---
-let homeSearchQ_ = '';
-
-function homeSearchHits_(projects, q) {
-  const s = String(q || '').trim().toLowerCase();
-  if (!s) return [];
-  return (projects || []).filter(p => p && p.pivotRole !== 'CHILD' &&
-    [p.projectName, p.projectUid, p.targetLang, (p.targetLangs || []).join(' '), p.owner, p.templateName, p.iaNumber]
-      .some(v => String(v || '').toLowerCase().includes(s)));
-}
-
-function homeSearch_(q) {
-  homeSearchQ_ = q;
-  const box = document.getElementById('homeSearchRes');
-  if (!box) return;
-  const hits = homeSearchHits_(globalProjects, q);
-  box.style.display = q.trim() ? 'block' : 'none';
-  box.innerHTML = hits.length
-    ? `<ul class="home-list">${hits.slice(0, 8).map(p => homeItem_(p, statusGroup_(p.status) === 'done' ? 'done' : 'open')).join('')}</ul>`
-    : `<div class="home-empty">${escapeHtml(tr_('home_search_none', 'No matching projects.'))}</div>`;
-}
-
-function homeSearchKey_(e) {
-  if (e.key === 'Escape') { e.target.value = ''; homeSearch_(''); }
-  if (e.key === 'Enter') { const first = document.querySelector('#homeSearchRes .home-item'); if (first) first.click(); }
-}
-
 /** Filter fuer "Meine Projekte", wenn man von einer Kachel der Startseite kommt. */
 function homeFilterUids_(key) {
   const b = homeBuckets_(globalProjects);
   const list = { overdue: b.overdue, week: b.dueWeek, done30: b.done30 }[key];
   return list ? new Set(list.map(p => p.projectUid)) : null;
-}
-
-function homeCard_(icon, titleKey, titleFb, items, mode, emptyKey, emptyFb, moreFilter) {
-  const list = items.slice(0, 8).map(p => homeItem_(p, mode)).join('');
-  const more = items.length > 8
-    ? `<button type="button" class="home-more" onclick="openHistoryFiltered_('${moreFilter}')">${escapeHtml(fmt_(tr_('home_more', 'Show all ({n})'), { n: items.length }))}<span class="material-icons-outlined">chevron_right</span></button>` : '';
-  return `<section class="home-card home-card-${mode}">
-      <div class="home-card-head"><span class="home-card-ico"><span class="material-icons-outlined">${icon}</span></span>
-        <h3>${escapeHtml(tr_(titleKey, titleFb))}</h3><span class="home-count">${items.length}</span></div>
-      ${list ? `<ul class="home-list">${list}</ul>` : `<div class="home-empty"><span class="material-icons-outlined">${mode === 'done' ? 'hourglass_empty' : (mode === 'overdue' ? 'thumb_up' : 'celebration')}</span>${escapeHtml(tr_(emptyKey, emptyFb))}</div>`}
-      ${more}
-    </section>`;
-}
-
-function paintHome_(projects) {
-  const root = document.getElementById('homeRoot');
-  if (!root) return;
-  const b = homeBuckets_(projects);
-  const name = firstNameOf_(configData.effectiveUser || configData.currentUser);
-  const hour = new Date().getHours();
-  const greetKey = hour < 11 ? 'home_morning' : (hour < 18 ? 'home_day' : 'home_evening');
-  const greetFb = hour < 11 ? 'Good morning' : (hour < 18 ? 'Hello' : 'Good evening');
-  let today = '';
-  try { today = new Date().toLocaleDateString(calLocale_(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { today = new Date().toDateString(); }
-
-  const kpi = (icon, n, key, fb, cls, onclick) =>
-    `<button type="button" class="home-kpi ${cls}" onclick="${onclick}"><span class="material-icons-outlined">${icon}</span><span class="home-kpi-n">${n}</span><span class="home-kpi-l">${escapeHtml(tr_(key, fb))}</span></button>`;
-
-  const team = (userPrefs_.team && userPrefs_.team.enabled && Array.isArray(teamProjects_))
-    ? teamProjects_.filter(p => statusGroup_(p.status) === 'open') : null;
-
-  root.innerHTML = `
-    <div class="home-hero">
-      <div>
-        <div class="home-date">${escapeHtml(today)}</div>
-        <h2>${escapeHtml(tr_(greetKey, greetFb))}${name ? ', ' + escapeHtml(name) : ''} <span class="home-wave">👋</span></h2>
-        <div class="home-sub">${escapeHtml(b.overdue.length
-          ? fmt_(tr_('home_sub_overdue', '{n} project(s) are overdue - please take a look.'), { n: b.overdue.length })
-          : (b.dueWeek.length ? fmt_(tr_('home_sub_week', '{n} project(s) are due this week.'), { n: b.dueWeek.length })
-                              : tr_('home_sub_calm', 'Nothing urgent this week.')))}</div>
-      </div>
-      <div class="home-search">
-        <span class="material-icons-outlined">search</span>
-        <input type="search" id="homeSearch" autocomplete="off" value="${escapeHtml(homeSearchQ_)}" placeholder="${escapeHtml(tr_('home_search_ph', 'Find a project - name, ID, language...'))}" oninput="homeSearch_(this.value)" onfocus="homeSearch_(this.value)" onblur="setTimeout(() => { const b = document.getElementById('homeSearchRes'); if (b) b.style.display = 'none'; }, 200)" onkeydown="homeSearchKey_(event)">
-        <div id="homeSearchRes" class="home-sr"></div>
-      </div>
-      <div class="home-actions">
-        <button type="button" class="btn btn-primary home-btn" onclick="openNewProjectNav_()"><span class="material-icons-outlined">add_circle</span> <span>${escapeHtml(tr_('nav_new_project', 'New Project'))}</span></button>
-        <button type="button" class="btn btn-secondary home-btn" onclick="openCalendarSync_()"><span class="material-icons-outlined">event</span> <span>${escapeHtml(tr_('cal_title', 'Calendar'))}</span></button>
-        <button type="button" class="home-refresh" onclick="renderHome_(true)" title="${escapeHtml(tr_('hs_refresh', 'Refresh'))}"><span class="material-icons-outlined">refresh</span></button>
-      </div>
-    </div>
-    <div class="home-kpis">
-      ${kpi('pending_actions', b.open.length, 'home_k_open', 'Open', 'k-open', "openHistoryFiltered_('open')")}
-      ${kpi('date_range', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('week')")}
-      ${kpi('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), "openHistoryFiltered_('overdue')")}
-      ${kpi('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', "openHistoryFiltered_('done30')")}
-    </div>
-    <div class="home-grid">
-      ${homeCard_('error_outline', 'home_overdue', 'Overdue', b.overdue, 'overdue', 'home_overdue_empty', 'Nothing overdue - well done!', 'overdue')}
-      ${homeCard_('date_range', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'week')}
-      ${homeCard_('pending_actions', 'home_open', 'Your open projects', b.open, 'open', 'home_open_empty', 'No open projects - all done!', 'open')}
-      ${homeCard_('task_alt', 'home_done', 'Recently finished', b.done, 'done', 'home_done_empty', 'No finished projects yet.', 'done')}
-    </div>
-    ${team ? `<button type="button" class="home-team" onclick="openHistoryFiltered_('team')">
-        <span class="material-icons-outlined">groups</span>
-        <span>${escapeHtml(fmt_(tr_('home_team', 'Your team currently has {n} open project(s).'), { n: team.length }))}</span>
-        <span class="home-team-link">${escapeHtml(tr_('home_team_link', 'Show team projects'))}<span class="material-icons-outlined">chevron_right</span></span>
-      </button>` : ''}`;
-  if (homeSearchQ_) homeSearch_(homeSearchQ_);
-  const seen = new Set();
-  [b.overdue, b.dueWeek, b.open].forEach(l => l.slice(0, 8).forEach(p => seen.add(p.projectUid)));
-  loadHomeProgress_([...seen].filter(Boolean).slice(0, 20));
 }
 
 function openFromHome_(uid) {
@@ -437,7 +483,6 @@ function openHistoryFiltered_(filter) {
   historyDueFilter_ = ['overdue', 'week', 'done30'].includes(filter) ? filter : '';
   historyStatusFilter_ = filter === 'done' || filter === 'open' ? filter : 'all';
 }
-
 // ============================================================================
 // Benachrichtigungs-Glocke
 // ============================================================================
@@ -465,13 +510,38 @@ function initNotifications_() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNotifPanel_(); });
 }
 
+/** Reine Funktion (getestet): zeigt die Glocke diese Art laut Einstellungen? */
+function notifAllowed_(n, prefs) {
+  const types = (prefs || userPrefs_ || {}).notifTypes;
+  return !Array.isArray(types) || types.indexOf(n && n.type) >= 0;
+}
+
+function notifUnreadCount_() {
+  const seenMs = notifSeenAt_ ? new Date(notifSeenAt_).getTime() : 0;
+  return notifItems_.filter(n => notifAllowed_(n) && new Date(n.ts).getTime() > seenMs).length;
+}
+
+let notifToastMark_ = 0;
+
+/** Kurzer Hinweis unten rechts fuer Benachrichtigungen, die seit dem letzten Abruf dazukamen. */
+function toastNewNotifications_() {
+  const newest = notifItems_.reduce((m, n) => Math.max(m, new Date(n.ts).getTime() || 0), 0);
+  const mark = notifToastMark_;
+  notifToastMark_ = Math.max(mark, newest);
+  if (!mark || userPrefs_.notifToast === false || typeof showToast_ !== 'function') return;
+  notifItems_.filter(n => notifAllowed_(n) && new Date(n.ts).getTime() > mark).slice(0, 3)
+    .forEach(n => showToast_(notifText_(n), n.type === 'completed' ? 'ok' : 'info'));
+}
+
 function fetchNotifications_(cb) {
   notifLastFetch_ = Date.now();
   google.script.run.withSuccessHandler(res => {
     if (!res || !res.success) return;
     notifItems_ = res.items || [];
     notifSeenAt_ = res.seenAt || '';
-    setNotifBadge_(res.unread || 0);
+    setNotifBadge_(Array.isArray(userPrefs_.notifTypes) ? notifUnreadCount_() : (res.unread || 0));
+    toastNewNotifications_();
+    if (typeof homeRefreshActivity_ === 'function') homeRefreshActivity_();
     if (document.getElementById('notifPanel').style.display !== 'none') renderNotifList_();
     if (cb) cb();
   }).withFailureHandler(() => {}).apiGetNotifications();
@@ -512,7 +582,7 @@ function notifText_(n) {
 
 function renderNotifList_() {
   const list = document.getElementById('notifList');
-  if (!notifItems_.length) {
+  if (!notifItems_.some(n => notifAllowed_(n))) {
     list.innerHTML = `<div class="notif-empty"><span class="material-icons-outlined">notifications_none</span>
       <b>${escapeHtml(tr_('ntf_empty', 'No notifications yet'))}</b>
       <span>${escapeHtml(tr_('ntf_empty_desc', 'Finished projects, shares and changed due dates will show up here.'))}</span></div>`;
@@ -520,6 +590,7 @@ function renderNotifList_() {
   }
   const seenMs = notifSeenAt_ ? new Date(notifSeenAt_).getTime() : 0;
   list.innerHTML = notifItems_.map((n, i) => {
+    if (!notifAllowed_(n)) return '';
     const ic = NOTIF_ICONS_[n.type] || ['notifications', 'n-info'];
     const unread = new Date(n.ts).getTime() > seenMs;
     return `<button type="button" class="notif-item${unread ? ' unread' : ''}" onclick="openNotification_(${i})">
