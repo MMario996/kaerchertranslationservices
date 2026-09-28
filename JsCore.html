@@ -189,19 +189,19 @@ function loadAdminI18n_(lang, cb) {
     .apiGetAdminI18n(lang);
 }
 
-function setGlobalLang(lang) {
+function setGlobalLang(lang, done) {
   if (SUPPORTED_LANGS_.indexOf(lang) === -1) lang = 'en';
   if (!i18n[lang]) {
     // Noch nicht geladen -> nachholen und danach erneut anlaufen. Ist das
     // Nachladen bereits gescheitert, bleibt es bei Englisch statt einer
     // Endlosschleife.
     if (_i18nFailed_[lang]) lang = 'en';
-    else { loadI18nDict_(lang, function() { setGlobalLang(lang); }); return; }
+    else { loadI18nDict_(lang, function() { setGlobalLang(lang, done); }); return; }
   }
   currentLang = lang;
   localStorage.setItem('appLang', lang);
   if (typeof _adminContentLoaded_ !== 'undefined' && _adminContentLoaded_ && !_adminI18nLoaded_[lang]) {
-    loadAdminI18n_(lang, function() { setGlobalLang(lang); });
+    loadAdminI18n_(lang, function() { setGlobalLang(lang, done); });
     return;
   }
 
@@ -252,6 +252,62 @@ function setGlobalLang(lang) {
   if (typeof currentHistoryView !== 'undefined' && currentHistoryView === 'calendar') renderCalendar(globalProjects);
   if (typeof renderAnnouncements_ === 'function') renderAnnouncements_();
   rerenderDynamicI18n_();
+  if (typeof done === 'function') done();
+}
+
+// --- Sprachwechsel mit kurzem Ladebildschirm -------------------------------
+// Die Texte stehen hier direkt (nicht in I18nDicts.gs), weil sie schon
+// gebraucht werden, bevor das Woerterbuch der Zielsprache geladen ist.
+const LANG_SWITCH_TEXT_ = {
+  de: { title: 'Sprache wird gewechselt', msgs: ['Hallo! 👋', 'Einen Moment bitte …', 'Ich bin gleich für dich da …', 'Ich sortiere die Wörter …', 'Fast geschafft …'] },
+  en: { title: 'Changing language', msgs: ['Hello! 👋', 'Just a moment …', "I'll be right with you …", 'Sorting the words …', 'Almost there …'] },
+  fr: { title: 'Changement de langue', msgs: ['Bonjour ! 👋', 'Un instant, s’il vous plaît …', 'Je suis à vous tout de suite …', 'Je range les mots …', 'Presque fini …'] },
+  es: { title: 'Cambiando de idioma', msgs: ['¡Hola! 👋', 'Un momento, por favor …', 'Enseguida estoy contigo …', 'Ordenando las palabras …', 'Casi listo …'] },
+  pt: { title: 'Mudando o idioma', msgs: ['Olá! 👋', 'Só um momento …', 'Já vou te atender …', 'Organizando as palavras …', 'Quase pronto …'] },
+  zh: { title: '正在切换语言', msgs: ['你好！👋', '请稍候……', '马上就好……', '正在整理文字……', '快好了……'] }
+};
+let langSwitchTimer_ = null;
+let langSwitchShownAt_ = 0;
+
+/** Klick auf DE/EN/FR/...: kurzer Ladebildschirm, bis die neue Sprache steht. */
+function switchLanguage_(lang) {
+  if (lang === currentLang) return;
+  showLangSwitchOverlay_(lang);
+  setGlobalLang(lang, hideLangSwitchOverlay_);
+}
+
+function showLangSwitchOverlay_(lang) {
+  const t = LANG_SWITCH_TEXT_[lang] || LANG_SWITCH_TEXT_.en;
+  let o = document.getElementById('langSwitchOverlay');
+  if (!o) {
+    o = document.createElement('div');
+    o.id = 'langSwitchOverlay';
+    o.className = 'lang-switch-overlay';
+    o.innerHTML = '<div class="lang-switch-box"><div class="loader"></div><div class="lang-switch-title"></div><div class="lang-switch-msg"></div></div>';
+    document.body.appendChild(o);
+  }
+  o.querySelector('.lang-switch-title').textContent = t.title;
+  const msg = o.querySelector('.lang-switch-msg');
+  let i = 0;
+  msg.textContent = t.msgs[0];
+  msg.classList.remove('fade');
+  if (langSwitchTimer_) clearInterval(langSwitchTimer_);
+  langSwitchTimer_ = setInterval(() => {
+    msg.classList.add('fade');
+    setTimeout(() => { i = (i + 1) % t.msgs.length; msg.textContent = t.msgs[i]; msg.classList.remove('fade'); }, 200);
+  }, 900);
+  langSwitchShownAt_ = Date.now();
+  o.classList.add('show');
+}
+
+function hideLangSwitchOverlay_() {
+  // Mindestens kurz sichtbar lassen, sonst wirkt es wie ein Flackern.
+  const wait = Math.max(0, 1300 - (Date.now() - langSwitchShownAt_));
+  setTimeout(() => {
+    const o = document.getElementById('langSwitchOverlay');
+    if (o) o.classList.remove('show');
+    if (langSwitchTimer_) { clearInterval(langSwitchTimer_); langSwitchTimer_ = null; }
+  }, wait);
 }
 
 /** Zeichnet per JavaScript erzeugte Bereiche in der aktuellen Sprache neu. */

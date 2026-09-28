@@ -865,6 +865,17 @@
   .ctx-help.flip .ctx-help-pop { left:auto; right:-10px; } .ctx-help.flip .ctx-help-pop::before { left:auto; right:14px; }
   .ctx-help:hover .ctx-help-pop, .ctx-help:focus .ctx-help-pop, .ctx-help.open .ctx-help-pop { display:block; }
   .ctx-help-pop:empty { display:none !important; }
+  /* Sprachwechsel-Ladebildschirm */
+  .lang-switch-overlay { position:fixed; inset:0; z-index:9500; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.9); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .2s; }
+  .lang-switch-overlay.show { opacity:1; pointer-events:auto; }
+  .lang-switch-box { text-align:center; }
+  .lang-switch-box .loader { margin:0 auto 18px; width:44px; height:44px; }
+  .lang-switch-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; color:#666; margin-bottom:8px; }
+  .lang-switch-msg { font-size:22px; font-weight:800; color:#111; min-height:30px; transition:opacity .2s, transform .2s; }
+  .lang-switch-msg.fade { opacity:0; transform:translateY(-4px); }
+  html[data-theme="dark"] .lang-switch-overlay { background:rgba(19,20,22,.92); }
+  html[data-theme="dark"] .lang-switch-title { color:#a9a9a9; }
+  html[data-theme="dark"] .lang-switch-msg { color:#f0f0f0; }
   /* ===== Analytics Dashboard ===== */
   .dbx { --dbx-s1:#2a78d6; --dbx-line:#ececec; --dbx-muted:#6b6b6b; --dbx-soft:#f6f6f4; --dbx-r:14px; --dbx-shadow:0 1px 2px rgba(16,16,16,0.04), 0 8px 24px rgba(16,16,16,0.05); }
   .dbx input, .dbx select, .dbx button { font-family:inherit; }
