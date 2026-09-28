@@ -191,3 +191,14 @@ function apiGetTeamProjects() {
   projects.sort(function (a, b) { return new Date(b.timestamp || 0) - new Date(a.timestamp || 0); });
   return { success: true, enabled: true, members: members.length, projects: projects.slice(0, 500) };
 }
+
+/**
+ * CSS des dunklen Modus (DarkTheme.html, erzeugt von tools/gen-dark-theme.js).
+ * Steckt nicht im Startdokument (Groessengrenze), sondern wird nur bei
+ * aktivem dunklem Modus geladen; der Client speichert es mit Version.
+ */
+function apiGetDarkThemeCss() {
+  var css = HtmlService.createHtmlOutputFromFile("DarkTheme").getContent();
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, css);
+  return { css: css, version: Utilities.base64EncodeWebSafe(digest).slice(0, 12) };
+}

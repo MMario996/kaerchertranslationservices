@@ -12,7 +12,11 @@
         try {
           var p = JSON.parse(localStorage.getItem('kts_ui') || '{}');
           var dark = p.theme === 'dark' || (p.theme === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+          if (dark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            var css = localStorage.getItem('kts_dark_css');
+            if (css) { var st = document.createElement('style'); st.id = 'darkThemeCss'; st.textContent = css; document.head.appendChild(st); }
+          }
           if (p.fontScale && p.fontScale !== 1) document.documentElement.setAttribute('data-font', String(p.fontScale).replace('.', ''));
         } catch (e) {}
       })();

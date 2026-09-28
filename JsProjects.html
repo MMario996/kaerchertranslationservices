@@ -95,7 +95,8 @@ function fillTable(projects) {
 // --- Meine Projekte: Status-Chips, Archiv, Fristen, Mobile-Karten ----------
 let historyStatusFilter_ = 'all';
 let historyShowArchive_ = false;
-const HISTORY_COL_KEYS_ = [['th_name',tr_('jx_9e727fd', 'Project')], [null,tr_('jx_b3acfd2', 'Phrase ID')], ['th_uploaded',tr_('jx_fe8d588', 'Uploaded')], ['th_source',tr_('jx_f31bbdd', 'Source')], ['th_targets',tr_('jx_c41a318', 'Target')], ['th_status',tr_('jx_ec53a8c', 'Status')], ['th_due',tr_('jx_d036392', 'Due')], ['th_shared',tr_('jx_a6156ea', 'Shared')], ['dl_btn_download',tr_('jx_801ab24', 'Download')], ['th_actions',tr_('jx_06df330', 'Actions')]];
+// Funktion statt Konstante: Texte erst beim Aufruf uebersetzen.
+const HISTORY_COL_KEYS_ = () => [['th_name',tr_('jx_9e727fd', 'Project')], [null,tr_('jx_b3acfd2', 'Phrase ID')], ['th_uploaded',tr_('jx_fe8d588', 'Uploaded')], ['th_source',tr_('jx_f31bbdd', 'Source')], ['th_targets',tr_('jx_c41a318', 'Target')], ['th_status',tr_('jx_ec53a8c', 'Status')], ['th_due',tr_('jx_d036392', 'Due')], ['th_shared',tr_('jx_a6156ea', 'Shared')], ['dl_btn_download',tr_('jx_801ab24', 'Download')], ['th_actions',tr_('jx_06df330', 'Actions')]];
 const ARCHIVE_AFTER_DAYS_ = 30;
 
 function statusGroup_(status) {
@@ -125,7 +126,7 @@ function dueClass_(p) {
 }
 
 function applyMobileLabels_(tr) {
-  Array.from(tr.children).forEach((td, i) => { const k = HISTORY_COL_KEYS_[i]; if (k) td.setAttribute('data-label', k[0] ? tr_(k[0], k[1]) : k[1]); });
+  Array.from(tr.children).forEach((td, i) => { const k = HISTORY_COL_KEYS_()[i]; if (k) td.setAttribute('data-label', k[0] ? tr_(k[0], k[1]) : k[1]); });
 }
 
 function renderStatusChips_(projects) {

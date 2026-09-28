@@ -151,16 +151,17 @@
       });
     }
 
+    // Getter: die Texte werden erst beim Zugriff uebersetzt (Woerterbuecher kommen vom Server).
     const MSG_KEY_LABELS = {
-      MSG_WELCOME:             tr_('jx_f056987', 'Welcome (first bot message)'),
-      MSG_PROJECT_SUBMITTED: tr_('jx_ba3cdda', 'Project Submitted'),
-      MSG_COMPLETED:         tr_('jx_a03bf7d', 'Translation Complete'),
-      MSG_SHARED:             tr_('jx_63a50ee', 'Project Shared (recipient)'),
-      MSG_CANCELLED:         tr_('jx_8193f8a', 'Project Cancelled'),
-      MSG_DUE_DATE_UPDATED:  tr_('jx_a733ef2', 'Due Date Updated'),
-      MSG_DEADLINE_REMINDER: tr_('jx_69e2f7c', 'Deadline Reminder (24h)'),
-      MSG_SHARE_CONFIRM:     tr_('jx_24a544d', 'Share Confirmed (owner)'),
-      MSG_ARTICULATE_COMPLETED: tr_('jx_30fd979', 'Campus: Übersetzung fertig (automatisch)')
+      get MSG_WELCOME() { return tr_('jx_f056987', 'Welcome (first bot message)'); },
+      get MSG_PROJECT_SUBMITTED() { return tr_('jx_ba3cdda', 'Project Submitted'); },
+      get MSG_COMPLETED() { return tr_('jx_a03bf7d', 'Translation Complete'); },
+      get MSG_SHARED() { return tr_('jx_63a50ee', 'Project Shared (recipient)'); },
+      get MSG_CANCELLED() { return tr_('jx_8193f8a', 'Project Cancelled'); },
+      get MSG_DUE_DATE_UPDATED() { return tr_('jx_a733ef2', 'Due Date Updated'); },
+      get MSG_DEADLINE_REMINDER() { return tr_('jx_69e2f7c', 'Deadline Reminder (24h)'); },
+      get MSG_SHARE_CONFIRM() { return tr_('jx_24a544d', 'Share Confirmed (owner)'); },
+      get MSG_ARTICULATE_COMPLETED() { return tr_('jx_30fd979', 'Campus: Übersetzung fertig (automatisch)'); }
     };
 
 
@@ -253,7 +254,7 @@
 
 
 
-    const ADMIN_LIGHT_LABELS_ = { users: tr_('jx_687c52e', 'User Manager'), templates: tr_('jx_83ae0cb', 'Template Manager'), pivot: tr_('jx_cd07a63', 'Pivot Templates'), tests: tr_('jx_90792de', 'Tests'), dashboard: tr_('jx_2938c7f', 'Dashboard') };
+    const ADMIN_LIGHT_LABELS_ = { get users() { return tr_('jx_687c52e', 'User Manager'); }, get templates() { return tr_('jx_83ae0cb', 'Template Manager'); }, get pivot() { return tr_('jx_cd07a63', 'Pivot Templates'); }, get tests() { return tr_('jx_90792de', 'Tests'); }, get dashboard() { return tr_('jx_2938c7f', 'Dashboard'); } };
 
 
 
