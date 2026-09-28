@@ -5,6 +5,18 @@
     <base target="_top">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <?!= include('Styles'); ?>
+    <script>
+      // Darstellung (JsPersonal.html) so frueh wie moeglich setzen, sonst blitzt
+      // die helle Oberflaeche kurz auf, bis die Config geladen ist.
+      (function () {
+        try {
+          var p = JSON.parse(localStorage.getItem('kts_ui') || '{}');
+          var dark = p.theme === 'dark' || (p.theme === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+          if (p.fontScale && p.fontScale !== 1) document.documentElement.setAttribute('data-font', String(p.fontScale).replace('.', ''));
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
 
@@ -149,6 +161,20 @@
        <button class="lang-btn" id="glb-es" onclick="setGlobalLang('es')">ES</button>
        <button class="lang-btn" id="glb-pt" onclick="setGlobalLang('pt')">PT</button>
        <button class="lang-btn" id="glb-zh" onclick="setGlobalLang('zh')">中文</button>
+       <div class="notif-wrap">
+         <button id="notifBtn" class="hdr-icon-btn" onclick="toggleNotifPanel_()" title="Notifications" data-i18n-title="ntf_title" aria-haspopup="true" aria-expanded="false">
+           <span class="material-icons-outlined">notifications</span>
+           <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+         </button>
+         <div id="notifPanel" class="notif-panel" style="display:none" role="dialog">
+           <div class="notif-head">
+             <span class="notif-head-title" data-i18n="ntf_title">Notifications</span>
+             <button type="button" class="notif-link" onclick="markNotificationsRead_()" data-i18n="ntf_mark_read">Mark all as read</button>
+           </div>
+           <div id="notifList" class="notif-list"></div>
+           <div class="notif-foot"><span class="material-icons-outlined">info</span><span data-i18n="ntf_foot">Chat messages continue to be sent as before.</span></div>
+         </div>
+       </div>
        <button id="prefsBtn" onclick="openPreferences()" title="Preferences" 
                style="background:none;border:none;cursor:pointer;padding:4px;color:#666;display:flex;align-items:center;" data-i18n-title="ix_d0834fc">
          <span class="material-icons-outlined" style="font-size:20px;">tune</span>
@@ -353,37 +379,122 @@
     </div>
     
     <div id="preferencesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:5500;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
-      <div style="background:#fff;width:420px;border-top:6px solid var(--primary-yellow);padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.2);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="prefs-box">
+        <div class="prefs-head">
           <div style="display:flex; align-items:center; gap:10px;">
+            <span class="material-icons-outlined" style="font-size:22px;">tune</span>
             <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;" data-i18n="prefs_title">Preferences</h3>
-            <button onclick="openChatHelpManually()" title="How to activate" style="background:none; border:none; cursor:pointer; color:var(--primary-yellow); padding:0; display:flex; align-items:center; background-color:#333; border-radius:50%; width:20px; height:20px; justify-content:center;" data-i18n-title="ix_3de3fec">
-              <span class="material-icons-outlined" style="font-size:14px;">question_mark</span>
-            </button>
           </div>
-          <button onclick="closePreferences()" style="background:none;border:none;cursor:pointer;color:#999;"><span class="material-icons-outlined">close</span></button>
+          <button onclick="closePreferences()" class="prefs-close"><span class="material-icons-outlined">close</span></button>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-top:1px solid #eee;">
-          <div>
-            <div style="font-weight:700;font-size:14px;" data-i18n="prefs_chat_title">Google Chat Notifications</div>
-            <div style="font-size:12px;color:#888;margin-top:3px;" data-i18n="prefs_chat_desc">Receive a direct message when your project is created.</div>
-          </div>
-          
-          <div style="display:flex; align-items:center; gap:10px;">
-            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
-              <input type="checkbox" id="chatPrefToggle" style="opacity:0;width:0;height:0;" disabled
-                    onchange="document.getElementById('chatPrefStatusText').innerText = this.checked ? 'ON' : 'OFF'; document.getElementById('chatPrefStatusText').style.color = this.checked ? '#4CAF50' : '#888';">
-              <span id="chatPrefSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:24px;transition:.3s;"></span>
+
+        <div class="prefs-body">
+          <div class="prefs-section">
+            <div class="prefs-section-title"><span class="material-icons-outlined">palette</span><span data-i18n="pf_display">Display</span></div>
+            <div class="prefs-row">
+              <div class="prefs-label" data-i18n="pf_theme">Theme</div>
+              <div class="seg" id="prefTheme">
+                <button type="button" data-val="light" onclick="setPrefChoice_('theme','light')"><span class="material-icons-outlined">light_mode</span><span data-i18n="pf_theme_light">Light</span></button>
+                <button type="button" data-val="dark" onclick="setPrefChoice_('theme','dark')"><span class="material-icons-outlined">dark_mode</span><span data-i18n="pf_theme_dark">Dark</span></button>
+                <button type="button" data-val="auto" onclick="setPrefChoice_('theme','auto')"><span class="material-icons-outlined">contrast</span><span data-i18n="pf_theme_auto">System</span></button>
+              </div>
+            </div>
+            <div class="prefs-row">
+              <div class="prefs-label" data-i18n="pf_font">Font size</div>
+              <div class="seg" id="prefFont">
+                <button type="button" data-val="1" onclick="setPrefChoice_('fontScale',1)" style="font-size:12px;">A</button>
+                <button type="button" data-val="1.1" onclick="setPrefChoice_('fontScale',1.1)" style="font-size:15px;">A</button>
+                <button type="button" data-val="1.2" onclick="setPrefChoice_('fontScale',1.2)" style="font-size:18px;">A</button>
+              </div>
+            </div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefStartPage">
+              <span><b data-i18n="pf_start">Show start page when opening the app</b><small data-i18n="pf_start_desc">Your open projects, deadlines this week and recently finished projects at a glance.</small></span>
             </label>
-            <span id="chatPrefStatusText" style="font-size:12px; font-weight:800; width:60px; color:#888;"><span data-i18n="ix_8524de9">Loading...</span></span>
           </div>
 
+          <div class="prefs-section">
+            <div class="prefs-section-title"><span class="material-icons-outlined">groups</span><span data-i18n="pf_team">Team view</span></div>
+            <label class="prefs-check">
+              <input type="checkbox" id="prefTeamEnabled" onchange="updateTeamPrefsUi_()">
+              <span><b data-i18n="pf_team_on">Show my team's projects (read only)</b><small data-i18n="pf_team_desc">Helps to avoid duplicate orders. You only see name, status, languages and due date.</small></span>
+            </label>
+            <div id="prefTeamOptions" class="prefs-sub">
+              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="bu" onchange="updateTeamPrefsUi_()"> <span><span data-i18n="pf_team_bu">Everyone in my business unit</span> <small id="prefTeamBuInfo"></small></span></label>
+              <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="custom" onchange="updateTeamPrefsUi_()"> <span data-i18n="pf_team_custom">Only these colleagues</span></label>
+              <textarea id="prefTeamEmails" rows="3" placeholder="name@kaercher.com, ..." data-i18n-placeholder="pf_team_emails_ph"></textarea>
+            </div>
+          </div>
+
+          <div class="prefs-section">
+            <div class="prefs-section-title"><span class="material-icons-outlined">event</span><span data-i18n="cal_title">Calendar</span></div>
+            <div class="prefs-row">
+              <div><div class="prefs-label" data-i18n="cal_prefs_line">Deadlines in your Google Calendar</div><small id="prefCalStatus" class="prefs-muted"></small></div>
+              <button type="button" class="btn btn-secondary prefs-btn" onclick="closePreferences(); openCalendarSync_();"><span class="material-icons-outlined">settings</span> <span data-i18n="cal_setup">Set up</span></button>
+            </div>
+          </div>
+
+          <div class="prefs-section">
+            <div class="prefs-section-title">
+              <span class="material-icons-outlined">chat</span><span data-i18n="prefs_chat_title">Google Chat Notifications</span>
+              <button onclick="openChatHelpManually()" title="How to activate" class="prefs-help-btn" data-i18n-title="ix_3de3fec"><span class="material-icons-outlined">question_mark</span></button>
+            </div>
+            <div class="prefs-row">
+              <div class="prefs-muted" data-i18n="prefs_chat_desc">Receive a direct message when your project is created.</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
+                  <input type="checkbox" id="chatPrefToggle" style="opacity:0;width:0;height:0;" disabled
+                        onchange="document.getElementById('chatPrefStatusText').innerText = this.checked ? 'ON' : 'OFF'; document.getElementById('chatPrefStatusText').style.color = this.checked ? '#4CAF50' : '#888';">
+                  <span id="chatPrefSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:24px;transition:.3s;"></span>
+                </label>
+                <span id="chatPrefStatusText" style="font-size:12px; font-weight:800; width:60px; color:#888;"><span data-i18n="ix_8524de9">Loading...</span></span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+
+        <div class="prefs-foot">
+          <div id="prefsSaveMsg" style="display:none;font-size:13px;color:#4CAF50;margin-right:auto;" data-i18n="prefs_saved_msg">&#10003; Saved!</div>
           <button class="btn btn-secondary" style="height:40px;" data-i18n="btn_cancel" onclick="closePreferences()">Cancel</button>
-          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="btn_save" onclick="saveChatPreference()">Save</button>
+          <button class="btn btn-primary" style="height:40px;width:auto;padding:0 25px;" data-i18n="btn_save" onclick="savePreferences_()">Save</button>
         </div>
-        <div id="prefsSaveMsg" style="display:none;text-align:center;margin-top:10px;font-size:13px;color:#4CAF50;" data-i18n="prefs_saved_msg">&#10003; Saved!</div>
+      </div>
+    </div>
+
+    <div id="calendarModal" class="kts-modal" style="display:none;" onclick="if(event.target===this)closeCalendarSync_()">
+      <div class="kts-modal-box ksync-box">
+        <div class="prefs-head">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="material-icons-outlined" style="font-size:22px;">event</span>
+            <h3 style="margin:0;font-size:16px;text-transform:uppercase;font-weight:800;" data-i18n="cal_title">Calendar</h3>
+          </div>
+          <button onclick="closeCalendarSync_()" class="prefs-close"><span class="material-icons-outlined">close</span></button>
+        </div>
+        <div class="prefs-body">
+          <div class="ksync-card ksync-card-sync">
+            <div class="ksync-card-head">
+              <span class="ksync-ico"><span class="material-icons-outlined">sync</span></span>
+              <div>
+                <div class="ksync-card-title" data-i18n="cal_sync_title">Sync with Google Calendar</div>
+                <div class="prefs-muted" data-i18n="cal_sync_desc">The app creates its own calendar "Kärcher Translation Services" in your Google account and keeps all due dates of your own and shared projects up to date - including changes and cancellations. Your other calendars stay untouched.</div>
+              </div>
+            </div>
+            <div id="calSyncBody" class="ksync-sync-body"></div>
+          </div>
+          <div class="ksync-card">
+            <div class="ksync-card-head">
+              <span class="ksync-ico ksync-ico-grey"><span class="material-icons-outlined">download</span></span>
+              <div>
+                <div class="ksync-card-title" data-i18n="cal_ics_title">One-time export (.ics)</div>
+                <div class="prefs-muted" data-i18n="cal_ics_desc">Downloads the due dates as a file for Outlook, Apple or Google Calendar. It is a snapshot and is not updated automatically.</div>
+              </div>
+            </div>
+            <div class="ksync-actions">
+              <label class="prefs-check-inline"><input type="checkbox" id="calIcsDone"> <span data-i18n="cal_include_done">Include finished projects</span></label>
+              <button type="button" class="btn btn-secondary prefs-btn" onclick="downloadIcs_()"><span class="material-icons-outlined">event_available</span> <span data-i18n="cal_ics_btn">Download .ics</span></button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -440,6 +551,7 @@
 
     <div class="container">
       <div class="tab-nav" id="mainTabNav">
+        <button class="tab-btn" id="btn-nav-home" onclick="switchTab('home')"><span class="material-icons-outlined nav-ico">home</span><span data-i18n="nav_home">Start</span></button>
         <button class="tab-btn active" id="btn-nav-new" onclick="openNewProjectNav_()"><span class="material-icons-outlined nav-ico">add_circle</span><span data-i18n="nav_new_project">New Project</span></button>
         <button class="tab-btn" id="btn-nav-history" onclick="switchTab('history')" data-i18n="nav_history">My Projects</button>
         <button class="tab-btn" id="btn-dashboard" onclick="switchTab('dashboard')" data-i18n="nav_dashboard" style="display:none">Dashboard</button>
@@ -460,6 +572,7 @@
         <button class="tab-btn" id="btn-nav-articulate" onclick="switchTab('articulate')" data-i18n="nav_articulate" style="display:none">Campus Projects</button>
       </div>
         
+      <div id="tab-home" class="tab-content" style="display:none"><div id="homeRoot" class="home"></div></div>
       <div id="tab-request" class="tab-content active"></div>
       <div id="tab-kec" class="tab-content" style="display:none"></div>
       <div id="tab-woma" class="tab-content" style="display:none"></div>
@@ -626,6 +739,9 @@
              <button class="btn btn-secondary" onclick="exportProjectsCSV()" title="Export CSV" style="flex:0;width:auto;padding:0 20px;height:40px;" data-i18n-title="ix_c04f1e4">
                <i class="material-icons-outlined">download</i> <span data-i18n="hs_export_csv">Export CSV</span>
              </button>
+             <button class="btn btn-secondary" onclick="openCalendarSync_()" title="Calendar" style="flex:0;width:auto;padding:0 20px;height:40px;" data-i18n-title="cal_title">
+               <i class="material-icons-outlined">event</i> <span data-i18n="cal_title">Calendar</span>
+             </button>
              <button id="archiveToggleBtn" class="btn btn-secondary" onclick="toggleArchiveView()" title="Archive: finished projects older than 30 days" style="flex:0;width:auto;padding:0 20px;height:40px;" data-i18n-title="ix_b6a5839">
                <i class="material-icons-outlined">archive</i> <span data-i18n="hs_show_archive">Show Archive</span>
              </button>
@@ -636,6 +752,7 @@
                 <option value="all" data-i18n="hs_f_all">All Projects</option>
                 <option value="own" data-i18n="hs_f_own">My Projects</option>
                 <option value="shared" data-i18n="hs_f_shared">Shared with me</option>
+                <option value="team" id="ownershipTeamOpt" data-i18n="hs_f_team" hidden>Team (read only)</option>
              </select>
 
              <input type="search" id="globalSearchInput" placeholder="🔍 Search..." data-i18n-placeholder="hs_search" 
@@ -1222,6 +1339,7 @@
     <?!= include('JsProjects'); ?>
     <?!= include('JsDownload'); ?>
     <?!= include('JsMisc'); ?>
+    <?!= include('JsPersonal'); ?>
     <div id="slidesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:6500;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
       <div style="width:92vw;height:90vh;display:flex;flex-direction:column;background:#111;border-top:5px solid var(--primary-yellow);box-shadow:0 20px 60px rgba(0,0,0,0.6);">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#111;flex-shrink:0;">

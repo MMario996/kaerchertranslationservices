@@ -946,6 +946,7 @@ document.addEventListener('click', function(e) {
 function openPreferences() {
   document.getElementById('preferencesModal').style.display = 'flex';
   document.getElementById('prefsSaveMsg').style.display = 'none';
+  personalPrefsOpen_();
   
   const cb = document.getElementById('chatPrefToggle');
   const text = document.getElementById('chatPrefStatusText');
@@ -970,6 +971,7 @@ function openPreferences() {
 
 function closePreferences() {
   document.getElementById('preferencesModal').style.display = 'none';
+  personalPrefsClosed_();
 }
 
 function saveChatPreference() {

@@ -201,6 +201,7 @@ function pivotHandleStatusChange_(sh, rowNum, row, newStatus, currentStatus) {
     try { sendPrivateMessage_(rowUser, msg); } catch (e) {}
   }
   _notifySharedUsers_(sharedWith, sharedThreads, msg);
+  notifyProjectParticipants_(rowUser, sharedWith, "pivot_step", projectUid, projectName, { step: "parent", status: newStatus });
 
   // WICHTIG: Thread NICHT loeschen (anders als normale Projekte) - wir
   // brauchen ihn noch fuer die Child-Completion-Meldung.
@@ -454,6 +455,7 @@ function pivotHandleChildCompletion_(sh, childRowNum, childRow, newStatus, curre
       try { sendPrivateMessage_(rowUser, msg); } catch (e) {}
     }
     _notifySharedUsers_(sharedWith, sharedThreads, msg);
+    notifyProjectParticipants_(rowUser, sharedWith, "completed", parentUid, childProjectName, { status: newStatus, pivot: true });
 
     pivotWriteRow_(sh, parentRowNum, cols, { state: PIVOT_STATE_DONE_ });
     _clearThreadIds_(sh, parentRowNum);

@@ -109,6 +109,7 @@ function notifyWatchers_(templateName, projectName, submitterEmail, projectUid, 
     if (watcherEmail === String(submitterEmail || "").toLowerCase()) return;
     try {
       sendPrivateMessage_(watcherEmail, msg);
+      notifyUser_(watcherEmail, "submitted", projectUid, projectName, { by: submitterEmail, template: templateName });
       console.log("\u2022 Watcher notified:", watcherEmail, "for template:", templateName);
     } catch(e) {
       console.warn("\u26A0 Watcher notification failed for " + watcherEmail + ": " + e.message);

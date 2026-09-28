@@ -8,8 +8,8 @@ function loadMyProjects() {
     document.getElementById('historyLoading').style.display='none';
     if(r.error){document.getElementById('noProjectsMsg').innerHTML=`Error: ${r.error}`;document.getElementById('noProjectsMsg').style.display='block';return;}
     globalProjects=r.projects||r;
-    if(!globalProjects.length){document.getElementById('noProjectsMsg').innerHTML=escapeHtml(tr_('hs_empty', 'No projects found.'));document.getElementById('noProjectsMsg').style.display='block';return;}
-    fillTable(globalProjects);
+    if(!globalProjects.length && (document.getElementById('ownershipFilter')||{}).value!=='team'){document.getElementById('noProjectsMsg').innerHTML=escapeHtml(tr_('hs_empty', 'No projects found.'));document.getElementById('noProjectsMsg').style.display='block';return;}
+    globalSearch();
     if (currentHistoryView === 'calendar') renderCalendar(globalProjects);
   }).withFailureHandler(e=>{
     document.getElementById('historyLoading').style.display='none';
@@ -36,6 +36,7 @@ function fillTable(projects) {
   topLevel.forEach(p=>{
     const tr=document.createElement('tr');
     tr.className = 'row-' + statusGroup_(p.status);
+    if (p.teamView) { tr.classList.add('row-team'); tr.innerHTML = teamRowHtml_(p); applyMobileLabels_(tr); t.appendChild(tr); return; }
     let due=p.dueDate?`<span class="${dueClass_(p)}">${new Date(p.dueDate).toLocaleDateString()}</span>`:"-";
     let shText=p.isShared?(p.owner===configData.currentUser
       ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">${tr_('jx_b1a6757', 'Shared with')}<br>${p.sharedWith}</span>`
@@ -209,7 +210,10 @@ function globalSearch() {
   
   let filtered = globalProjects;
 
-  if (filterVal === 'own') {
+  if (filterVal === 'team') {
+      filtered = teamProjectsForSearch_(globalSearch);
+      if (!filtered) return;
+  } else if (filterVal === 'own') {
       filtered = filtered.filter(p => p.owner === currentUser);
   } else if (filterVal === 'shared') {
       filtered = filtered.filter(p => p.owner !== currentUser && ((p.sharedWith || '').toLowerCase().includes(currentUser) || p.groupShared));

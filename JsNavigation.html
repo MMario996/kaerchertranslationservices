@@ -126,7 +126,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   const target = document.getElementById('tab-' + tabName);
   if(target) { target.style.display='block'; target.classList.add('active'); }
-  if (!['history','dashboard','guide','help','admin','health','articulate'].includes(tabName)) {
+  if (!['home','history','dashboard','guide','help','admin','health','articulate'].includes(tabName)) {
     resetAppAndCloseOverlay();
     activeTabId = tabName;
   }
@@ -138,6 +138,7 @@ function switchTab(tabName) {
   if (isPortalTab_(tabName)) { try { localStorage.setItem('lastPortalTab', tabName); } catch (e) {} }
   updatePortalNav_(tabName);
   if(tabName === 'guide' || tabName === 'help') loadGuideContent_();
+  if(tabName === 'home')      renderHome_();
   if(tabName === 'history')   { mountHistoryView_('tab-history', 'all'); loadMyProjects(); }
   if(tabName === 'articulate') switchArtSubtab(artSubtab_);
   if(tabName === 'documentation') switchDocSubtab(docSubtab_);
