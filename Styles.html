@@ -842,6 +842,22 @@
   .home-team > .material-icons-outlined { color:#1a73e8; }
   .home-team-link { margin-left:auto; font-weight:700; display:inline-flex; align-items:center; white-space:nowrap; }
   .home-error { padding:30px; text-align:center; color:#c5221f; }
+  .home-search { position:relative; flex:1 1 320px; max-width:520px; }
+  .home-search > .material-icons-outlined { position:absolute; left:14px; top:12px; color:var(--k-ink-2); pointer-events:none; }
+  .home-search input { width:100%; height:46px; box-sizing:border-box; padding:0 14px 0 44px; border:1px solid var(--k-line); border-radius:10px; font:inherit; font-size:15px; background:var(--k-surface-2); color:var(--k-ink); }
+  .home-search input:focus { outline:none; border-color:#1a73e8; background:var(--k-surface); }
+  .home-sr { display:none; position:absolute; z-index:50; left:0; right:0; top:52px; max-height:60vh; overflow:auto; padding:6px; background:var(--k-surface); border:1px solid var(--k-line); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.18); }
+  .home-prog { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--k-ink-2); }
+  .home-prog.on { margin-top:4px; }
+  .home-prog-bar { width:110px; height:5px; border-radius:5px; background:var(--k-line); overflow:hidden; }
+  .home-prog-bar > span { display:block; height:100%; background:#1e8e3e; border-radius:5px; }
+  .home-qa { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+  .home-item:hover .home-qa, .home-item:focus-within .home-qa { opacity:1; }
+  .home-qa-btn { width:32px; height:32px; border-radius:8px; border:1px solid var(--k-line); background:var(--k-surface); color:var(--k-ink); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .home-qa-btn:hover { background:var(--primary-yellow); color:#000; border-color:var(--primary-yellow); }
+  .home-qa-btn .material-icons-outlined { font-size:17px; }
+  @media (hover:none) { .home-qa { opacity:1; } }
+  .status-chip.chip-due .material-icons-outlined { font-size:15px; margin:0 0 0 4px; }
   .skel { background:linear-gradient(90deg, var(--k-surface-2) 25%, var(--k-line) 50%, var(--k-surface-2) 75%) !important; background-size:200% 100% !important; animation: skel 1.3s infinite linear; border:none !important; box-shadow:none !important; }
   .home-hero.skel { height:130px; } .home-kpi.skel { height:76px; }
   @keyframes skel { from { background-position:200% 0; } to { background-position:-200% 0; } }

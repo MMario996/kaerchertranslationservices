@@ -197,7 +197,7 @@ function toggleAdminHelp(id) {
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'tests'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'translate', 'tests'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
@@ -231,6 +231,28 @@ function toggleAdminHelp(id) {
           pvInit_();
         });
       }
+      if (name === 'translate') loadTranslateUi_();
+    }
+    let _translateUiLoaded_ = false;
+    function loadTranslateUi_() {
+      if (_translateUiLoaded_) { psLoad_(); return; }
+      const host = document.getElementById('admin-subtab-translate');
+      if (!host) return;
+      host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          host.innerHTML = res.html;
+          const el = document.createElement('script');
+          el.text = res.js;
+          document.head.appendChild(el);
+          _translateUiLoaded_ = true;
+          applyI18nIn_(host, currentLang);
+          psLoad_();
+        })
+        .withFailureHandler(function (err) {
+          host.innerHTML = '<div style="padding:20px;color:#d93025;font-size:13px;">' + escapeHtml(err.message) + '</div>';
+        })
+        .apiGetTranslateUiContent();
     }
     function loadTemplateManager() {
       document.getElementById('tmplMgrLoading').style.display = 'block';

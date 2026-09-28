@@ -113,3 +113,10 @@ test('Kalender: Termin aus Projekt - offen, fertig, abgebrochen', () => {
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { status: 'CANCELLED' }), row), null);
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { dueDate: 'kaputt' }), row), null);
 });
+
+test('Startseite: Fortschritt = erledigte / relevante Phrase-Jobs', () => {
+  const web = load(['WebApp.gs']);
+  const s = (status) => ({ status });
+  assert.deepEqual(plain(web.projectProgress_([s('COMPLETED'), s('DELIVERED'), s('NEW'), s('ACCEPTED'), s('CANCELLED')])), { done: 2, total: 4 });
+  assert.deepEqual(plain(web.projectProgress_([])), { done: 0, total: 0 });
+});

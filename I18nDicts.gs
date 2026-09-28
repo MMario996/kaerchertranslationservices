@@ -8,6 +8,9 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "home_search_ph": "Projekt suchen – Name, ID, Sprache …",
+    "home_search_none": "Keine passenden Projekte.",
+    "home_prog": "{d} von {t} Schritten erledigt",
     "db2_w_kpis": "Kennzahlen",
     "db2_w_trend": "Projekte im Zeitverlauf",
     "db2_w_status": "Status-Verteilung",
@@ -924,6 +927,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "home_search_ph": "Find a project - name, ID, language...",
+    "home_search_none": "No matching projects.",
+    "home_prog": "{d} of {t} steps done",
     "db2_w_kpis": "Key figures",
     "db2_w_trend": "Projects over time",
     "db2_w_status": "Status distribution",
@@ -1840,6 +1846,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "home_search_ph": "Rechercher un projet – nom, ID, langue…",
+    "home_search_none": "Aucun projet correspondant.",
+    "home_prog": "{d} étape(s) sur {t} terminée(s)",
     "db2_w_kpis": "Indicateurs clés",
     "db2_w_trend": "Projets dans le temps",
     "db2_w_status": "Répartition des statuts",
@@ -2755,6 +2764,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "home_search_ph": "Buscar proyecto: nombre, ID, idioma…",
+    "home_search_none": "No hay proyectos coincidentes.",
+    "home_prog": "{d} de {t} pasos completados",
     "db2_w_kpis": "Indicadores clave",
     "db2_w_trend": "Proyectos a lo largo del tiempo",
     "db2_w_status": "Distribución de estados",
@@ -3670,6 +3682,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "home_search_ph": "Procurar projeto – nome, ID, idioma…",
+    "home_search_none": "Nenhum projeto correspondente.",
+    "home_prog": "{d} de {t} passos concluídos",
     "db2_w_kpis": "Indicadores-chave",
     "db2_w_trend": "Projetos ao longo do tempo",
     "db2_w_status": "Distribuição de status",
@@ -4585,6 +4600,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "home_search_ph": "查找项目 - 名称、ID、语言…",
+    "home_search_none": "没有匹配的项目。",
+    "home_prog": "已完成 {t} 个步骤中的 {d} 个",
     "db2_w_kpis": "关键指标",
     "db2_w_trend": "项目趋势",
     "db2_w_status": "状态分布",

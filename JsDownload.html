@@ -392,7 +392,7 @@ function closeJobNoteModal() {
         btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';
         if(r.success) {
           document.getElementById('dueDateSaveMsg').style.display = 'block';
-          setTimeout(() => { closeDueDateModal(); loadMyProjects(); }, 1500);
+          setTimeout(() => { closeDueDateModal(); loadMyProjects(); if (typeof renderHome_ === 'function' && (document.getElementById('tab-home') || {}).style && document.getElementById('tab-home').style.display !== 'none') renderHome_(true); }, 1500);
         } else { showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + r.error, tr_('jx_902b0d5', 'Error')); }
       }).withFailureHandler(e => {
         btn.disabled = false; btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">save</span> Save & Notify';

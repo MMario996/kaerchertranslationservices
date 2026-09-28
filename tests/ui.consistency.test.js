@@ -14,7 +14,7 @@ const { REPO_ROOT, read, scriptsOf } = require('./lib/load');
 const index = read('Index.html');
 const includes = [...index.matchAll(/<\?!= include\('(\w+)'\); \?>/g)].map((m) => m[1]);
 const jsFiles = includes.filter((n) => n.startsWith('Js')).map((n) => n + '.html');
-const uiFiles = ['Index.html', ...jsFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html'];
+const uiFiles = ['Index.html', ...jsFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
 
 test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', () => {
   assert.ok(includes.includes('Styles'));
@@ -33,7 +33,7 @@ test('Index.html enthaelt keine Template-Scriptlets ausser include()', () => {
 });
 
 test('Alle Skripte sind syntaktisch gueltig', () => {
-  [...jsFiles, 'AdminScript.html', 'PivotAdminScript.html'].forEach((f) => {
+  [...jsFiles, 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
     assert.doesNotThrow(() => new vm.Script(scriptsOf(f), { filename: f }), f);
   });
   fs.readdirSync(REPO_ROOT).filter((f) => f.endsWith('.gs')).forEach((f) => {

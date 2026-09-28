@@ -1150,3 +1150,57 @@ function getQueueSheet_() {
 function openOpsSS_() {
   return openOpsSpreadsheet_();
 }
+
+/**
+ * Fortschritt fuer die Startseite: erledigte / alle Jobs (alle Workflow-
+ * Schritte, ohne abgebrochene) je Phrase-Projekt. Nur fuer Projekte, die der
+ * Nutzer ohnehin sieht; 10 Minuten gecacht, Abruf parallel (fetchAll).
+ * @return {Object<string,{done:number,total:number}>}
+ */
+function apiGetProjectsProgress(uids) {
+  var mine = {};
+  (apiGetMyProjects().projects || []).forEach(function (p) { if (p.projectUid) mine[p.projectUid] = true; });
+  var want = (uids || []).map(String).filter(function (u) { return mine[u]; }).slice(0, 20);
+  var cache = CacheService.getScriptCache();
+  var cached = want.length ? cache.getAll(want.map(function (u) { return "prog_" + u; })) : {};
+  var out = {};
+  var missing = [];
+  want.forEach(function (u) {
+    var c = cached["prog_" + u];
+    if (c) out[u] = JSON.parse(c); else missing.push(u);
+  });
+  if (!missing.length) return out;
+  var auth = getPhraseAuthHeader_();
+  var responses = UrlFetchApp.fetchAll(missing.map(function (u) {
+    return {
+      url: phraseApiUrlV2_("/projects/" + encodeURIComponent(u) + "/jobs") + "?pageSize=50&pageNumber=0",
+      headers: { Authorization: auth },
+      muteHttpExceptions: true
+    };
+  }));
+  var toCache = {};
+  missing.forEach(function (u, i) {
+    var res = responses[i];
+    if (res.getResponseCode() !== 200) return;
+    var jobs = [];
+    try { jobs = JSON.parse(res.getContentText()).content || []; } catch (e) { return; }
+    out[u] = projectProgress_(jobs);
+    toCache["prog_" + u] = JSON.stringify(out[u]);
+  });
+  if (Object.keys(toCache).length) cache.putAll(toCache, 600);
+  return out;
+}
+
+/** Reine Funktion (getestet): erledigte / relevante Jobs. */
+function projectProgress_(jobs) {
+  var DONE = { COMPLETED: 1, COMPLETED_BY_LINGUIST: 1, DELIVERED: 1 };
+  var SKIP = { CANCELLED: 1, DECLINED: 1, REJECTED: 1 };
+  var total = 0, done = 0;
+  (jobs || []).forEach(function (j) {
+    var s = String((j && j.status) || "").toUpperCase();
+    if (SKIP[s]) return;
+    total++;
+    if (DONE[s]) done++;
+  });
+  return { done: done, total: total };
+}

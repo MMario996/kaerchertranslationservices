@@ -276,11 +276,74 @@ function homeItem_(p, mode) {
     : `<span class="home-due ${cls}">${cls === 'due-overdue' ? '<span class="material-icons-outlined">error</span>' : ''}${escapeHtml(dueTxt)}</span>`;
   const sub = [p.targetLangs && p.targetLangs.length ? p.targetLangs.join(', ') : (p.targetLang || ''), p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '']
     .filter(Boolean).join(' · ');
-  return `<li class="home-item" onclick="openFromHome_('${escapeJs(p.projectUid)}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${escapeJs(p.projectUid)}')">
+  const u = escapeJs(p.projectUid);
+  const qa = (icon, key, fb, js) => `<button type="button" class="home-qa-btn" title="${escapeHtml(tr_(key, fb))}" onclick="event.stopPropagation(); ${js}"><span class="material-icons-outlined">${icon}</span></button>`;
+  const actions = (mode !== 'done' && !p.teamView ? qa('edit_calendar', 'pd_due', 'Due date', `openDueDateModal('${u}','${escapeJs(p.projectName || '')}','${escapeJs(p.dueDate || '')}')`) : '') +
+    (!p.teamView ? qa('edit_note', 'pd_note', 'Note', `openJobNoteModal('${u}')`) : '') +
+    (p.phraseUrl ? qa('open_in_new', 'jx_a77f4ec', 'Phrase TMS', `window.open('${escapeJs(p.phraseUrl)}','_blank','noopener')`) : '');
+  return `<li class="home-item" data-uid="${escapeHtml(p.projectUid)}" onclick="openFromHome_('${u}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${u}')">
       <span class="home-dot st-${statusGroup_(p.status)}"></span>
-      <span class="home-item-main"><span class="home-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="home-item-sub">${escapeHtml(sub || (p.status || ''))}</span></span>
+      <span class="home-item-main"><span class="home-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="home-item-sub">${escapeHtml(sub || (p.status || ''))}</span>${mode !== 'done' ? homeProgHtml_(p.projectUid) : ''}</span>
+      <span class="home-qa">${actions}</span>
       ${right}
     </li>`;
+}
+
+// --- Fortschritt (Phrase-Jobs erledigt / gesamt), gecacht fuer 5 Minuten ---
+let homeProg_ = {};
+let homeProgAt_ = 0;
+
+function homeProgHtml_(uid) {
+  const g = homeProg_[uid];
+  if (!g || !g.total) return '<span class="home-prog"></span>';
+  const pct = Math.round(100 * g.done / g.total);
+  return `<span class="home-prog on" title="${escapeHtml(fmt_(tr_('home_prog', '{d} of {t} steps done'), { d: g.done, t: g.total }))}"><span class="home-prog-bar"><span style="width:${pct}%"></span></span>${pct}%</span>`;
+}
+
+function loadHomeProgress_(uids) {
+  if (!uids.length || Date.now() - homeProgAt_ < 300000 && uids.every(u => u in homeProg_)) return;
+  homeProgAt_ = Date.now();
+  google.script.run.withSuccessHandler(r => {
+    Object.assign(homeProg_, r || {});
+    document.querySelectorAll('#homeRoot .home-item[data-uid]').forEach(li => {
+      const el = li.querySelector('.home-prog');
+      if (el) el.outerHTML = homeProgHtml_(li.getAttribute('data-uid'));
+    });
+  }).withFailureHandler(() => {}).apiGetProjectsProgress(uids);
+}
+
+// --- Schnellsuche ---
+let homeSearchQ_ = '';
+
+function homeSearchHits_(projects, q) {
+  const s = String(q || '').trim().toLowerCase();
+  if (!s) return [];
+  return (projects || []).filter(p => p && p.pivotRole !== 'CHILD' &&
+    [p.projectName, p.projectUid, p.targetLang, (p.targetLangs || []).join(' '), p.owner, p.templateName, p.iaNumber]
+      .some(v => String(v || '').toLowerCase().includes(s)));
+}
+
+function homeSearch_(q) {
+  homeSearchQ_ = q;
+  const box = document.getElementById('homeSearchRes');
+  if (!box) return;
+  const hits = homeSearchHits_(globalProjects, q);
+  box.style.display = q.trim() ? 'block' : 'none';
+  box.innerHTML = hits.length
+    ? `<ul class="home-list">${hits.slice(0, 8).map(p => homeItem_(p, statusGroup_(p.status) === 'done' ? 'done' : 'open')).join('')}</ul>`
+    : `<div class="home-empty">${escapeHtml(tr_('home_search_none', 'No matching projects.'))}</div>`;
+}
+
+function homeSearchKey_(e) {
+  if (e.key === 'Escape') { e.target.value = ''; homeSearch_(''); }
+  if (e.key === 'Enter') { const first = document.querySelector('#homeSearchRes .home-item'); if (first) first.click(); }
+}
+
+/** Filter fuer "Meine Projekte", wenn man von einer Kachel der Startseite kommt. */
+function homeFilterUids_(key) {
+  const b = homeBuckets_(globalProjects);
+  const list = { overdue: b.overdue, week: b.dueWeek, done30: b.done30 }[key];
+  return list ? new Set(list.map(p => p.projectUid)) : null;
 }
 
 function homeCard_(icon, titleKey, titleFb, items, mode, emptyKey, emptyFb, moreFilter) {
@@ -322,6 +385,11 @@ function paintHome_(projects) {
           : (b.dueWeek.length ? fmt_(tr_('home_sub_week', '{n} project(s) are due this week.'), { n: b.dueWeek.length })
                               : tr_('home_sub_calm', 'Nothing urgent this week.')))}</div>
       </div>
+      <div class="home-search">
+        <span class="material-icons-outlined">search</span>
+        <input type="search" id="homeSearch" autocomplete="off" value="${escapeHtml(homeSearchQ_)}" placeholder="${escapeHtml(tr_('home_search_ph', 'Find a project - name, ID, language...'))}" oninput="homeSearch_(this.value)" onfocus="homeSearch_(this.value)" onblur="setTimeout(() => { const b = document.getElementById('homeSearchRes'); if (b) b.style.display = 'none'; }, 200)" onkeydown="homeSearchKey_(event)">
+        <div id="homeSearchRes" class="home-sr"></div>
+      </div>
       <div class="home-actions">
         <button type="button" class="btn btn-primary home-btn" onclick="openNewProjectNav_()"><span class="material-icons-outlined">add_circle</span> <span>${escapeHtml(tr_('nav_new_project', 'New Project'))}</span></button>
         <button type="button" class="btn btn-secondary home-btn" onclick="openCalendarSync_()"><span class="material-icons-outlined">event</span> <span>${escapeHtml(tr_('cal_title', 'Calendar'))}</span></button>
@@ -330,13 +398,13 @@ function paintHome_(projects) {
     </div>
     <div class="home-kpis">
       ${kpi('pending_actions', b.open.length, 'home_k_open', 'Open', 'k-open', "openHistoryFiltered_('open')")}
-      ${kpi('date_range', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('open')")}
-      ${kpi('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), "openHistoryFiltered_('open')")}
-      ${kpi('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', "openHistoryFiltered_('done')")}
+      ${kpi('date_range', b.dueWeek.length, 'home_k_week', 'Due this week', 'k-week', "openHistoryFiltered_('week')")}
+      ${kpi('error_outline', b.overdue.length, 'home_k_overdue', 'Overdue', 'k-over' + (b.overdue.length ? ' hot' : ''), "openHistoryFiltered_('overdue')")}
+      ${kpi('task_alt', b.done30.length, 'home_k_done30', 'Finished (30 days)', 'k-done', "openHistoryFiltered_('done30')")}
     </div>
     <div class="home-grid">
-      ${homeCard_('error_outline', 'home_overdue', 'Overdue', b.overdue, 'overdue', 'home_overdue_empty', 'Nothing overdue - well done!', 'open')}
-      ${homeCard_('date_range', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'open')}
+      ${homeCard_('error_outline', 'home_overdue', 'Overdue', b.overdue, 'overdue', 'home_overdue_empty', 'Nothing overdue - well done!', 'overdue')}
+      ${homeCard_('date_range', 'home_week', 'Due this week', b.dueWeek, 'week', 'home_week_empty', 'Nothing due this week.', 'week')}
       ${homeCard_('pending_actions', 'home_open', 'Your open projects', b.open, 'open', 'home_open_empty', 'No open projects - all done!', 'open')}
       ${homeCard_('task_alt', 'home_done', 'Recently finished', b.done, 'done', 'home_done_empty', 'No finished projects yet.', 'done')}
     </div>
@@ -345,6 +413,10 @@ function paintHome_(projects) {
         <span>${escapeHtml(fmt_(tr_('home_team', 'Your team currently has {n} open project(s).'), { n: team.length }))}</span>
         <span class="home-team-link">${escapeHtml(tr_('home_team_link', 'Show team projects'))}<span class="material-icons-outlined">chevron_right</span></span>
       </button>` : ''}`;
+  if (homeSearchQ_) homeSearch_(homeSearchQ_);
+  const seen = new Set();
+  [b.overdue, b.dueWeek, b.open].forEach(l => l.slice(0, 8).forEach(p => seen.add(p.projectUid)));
+  loadHomeProgress_([...seen].filter(Boolean).slice(0, 20));
 }
 
 function openFromHome_(uid) {
@@ -358,9 +430,11 @@ function openHistoryFiltered_(filter) {
     const sel = document.getElementById('ownershipFilter');
     if (sel) { sel.value = 'team'; }
     historyStatusFilter_ = 'all';
+    historyDueFilter_ = '';
     setTimeout(globalSearch, 0);
     return;
   }
+  historyDueFilter_ = ['overdue', 'week', 'done30'].includes(filter) ? filter : '';
   historyStatusFilter_ = filter === 'done' || filter === 'open' ? filter : 'all';
 }
 

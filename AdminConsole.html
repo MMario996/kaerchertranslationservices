@@ -8,6 +8,7 @@
                 <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_83ae0cb">Template Manager</span></button>
                 <button class="admin-subtab-btn" id="subtab-btn-pivot" onclick="switchAdminSubtab('pivot')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_cd07a63">Pivot Templates</span></button>
                 <button class="admin-subtab-btn" id="subtab-btn-tests" onclick="switchAdminSubtab('tests')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_90792de">Tests</span></button>
+                <button class="admin-subtab-btn" id="subtab-btn-translate" onclick="switchAdminSubtab('translate')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ps_tab">Translate UI</span></button>
             </div>
 
             <div id="admin-subtab-console">
@@ -739,6 +740,8 @@
            apiGetGuideContent() in WebApp.gs zum selben Truncation-Problem). -->
       <div id="admin-subtab-pivot" style="display:none;"></div>
 <!-- /admin-subtab-pivot -->
+      <!-- "Translate UI": lazy per apiGetTranslateUiContent() (PhraseStrings.gs). -->
+      <div id="admin-subtab-translate" style="display:none;"></div>
       <div id="admin-subtab-tests" style="display:none;">
         <div class="selftest-head">
           <div>
