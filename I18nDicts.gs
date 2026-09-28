@@ -8,6 +8,9 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "home_search_ph": "Projekt suchen – Name, ID, Sprache …",
+    "home_search_none": "Keine passenden Projekte.",
+    "home_prog": "{d} von {t} Schritten erledigt",
     "db2_w_kpis": "Kennzahlen",
     "db2_w_trend": "Projekte im Zeitverlauf",
     "db2_w_status": "Status-Verteilung",
@@ -763,6 +766,8 @@ var I18N_DICTS_ = {
     "home_done":           "Zuletzt fertig",
     "home_open_empty":     "Keine offenen Projekte – alles erledigt!",
     "home_week_empty":     "Diese Woche ist nichts fällig.",
+    "home_overdue":        "Überfällig",
+    "home_overdue_empty":  "Nichts überfällig – sehr gut!",
     "home_done_empty":     "Noch keine fertigen Projekte.",
     "home_no_due":         "keine Frist",
     "home_more":           "Alle anzeigen ({n})",
@@ -922,6 +927,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "home_search_ph": "Find a project - name, ID, language...",
+    "home_search_none": "No matching projects.",
+    "home_prog": "{d} of {t} steps done",
     "db2_w_kpis": "Key figures",
     "db2_w_trend": "Projects over time",
     "db2_w_status": "Status distribution",
@@ -1677,6 +1685,8 @@ var I18N_DICTS_ = {
     "home_done":           "Recently finished",
     "home_open_empty":     "No open projects - all done!",
     "home_week_empty":     "Nothing due this week.",
+    "home_overdue":        "Overdue",
+    "home_overdue_empty":  "Nothing overdue - well done!",
     "home_done_empty":     "No finished projects yet.",
     "home_no_due":         "no due date",
     "home_more":           "Show all ({n})",
@@ -1836,6 +1846,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "home_search_ph": "Rechercher un projet – nom, ID, langue…",
+    "home_search_none": "Aucun projet correspondant.",
+    "home_prog": "{d} étape(s) sur {t} terminée(s)",
     "db2_w_kpis": "Indicateurs clés",
     "db2_w_trend": "Projets dans le temps",
     "db2_w_status": "Répartition des statuts",
@@ -2590,6 +2603,8 @@ var I18N_DICTS_ = {
     "home_done":           "Récemment terminés",
     "home_open_empty":     "Aucun projet en cours – tout est terminé !",
     "home_week_empty":     "Rien n'arrive à échéance cette semaine.",
+    "home_overdue":        "En retard",
+    "home_overdue_empty":  "Rien en retard – bravo !",
     "home_done_empty":     "Aucun projet terminé pour l'instant.",
     "home_no_due":         "pas d'échéance",
     "home_more":           "Tout afficher ({n})",
@@ -2749,6 +2764,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "home_search_ph": "Buscar proyecto: nombre, ID, idioma…",
+    "home_search_none": "No hay proyectos coincidentes.",
+    "home_prog": "{d} de {t} pasos completados",
     "db2_w_kpis": "Indicadores clave",
     "db2_w_trend": "Proyectos a lo largo del tiempo",
     "db2_w_status": "Distribución de estados",
@@ -3503,6 +3521,8 @@ var I18N_DICTS_ = {
     "home_done":           "Terminados recientemente",
     "home_open_empty":     "No hay proyectos abiertos: ¡todo listo!",
     "home_week_empty":     "Nada vence esta semana.",
+    "home_overdue":        "Con retraso",
+    "home_overdue_empty":  "Nada con retraso: ¡bien hecho!",
     "home_done_empty":     "Aún no hay proyectos terminados.",
     "home_no_due":         "sin fecha límite",
     "home_more":           "Mostrar todo ({n})",
@@ -3662,6 +3682,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "home_search_ph": "Procurar projeto – nome, ID, idioma…",
+    "home_search_none": "Nenhum projeto correspondente.",
+    "home_prog": "{d} de {t} passos concluídos",
     "db2_w_kpis": "Indicadores-chave",
     "db2_w_trend": "Projetos ao longo do tempo",
     "db2_w_status": "Distribuição de status",
@@ -4416,6 +4439,8 @@ var I18N_DICTS_ = {
     "home_done":           "Concluídos recentemente",
     "home_open_empty":     "Nenhum projeto aberto – tudo pronto!",
     "home_week_empty":     "Nada vence esta semana.",
+    "home_overdue":        "Atrasados",
+    "home_overdue_empty":  "Nada atrasado – muito bem!",
     "home_done_empty":     "Ainda não há projetos concluídos.",
     "home_no_due":         "sem prazo",
     "home_more":           "Mostrar tudo ({n})",
@@ -4575,6 +4600,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "home_search_ph": "查找项目 - 名称、ID、语言…",
+    "home_search_none": "没有匹配的项目。",
+    "home_prog": "已完成 {t} 个步骤中的 {d} 个",
     "db2_w_kpis": "关键指标",
     "db2_w_trend": "项目趋势",
     "db2_w_status": "状态分布",
@@ -5329,6 +5357,8 @@ var I18N_DICTS_ = {
     "home_done":           "最近完成",
     "home_open_empty":     "没有进行中的项目——全部完成！",
     "home_week_empty":     "本周没有到期的项目。",
+    "home_overdue":        "已逾期",
+    "home_overdue_empty":  "没有逾期项目，做得好！",
     "home_done_empty":     "暂无已完成的项目。",
     "home_no_due":         "无截止日期",
     "home_more":           "显示全部（{n}）",

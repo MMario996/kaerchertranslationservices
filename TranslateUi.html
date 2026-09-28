@@ -1,0 +1,167 @@
+<!-- Admin-Reiter "Translate UI": UI-Woerterbuecher nach Phrase Strings laden.
+     Wird per apiGetTranslateUiContent() (PhraseStrings.gs) erst beim ersten
+     Oeffnen nachgeladen - nicht Teil des Startdokuments. -->
+<style>
+  .psu { max-width:980px; }
+  .psu-card { background:var(--k-surface,#fff); border:1px solid var(--k-line,#e6e6e0); border-radius:14px; padding:20px 22px; margin-bottom:16px; }
+  .psu-card h3 { margin:0 0 4px; font-size:15px; text-transform:uppercase; letter-spacing:.4px; display:flex; align-items:center; gap:8px; }
+  .psu-hint { font-size:12.5px; color:var(--k-ink-2,#666); margin:0 0 14px; line-height:1.5; }
+  .psu-grid { display:grid; grid-template-columns:1fr 160px; gap:12px; }
+  .psu-grid .full { grid-column:1 / -1; }
+  .psu label { font-size:12px; font-weight:700; display:block; margin-bottom:4px; }
+  .psu input[type=text], .psu input[type=password], .psu select { width:100%; height:42px; box-sizing:border-box; padding:0 12px; border:1px solid var(--k-line,#ddd); border-radius:8px; font:inherit; background:var(--k-surface,#fff); color:inherit; }
+  .psu-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+  .psu-btn { width:auto !important; height:42px; padding:0 18px !important; display:inline-flex; align-items:center; gap:8px; border-radius:8px; }
+  .psu-status { font-size:12.5px; margin-top:10px; }
+  .psu-status.ok { color:#1e8e3e; } .psu-status.err { color:#c5221f; }
+  .psu table { width:100%; border-collapse:collapse; font-size:13px; }
+  .psu th, .psu td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--k-line,#eee); }
+  .psu th { font-size:11px; text-transform:uppercase; color:var(--k-ink-2,#777); }
+  .psu-chk { display:inline-flex; align-items:center; gap:6px; font-size:13px; margin-right:16px; cursor:pointer; }
+  .psu-pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:700; background:var(--k-surface-2,#f3f3f0); }
+  .psu-pill.ok { background:#e6f4ea; color:#1e8e3e; } .psu-pill.err { background:#fce8e6; color:#c5221f; } .psu-pill.new { background:#fff6bf; color:#6d5b00; }
+</style>
+<div class="psu" id="psuRoot">
+  <div class="psu-card">
+    <h3><span class="material-icons-outlined">translate</span><span data-i18n="ps_title">Translate UI with Phrase Strings</span></h3>
+    <p class="psu-hint" data-i18n="ps_intro">Uploads the texts of the app and of the admin area to a Phrase Strings project. Missing keys and languages are created; keys are tagged ui-app or ui-admin.</p>
+    <div class="psu-grid">
+      <div>
+        <label for="psProject" data-i18n="ps_project">Project (ID, slug or name)</label>
+        <input type="text" id="psProject" placeholder="translationservices">
+      </div>
+      <div>
+        <label for="psRegion" data-i18n="ps_region">Data center</label>
+        <select id="psRegion"><option value="eu">EU (api.phrase.com)</option><option value="us">US</option></select>
+      </div>
+      <div class="full">
+        <label for="psToken" data-i18n="ps_token">Access token (Phrase: Profile settings &gt; Access tokens, scope read + write)</label>
+        <form onsubmit="return false" autocomplete="off"><input type="password" id="psToken" autocomplete="new-password" data-i18n-placeholder="ps_token_keep" placeholder="Leave empty to keep the saved token"></form>
+      </div>
+    </div>
+    <div class="psu-row">
+      <button type="button" class="btn btn-black psu-btn" onclick="psSave_()"><span class="material-icons-outlined">save</span><span data-i18n="ps_save">Save</span></button>
+      <button type="button" class="btn btn-secondary psu-btn" onclick="psCheck_()"><span class="material-icons-outlined">wifi_tethering</span><span data-i18n="ps_check">Test connection</span></button>
+    </div>
+    <div id="psCfgStatus" class="psu-status"></div>
+    <div id="psMapping"></div>
+  </div>
+
+  <div class="psu-card">
+    <h3><span class="material-icons-outlined">cloud_upload</span><span data-i18n="ps_push_title">Upload</span></h3>
+    <p class="psu-hint" data-i18n="ps_push_hint">New keys are always created and empty translations filled. Existing translations in Phrase are only replaced if you tick "Overwrite".</p>
+    <div><strong style="font-size:12px;" data-i18n="ps_dicts">Dictionaries</strong></div>
+    <div class="psu-row" style="margin-top:6px;">
+      <label class="psu-chk"><input type="checkbox" id="psDictApp" checked> <span data-i18n="ps_dict_app">App (user interface)</span> <span class="psu-pill" id="psCntApp"></span></label>
+      <label class="psu-chk"><input type="checkbox" id="psDictAdmin" checked> <span data-i18n="ps_dict_admin">Admin area</span> <span class="psu-pill" id="psCntAdmin"></span></label>
+    </div>
+    <div style="margin-top:12px;"><strong style="font-size:12px;" data-i18n="ps_langs">Languages</strong></div>
+    <div class="psu-row" id="psLangs" style="margin-top:6px;"></div>
+    <div class="psu-row">
+      <label class="psu-chk"><input type="checkbox" id="psOverwrite"> <span data-i18n="ps_overwrite">Overwrite existing translations in Phrase</span></label>
+    </div>
+    <div class="psu-row">
+      <button type="button" class="btn btn-primary psu-btn" id="psPushBtn" onclick="psPush_()"><span class="material-icons-outlined">cloud_upload</span><span data-i18n="ps_push">Upload to Phrase</span></button>
+    </div>
+    <div id="psPushStatus" class="psu-status"></div>
+    <div id="psResults"></div>
+  </div>
+</div>
+<script>
+var psCfg_ = null;
+
+function psLoad_() {
+  google.script.run.withSuccessHandler(function (cfg) {
+    psCfg_ = cfg;
+    document.getElementById('psProject').value = cfg.project || '';
+    document.getElementById('psRegion').value = cfg.region || 'eu';
+    document.getElementById('psToken').value = '';
+    psStatus_('psCfgStatus', cfg.hasToken ? tr_('ps_token_saved', 'A token is saved.') : tr_('ps_token_missing', 'No token saved yet.'), cfg.hasToken ? 'ok' : '');
+    var sum = function (which) { return cfg.langs.map(function (l) { return cfg.counts[which][l]; }); };
+    document.getElementById('psCntApp').textContent = fmt_(tr_('ps_keys', '{n} keys'), { n: Math.max.apply(null, sum('app')) });
+    document.getElementById('psCntAdmin').textContent = fmt_(tr_('ps_keys', '{n} keys'), { n: Math.max.apply(null, sum('admin')) });
+    document.getElementById('psLangs').innerHTML = cfg.langs.map(function (l) {
+      return '<label class="psu-chk"><input type="checkbox" class="ps-lang" value="' + l + '" checked> ' + l.toUpperCase() + '</label>';
+    }).join('');
+  }).withFailureHandler(psFail_('psCfgStatus')).apiPsGetConfig();
+}
+
+function psStatus_(id, text, cls) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'psu-status' + (cls ? ' ' + cls : '');
+  el.textContent = text || '';
+}
+
+function psFail_(id) {
+  return function (e) { psStatus_(id, tr_('ax_3d9f514', 'Error:') + ' ' + (e && e.message ? e.message : e), 'err'); };
+}
+
+function psSave_() {
+  psStatus_('psCfgStatus', tr_('ps_saving', 'Saving...'));
+  google.script.run.withSuccessHandler(function () {
+    psLoad_();
+    psCheck_();
+  }).withFailureHandler(psFail_('psCfgStatus')).apiPsSaveConfig(
+    document.getElementById('psProject').value,
+    document.getElementById('psRegion').value,
+    document.getElementById('psToken').value);
+}
+
+function psCheck_() {
+  psStatus_('psCfgStatus', tr_('ps_checking', 'Checking connection...'));
+  document.getElementById('psMapping').innerHTML = '';
+  google.script.run.withSuccessHandler(function (r) {
+    psStatus_('psCfgStatus', fmt_(tr_('ps_connected', 'Connected to "{p}" ({n} languages in the project).'), { p: r.projectName, n: r.locales }), 'ok');
+    document.getElementById('psMapping').innerHTML = '<table style="margin-top:12px;"><thead><tr><th>' + escapeHtml(tr_('ps_lang', 'Language')) + '</th><th>' +
+      escapeHtml(tr_('ps_locale', 'Locale in Phrase')) + '</th></tr></thead><tbody>' +
+      r.mapping.map(function (m) {
+        return '<tr><td>' + m.lang.toUpperCase() + '</td><td>' + (m.locale ? escapeHtml(m.locale)
+          : '<span class="psu-pill new">' + escapeHtml(tr_('ps_will_create', 'will be created')) + '</span>') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).withFailureHandler(psFail_('psCfgStatus')).apiPsCheck();
+}
+
+function psPush_() {
+  var dicts = [];
+  if (document.getElementById('psDictApp').checked) dicts.push('app');
+  if (document.getElementById('psDictAdmin').checked) dicts.push('admin');
+  var langs = Array.prototype.slice.call(document.querySelectorAll('.ps-lang:checked')).map(function (x) { return x.value; });
+  var overwrite = document.getElementById('psOverwrite').checked;
+  if (!dicts.length || !langs.length) { psStatus_('psPushStatus', tr_('ps_pick', 'Please select at least one dictionary and one language.'), 'err'); return; }
+  var go = function () {
+    var btn = document.getElementById('psPushBtn');
+    btn.disabled = true;
+    psStatus_('psPushStatus', tr_('ps_pushing', 'Uploading... this can take a minute.'));
+    document.getElementById('psResults').innerHTML = '';
+    google.script.run.withSuccessHandler(function (r) {
+      btn.disabled = false;
+      var bad = r.results.filter(function (x) { return x.state === 'error'; }).length;
+      psStatus_('psPushStatus', bad ? fmt_(tr_('ps_done_err', 'Finished with {n} error(s).'), { n: bad })
+        : fmt_(tr_('ps_done', 'Done - uploaded to "{p}".'), { p: r.projectName }), bad ? 'err' : 'ok');
+      psRenderResults_(r.results);
+    }).withFailureHandler(function (e) { btn.disabled = false; psFail_('psPushStatus')(e); })
+      .apiPsPush({ dicts: dicts, langs: langs, overwrite: overwrite });
+  };
+  if (overwrite) showCustomConfirm(tr_('ps_overwrite_q', 'Really overwrite existing translations in Phrase with the texts from the app?'), go);
+  else go();
+}
+
+function psRenderResults_(rows) {
+  var n = function (s, k) { return s && s[k] != null ? s[k] : '-'; };
+  var st = function (r) {
+    if (r.state === 'success') return '<span class="psu-pill ok">OK</span>';
+    if (r.state === 'error') return '<span class="psu-pill err" title="' + escapeHtml(r.error || '') + '">' + escapeHtml(tr_('ps_error', 'Error')) + '</span>';
+    return '<span class="psu-pill">' + escapeHtml(r.state || '-') + '</span>';
+  };
+  document.getElementById('psResults').innerHTML = '<table style="margin-top:12px;"><thead><tr>' +
+    ['ps_lang:Language', 'ps_dicts:Dictionary', 'ps_col_keys:Keys', 'ps_col_new:New keys', 'ps_col_tr_new:New translations', 'ps_col_tr_upd:Updated', 'ps_col_state:Status']
+      .map(function (c) { var p = c.split(':'); return '<th>' + escapeHtml(tr_(p[0], p[1])) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' + rows.map(function (r) {
+      return '<tr><td>' + r.lang.toUpperCase() + (r.localeCreated ? ' <span class="psu-pill new">' + escapeHtml(tr_('ps_created', 'new')) + '</span>' : '') + '</td>' +
+        '<td>' + (r.dict === 'admin' ? escapeHtml(tr_('ps_dict_admin', 'Admin area')) : escapeHtml(tr_('ps_dict_app', 'App (user interface)'))) + '</td>' +
+        '<td>' + r.keys + '</td><td>' + n(r.summary, 'translation_keys_created') + '</td><td>' + n(r.summary, 'translations_created') +
+        '</td><td>' + n(r.summary, 'translations_updated') + '</td><td>' + st(r) + (r.error ? '<div style="font-size:11px;color:#c5221f;">' + escapeHtml(r.error) + '</div>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+</script>

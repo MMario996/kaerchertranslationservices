@@ -108,7 +108,8 @@ test('Startseite: Kacheln offen / diese Woche / ueberfaellig / fertig', () => {
   ], now);
   const ids = (list) => plain(list.map((p) => p.projectUid));
   assert.deepEqual(ids(b.open), ['late', 'fri', 'next', 'nodue']);
-  assert.deepEqual(ids(b.dueWeek), ['late', 'fri']);
+  // Ueberfaelliges hat eine eigene Karte und zaehlt nicht zu "diese Woche"
+  assert.deepEqual(ids(b.dueWeek), ['fri']);
   assert.deepEqual(ids(b.overdue), ['late']);
   assert.deepEqual(ids(b.done), ['done', 'old']);
   assert.deepEqual(ids(b.done30), ['done']);
@@ -145,4 +146,31 @@ test('Benachrichtigungen: Text mit Platzhaltern, unbekannter Typ faellt zurueck'
   assert.ok(!txt.includes('{'));
   assert.equal(ctx.notifText_({ type: 'whatever', projectName: 'X' }), 'X');
   assert.equal(ctx.fmt_('{a}-{b}', { a: 1 }), '1-{b}');
+});
+
+test('Startseite: Schnellsuche findet nach Name, ID, Sprache und Besitzer', () => {
+  const projects = [
+    { projectUid: 'UID1', projectName: 'Katalog 2027', targetLangs: ['fr', 'pl'], owner: 'anna@kaercher.com' },
+    { projectUid: 'UID2', projectName: 'Flyer', targetLang: 'es', owner: 'ben@kaercher.com' },
+    { projectUid: 'UID3', projectName: 'Katalog Kind', pivotRole: 'CHILD' }
+  ];
+  const ids = (q) => plain(ctx.homeSearchHits_(projects, q).map((p) => p.projectUid));
+  assert.deepEqual(ids('katalog'), ['UID1'], 'Pivot-Kinder nicht doppelt');
+  assert.deepEqual(ids('uid2'), ['UID2']);
+  assert.deepEqual(ids('pl'), ['UID1']);
+  assert.deepEqual(ids('ben@'), ['UID2']);
+  assert.deepEqual(ids('   '), []);
+});
+
+test('Startseite: Kachel-Filter fuer "Meine Projekte" (ueberfaellig / diese Woche / fertig 30 Tage)', () => {
+  const day = (d) => new Date(Date.now() + d * 86400000).toISOString();
+  run('globalProjects = ' + JSON.stringify([
+    { projectUid: 'late', status: 'NEW', dueDate: day(-3) },
+    { projectUid: 'soon', status: 'NEW', dueDate: day(0.1) },
+    { projectUid: 'done', status: 'COMPLETED', dueDate: day(-2) }
+  ]));
+  assert.deepEqual(plain([...ctx.homeFilterUids_('overdue')]), ['late']);
+  assert.deepEqual(plain([...ctx.homeFilterUids_('week')]), ['soon']);
+  assert.deepEqual(plain([...ctx.homeFilterUids_('done30')]), ['done']);
+  assert.equal(ctx.homeFilterUids_(''), null);
 });

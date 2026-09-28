@@ -29,7 +29,8 @@ function fillTable(projects) {
   projects.forEach(p => { if (p.pivotRole==='CHILD' && p.pivotLink) childByParentUid[p.pivotLink]=p; });
   const inView = projects.filter(p => p.pivotRole !== 'CHILD' && isArchived_(p) === historyShowArchive_);
   renderStatusChips_(inView);
-  const topLevel = inView.filter(p => historyStatusFilter_ === 'all' || statusGroup_(p.status) === historyStatusFilter_);
+  const dueSet = historyDueFilter_ ? homeFilterUids_(historyDueFilter_) : null;
+  const topLevel = inView.filter(p => (historyStatusFilter_ === 'all' || statusGroup_(p.status) === historyStatusFilter_) && (!dueSet || dueSet.has(p.projectUid)));
 
   if(!topLevel.length){t.innerHTML=`<tr class="empty-row"><td colspan="10"><div class="empty-state"><span class="material-icons-outlined">${historyShowArchive_?'inventory_2':'search_off'}</span><div>${escapeHtml(t_i18n_(currentLang, historyShowArchive_?'hs_empty_archive':'hs_empty'))}</div></div></td></tr>`;return;}
 
@@ -94,6 +95,7 @@ function fillTable(projects) {
 
 // --- Meine Projekte: Status-Chips, Archiv, Fristen, Mobile-Karten ----------
 let historyStatusFilter_ = 'all';
+let historyDueFilter_ = ''; // 'overdue' | 'week' | 'done30' - gesetzt von den Kacheln der Startseite
 let historyShowArchive_ = false;
 // Funktion statt Konstante: Texte erst beim Aufruf uebersetzen.
 const HISTORY_COL_KEYS_ = () => [['th_name',tr_('jx_9e727fd', 'Project')], [null,tr_('jx_b3acfd2', 'Phrase ID')], ['th_uploaded',tr_('jx_fe8d588', 'Uploaded')], ['th_source',tr_('jx_f31bbdd', 'Source')], ['th_targets',tr_('jx_c41a318', 'Target')], ['th_status',tr_('jx_ec53a8c', 'Status')], ['th_due',tr_('jx_d036392', 'Due')], ['th_shared',tr_('jx_a6156ea', 'Shared')], ['dl_btn_download',tr_('jx_801ab24', 'Download')], ['th_actions',tr_('jx_06df330', 'Actions')]];
@@ -138,12 +140,15 @@ function renderStatusChips_(projects) {
     `<button type="button" class="status-chip chip-${key}${historyStatusFilter_ === key ? ' active' : ''}" onclick="setHistoryStatusFilter('${key}')">
        <span class="material-icons-outlined">${icon}</span>${escapeHtml(t_i18n_(currentLang, 'hs_' + key))}<span class="chip-count">${counts[key]}</span>
      </button>`;
+  const dueKey = { overdue: ['home_k_overdue', 'Overdue'], week: ['home_k_week', 'Due this week'], done30: ['home_k_done30', 'Finished (30 days)'] }[historyDueFilter_];
   box.innerHTML = chip('all', 'apps') + chip('open', 'pending') + chip('done', 'task_alt') + chip('cancelled', 'block')
+    + (dueKey ? `<button type="button" class="status-chip active chip-due" onclick="setHistoryStatusFilter('all')">${escapeHtml(tr_(dueKey[0], dueKey[1]))}<span class="material-icons-outlined">close</span></button>` : '')
     + (historyShowArchive_ ? `<span class="archive-hint"><span class="material-icons-outlined">inventory_2</span>${escapeHtml(t_i18n_(currentLang, 'hs_archive_hint'))}</span>` : '');
 }
 
 function setHistoryStatusFilter(key) {
   historyStatusFilter_ = key;
+  historyDueFilter_ = '';
   globalSearch();
 }
 
@@ -157,6 +162,7 @@ function toggleArchiveView() {
       : '<i class="material-icons-outlined">archive</i> <span data-i18n="hs_show_archive">' + escapeHtml(tr_('hs_show_archive', 'Show Archive')) + '</span>';
   }
   historyStatusFilter_ = 'all';
+  historyDueFilter_ = '';
   globalSearch();
 }
 
