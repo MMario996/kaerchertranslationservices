@@ -8,11 +8,16 @@ function doGet(e) {
 
 /**
  * Bindet eine weitere HTML-Datei (Styles.html, Js*.html) in Index.html ein:
- * <?!= include('JsCore'); ?>. Rein fuer die Wartbarkeit - die ausgelieferte
- * Seite ist genauso gross wie vorher, nur der Quelltext ist aufgeteilt.
+ * <?!= include('JsCore'); ?>.
+ *
+ * GROESSENGRENZE: Apps Script schneidet das ausgelieferte Dokument ab etwa
+ * 600 KB ab - mitten in einem <script>-Block, danach ist keine Funktion mehr
+ * definiert und die App reagiert nicht mehr. Deshalb wird hier die Einrueckung
+ * entfernt (spart ~30 KB, fuer HTML/CSS/JS bedeutungslos), und
+ * tests/ui.consistency.test.js prueft die Gesamtgroesse.
  */
 function include(name) {
-  return HtmlService.createHtmlOutputFromFile(name).getContent();
+  return HtmlService.createHtmlOutputFromFile(name).getContent().replace(/^[ \t]+/gm, "");
 }
 
 /**
@@ -35,6 +40,7 @@ function apiGetConfig(impersonateEmail, uiLang) {
     cfg.i18nLang = uiLang;
     cfg.i18nDict = I18N_DICTS_[uiLang];
   }
+  if (typeof I18N_DICTS_ !== "undefined") cfg.i18nEn = I18N_DICTS_.en;
   return cfg;
 }
 

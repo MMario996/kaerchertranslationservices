@@ -58,9 +58,37 @@ function applyUiPrefs_(p) {
     dark = darkMql_.matches;
   }
   const root = document.documentElement;
-  if (dark) root.setAttribute('data-theme', 'dark'); else root.removeAttribute('data-theme');
+  if (dark) { root.setAttribute('data-theme', 'dark'); ensureDarkCss_(); } else root.removeAttribute('data-theme');
   const fs = Number(p.fontScale) || 1;
   if (fs !== 1) root.setAttribute('data-font', String(fs).replace('.', '')); else root.removeAttribute('data-font');
+}
+
+// Das CSS des dunklen Modus steckt nicht im Startdokument (Apps Script schneidet
+// zu grosse Seiten ab), sondern kommt bei Bedarf vom Server und wird im Browser
+// zwischengespeichert. Der Kopf von Index.html setzt es aus dem Speicher sofort ein.
+let darkCssChecked_ = false;
+function setDarkCss_(css) {
+  let st = document.getElementById('darkThemeCss');
+  if (!st) { st = document.createElement('style'); st.id = 'darkThemeCss'; document.head.appendChild(st); }
+  if (st.textContent !== css) st.textContent = css;
+}
+
+function ensureDarkCss_() {
+  if (!document.getElementById('darkThemeCss')) {
+    try { const cached = localStorage.getItem('kts_dark_css'); if (cached) setDarkCss_(cached); } catch (e) {}
+  }
+  if (darkCssChecked_) return;
+  darkCssChecked_ = true;
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.css) return;
+    setDarkCss_(res.css);
+    try {
+      if (localStorage.getItem('kts_dark_css_v') !== res.version) {
+        localStorage.setItem('kts_dark_css', res.css);
+        localStorage.setItem('kts_dark_css_v', res.version);
+      }
+    } catch (e) {}
+  }).withFailureHandler(() => { darkCssChecked_ = false; }).apiGetDarkThemeCss();
 }
 
 function storeUiPrefsLocal_(p) {

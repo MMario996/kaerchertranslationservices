@@ -58,12 +58,12 @@ test('Jeder onclick/onchange-Aufruf zeigt auf eine vorhandene Funktion', () => {
 });
 
 test('Jeder verwendete Uebersetzungsschluessel existiert auf Deutsch und Englisch', () => {
-  const core = scriptsOf('JsCore.html');
-  const dictKeys = (lang) => {
-    const start = core.search(new RegExp('\\n\\s*' + lang + '\\s*:\\s*\\{'));
-    const block = core.slice(start, core.indexOf('\n  },', start) > 0 ? core.indexOf('\n  },', start) : undefined);
-    return new Set([...block.matchAll(/^\s*"([a-z0-9_]+)"\s*:/gm)].map((m) => m[1]));
-  };
+  // Die Woerterbuecher liegen serverseitig (I18nDicts.gs), nicht mehr im Startdokument.
+  const vm = require('vm');
+  const dictCtx = {};
+  vm.createContext(dictCtx);
+  vm.runInContext(read('I18nDicts.gs') + '\n;this.__dicts = I18N_DICTS_;', dictCtx);
+  const dictKeys = (lang) => new Set(Object.keys(dictCtx.__dicts[lang] || {}));
   const en = dictKeys('en');
   const de = dictKeys('de');
   const code = [index, ...jsFiles.map(read)].join('\n');
@@ -77,4 +77,13 @@ test('Jeder verwendete Uebersetzungsschluessel existiert auf Deutsch und Englisc
   const missingDe = [...used].filter((k) => !k.endsWith('_') && !de.has(k));
   assert.deepEqual(missingEn, [], 'fehlt in en');
   assert.deepEqual(missingDe, [], 'fehlt in de');
+});
+
+test('Ausgeliefertes Startdokument bleibt unter der Apps-Script-Grenze', () => {
+  // Apps Script schneidet die Seite ab ca. 600 KB mitten im <script> ab (590 KB
+  // liefen noch, 652 KB nicht mehr). Groesseres gehoert in nachgeladene Teile
+  // (GuideContent, Admin, DarkTheme, Woerterbuecher in I18nDicts.gs).
+  const page = index.replace(/<\?!= include\('(\w+)'\); \?>/g, (m, n) => read(n + '.html').replace(/^[ \t]+/gm, ''));
+  const bytes = Buffer.byteLength(page, 'utf8');
+  assert.ok(bytes < 560000, 'Startdokument ist ' + bytes + ' Bytes gross (Grenze 560000)');
 });

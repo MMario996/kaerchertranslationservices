@@ -13,14 +13,17 @@
 // Kraeftige Farben (Kaercher-Gelb, Statusfarben) bleiben unveraendert.
 //
 // Aufruf nach CSS-Aenderungen:  node tools/gen-dark-theme.js
-// Der erzeugte Block steht in Styles.html zwischen den DARK-THEME-Markern und
-// wird bei jedem Lauf komplett ersetzt - dort nichts von Hand aendern,
-// Handkorrekturen gehoeren in DARK_BASE_ unten.
+// Ergebnis: DarkTheme.html (reines CSS). Es steckt NICHT im Startdokument,
+// sondern wird nur bei aktivem dunklem Modus per apiGetDarkThemeCss()
+// nachgeladen und im Browser zwischengespeichert (JsPersonal.html) - das
+// Startdokument darf nicht weiter wachsen. Die Datei wird bei jedem Lauf
+// komplett ersetzt; Handkorrekturen gehoeren in DARK_BASE_ unten.
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const STYLES = path.join(ROOT, 'Styles.html');
+const DARK_FILE = path.join(ROOT, 'DarkTheme.html');
 const BEGIN = '/* DARK-THEME:BEGIN - generiert von tools/gen-dark-theme.js, nicht von Hand aendern */';
 const END = '/* DARK-THEME:END */';
 const D = 'html[data-theme="dark"]';
@@ -197,7 +200,7 @@ function convertRule(rule) {
 
 // --- Inline-Styles aus Markup und JS ------------------------------------------
 function inlineRules() {
-  const files = fs.readdirSync(ROOT).filter((f) => /\.html$/.test(f) && f !== 'Styles.html' && !/ /.test(f));
+  const files = fs.readdirSync(ROOT).filter((f) => /\.html$/.test(f) && f !== 'Styles.html' && f !== 'DarkTheme.html' && !/ /.test(f));
   const seen = { bg: new Set(), color: new Set(), border: new Set() };
   files.forEach((f) => {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -281,32 +284,34 @@ const DARK_BASE_ = `
 `;
 
 function build() {
-  const styles = fs.readFileSync(STYLES, 'utf8');
+  // Aeltere Versionen haben den Block direkt in Styles.html geschrieben - entfernen.
+  let styles = fs.readFileSync(STYLES, 'utf8');
   const b = styles.indexOf(BEGIN);
   const e = styles.indexOf(END);
-  const withoutBlock = b !== -1 && e !== -1 ? styles.slice(0, b) + styles.slice(e + END.length) : styles;
-  const cssStart = withoutBlock.indexOf('<style>') + '<style>'.length;
-  const cssEnd = withoutBlock.lastIndexOf('</style>');
-  const css = stripComments(withoutBlock.slice(cssStart, cssEnd));
+  if (b !== -1 && e !== -1) {
+    styles = styles.slice(0, b).replace(/[ \t]*$/, '') + styles.slice(e + END.length).replace(/^\n/, '');
+    fs.writeFileSync(STYLES, styles);
+  }
+  const cssStart = styles.indexOf('<style>') + '<style>'.length;
+  const cssEnd = styles.lastIndexOf('</style>');
+  const css = stripComments(styles.slice(cssStart, cssEnd));
 
   const converted = parseRules(css).flatMap(convertRule);
-  const plain = converted.filter((r) => !r.media).map((r) => '  ' + r.css);
+  const plain = converted.filter((r) => !r.media).map((r) => r.css);
   const byMedia = {};
-  converted.filter((r) => r.media).forEach((r) => { (byMedia[r.media] = byMedia[r.media] || []).push('    ' + r.css); });
-  const media = Object.keys(byMedia).map((m) => `  ${m} {\n${byMedia[m].join('\n')}\n  }`);
+  converted.filter((r) => r.media).forEach((r) => { (byMedia[r.media] = byMedia[r.media] || []).push('  ' + r.css); });
+  const media = Object.keys(byMedia).map((m) => `${m} {\n${byMedia[m].join('\n')}\n}`);
+  const inline = inlineRules();
 
-  const block = [BEGIN, ...plain, ...media, '  /* Inline-Styles aus Markup/JS */', ...inlineRules().map((l) => '  ' + l),
-    '  /* Grundregeln + Handkorrekturen (DARK_BASE_) */', DARK_BASE_.replace(/^\n/, '').replace(/\n$/, ''), '  ' + END].join('\n');
-
-  const insertAt = withoutBlock.lastIndexOf('</style>');
-  const next = withoutBlock.slice(0, insertAt).replace(/\s*$/, '\n') + '  ' + block + '\n' + withoutBlock.slice(insertAt);
-  fs.writeFileSync(STYLES, next);
-  return { rules: converted.length, inline: inlineRules().length };
+  const out = [BEGIN, ...plain, ...media, '/* Inline-Styles aus Markup/JS */', ...inline,
+    '/* Grundregeln + Handkorrekturen (DARK_BASE_) */', DARK_BASE_.replace(/^\n/, '').replace(/\n$/, '').replace(/^  /gm, ''), END].join('\n') + '\n';
+  fs.writeFileSync(DARK_FILE, out);
+  return { rules: converted.length, inline: inline.length, bytes: Buffer.byteLength(out) };
 }
 
 if (require.main === module) {
   const r = build();
-  console.log(`Dark theme: ${r.rules} CSS rules, ${r.inline} inline rules -> Styles.html`);
+  console.log(`Dark theme: ${r.rules} CSS rules, ${r.inline} inline rules -> DarkTheme.html (${r.bytes} bytes)`);
 }
 
 module.exports = { build, darkBg, lightText, darkBorder };

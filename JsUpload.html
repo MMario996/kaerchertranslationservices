@@ -463,7 +463,8 @@ function goUp() {
   if (currentParentId) loadDriveFolder(currentParentId);
 }
 
-const statusMsgs = [
+// Funktion statt Konstante: Texte erst beim Aufruf uebersetzen.
+const statusMsgs_ = () => [
   tr_('jx_169d746', 'Analyzing files...'),
   tr_('jx_29b7e48', 'Juggling 50 languages at once...'),
   tr_('jx_887bad7', 'Teaching myself a new language...'),
@@ -481,7 +482,7 @@ const statusMsgs = [
 ];
 let stInt=null, stIdx=0;
 function startStatusAnimation() {
-  const msgEl=document.getElementById('statusMsg'); stIdx=0; msgEl.innerText=statusMsgs[0]; msgEl.classList.add('msg-enter');
+  const msgEl=document.getElementById('statusMsg'); stIdx=0; const statusMsgs=statusMsgs_(); msgEl.innerText=statusMsgs[0]; msgEl.classList.add('msg-enter');
   stInt=setInterval(()=>{
     msgEl.classList.remove('msg-enter'); msgEl.classList.add('msg-exit');
     setTimeout(()=>{stIdx=(stIdx+1)%statusMsgs.length;msgEl.innerText=statusMsgs[stIdx];msgEl.classList.remove('msg-exit');msgEl.classList.add('msg-enter');},500);
