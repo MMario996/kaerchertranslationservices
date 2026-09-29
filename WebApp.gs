@@ -42,16 +42,24 @@ function apiGetGuideContent() {
   return HtmlService.createHtmlOutputFromFile("GuideContent").getContent();
 }
 
+/** Woerterbuch mit Phrase-Uebersteuerungen, sonst das eingebaute. */
+function uiDict_(which, lang) {
+  if (typeof psMergedDict_ === "function") return psMergedDict_(which, lang);
+  var src = which === "admin" ? ADMIN_I18N_ : I18N_DICTS_;
+  return src[lang] || null;
+}
+
 function apiGetConfig(impersonateEmail, uiLang) {
   const cfg = getConfig_(impersonateEmail);
   // Das Woerterbuch der aktiven UI-Sprache reist mit der ohnehin noetigen
   // Config-Antwort mit - so kostet das Auslagern von fr/es/pt/zh keinen
   // zusaetzlichen Roundtrip und es gibt beim Start kein Sprach-Flackern.
+  // uiDict_: inkl. der aus Phrase Strings zurueckgeholten Texte (PhraseStringsSync.gs).
   if (uiLang && typeof I18N_DICTS_ !== "undefined" && I18N_DICTS_[uiLang]) {
     cfg.i18nLang = uiLang;
-    cfg.i18nDict = I18N_DICTS_[uiLang];
+    cfg.i18nDict = uiDict_("app", uiLang);
   }
-  if (typeof I18N_DICTS_ !== "undefined") cfg.i18nEn = I18N_DICTS_.en;
+  if (typeof I18N_DICTS_ !== "undefined") cfg.i18nEn = uiDict_("app", "en");
   return cfg;
 }
 

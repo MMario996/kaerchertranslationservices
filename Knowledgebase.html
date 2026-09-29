@@ -459,6 +459,7 @@ subject_token=&lt;Plattform-Token&gt;
 <tr><td><code>User_Presets</code>, <code>UserPrefs</code></td><td>gespeicherte Formular-Vorlagen und Nutzereinstellungen.</td></tr>
 <tr><td><code>PivotTemplateLinks</code>, <code>PivotLanguageMap</code></td><td>Pivot-Konfiguration.</td></tr>
 <tr><td><code>CalendarSync</code>, <code>NotificationLog</code></td><td>Kalender-Verknüpfungen, Verlauf der Glocke.</td></tr>
+<tr><td><code>UiTranslations</code></td><td>Aus Phrase Strings zurückgeholte Oberflächentexte (Dict | Lang | Key | Text | Updated). Nur Abweichungen vom Code; Leeren über Translate UI → „Texte aus Phrase verwerfen“.</td></tr>
 </table>
 <h3>OPS (Betrieb)</h3>
 <table>
@@ -501,7 +502,7 @@ subject_token=&lt;Plattform-Token&gt;
 <tr><td><code>ADMIN_EMAILS</code></td><td>Admins, kommagetrennt</td></tr>
 <tr><td><code>PHRASE_API_TOKEN</code> (Fallback <code>PHRASE_TOKEN</code>, <code>GLOBAL_PHRASE_TOKEN</code>)</td><td>Phrase-TMS-Token des Funktionsnutzers</td></tr>
 <tr><td><code>PHRASE_API_BASE_URL</code></td><td>TMS-Basis, Standard <code>https://cloud.memsource.com/web</code></td></tr>
-<tr><td><code>PHRASE_STRINGS_TOKEN</code>, <code>PHRASE_STRINGS_PROJECT</code>, <code>PHRASE_STRINGS_REGION</code></td><td>Phrase Strings (Translate UI)</td></tr>
+<tr><td><code>PHRASE_STRINGS_TOKEN</code>, <code>PHRASE_STRINGS_PROJECT</code>, <code>PHRASE_STRINGS_REGION</code>, <code>PHRASE_STRINGS_NIGHTLY</code>, <code>PHRASE_STRINGS_LAST_PULL</code></td><td>Phrase Strings (Translate UI, nächtlicher Abgleich)</td></tr>
 <tr><td><code>CHAT_CLIENT_EMAIL</code>, <code>CHAT_PRIVATE_KEY</code></td><td>Service Account der Google-Chat-App</td></tr>
 <tr><td><code>GEMINI_API_KEY</code></td><td>Chatbot</td></tr>
 <tr><td><code>TERMBASE_UID</code></td><td>Termbase für <code>/termsearch</code></td></tr>

@@ -47,7 +47,8 @@ async function openApp(viewport, extraMocks) {
       apiGetConfig: { i18nEn: L.i18n.en, currentUser: me, effectiveUser: me, isAdmin: true, effectiveIsAdmin: true, templates: {}, languages: {}, sizeLimitMb: 100 },
       apiGetHomeUi: { css: homeCss, js: homeJs },
       apiGetMyProjects: { projects: projects, email: me },
-      apiGetAdminContent: L.admin
+      apiGetAdminContent: L.admin,
+      apiGetTranslateUiContent: L.translate
     }, extra ? (0, eval)('(' + extra + ')') : {});
   }, { L: parts, me: ME, projects: PROJECTS, extra: extraMocks || '' });
   await page.goto('file://' + file);
@@ -181,6 +182,32 @@ test('Knowledge Base: Inhaltsverzeichnis, Suche mit Treffern, keine Fehler', asy
   await page.setViewportSize({ width: 390, height: 780 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Translate UI: Laden aus Phrase zeigt Ergebnis, Abdeckung und Nacht-Abgleich', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiPsGetConfig: { project: 'P1', region: 'eu', hasToken: true, langs: ['de', 'en'], counts: { app: { de: 3, en: 3 }, admin: { de: 1, en: 1 } }, nightly: true, lastPull: '' },
+    apiPsCoverage: { app: { de: { total: 3, missing: 1, sample: ['only_en'], overrides: 0 }, en: { total: 3, missing: 0, sample: [], overrides: 0 } },
+                     admin: { de: { total: 1, missing: 0, sample: [], overrides: 0 }, en: { total: 1, missing: 0, sample: [], overrides: 0 } } },
+    apiPsPull: (sel) => ({ projectName: 'P1', results: [
+      { lang: 'de', dict: 'app', state: 'success', received: 3, overrides: 2, rejectedCount: 1, rejected: [{ key: 'count', reason: 'Platzhalter <x>' }] },
+      { lang: 'en', dict: 'app', state: 'no-locale' }] })
+  }`);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('translate'));
+  await page.waitForFunction(() => document.querySelector('#psCoverage table'));
+  assert.equal(await page.isChecked('#psNightly'), true);
+  assert.match(await page.locator('#psCoverage').innerText(), /1/);
+  await page.click('#psPullBtn');
+  await page.waitForFunction(() => document.querySelector('#psPullResults table'));
+  const txt = await page.locator('#psPullResults').innerText();
+  assert.match(txt, /DE/);
+  assert.match(await page.locator('#psPullStatus').innerText(), /2/);
+  const calls = await page.evaluate(() => __calls.filter((c) => c.fn === 'apiPsPull').map((c) => c.args[0]));
+  assert.deepEqual(calls[0], { dicts: ['app', 'admin'], langs: ['de', 'en'] });
+  assert.equal(await page.locator('#psPullResults details div').innerHTML(), 'count: Platzhalter &lt;x&gt;', 'Gruende escaped');
   assert.deepEqual(errors, []);
   await page.close();
 });

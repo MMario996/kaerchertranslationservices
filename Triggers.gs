@@ -29,6 +29,12 @@ function setupAllTriggers() {
     .create();
   console.log("\u2022 Chat-Cleanup: täglich 03:00");
 
+  // ?? 3. Phrase Strings - naechtlich 02:00 (nur wenn in "Translate UI" eingeschaltet)
+  if (PropertiesService.getScriptProperties().getProperty("PHRASE_STRINGS_NIGHTLY") === "true") {
+    ScriptApp.newTrigger("psNightlySync_").timeBased().atHour(2).everyDays(1).create();
+    console.log("\u2022 Phrase Strings: naechtlich 02:00");
+  }
+
   // Script Property setzen damit der Toggle in der UI korrekt angezeigt wird
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "true");
 

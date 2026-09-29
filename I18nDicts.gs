@@ -6066,5 +6066,6 @@ var I18N_DICTS_ = {
 };
 
 function apiGetI18nDict(lang) {
-  return (lang && I18N_DICTS_[lang]) ? I18N_DICTS_[lang] : null;
+  if (!lang || !I18N_DICTS_[lang]) return null;
+  return typeof uiDict_ === "function" ? uiDict_("app", lang) : I18N_DICTS_[lang];
 }
