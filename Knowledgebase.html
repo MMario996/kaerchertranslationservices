@@ -80,6 +80,10 @@
     main { padding-top:12px; }
     section.kb { padding:18px 16px; }
   }
+  @media (prefers-color-scheme: dark) {
+    .toc li a.active, .toc li li a.active { background:var(--y); color:#000; }
+    .top-link, .menu-btn { background:var(--y) !important; color:#000 !important; }
+  }
   @media print { nav.toc, .menu-btn, .top-link, #q { display:none !important; } .layout { display:block; } section.kb { break-inside:avoid-page; border:none; } details { border:none; } details > * { display:block; } }
 </style>
 </head>
@@ -636,7 +640,9 @@ subject_token=&lt;Plattform-Token&gt;
     sections.forEach(function (s, i) {
       s.innerHTML = originals[i];
       if (!term) { s.classList.remove('hidden'); return; }
-      var found = s.textContent.toLowerCase().indexOf(term.toLowerCase()) >= 0;
+      var clone = s.cloneNode(true);
+      Array.prototype.forEach.call(clone.querySelectorAll('svg'), function (x) { x.remove(); });
+      var found = clone.textContent.toLowerCase().indexOf(term.toLowerCase()) >= 0;
       s.classList.toggle('hidden', !found);
       if (!found) return;
       hits++;
@@ -653,6 +659,14 @@ subject_token=&lt;Plattform-Token&gt;
       Array.prototype.forEach.call(s.querySelectorAll('details'), function (d) { if (d.querySelector('mark')) d.open = true; });
     });
     document.getElementById('noHits').style.display = term && !hits ? 'block' : 'none';
+    // Inhaltsverzeichnis mitfiltern und zum ersten Treffer springen.
+    Array.prototype.forEach.call(toc.children, function (li, i) {
+      li.classList.toggle('hidden', sections[i].classList.contains('hidden'));
+    });
+    var first = term && document.querySelector('section.kb:not(.hidden) mark');
+    if (first) first.scrollIntoView({ block: 'center' });
+    else if (!term) window.scrollTo(0, 0);
+    mark();
   }
 })();
 </script>
