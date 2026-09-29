@@ -39,7 +39,7 @@ async function openApp(viewport, extraMocks, opts) {
   if (opts && opts.blockFonts) await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(({ L, me, projects, extra }) => {
+  await page.addInitScript(({ L, me, projects, extra, patch }) => {
     const homeCss = (L.home.match(/<style>([\s\S]*?)<\/style>/) || ['', ''])[1];
     const homeJs = (L.home.match(/<script>([\s\S]*?)<\/script>/) || ['', ''])[1];
     window.__mock = Object.assign({
@@ -49,9 +49,11 @@ async function openApp(viewport, extraMocks, opts) {
       apiGetHomeUi: { css: homeCss, js: homeJs },
       apiGetMyProjects: { projects: projects, email: me },
       apiGetAdminContent: L.admin,
-      apiGetTranslateUiContent: L.translate
+      apiGetTranslateUiContent: L.translate,
+      apiGetLazyScript: (n) => L.lazy[n]
     }, extra ? (0, eval)('(' + extra + ')') : {});
-  }, { L: parts, me: ME, projects: PROJECTS, extra: extraMocks || '' });
+    if (patch) Object.assign(window.__mock.apiGetConfig, patch);
+  }, { L: parts, me: ME, projects: PROJECTS, extra: extraMocks || '', patch: (opts && opts.configPatch) || null });
   await page.goto('file://' + file);
   await page.waitForFunction(() => document.querySelector('#homeRoot .h-hero'), null, { timeout: 15000 });
   return { page, errors };
@@ -243,6 +245,19 @@ test('Icon-Schrift blockiert: keine Icon-Namen als Text sichtbar', async () => {
   assert.deepEqual(words, []);
   const close = await page.evaluate(() => { const s = document.createElement('span'); s.className = 'material-icons-outlined'; s.textContent = 'close'; document.body.appendChild(s); return new Promise((r) => setTimeout(() => r(s.textContent), 100)); });
   assert.equal(close, '\u2715', 'spaeter eingefuegte Icons werden ebenfalls ersetzt');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Campus-Skript wird erst beim Oeffnen des Reiters geladen', async () => {
+  const { page, errors } = await openApp(null, null, { configPatch: { isAdmin: false, effectiveIsAdmin: false, isArticulate: false } });
+  assert.equal(await page.evaluate(() => typeof switchArtSubtab), 'undefined', 'nicht im Startdokument');
+  await page.evaluate(() => { document.getElementById('btn-nav-articulate').style.display = ''; switchTab('articulate'); });
+  await page.waitForFunction(() => typeof switchArtSubtab === 'function');
+  const loads = await page.evaluate(() => __calls.filter((c) => c.fn === 'apiGetLazyScript').length);
+  assert.equal(loads, 1);
+  await page.evaluate(() => { switchTab('home'); switchTab('articulate'); });
+  assert.equal(await page.evaluate(() => __calls.filter((c) => c.fn === 'apiGetLazyScript').length), 1, 'nur einmal geladen');
   assert.deepEqual(errors, []);
   await page.close();
 });

@@ -32,6 +32,19 @@ function include(name) {
 }
 
 /**
+ * Skripte, die nicht im Startdokument stecken, sondern beim ersten Bedarf
+ * nachgeladen werden (ensureScript_ in JsNavigation.html) - haelt die Seite
+ * unter der Apps-Script-Groessengrenze. Nur diese Namen sind erlaubt.
+ */
+var LAZY_SCRIPTS_ = ["JsCampus"];
+
+function apiGetLazyScript(name) {
+  if (LAZY_SCRIPTS_.indexOf(name) < 0) throw new Error("Unknown script: " + name);
+  var src = HtmlService.createHtmlOutputFromFile(name).getContent();
+  return (src.match(/<script>([\s\S]*)<\/script>/) || ["", ""])[1];
+}
+
+/**
  * Liefert die ausgelagerten Guide-/FAQ-Inhalte (GuideContent.html) als HTML-String.
  * Diese ~144 KB stecken bewusst nicht mehr in Index.html: das ausgelieferte
  * Dokument wurde dadurch so gross, dass Apps Script es beim Schreiben in den

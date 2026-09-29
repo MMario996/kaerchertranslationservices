@@ -636,7 +636,7 @@ function triggerArticulateAutoPreview_(uploadResult) {
         if (r.success) ok.push({ id: r.id, index: i });
         else failed.push((r.courseName || (tr_('jx_cf51066', 'Job') + ' ' + (i + 1))) + ': ' + (r.error || tr_('jx_2a73840', 'Unbekannter Fehler')));
       });
-      loadArticulateProjects();
+      if (typeof loadArticulateProjects === 'function') loadArticulateProjects();
       if (ok.length) {
         showCustomAlert(
           tr_('jx_01a8eb1', 'SCORM-Preview für') + ' ' + ok.length + ' ' + tr_('jx_6005e1e', 'Zielsprache(n) eingerichtet. Sobald ein Übersetzungsschritt') + ' ' +

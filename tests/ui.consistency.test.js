@@ -16,7 +16,9 @@ const includes = [...index.matchAll(/<\?!= include\('(\w+)'\); \?>/g)].map((m) =
 const jsFiles = includes.filter((n) => n.startsWith('Js')).map((n) => n + '.html');
 // Nachgeladene Teile der Nutzeroberflaeche (nicht im Startdokument, siehe UserPrefs.gs).
 const lazyUserFiles = ['HomeUi.html', 'PrefsUi.html'];
-const uiFiles = ['Index.html', ...jsFiles, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
+// Nachgeladene Skripte (apiGetLazyScript, WebApp.gs).
+const lazyScripts = ['JsCampus.html'];
+const uiFiles = ['Index.html', ...jsFiles, ...lazyScripts, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
 
 test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', () => {
   assert.ok(includes.includes('Styles'));
@@ -44,7 +46,7 @@ test('Index.html enthaelt keine Template-Scriptlets ausser include()', () => {
 });
 
 test('Alle Skripte sind syntaktisch gueltig', () => {
-  [...jsFiles, 'HomeUi.html', 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
+  [...jsFiles, ...lazyScripts, 'HomeUi.html', 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
     assert.doesNotThrow(() => new vm.Script(scriptsOf(f), { filename: f }), f);
   });
   fs.readdirSync(REPO_ROOT).filter((f) => f.endsWith('.gs')).forEach((f) => {
@@ -77,7 +79,7 @@ test('Jeder verwendete Uebersetzungsschluessel existiert auf Deutsch und Englisc
   const dictKeys = (lang) => new Set(Object.keys(dictCtx.__dicts[lang] || {}));
   const en = dictKeys('en');
   const de = dictKeys('de');
-  const code = [index, ...jsFiles.map(read), ...lazyUserFiles.map(read)].join('\n');
+  const code = [index, ...jsFiles.map(read), ...lazyScripts.map(read), ...lazyUserFiles.map(read)].join('\n');
   const used = new Set([
     ...[...code.matchAll(/data-i18n(?:-placeholder|-title)?="([a-z0-9_]+)"/g)].map((m) => m[1]),
     ...[...code.matchAll(/\btr_\('([a-z0-9_]+)'/g)].map((m) => m[1]),
@@ -128,4 +130,15 @@ test('Knowledge Base ist eine eigenstaendige Seite ohne Scriptlets und externe S
   const markup = kb.replace(/<script>[\s\S]*?<\/script>/g, '');
   const broken = [...markup.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]).filter((id) => !ids.has(id));
   assert.deepEqual(broken, [], 'interne Links zeigen auf vorhandene Abschnitte');
+});
+
+test('Nachgeladene Skripte: nicht im Startdokument, vom Server erlaubt, in SelfTests bekannt', () => {
+  const web = read('WebApp.gs');
+  const allowed = (web.match(/var LAZY_SCRIPTS_ = \[([^\]]*)\]/) || ['', ''])[1];
+  lazyScripts.forEach((f) => {
+    const n = f.replace('.html', '');
+    assert.ok(!includes.includes(n), n + ' steckt noch im Startdokument');
+    assert.ok(allowed.includes('"' + n + '"'), n + ' fehlt in LAZY_SCRIPTS_');
+    assert.ok(read('SelfTests.gs').includes('"' + n + '"'), n + ' fehlt in SELF_TEST_INCLUDE_FILES_');
+  });
 });

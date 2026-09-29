@@ -508,6 +508,8 @@ function loadAppConfig() {
         initPersonal_(config);
         const kb = document.getElementById('kbHelpLink');
         if (kb && config.kbUrl) { kb.href = config.kbUrl; kb.style.display = ''; }
+        // Campus-Skript fuer Berechtigte schon im Hintergrund holen (sonst beim Oeffnen des Reiters).
+        if (config.isArticulate || config.effectiveIsAdmin) setTimeout(() => ensureScript_('JsCampus'), 1500);
 
         let startTab = startTabWithHome_(computeStartTab_(config));
         if (!currentImpersonationEmail) {
