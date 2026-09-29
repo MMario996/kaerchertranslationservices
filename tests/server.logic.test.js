@@ -154,3 +154,26 @@ test('User Template Debugger: Gruende passen zur Sichtbarkeitsregel', () => {
   assert.deepEqual(plain(cfg.explainTemplateMismatch_({ client: 'KA', domain: 'marketing', subdomain: 'x', businessUnit: '' }, full)),
     ["Client: Template 'KA' nicht in Nutzer 'KAG, KNA'", 'Business Unit fehlt am Template'], 'kein Teilstring-Treffer');
 });
+
+test('doGet: ?page=kb liefert die Knowledge Base (einbettbar), sonst das Portal', () => {
+  const calls = [];
+  const out = (kind, name) => {
+    const o = { kind, name, xfo: null };
+    o.setTitle = () => o; o.addMetaTag = () => o; o.evaluate = () => o;
+    o.setXFrameOptionsMode = (m) => { o.xfo = m; return o; };
+    return o;
+  };
+  const web = load(['WebApp.gs'], {
+    HtmlService: {
+      XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' },
+      createHtmlOutputFromFile: (n) => { calls.push(n); return out('file', n); },
+      createTemplateFromFile: (n) => { calls.push(n); return out('template', n); }
+    }
+  });
+  const kb = web.doGet({ parameter: { page: 'KB' } });
+  assert.equal(kb.name, 'Knowledgebase');
+  assert.equal(kb.xfo, 'ALLOWALL');
+  assert.equal(web.doGet({ parameter: { page: 'knowledgebase' } }).name, 'Knowledgebase');
+  assert.equal(web.doGet({ parameter: {} }).name, 'Index');
+  assert.equal(web.doGet(undefined).name, 'Index');
+});

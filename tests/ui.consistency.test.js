@@ -116,3 +116,16 @@ test('HomeUi.html parst noch, nachdem Apps Script "//"-Kommentare entfernt hat',
   const stripped = scriptsOf('HomeUi.html').split('\n').map((l) => l.replace(/(^|[^:])\/\/.*$/, '$1')).join('\n');
   assert.doesNotThrow(() => new vm.Script(stripped), 'HomeUi.html');
 });
+
+test('Knowledge Base ist eine eigenstaendige Seite ohne Scriptlets und externe Skripte', () => {
+  const kb = read('Knowledgebase.html');
+  assert.ok(/^<!DOCTYPE html>/i.test(kb));
+  assert.ok(!/<\?/.test(kb), 'keine Apps-Script-Scriptlets');
+  assert.ok(!/<script[^>]+src=/.test(kb), 'keine externen Skripte');
+  assert.ok(Buffer.byteLength(kb, 'utf8') < 400000, 'unter der Apps-Script-Grenze');
+  assert.doesNotThrow(() => new vm.Script(scriptsOf('Knowledgebase.html')));
+  const ids = new Set([...kb.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  const markup = kb.replace(/<script>[\s\S]*?<\/script>/g, '');
+  const broken = [...markup.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]).filter((id) => !ids.has(id));
+  assert.deepEqual(broken, [], 'interne Links zeigen auf vorhandene Abschnitte');
+});

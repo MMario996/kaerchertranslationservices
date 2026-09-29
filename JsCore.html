@@ -444,6 +444,8 @@ function loadAppConfig() {
 
         initForm(config);
         initPersonal_(config);
+        const kb = document.getElementById('kbHelpLink');
+        if (kb && config.kbUrl) { kb.href = config.kbUrl; kb.style.display = ''; }
 
         let startTab = startTabWithHome_(computeStartTab_(config));
         if (!currentImpersonationEmail) {

@@ -159,3 +159,28 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Knowledge Base: Inhaltsverzeichnis, Suche mit Treffern, keine Fehler', async () => {
+  const kbFile = path.join(path.dirname(file), 'kb.html');
+  fs.writeFileSync(kbFile, fs.readFileSync(path.join(__dirname, '..', 'Knowledgebase.html'), 'utf8'));
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('file://' + kbFile);
+  const tocCount = await page.locator('#tocList > li').count();
+  const sections = await page.locator('section.kb').count();
+  assert.equal(tocCount, sections);
+  await page.fill('#q', 'Child Project Creation');
+  await page.waitForFunction(() => document.querySelectorAll('mark').length > 0);
+  const visible = await page.locator('section.kb:not(.hidden)').count();
+  assert.ok(visible > 0 && visible < sections, 'Suche blendet Abschnitte aus');
+  await page.fill('#q', 'zzzz-nichts');
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('noHits')).display === 'block');
+  await page.fill('#q', '');
+  await page.waitForFunction((n) => document.querySelectorAll('section.kb:not(.hidden)').length === n, sections);
+  await page.setViewportSize({ width: 390, height: 780 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');
+  assert.deepEqual(errors, []);
+  await page.close();
+});

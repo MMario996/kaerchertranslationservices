@@ -8,6 +8,8 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "kb_title": "Knowledge Base",
+    "kb_desc": "Alles zu Phrase TMS, Strings, Orchestrator und dem Portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Als Nächstes fällig",
     "pf_nav_general": "Allgemein",
@@ -1016,6 +1018,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "kb_title": "Knowledge Base",
+    "kb_desc": "Everything about Phrase TMS, Strings, Orchestrator and the portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Up next",
     "pf_nav_general": "General",
@@ -2024,6 +2028,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "kb_title": "Base de connaissances",
+    "kb_desc": "Tout sur Phrase TMS, Strings, Orchestrator et le portail.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Prochaines échéances",
     "pf_nav_general": "Général",
@@ -3031,6 +3037,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "kb_title": "Base de conocimientos",
+    "kb_desc": "Todo sobre Phrase TMS, Strings, Orchestrator y el portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos vencimientos",
     "pf_nav_general": "General",
@@ -4038,6 +4046,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "kb_title": "Base de conhecimento",
+    "kb_desc": "Tudo sobre Phrase TMS, Strings, Orchestrator e o portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos prazos",
     "pf_nav_general": "Geral",
@@ -5045,6 +5055,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "kb_title": "知识库",
+    "kb_desc": "关于 Phrase TMS、Strings、Orchestrator 和门户的全部信息。",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "即将到期",
     "pf_nav_general": "常规",

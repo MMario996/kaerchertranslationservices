@@ -61,6 +61,7 @@ function getConfig_(impersonateEmail) {
     templates: allowedTemplates,
     languages: languages,
     sizeLimitMb: sizeLimitMb,
+    kbUrl: (function () { try { return ScriptApp.getService().getUrl() + "?page=kb"; } catch (e) { return ""; } })(),
     currentUser: currentUser,
     effectiveUser: effectiveUser,
     isImpersonating: isImpersonating,

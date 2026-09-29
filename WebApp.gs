@@ -1,4 +1,15 @@
+/** Werte von ?page=..., die die Knowledge Base liefern (Knowledgebase.html). */
+var KB_PAGE_ALIASES_ = ["kb", "knowledgebase", "knowledge-base", "wissen"];
+
 function doGet(e) {
+  var page = String((e && e.parameter && e.parameter.page) || "").trim().toLowerCase();
+  if (KB_PAGE_ALIASES_.indexOf(page) >= 0) {
+    // Eigenstaendige Seite, z. B. fuer Google Sites (Einbetten -> URL + ?page=kb).
+    return HtmlService.createHtmlOutputFromFile("Knowledgebase")
+      .setTitle("Knowledge Base - Translation Services")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag("viewport", "width=device-width, initial-scale=1");
+  }
   return HtmlService.createTemplateFromFile("Index")
     .evaluate()
     .setTitle("Translation-Services")
