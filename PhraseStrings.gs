@@ -18,6 +18,16 @@
  *   PHRASE_STRINGS_PROJECT  Projekt-ID, Slug oder Name (z.B. "translationservices")
  *   PHRASE_STRINGS_REGION   "eu" (api.phrase.com) oder "us" (api.us.app.phrase.com)
  * Der Token getrennt vom Phrase-TMS-Token (PHRASE_API_TOKEN): anderes Produkt.
+ *
+ * Token-Arten (psAuthKind_):
+ *  - Plattform-Token (Phrase Platform > Profil > Access tokens, Dienst "Strings",
+ *    z.B. eu.phrase.com/idm-ui/settings/access-tokens): lassen sich NICHT direkt
+ *    an die Strings-API schicken. Sie werden am IDM-Token-Endpunkt
+ *    (https://<region>.phrase.com/idm/oauth/token, OAuth 2.0 Token Exchange,
+ *    RFC 8693) gegen ein kurzlebiges JWT (ca. 4 h) getauscht; das JWT geht als
+ *    "Authorization: Bearer ..." an die API und wird im Script-Cache gehalten.
+ *  - Klassischer Strings-Token (64 Hex-Zeichen): direkt "Authorization: token ...".
+ *  - Bereits getauschtes JWT (eyJ...): direkt als Bearer.
  */
 var PS_TOKEN_PROP_   = "PHRASE_STRINGS_TOKEN";
 var PS_PROJECT_PROP_ = "PHRASE_STRINGS_PROJECT";
@@ -70,12 +80,83 @@ function psFindLocale_(locales, lang) {
   })[0] || null;
 }
 
+var PS_IDM_EXCHANGE_TYPES_ = ["", "urn:ietf:params:oauth:token-type:access_token"];
+
+/** "legacy" (64 Hex), "jwt" (eyJ..x.y) oder "platform". Reine Funktion (getestet). */
+function psAuthKind_(token) {
+  var t = String(token || "").trim();
+  if (/^[0-9a-f]{64}$/i.test(t)) return "legacy";
+  if (/^eyJ[\w-]*\.[\w-]+\.[\w-]*$/.test(t)) return "jwt";
+  return "platform";
+}
+
+function psIdmUrl_(region) {
+  return "https://" + (region === "us" ? "us" : "eu") + ".phrase.com/idm/oauth/token";
+}
+
+/** Formularfelder fuer den Token-Tausch. Reine Funktion (getestet). */
+function psExchangePayload_(token, subjectTokenType) {
+  var p = {
+    grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+    subject_token: String(token || "").trim()
+  };
+  if (subjectTokenType) p.subject_token_type = subjectTokenType;
+  return p;
+}
+
+function psCacheKey_(s) {
+  var d = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s.region + "|" + s.token);
+  return "ps_jwt_" + Utilities.base64EncodeWebSafe(d).slice(0, 40);
+}
+
+/** Plattform-Token gegen JWT tauschen (mit Cache). */
+function psExchangeToken_(s, force) {
+  var cache = CacheService.getScriptCache();
+  var key = psCacheKey_(s);
+  if (!force) {
+    var hit = cache.get(key);
+    if (hit) return hit;
+  }
+  var errors = [];
+  for (var i = 0; i < PS_IDM_EXCHANGE_TYPES_.length; i++) {
+    var res = UrlFetchApp.fetch(psIdmUrl_(s.region), {
+      method: "post",
+      muteHttpExceptions: true,
+      payload: psExchangePayload_(s.token, PS_IDM_EXCHANGE_TYPES_[i]),
+      headers: { Accept: "application/json", "User-Agent": "Kaercher Translation Services (Apps Script)" }
+    });
+    var code = res.getResponseCode();
+    var text = res.getContentText();
+    var body = null;
+    try { body = text ? JSON.parse(text) : null; } catch (e) { body = null; }
+    if (code < 300 && body && body.access_token) {
+      var ttl = Math.max(60, Math.min(21600, Number(body.expires_in || 14400) - 300));
+      cache.put(key, body.access_token, ttl);
+      return body.access_token;
+    }
+    errors.push(code + " " + String((body && (body.error_description || body.error || body.message)) || text || "").slice(0, 200));
+  }
+  var err = new Error("Phrase-Plattform-Token konnte nicht getauscht werden (" + psIdmUrl_(s.region) + "): " +
+    errors.join(" / ") + ". Pruefen: Token aus Phrase Platform > Access tokens mit Dienst \"Strings\", richtige Region (EU/US), nicht abgelaufen.");
+  err.httpCode = 401;
+  throw err;
+}
+
+/** Authorization-Header fuer die Strings-API. */
+function psAuthHeader_(s, forceRefresh) {
+  var kind = psAuthKind_(s.token);
+  if (kind === "legacy") return "token " + s.token;
+  if (kind === "jwt") return "Bearer " + s.token;
+  return "Bearer " + psExchangeToken_(s, forceRefresh);
+}
+
 function psFetch_(s, method, path, payload, isJson) {
   var opts = {
     method: method,
     muteHttpExceptions: true,
-    headers: { Authorization: "token " + s.token, "User-Agent": "Kaercher Translation Services (Apps Script)" }
+    headers: { Authorization: psAuthHeader_(s, false), "User-Agent": "Kaercher Translation Services (Apps Script)" }
   };
+  var refreshed = false;
   if (payload) {
     if (isJson) { opts.contentType = "application/json"; opts.payload = JSON.stringify(payload); }
     else opts.payload = payload; // Objekt mit Blob -> multipart/form-data
@@ -84,6 +165,12 @@ function psFetch_(s, method, path, payload, isJson) {
     var res = UrlFetchApp.fetch(psBaseUrl_(s.region) + path, opts);
     var code = res.getResponseCode();
     if (code === 429) { Utilities.sleep(2000 * Math.pow(2, attempt)); continue; }
+    // Abgelaufenes/ungueltiges JWT aus dem Cache: einmal neu tauschen.
+    if (code === 401 && !refreshed && psAuthKind_(s.token) === "platform") {
+      refreshed = true;
+      opts.headers.Authorization = psAuthHeader_(s, true);
+      continue;
+    }
     var text = res.getContentText();
     var body = null;
     try { body = text ? JSON.parse(text) : null; } catch (e) { body = null; }
@@ -144,7 +231,7 @@ function apiPsSaveConfig(project, region, token) {
   var props = PropertiesService.getScriptProperties();
   props.setProperty(PS_PROJECT_PROP_, String(project || "").trim());
   props.setProperty(PS_REGION_PROP_, region === "us" ? "us" : "eu");
-  if (String(token || "").trim()) props.setProperty(PS_TOKEN_PROP_, String(token).trim());
+  if (String(token || "").trim()) props.setProperty(PS_TOKEN_PROP_, String(token).trim().replace(/^(token|bearer)\s+/i, ""));
   return apiPsGetConfig();
 }
 
@@ -158,7 +245,7 @@ function apiPsCheck() {
     var loc = psFindLocale_(locales, l);
     return { lang: l, locale: loc ? (loc.name + (loc.code && loc.code !== loc.name ? " (" + loc.code + ")" : "")) : "" };
   });
-  return { projectId: project.id, projectName: project.name, locales: locales.length, mapping: mapping };
+  return { projectId: project.id, projectName: project.name, locales: locales.length, mapping: mapping, auth: psAuthKind_(s.token) };
 }
 
 /**

@@ -147,7 +147,10 @@
   #adminBypassBtn:hover { border-color: var(--primary-black); color: var(--primary-black); background-color: rgba(0,0,0,0.05); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: pointer; }
 
   /* --- ADMIN GRID ------------------------------- */
-  .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; align-items: start; }
+  .admin-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
+  .admin-grid > .card { grid-column: span 2; min-width: 0; }
+  @media (max-width: 1300px) { .admin-grid > .card { grid-column: span 3; } }
+  @media (max-width: 820px) { .admin-grid > .card { grid-column: 1 / -1 !important; } }
   .admin-grid .card { border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: box-shadow 0.2s; }
   .admin-grid .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
   /* --- MODERN TABLE (User/Template Manager) ------- */
@@ -1130,7 +1133,7 @@
     --kg-blur:blur(20px) saturate(160%); --kg-elev:0 1px 2px rgba(40,36,10,.05), 0 8px 28px rgba(40,36,10,.07);
     --kg-elev-hi:0 2px 4px rgba(40,36,10,.06), 0 16px 40px rgba(40,36,10,.12); --kg-ring:0 0 0 3px rgba(255,221,0,.6);
     --kg-r:12px; --kg-r-lg:18px; --kg-ease:cubic-bezier(.16,.9,.3,1); --kg-glow:rgba(255,230,0,.22); --kg-wash:#f4f4f0; }
-  body { background:radial-gradient(900px 520px at 100% -8%, rgba(255,237,0,.13), transparent 62%), radial-gradient(700px 420px at -10% 110%, rgba(0,0,0,.035), transparent 60%), var(--kg-wash); background-attachment:fixed; }
+  body { background:var(--kg-wash); }
   .btn { border-radius:var(--kg-r); transition:box-shadow .15s var(--kg-ease), background-color .15s, border-color .15s, filter .15s; }
   .btn-primary, .btn-download { background:var(--kg-fill); box-shadow:var(--kg-tint); border-color:transparent; }
   .btn-primary:hover, .btn-download:hover { background:var(--kg-fill); filter:saturate(1.15) brightness(1.02); box-shadow:var(--kg-tint-hi); }
@@ -1173,4 +1176,18 @@
   html[data-density="compact"] .card { padding:16px; }
   html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
   @media (prefers-reduced-motion: reduce) { .tab-content { animation:none; } }
+  /* Kopfzeile: klebt randlos oben im Scrollbereich. Chrome haelt klebende
+     Elemente innerhalb des Innenabstands - daher traegt die Leiste den oberen
+     Abstand selbst (Container oben ohne Padding) und ueberdeckt seitlich den
+     Innenabstand, damit beim Scrollen kein Inhalt ueber oder neben ihr
+     durchscheint. Werte = Innenabstand von .container. */
+  .container { --cpx:25px; --cpt:15px; }
+  @media (max-width: 900px) { .container { --cpx:10px; --cpt:10px; } }
+  @media (max-width: 700px) { .container { --cpx:12px; --cpt:10px; } }
+  html[data-density="compact"] .container { --cpx:18px; --cpt:10px; }
+  body > .container { padding-top:0; }
+  .tab-nav { position:sticky; top:0; z-index:60; box-sizing:border-box; width:auto; margin:0 calc(-1 * var(--cpx)) 20px; padding:var(--cpt) var(--cpx) 0; background:var(--kg-wash); transition:box-shadow .2s; }
+  .tab-nav.is-stuck { box-shadow:0 10px 18px -14px rgba(0,0,0,.35); }
+  /* Admin-Kacheln: einheitlicher Rand statt bunter Oberkanten */
+  .admin-grid > .card { border-top:1px solid var(--k-line) !important; }
 </style>

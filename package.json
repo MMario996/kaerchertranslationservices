@@ -4,9 +4,14 @@
   "version": "1.0.0",
   "description": "Kärcher Translation Services portal (Google Apps Script web app).",
   "scripts": {
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "test:ui": "node --test --test-concurrency=1 tests-ui/render.test.js",
+    "preview": "node tools/build-preview.js > preview.html"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
   }
 }

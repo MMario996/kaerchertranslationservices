@@ -11,7 +11,7 @@
 
   /* Hero */
   .h-hero { display:flex; justify-content:space-between; align-items:center; gap:28px; flex-wrap:wrap; padding:30px 34px; border-radius:22px; border:1px solid var(--kg-hair); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur);
-    background:radial-gradient(460px 240px at 100% 0%, rgba(255,237,0,.42), transparent 70%), radial-gradient(300px 160px at 0% 100%, rgba(255,213,0,.12), transparent 70%), var(--kg-glass); box-shadow:var(--kg-elev), inset 0 1px 0 rgba(255,255,255,.6); position:relative; z-index:5; }
+    background:var(--kg-glass); box-shadow:var(--kg-elev), inset 0 1px 0 rgba(255,255,255,.6); position:relative; z-index:5; }
   .h-hero-text { min-width:0; flex:1 1 360px; }
   .h-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1.2px; color:var(--k-ink-2); }
   .h-eyebrow::before { content:""; width:18px; height:4px; border-radius:2px; background:var(--kg-fill); }
@@ -176,7 +176,7 @@
   .h-act-time { font-size:11.5px; color:var(--k-ink-2); }
 
   /* Tipp */
-  .h-tip { background:radial-gradient(260px 140px at 100% 0%, rgba(255,237,0,.30), transparent 70%), var(--kg-glass); }
+  .h-tip { background:var(--kg-glass); }
   .h-tip-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--kg-ink); color:var(--primary-yellow); }
   .h-tip-n { font-size:12px; font-weight:700; color:var(--k-ink-2); }
   .h-tip-body { display:flex; gap:12px; align-items:flex-start; }
@@ -224,9 +224,9 @@
 
   /* Dunkler Modus */
   html[data-theme="dark"] .home { --h-bad:#f28b82; --h-bad-bg:#3d1a18; --h-warn:#fdd663; --h-warn-bg:#3a3410; --h-ok:#81c995; --h-ok-bg:#173522; --h-info:#8ab4f8; --h-info-bg:#172a45; }
-  html[data-theme="dark"] .h-hero { background:radial-gradient(460px 240px at 100% 0%, rgba(255,237,0,.16), transparent 70%), var(--kg-glass); box-shadow:var(--kg-elev); }
+  html[data-theme="dark"] .h-hero { background:var(--kg-glass); box-shadow:var(--kg-elev); }
   html[data-theme="dark"] .h-card, html[data-theme="dark"] .h-glass { box-shadow:var(--kg-elev); }
-  html[data-theme="dark"] .h-tip { background:radial-gradient(260px 140px at 100% 0%, rgba(255,237,0,.12), transparent 70%), var(--kg-glass); }
+  html[data-theme="dark"] .h-tip { background:var(--kg-glass); }
   html[data-theme="dark"] .h-seg-n { background:rgba(255,255,255,.1); }
   html[data-theme="dark"] .h-seg-btn.active { background:#2d3035; }
   html[data-theme="dark"] .h-item:hover, html[data-theme="dark"] .h-item:focus, html[data-theme="dark"] .h-act:hover { background:rgba(255,237,0,.07); }
@@ -377,9 +377,31 @@ function homePickTab_(pref, lists) {
   return 'done';
 }
 
+/**
+ * Startseite zeigt nur die eigene Arbeit: eigene Projekte, mit mir geteilte und
+ * WOMA-Gruppenprojekte - auch fuer Admins, die ueber apiGetMyProjects() alle
+ * Projekte bekommen (die bleiben unter "Meine Projekte" sichtbar).
+ */
+function homeOwnProjects_(projects, user) {
+  const me = String(user || '').trim().toLowerCase();
+  const list = projects || [];
+  if (!me) return list;
+  return list.filter(p => p && (String(p.owner || '').toLowerCase() === me
+    || String(p.userEmail || '').toLowerCase() === me
+    || String(p.sharedWith || '').toLowerCase().split(/[;,]+/).map(x => x.trim()).indexOf(me) >= 0
+    || p.groupShared));
+}
+
+/** In der Nutzer-Simulation der simulierte Nutzer, sonst der angemeldete. */
+function homeMe_() {
+  const c = (typeof configData !== 'undefined' && configData) || {};
+  return c.effectiveUser || c.currentUser || '';
+}
+
 function paintHome_(projects) {
   const root = document.getElementById('homeRoot');
   if (!root) return;
+  projects = homeOwnProjects_(projects, homeMe_());
   const P = prefsWithDefaults_(userPrefs_);
   const W = P.home.widgets;
   const L = homeLists_(projects);
@@ -723,7 +745,7 @@ function homeSearch_(q) {
   if (!box) return;
   const s = String(q || '').trim().toLowerCase();
   const cmds = homeCommands_().filter(c => !s || c.label.toLowerCase().includes(s)).slice(0, s ? 4 : 6);
-  const hits = homeSearchHits_(globalProjects, s).slice(0, 8);
+  const hits = homeSearchHits_(homeOwnProjects_(globalProjects, homeMe_()), s).slice(0, 8);
   homeSr_ = [];
   const row = (i, inner) => `<button type="button" role="option" class="h-sr-item" data-i="${i}" onmousedown="event.preventDefault()" onclick="homeSrRun_(${i})">${inner}</button>`;
   let html = '';

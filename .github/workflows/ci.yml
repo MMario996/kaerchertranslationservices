@@ -1,0 +1,88 @@
+name: CI/CD
+
+# CI: jede Aenderung (Pull Request und main) durchlaeuft
+#   1. Logik- und Konsistenztests (npm test, ohne Abhaengigkeiten)
+#   2. Browser-Tests der echten Oberflaeche (npm run test:ui, Chromium):
+#      Start ohne JS-Fehler, Startseite nur eigene Projekte, kein gelber
+#      Schleier, klebende Kopfzeile, volle Admin-Kachelreihen, Template-Debugger
+# CD: nach gruenem CI auf main wird der Code per clasp ins Apps-Script-Projekt
+#     geschoben (und optional die Web-App-Bereitstellung aktualisiert).
+#     Laeuft nur, wenn die Secrets CLASPRC_JSON und APPS_SCRIPT_ID gesetzt sind.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  unit:
+    name: Logik & Konsistenz (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  ui:
+    name: Oberflaeche (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+
+  deploy:
+    name: Deploy nach Apps Script
+    needs: [unit, ui]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
+      APPS_SCRIPT_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
+    steps:
+      - name: Secrets vorhanden?
+        id: gate
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$APPS_SCRIPT_ID" ]; then
+            echo "::notice::Deploy uebersprungen - Secrets CLASPRC_JSON und APPS_SCRIPT_ID nicht gesetzt."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 20
+      - name: clasp einrichten
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          npm install -g @google/clasp@2
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          printf '{"scriptId":"%s","rootDir":"."}' "$APPS_SCRIPT_ID" > .clasp.json
+      - name: Code hochladen (clasp push)
+        if: steps.gate.outputs.run == 'true'
+        run: clasp push --force
+      - name: Web-App-Bereitstellung aktualisieren
+        if: steps.gate.outputs.run == 'true' && env.APPS_SCRIPT_DEPLOYMENT_ID != ''
+        run: clasp deploy --deploymentId "$APPS_SCRIPT_DEPLOYMENT_ID" --description "CI ${GITHUB_SHA::7}"

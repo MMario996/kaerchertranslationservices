@@ -1,0 +1,5 @@
+# Nur App-Dateien nach Apps Script hochladen (clasp push im CD-Job).
+**/**
+!*.gs
+!*.html
+!appsscript.json

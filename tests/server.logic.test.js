@@ -141,3 +141,16 @@ test('Startseite: Fortschritt = erledigte / relevante Phrase-Jobs', () => {
   assert.deepEqual(plain(web.projectProgress_([s('COMPLETED'), s('DELIVERED'), s('NEW'), s('ACCEPTED'), s('CANCELLED')])), { done: 2, total: 4 });
   assert.deepEqual(plain(web.projectProgress_([])), { done: 0, total: 0 });
 });
+
+test('User Template Debugger: Gruende passen zur Sichtbarkeitsregel', () => {
+  const cfg = load(['Config.gs']);
+  const user = { client: 'KAG, KNA', domain: 'Marketing', subdomain: '', businessUnit: 'PC' };
+  const ok = { client: 'kna', domain: 'marketing', subdomain: 'x', businessUnit: 'pc' };
+  assert.equal(cfg.templateMatchesUser_(ok, user), false, 'Subdomain fehlt beim Nutzer');
+  assert.deepEqual(plain(cfg.explainTemplateMismatch_(ok, user)), ["Subdomain fehlt beim Nutzer (Template: 'x')"]);
+  const full = Object.assign({}, user, { subdomain: 'x' });
+  assert.equal(cfg.templateMatchesUser_(ok, full), true);
+  assert.deepEqual(plain(cfg.explainTemplateMismatch_(ok, full)), [], 'sichtbar = keine Gruende');
+  assert.deepEqual(plain(cfg.explainTemplateMismatch_({ client: 'KA', domain: 'marketing', subdomain: 'x', businessUnit: '' }, full)),
+    ["Client: Template 'KA' nicht in Nutzer 'KAG, KNA'", 'Business Unit fehlt am Template'], 'kein Teilstring-Treffer');
+});

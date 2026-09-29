@@ -112,7 +112,8 @@ function psCheck_() {
   psStatus_('psCfgStatus', tr_('ps_checking', 'Checking connection...'));
   document.getElementById('psMapping').innerHTML = '';
   google.script.run.withSuccessHandler(function (r) {
-    psStatus_('psCfgStatus', fmt_(tr_('ps_connected', 'Connected to "{p}" ({n} languages in the project).'), { p: r.projectName, n: r.locales }), 'ok');
+    const authLbl = { platform: 'Phrase Platform token \u2192 JWT', legacy: 'Strings token', jwt: 'JWT' }[r.auth] || '';
+    psStatus_('psCfgStatus', fmt_(tr_('ps_connected', 'Connected to "{p}" ({n} languages in the project).'), { p: r.projectName, n: r.locales }) + (authLbl ? ' \u00b7 ' + authLbl : ''), 'ok');
     document.getElementById('psMapping').innerHTML = '<table style="margin-top:12px;"><thead><tr><th>' + escapeHtml(tr_('ps_lang', 'Language')) + '</th><th>' +
       escapeHtml(tr_('ps_locale', 'Locale in Phrase')) + '</th></tr></thead><tbody>' +
       r.mapping.map(function (m) {
