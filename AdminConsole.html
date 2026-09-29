@@ -2,13 +2,13 @@
      Index.html. Wird zusammen mit AdminScript.html per apiGetAdminContent()
      nachgeladen, sobald ein Admin den Tab "Admin" oeffnet. -->
         <div class="container" style="max-width:2200; margin:0 auto;">
-            <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #eee;">
-                <button class="admin-subtab-btn active" id="subtab-btn-console" onclick="switchAdminSubtab('console')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#d93025;cursor:pointer;border-bottom:3px solid #d93025;text-transform:uppercase;"><span data-i18n="ax_bccaa4a">Console</span></button>
-                <button class="admin-subtab-btn" id="subtab-btn-users" onclick="switchAdminSubtab('users')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_687c52e">User Manager</span></button>
-                <button class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_83ae0cb">Template Manager</span></button>
-                <button class="admin-subtab-btn" id="subtab-btn-pivot" onclick="switchAdminSubtab('pivot')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_cd07a63">Pivot Templates</span></button>
-                <button class="admin-subtab-btn" id="subtab-btn-tests" onclick="switchAdminSubtab('tests')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ax_90792de">Tests</span></button>
-                <button class="admin-subtab-btn" id="subtab-btn-translate" onclick="switchAdminSubtab('translate')" style="background:none;border:none;padding:12px 20px;font-size:14px;font-weight:800;color:#999;cursor:pointer;border-bottom:3px solid transparent;text-transform:uppercase;"><span data-i18n="ps_tab">Translate UI</span></button>
+            <div class="admin-subtabs" id="adminSubtabNav">
+                <button type="button" class="admin-subtab-btn active" id="subtab-btn-console" onclick="switchAdminSubtab('console')"><span data-i18n="ax_bccaa4a">Console</span></button>
+                <button type="button" class="admin-subtab-btn" id="subtab-btn-users" onclick="switchAdminSubtab('users')"><span data-i18n="ax_687c52e">User Manager</span></button>
+                <button type="button" class="admin-subtab-btn" id="subtab-btn-templates" onclick="switchAdminSubtab('templates')"><span data-i18n="ax_83ae0cb">Template Manager</span></button>
+                <button type="button" class="admin-subtab-btn" id="subtab-btn-pivot" onclick="switchAdminSubtab('pivot')"><span data-i18n="ax_cd07a63">Pivot Templates</span></button>
+                <button type="button" class="admin-subtab-btn" id="subtab-btn-tests" onclick="switchAdminSubtab('tests')"><span data-i18n="ax_90792de">Tests</span></button>
+                <button type="button" class="admin-subtab-btn" id="subtab-btn-translate" onclick="switchAdminSubtab('translate')"><span data-i18n="ps_tab">Translate UI</span></button>
             </div>
 
             <div id="admin-subtab-console">
@@ -119,7 +119,7 @@
                     </div>
                     <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
                     <label data-i18n="ax_270cdf8">Database Links</label>
-                    <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <div class="db-links" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
                         <a href="https://docs.google.com/spreadsheets/d/1xi0ZtFxxurNu25URrhpHmfSLy8nld_SXm0KmkXxRCpQ/edit" target="_blank" class="btn btn-secondary" style="font-size:12px; padding:0 15px;">
                             <i class="material-icons-outlined">table_view</i> <span data-i18n="ax_60a572f">Uploads DB</span>
                         </a>
@@ -429,10 +429,12 @@
                     </div>
                     <div class="form-row">
                         <label data-i18n="ax_1213790">User Email</label>
-                        <input type="email" id="debugEmail" placeholder="user@karcher.com">
+                        <input type="email" id="debugEmail" list="debugEmailList" placeholder="user@karcher.com" autocomplete="off" onfocus="loadDebugUserList_()" onkeydown="if(event.key==='Enter'){event.preventDefault();runUserTemplatesDebug();}">
+                        <datalist id="debugEmailList"></datalist>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; background-color:#ff9800; color:#fff; margin-top:10px;" onclick="runUserTemplatesDebug()"><span data-i18n="ax_0416bab">ZEIGE TEMPLATES</span></button>
-                    <div id="debugResultContainer" style="margin-top:15px; padding:15px; background:#fff3e0; border:1px solid #ffe0b2; font-size:12px; display:none; white-space:pre-wrap; font-family:monospace; line-height:1.6; max-height:400px; overflow-y:auto;"></div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="runUserTemplatesDebug()"><span data-i18n="ax_0416bab">ZEIGE TEMPLATES</span></button>
+                    <div id="debugSuggestions" class="dbg-sugg" style="display:none;"></div>
+                    <div id="debugResultContainer" class="dbg-result" style="display:none;"></div>
                 </div>
                 <div class="card ann-card" data-cgroup="comms" style="grid-column:1 / -1;">
                     <div class="admin-card-header">

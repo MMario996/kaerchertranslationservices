@@ -177,3 +177,20 @@ test('doGet: ?page=kb liefert die Knowledge Base (einbettbar), sonst das Portal'
   assert.equal(web.doGet({ parameter: {} }).name, 'Index');
   assert.equal(web.doGet(undefined).name, 'Index');
 });
+
+test('User Template Debugger: Vorschlaege zeigen, welcher eine Wert Templates freischaltet', () => {
+  const cfg = load(['Config.gs']);
+  const user = { client: 'KAG', domain: 'Marketing', subdomain: 'Web', businessUnit: 'PC' };
+  const t = (client, domain, subdomain, businessUnit) => ({ client, domain, subdomain, businessUnit });
+  const templates = {
+    'Visible': t('KAG', 'Marketing', 'Web', 'PC'),
+    'Needs Print A': t('KAG', 'Marketing', 'Print', 'PC'),
+    'Needs Print B': t('kag', 'marketing', 'print', 'pc'),
+    'Needs BU HC': t('KAG', 'Marketing', 'Web', 'HC'),
+    'Two fields off': t('KNA', 'Marketing', 'Print', 'PC'),
+    'Empty on template': t('KAG', '', 'Web', 'PC')
+  };
+  const s = plain(cfg.templateUnlockSuggestions_(templates, user));
+  assert.deepEqual(s.map((x) => [x.field, x.value.toLowerCase(), x.unlocks]), [['Subdomain', 'print', 2], ['Business Unit', 'hc', 1]]);
+  assert.deepEqual(s[0].templates, ['Needs Print A', 'Needs Print B']);
+});

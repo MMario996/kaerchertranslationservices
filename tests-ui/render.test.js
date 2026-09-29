@@ -34,8 +34,9 @@ test.after(async () => { if (browser) await browser.close(); });
 
 // extraMocks: Quelltext eines Objekt-Literals (Funktionen lassen sich nicht
 // serialisiert in die Seite reichen).
-async function openApp(viewport, extraMocks) {
+async function openApp(viewport, extraMocks, opts) {
   const page = await browser.newPage({ viewport: viewport || { width: 1440, height: 800 } });
+  if (opts && opts.blockFonts) await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(({ L, me, projects, extra }) => {
@@ -134,6 +135,20 @@ for (const width of [1440, 1000]) {
       }, g);
       assert.ok(rows.length > 0, g + ': Kacheln sichtbar');
       rows.forEach((r, i) => assert.ok(r.left < 2 && r.right < 2, `${g}: Reihe ${i + 1} nicht voll (${JSON.stringify(r)})`));
+      const overflow = await page.evaluate(() => {
+        const out = [];
+        document.querySelectorAll('#adminGridContainer > .card').forEach((card) => {
+          if (card.offsetParent === null) return;
+          const cr = card.getBoundingClientRect();
+          card.querySelectorAll('button, .btn, input, select').forEach((el) => {
+            if (el.offsetParent === null || el.closest('[style*="overflow"], .acc-table-wrap, table')) return;
+            const r = el.getBoundingClientRect();
+            if (r.right > cr.right + 1) out.push((el.textContent || el.id || el.tagName).trim().slice(0, 30));
+          });
+        });
+        return out;
+      });
+      assert.deepEqual(overflow, [], g + ': Elemente ragen aus der Kachel');
     }
     await page.close();
   });
@@ -144,7 +159,9 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
     apiDebugUserTemplates: (email) => email === 'fail@kaercher.com'
       ? { success: false, error: 'Template sheet not found' }
       : { success: true, email, userFound: true, userData: { client: 'KAG', domain: 'Marketing', subdomain: 'Web', businessUnit: 'PC' },
-          allowed: [{ name: 'Tpl OK' }], denied: [{ name: 'Tpl <b>X</b>', reasons: ['Domain fehlt am Template'] }] }
+          allowed: [{ name: 'Tpl OK' }], denied: [{ name: 'Tpl <b>X</b>', reasons: ['Domain fehlt am Template'] }],
+          suggestions: [{ field: 'Subdomain', value: 'Print', unlocks: 3, templates: ['A', 'B', 'C'] }] },
+    apiDebugListUsers: ['a@kaercher.com', 'b@kaercher.com']
   }`);
   await openAdmin(page, 'logs');
   await page.fill('#debugEmail', 'user@kaercher.com');
@@ -154,6 +171,9 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
   assert.match(out, /BU: PC/);
   assert.match(out, /Tpl <b>X<\/b>/, 'Namen werden escaped');
   assert.match(out, /Domain fehlt am Template/);
+  assert.match(await page.locator('#debugSuggestions').innerText(), /Print[\s\S]*3/);
+  await page.focus('#debugEmail');
+  await page.waitForFunction(() => document.querySelectorAll('#debugEmailList option').length === 2);
   await page.fill('#debugEmail', 'fail@kaercher.com');
   await page.evaluate(() => runUserTemplatesDebug());
   await page.waitForFunction(() => /Template sheet not found/.test(document.getElementById('debugResultContainer').innerText));
@@ -208,6 +228,21 @@ test('Translate UI: Laden aus Phrase zeigt Ergebnis, Abdeckung und Nacht-Abgleic
   const calls = await page.evaluate(() => __calls.filter((c) => c.fn === 'apiPsPull').map((c) => c.args[0]));
   assert.deepEqual(calls[0], { dicts: ['app', 'admin'], langs: ['de', 'en'] });
   assert.equal(await page.locator('#psPullResults details div').innerHTML(), 'count: Platzhalter &lt;x&gt;', 'Gruende escaped');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Icon-Schrift blockiert: keine Icon-Namen als Text sichtbar', async () => {
+  const { page, errors } = await openApp({ width: 1440, height: 800 }, null, { blockFonts: true });
+  await page.waitForFunction(() => document.documentElement.classList.contains('no-icon-font'), null, { timeout: 15000 });
+  await openAdmin(page, 'system');
+  await page.waitForTimeout(300);
+  const words = await page.evaluate(() => Array.from(document.querySelectorAll('.material-icons-outlined, .material-icons'))
+    .filter((el) => el.offsetParent !== null && /^[a-z0-9_]{3,}$/.test(el.textContent.trim()))
+    .map((el) => el.textContent.trim()));
+  assert.deepEqual(words, []);
+  const close = await page.evaluate(() => { const s = document.createElement('span'); s.className = 'material-icons-outlined'; s.textContent = 'close'; document.body.appendChild(s); return new Promise((r) => setTimeout(() => r(s.textContent), 100)); });
+  assert.equal(close, '\u2715', 'spaeter eingefuegte Icons werden ebenfalls ersetzt');
   assert.deepEqual(errors, []);
   await page.close();
 });

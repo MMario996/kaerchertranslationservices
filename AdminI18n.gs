@@ -9,6 +9,10 @@
  */
 var ADMIN_I18N_ = {
   de: {
+    "dbg_sugg_title": "Fehlende Zuordnung",
+    "dbg_sugg_hint": "Wert in Phrase beim Nutzer ergänzen, danach „Sync Users“ ausführen.",
+    "dbg_unlocks": "{field} „{value}“ würde {n} Template(s) freischalten",
+    "dbg_not_found": "Nutzer nicht im User-Sheet gefunden oder ohne Zuordnung.",
     "ps_pull_title": "Aus Phrase laden",
     "ps_pull_hint": "Holt die in Phrase bearbeiteten Texte (gewählte Wörterbücher und Sprachen oben) und zeigt sie sofort in der App – ohne neues Deployment. Texte mit fehlenden Platzhaltern oder neuem HTML werden abgelehnt.",
     "ps_pull": "Aus Phrase laden",
@@ -496,6 +500,10 @@ var ADMIN_I18N_ = {
     "pv_unmapped": "keine Zuordnung"
   },
   en: {
+    "dbg_sugg_title": "Missing assignment",
+    "dbg_sugg_hint": "Add the value to the user in Phrase, then run \"Sync Users\".",
+    "dbg_unlocks": "{field} \"{value}\" would unlock {n} template(s)",
+    "dbg_not_found": "User not found in the user sheet or without assignment.",
     "ps_pull_title": "Load from Phrase",
     "ps_pull_hint": "Fetches the texts edited in Phrase (dictionaries and languages selected above) and shows them in the app right away – no new deployment. Texts with missing placeholders or new HTML are rejected.",
     "ps_pull": "Load from Phrase",
@@ -983,6 +991,10 @@ var ADMIN_I18N_ = {
     "pv_unmapped": "no mapping"
   },
   fr: {
+    "dbg_sugg_title": "Affectation manquante",
+    "dbg_sugg_hint": "Ajoutez la valeur à l'utilisateur dans Phrase, puis lancez « Sync Users ».",
+    "dbg_unlocks": "{field} « {value} » débloquerait {n} modèle(s)",
+    "dbg_not_found": "Utilisateur introuvable dans la feuille des utilisateurs ou sans affectation.",
     "ps_pull_title": "Charger depuis Phrase",
     "ps_pull_hint": "Récupère les textes modifiés dans Phrase (dictionnaires et langues sélectionnés ci-dessus) et les affiche immédiatement dans l'application, sans nouveau déploiement. Les textes avec des espaces réservés manquants ou du nouveau HTML sont refusés.",
     "ps_pull": "Charger depuis Phrase",
@@ -1470,6 +1482,10 @@ var ADMIN_I18N_ = {
     "pv_unmapped": "aucune correspondance"
   },
   es: {
+    "dbg_sugg_title": "Asignación faltante",
+    "dbg_sugg_hint": "Añada el valor al usuario en Phrase y ejecute «Sync Users».",
+    "dbg_unlocks": "{field} «{value}» desbloquearía {n} plantilla(s)",
+    "dbg_not_found": "Usuario no encontrado en la hoja de usuarios o sin asignación.",
     "ps_pull_title": "Cargar desde Phrase",
     "ps_pull_hint": "Obtiene los textos editados en Phrase (diccionarios e idiomas seleccionados arriba) y los muestra de inmediato en la aplicación, sin nueva implementación. Se rechazan los textos con marcadores que faltan o HTML nuevo.",
     "ps_pull": "Cargar desde Phrase",
@@ -1957,6 +1973,10 @@ var ADMIN_I18N_ = {
     "pv_unmapped": "sin asignación"
   },
   pt: {
+    "dbg_sugg_title": "Atribuição em falta",
+    "dbg_sugg_hint": "Adicione o valor ao utilizador no Phrase e execute «Sync Users».",
+    "dbg_unlocks": "{field} «{value}» desbloquearia {n} modelo(s)",
+    "dbg_not_found": "Utilizador não encontrado na folha de utilizadores ou sem atribuição.",
     "ps_pull_title": "Carregar do Phrase",
     "ps_pull_hint": "Obtém os textos editados no Phrase (dicionários e idiomas selecionados acima) e mostra-os imediatamente na aplicação, sem nova implementação. Textos com marcadores em falta ou HTML novo são rejeitados.",
     "ps_pull": "Carregar do Phrase",
@@ -2444,6 +2464,10 @@ var ADMIN_I18N_ = {
     "pv_unmapped": "sem mapeamento"
   },
   zh: {
+    "dbg_sugg_title": "缺少的分配",
+    "dbg_sugg_hint": "在 Phrase 中为用户添加该值，然后运行 “Sync Users”。",
+    "dbg_unlocks": "{field}“{value}”将解锁 {n} 个模板",
+    "dbg_not_found": "在用户表中未找到该用户，或该用户没有分配。",
     "ps_pull_title": "从 Phrase 加载",
     "ps_pull_hint": "获取在 Phrase 中编辑的文本（上方所选词典和语言），并立即在应用中显示，无需重新部署。缺少占位符或含有新 HTML 的文本将被拒绝。",
     "ps_pull": "从 Phrase 加载",

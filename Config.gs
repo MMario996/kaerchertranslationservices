@@ -443,6 +443,53 @@ function explainTemplateMismatch_(template, userData) {
   return reasons;
 }
 
+/**
+ * Welche EINZELNE Zuordnung beim Nutzer fehlt, damit weitere Templates
+ * sichtbar wuerden: Templates, die nur an genau einem Feld scheitern, nach
+ * Feld + Wert gruppiert, meiste zuerst. Reine Funktion (getestet).
+ */
+function templateUnlockSuggestions_(templates, userData) {
+  const fields = [["client", "Client"], ["domain", "Domain"], ["subdomain", "Subdomain"], ["businessUnit", "Business Unit"]];
+  const groups = {};
+  Object.keys(templates || {}).forEach(name => {
+    const t = templates[name] || {};
+    if (templateMatchesUser_(t, userData)) return;
+    const failing = fields.filter(([k]) => {
+      const v = String(t[k] || "").trim().toLowerCase();
+      const userValues = String(userData[k] || "").toLowerCase().split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+      return !v || userValues.indexOf(v) === -1;
+    });
+    if (failing.length !== 1) return;
+    const [key, label] = failing[0];
+    const value = String(t[key] || "").trim();
+    if (!value) return; // Feld fehlt am Template - das muss am Template gepflegt werden
+    const id = key + "|" + value.toLowerCase();
+    if (!groups[id]) groups[id] = { field: label, value: value, templates: [] };
+    groups[id].templates.push(name);
+  });
+  return Object.keys(groups).map(k => groups[k])
+    .map(g => ({ field: g.field, value: g.value, unlocks: g.templates.length, templates: g.templates.sort() }))
+    .sort((a, b) => b.unlocks - a.unlocks || a.field.localeCompare(b.field) || a.value.localeCompare(b.value));
+}
+
+/** E-Mail-Vorschlaege fuer den Debugger (Nutzer aus FetchTMS_USERS-Prod). */
+function apiDebugListUsers() {
+  if (!isAdmin_(getUserEmail_())) return [];
+  try {
+    const sh = SpreadsheetApp.openById(getAccessSheetId_()).getSheetByName(USERS_SHEET_NAME);
+    if (!sh) return [];
+    const data = sh.getDataRange().getValues();
+    const idx = indexByHeader_(data[0].map(h => String(h || "").trim()));
+    const iEmail = pickIdx_(idx, ["email", "e-mail", "user email"]);
+    if (iEmail === -1) return [];
+    const seen = {};
+    return data.slice(1).map(r => String(r[iEmail] || "").trim().toLowerCase())
+      .filter(e => e && e.indexOf("@") > 0 && !seen[e] && (seen[e] = true)).sort();
+  } catch (e) {
+    return [];
+  }
+}
+
 function apiDebugUserTemplates(email) {
   const adminEmail = getUserEmail_();
   if (!isAdmin_(adminEmail)) return { success: false, error: "Not authorized. Admin only." };
@@ -464,6 +511,7 @@ function apiDebugUserTemplates(email) {
       success: true,
       email: email,
       userFound: userFound,
+      suggestions: templateUnlockSuggestions_(allTemplates, userData).slice(0, 15),
       userData: userData,
       allowed: allowed,
       denied: denied
