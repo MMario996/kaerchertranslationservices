@@ -390,7 +390,17 @@ function stopStartupOverlay_() {
   const o = document.getElementById('overlay'); if(o) o.style.display = 'none';
 }
 
-window.onload = function() { loadAppConfig(); };
+window.onload = function() { loadAppConfig(); initStickyNav_(); };
+
+// Schatten unter der Kopfzeile nur, wenn darunter gescrollt wird.
+function initStickyNav_() {
+  const nav = document.getElementById('mainTabNav');
+  const box = nav && nav.parentElement;
+  if (!box) return;
+  const upd = () => nav.classList.toggle('is-stuck', box.scrollTop > 2);
+  box.addEventListener('scroll', upd, { passive: true });
+  upd();
+}
 
 /**
  * Ermittelt, welcher Tab nach dem Laden/Wechseln der Config (normaler Login

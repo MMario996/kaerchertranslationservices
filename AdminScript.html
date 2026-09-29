@@ -559,7 +559,39 @@ function toggleAdminHelp(id) {
             card.style.display = on ? '' : 'none';
         });
         document.querySelectorAll('#consoleGroupNav .cgroup-btn').forEach(b => b.classList.toggle('active', b.dataset.cg === consoleGroup_));
+        layoutAdminGrid_();
     }
+
+    /**
+     * Verteilt die sichtbaren Kacheln so, dass jede Reihe voll ist: 6-Spalten-
+     * Raster, pro Reihe 3/2/1 Kacheln je nach Breite; eine unvollstaendige
+     * letzte Reihe teilt sich die ganze Breite. Breite Kacheln (grid-column
+     * 1 / -1 im Markup) bleiben volle Breite und beginnen einen neuen Block.
+     */
+    function layoutAdminGrid_() {
+        const grid = document.getElementById('adminGridContainer');
+        if (!grid) return;
+        const w = grid.clientWidth || window.innerWidth;
+        const perRow = w >= 1250 ? 3 : (w >= 780 ? 2 : 1);
+        const cards = Array.from(grid.children).filter(c => c.hasAttribute('data-cgroup'));
+        cards.forEach(c => { if (c.dataset.wide === undefined) c.dataset.wide = /-1/.test(c.style.gridColumn) ? '1' : '0'; });
+        let run = [];
+        const flush = () => {
+            run.forEach((c, i) => {
+                const rest = run.length - (run.length % perRow || perRow);
+                const inRow = i >= rest ? run.length - rest : perRow;
+                c.style.gridColumn = 'span ' + (6 / inRow);
+            });
+            run = [];
+        };
+        cards.forEach(c => {
+            if (c.style.display === 'none') return;
+            if (c.dataset.wide === '1') { flush(); c.style.gridColumn = '1 / -1'; return; }
+            run.push(c);
+        });
+        flush();
+    }
+    window.addEventListener('resize', () => { clearTimeout(window._agT_); window._agT_ = setTimeout(layoutAdminGrid_, 120); });
 
     function accAreaLabel_(id) {
         return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
@@ -1146,16 +1178,22 @@ function toggleAdminHelp(id) {
         const email = document.getElementById('debugEmail').value.trim();
         if(!email) { showCustomAlert(tr_('ax_d7ce638', 'Please enter an email.'), tr_('ax_902b0d5', 'Error')); return; }
         const c = document.getElementById('debugResultContainer');
-        c.style.display = 'block'; c.innerHTML = tr_('ax_bc2e1c9', 'Analyzing...');
+        const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        c.style.display = 'block'; c.textContent = tr_('ax_bc2e1c9', 'Analyzing...');
         google.script.run.withSuccessHandler(r => {
-            c.innerHTML = `<strong>${tr_('ax_ea6df25', 'Analyse für:')}</strong> ${r.email}\n\n` +
-                          `<strong>${tr_('ax_0447602', 'User Data (FetchTMS_USERS-Prod):')}</strong>
-` +
-                          `Client: ${r.userData.client}\nDomain: ${r.userData.domain}\nSubdomain: ${r.userData.subdomain}\nBU: ${r.userData.bu}\n\n` +
-                          `<strong>${tr_('ax_4b67cec', 'Erlaubte Templates (')}${r.allowed.length}):</strong>\n` + 
-                          r.allowed.map(x => `\u2713 ${x.name}`).join('\n') + `\n\n` +
-                          `<strong>${tr_('ax_8c9ee70', 'Blockierte Templates (')}${r.denied.length}):</strong>\n` +
-                          r.denied.map(x => `\u2717 ${x.name}\n   Grund: ${x.reasons.join(', ')}`).join('\n');
+            if (!r || !r.success) { c.textContent = tr_('ax_0aa2532', 'Fehler:') + ' ' + ((r && r.error) || 'unknown'); return; }
+            const u = r.userData || {};
+            const allowed = r.allowed || [], denied = r.denied || [];
+            c.innerHTML = `<strong>${tr_('ax_ea6df25', 'Analyse für:')}</strong> ${esc(r.email)}\n\n` +
+                          `<strong>${tr_('ax_0447602', 'User Data (FetchTMS_USERS-Prod):')}</strong>\n` +
+                          (r.userFound ? '' : '\u26A0 Nutzer nicht im User-Sheet gefunden oder ohne Zuordnung.\n') +
+                          `Client: ${esc(u.client)}\nDomain: ${esc(u.domain)}\nSubdomain: ${esc(u.subdomain)}\nBU: ${esc(u.businessUnit)}\n\n` +
+                          `<strong>${tr_('ax_4b67cec', 'Erlaubte Templates (')}${allowed.length}):</strong>\n` +
+                          allowed.map(x => `\u2713 ${esc(x.name)}`).join('\n') + `\n\n` +
+                          `<strong>${tr_('ax_8c9ee70', 'Blockierte Templates (')}${denied.length}):</strong>\n` +
+                          denied.map(x => `\u2717 ${esc(x.name)}\n   ${esc([].concat(x.reasons || []).join(' | '))}`).join('\n');
+        }).withFailureHandler(e => {
+            c.textContent = tr_('ax_0aa2532', 'Fehler:') + ' ' + ((e && e.message) || e);
         }).apiDebugUserTemplates(email);
     }
     function testChatBot(btn) {

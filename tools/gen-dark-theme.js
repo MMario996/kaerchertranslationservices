@@ -246,7 +246,8 @@ const DARK_BASE_ = `
     --k-surface:#1b1d20; --k-surface-2:#24272b; --k-ink:#ececec; --k-ink-2:#a3a3a3; --k-line:#34373c; --k-shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
     --kg-glass:rgba(34,36,40,.72); --kg-glass-hi:rgba(38,41,46,.92); --kg-hair:rgba(255,255,255,.07); --kg-wash:#131416; --kg-glow:rgba(255,237,0,.08);
     --kg-elev:0 1px 2px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.35); --kg-elev-hi:0 2px 4px rgba(0,0,0,.5), 0 18px 44px rgba(0,0,0,.45); --kg-ring:0 0 0 3px rgba(255,237,0,.45); }
-  ${D} body { background:radial-gradient(900px 520px at 100% -8%, rgba(255,237,0,.05), transparent 62%), #131416; background-attachment:fixed; color:#e4e4e4; }
+  ${D} body { background:#131416; color:#e4e4e4; }
+  ${D} .tab-nav { background:#131416; }
   ${D} input:focus, ${D} select:focus, ${D} textarea:focus { background-color:#1f2124; border-color:#8a8a8a; }
   ${D} .tab-btn:hover, ${D} .prefs-nav button:hover, ${D} .prefs-reset:hover { background-color:rgba(255,255,255,.05); }
   ${D} .prefs-nav button.active { background:#2d3035; }

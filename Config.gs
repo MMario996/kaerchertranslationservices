@@ -419,47 +419,55 @@ function pickIdx_(idxMap, names) {
   return -1;
 }
 
+/**
+ * Gruende, warum ein Template fuer einen Nutzer NICHT sichtbar ist - dieselbe
+ * Regel wie templateMatchesUser_ (exakter Treffer in der Nutzerliste,
+ * leeres Feld = kein Treffer). Reine Funktion (getestet).
+ */
+function explainTemplateMismatch_(template, userData) {
+  const fields = [
+    ["Client", template.client, userData.client],
+    ["Domain", template.domain, userData.domain],
+    ["Subdomain", template.subdomain, userData.subdomain],
+    ["Business Unit", template.businessUnit, userData.businessUnit]
+  ];
+  const reasons = [];
+  fields.forEach(([label, tVal, uVal]) => {
+    const v = String(tVal || "").trim();
+    const userValues = String(uVal || "").toLowerCase().split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+    if (!v) reasons.push(label + " fehlt am Template");
+    else if (!userValues.length) reasons.push(label + " fehlt beim Nutzer (Template: '" + v + "')");
+    else if (userValues.indexOf(v.toLowerCase()) === -1) reasons.push(label + ": Template '" + v + "' nicht in Nutzer '" + String(uVal).trim() + "'");
+  });
+  return reasons;
+}
+
 function apiDebugUserTemplates(email) {
   const adminEmail = getUserEmail_();
   if (!isAdmin_(adminEmail)) return { success: false, error: "Not authorized. Admin only." };
 
-  email = String(email).trim().toLowerCase();
-  const userData = getUserData_(email);
-  const allTemplates = readTemplates_();
-
-  const allowed = [];
-  const denied = [];
-
-  for (let key in allTemplates) {
-    const t = allTemplates[key];
-    const hasAccess = templateMatchesUser_(t, userData);
-
-    if (hasAccess) {
-      allowed.push({ name: key, info: "Matched successfully" });
-      continue;
-    }
-
-    const reasons = [];
-    if (!String(t.client || "").trim()) reasons.push(`Client fehlt am Template (User: '${userData.client}')`);
-    else if (!String(userData.client || "").toLowerCase().includes(t.client.toLowerCase())) reasons.push(`Client mismatch (Template: '${t.client}' vs User: '${userData.client}')`);
-
-    if (!String(t.domain || "").trim()) reasons.push(`Domain fehlt am Template (User: '${userData.domain}')`);
-    else if (!String(userData.domain || "").toLowerCase().includes(t.domain.toLowerCase())) reasons.push(`Domain mismatch (Template: '${t.domain}' vs User: '${userData.domain}')`);
-
-    if (!String(t.subdomain || "").trim()) reasons.push(`Subdomain fehlt am Template (User: '${userData.subdomain}')`);
-    else if (!String(userData.subdomain || "").toLowerCase().includes(t.subdomain.toLowerCase())) reasons.push(`Subdomain mismatch (Template: '${t.subdomain}' vs User: '${userData.subdomain}')`);
-
-    if (!String(t.businessUnit || "").trim()) reasons.push(`Business Unit fehlt am Template (User: '${userData.businessUnit}')`);
-    else if (!String(userData.businessUnit || "").toLowerCase().includes(t.businessUnit.toLowerCase())) reasons.push(`Business Unit mismatch (Template: '${t.businessUnit}' vs User: '${userData.businessUnit}')`);
-
-    denied.push({ name: key, reasons: reasons.join(" | ") });
+  email = String(email || "").trim().toLowerCase();
+  if (!email) return { success: false, error: "Keine E-Mail angegeben." };
+  try {
+    const userData = getUserData_(email);
+    const allTemplates = readTemplates_();
+    const allowed = [];
+    const denied = [];
+    Object.keys(allTemplates).sort().forEach(key => {
+      const t = allTemplates[key] || {};
+      if (templateMatchesUser_(t, userData)) allowed.push({ name: key });
+      else denied.push({ name: key, reasons: explainTemplateMismatch_(t, userData) });
+    });
+    const userFound = !!(userData.client || userData.domain || userData.subdomain || userData.businessUnit);
+    return {
+      success: true,
+      email: email,
+      userFound: userFound,
+      userData: userData,
+      allowed: allowed,
+      denied: denied
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-
-  return {
-    success: true,
-    email: email,
-    userData: userData,
-    allowed: allowed,
-    denied: denied
-  };
 }

@@ -44,8 +44,26 @@ Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
 - **Lokal / GitHub:** `npm test` (Node ≥ 18, keine Abhängigkeiten). Prüft die Logik (Status,
   Archiv, Fristen, Kalender, Download-Auswahl, Notizen, Dateinamen) und die Konsistenz der
   Oberfläche (alle eingebundenen Dateien vorhanden, jeder Button ruft eine existierende Funktion
-  auf, jeder Übersetzungsschlüssel existiert). Läuft automatisch bei jedem Pull Request
-  (`.github/workflows/tests.yml`).
+  auf, jeder Übersetzungsschlüssel existiert).
+- **Oberfläche im Browser:** `npm ci && npm run test:ui` (Playwright/Chromium). Startet die echte
+  Seite mit gemocktem `google.script.run` (`tools/build-preview.js`) und prüft: Start ohne
+  JS-Fehler, Startseite zeigt nur eigene/geteilte Projekte, kein gelber Farbschleier, Kopfzeile klebt
+  randlos oben, jede Reihe der Admin-Kacheln ist voll, User Template Debugger zeigt Ergebnis/Fehler.
+  Vorschau zum Anschauen: `npm run preview` → `preview.html`.
+- **CI/CD** (`.github/workflows/ci.yml`): beide Testläufe bei jedem Pull Request und auf `main`.
+  Nach grünem CI auf `main` schiebt der Deploy-Job den Code per `clasp push` ins Apps-Script-Projekt
+  (Dateiauswahl: `.claspignore`) und aktualisiert optional die Web-App-Bereitstellung. Dafür in
+  GitHub → Settings → Secrets anlegen: `CLASPRC_JSON` (Inhalt von `~/.clasprc.json` nach
+  `clasp login`), `APPS_SCRIPT_ID` (Projekteinstellungen → Script-ID), optional
+  `APPS_SCRIPT_DEPLOYMENT_ID`. Ohne Secrets wird der Deploy übersprungen.
 - **In der App:** Admin → **Tests** (`SelfTests.gs`). Prüft in der echten Apps-Script-Umgebung
   Logik, Script Properties, Oberflächen-Dateien, Übersetzungen, Sheets sowie Phrase- und
   Drive-Anbindung. Nur lesend. Für Admin-Light-Nutzer über das Recht „Tests“ freigebbar.
+
+## Phrase Strings (Admin → Translate UI)
+
+Token aus **Phrase Platform → Profil → Access tokens** (Dienst „Strings“, z. B.
+`eu.phrase.com/idm-ui/settings/access-tokens`) sind Plattform-Token: sie werden automatisch am
+IDM-Endpunkt (`https://eu.phrase.com/idm/oauth/token`, bzw. `us.` für die US-Region) gegen ein
+JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische Strings-Token
+(64 Hex-Zeichen) werden weiterhin direkt verwendet. „Verbindung prüfen“ zeigt die erkannte Art an.

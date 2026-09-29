@@ -242,3 +242,15 @@ test('Startbereich: Startseite an -> home, sonst Einstellung oder Bereich', () =
   assert.equal(ctx.startTabWithHome_('request'), 'history');
   run('userPrefs_ = {}');
 });
+
+test('Startseite zeigt nur eigene, geteilte und Gruppen-Projekte (auch fuer Admins)', () => {
+  const projects = [
+    { projectUid: 'a', owner: 'me@kaercher.com' },
+    { projectUid: 'b', owner: 'other@kaercher.com' },
+    { projectUid: 'c', owner: 'other@kaercher.com', sharedWith: 'x@kaercher.com; Me@Kaercher.com' },
+    { projectUid: 'd', owner: 'woma@kaercher.com', groupShared: true },
+    { projectUid: 'e', owner: 'other@kaercher.com', sharedWith: 'notme@kaercher.com' }
+  ];
+  assert.deepEqual(plain(ctx.homeOwnProjects_(projects, 'ME@kaercher.com').map((p) => p.projectUid)), ['a', 'c', 'd']);
+  assert.equal(ctx.homeOwnProjects_(projects, '').length, 5, 'ohne Nutzer keine Filterung');
+});
