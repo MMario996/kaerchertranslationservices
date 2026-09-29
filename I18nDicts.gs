@@ -8,6 +8,9 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "ix_lazy_err": "Dieser Bereich konnte nicht geladen werden. Bitte die Seite neu laden.",
+    "kb_title": "Knowledge Base",
+    "kb_desc": "Alles zu Phrase TMS, Strings, Orchestrator und dem Portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Als Nächstes fällig",
     "pf_nav_general": "Allgemein",
@@ -1016,6 +1019,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "ix_lazy_err": "This area could not be loaded. Please reload the page.",
+    "kb_title": "Knowledge Base",
+    "kb_desc": "Everything about Phrase TMS, Strings, Orchestrator and the portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Up next",
     "pf_nav_general": "General",
@@ -2024,6 +2030,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "ix_lazy_err": "Cette section n'a pas pu être chargée. Veuillez recharger la page.",
+    "kb_title": "Base de connaissances",
+    "kb_desc": "Tout sur Phrase TMS, Strings, Orchestrator et le portail.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Prochaines échéances",
     "pf_nav_general": "Général",
@@ -3031,6 +3040,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "ix_lazy_err": "No se pudo cargar esta sección. Vuelva a cargar la página.",
+    "kb_title": "Base de conocimientos",
+    "kb_desc": "Todo sobre Phrase TMS, Strings, Orchestrator y el portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos vencimientos",
     "pf_nav_general": "General",
@@ -4038,6 +4050,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "ix_lazy_err": "Não foi possível carregar esta área. Recarregue a página.",
+    "kb_title": "Base de conhecimento",
+    "kb_desc": "Tudo sobre Phrase TMS, Strings, Orchestrator e o portal.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos prazos",
     "pf_nav_general": "Geral",
@@ -5045,6 +5060,9 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "ix_lazy_err": "无法加载此区域。请重新加载页面。",
+    "kb_title": "知识库",
+    "kb_desc": "关于 Phrase TMS、Strings、Orchestrator 和门户的全部信息。",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "即将到期",
     "pf_nav_general": "常规",
@@ -6054,5 +6072,6 @@ var I18N_DICTS_ = {
 };
 
 function apiGetI18nDict(lang) {
-  return (lang && I18N_DICTS_[lang]) ? I18N_DICTS_[lang] : null;
+  if (!lang || !I18N_DICTS_[lang]) return null;
+  return typeof uiDict_ === "function" ? uiDict_("app", lang) : I18N_DICTS_[lang];
 }

@@ -154,3 +154,43 @@ test('User Template Debugger: Gruende passen zur Sichtbarkeitsregel', () => {
   assert.deepEqual(plain(cfg.explainTemplateMismatch_({ client: 'KA', domain: 'marketing', subdomain: 'x', businessUnit: '' }, full)),
     ["Client: Template 'KA' nicht in Nutzer 'KAG, KNA'", 'Business Unit fehlt am Template'], 'kein Teilstring-Treffer');
 });
+
+test('doGet: ?page=kb liefert die Knowledge Base (einbettbar), sonst das Portal', () => {
+  const calls = [];
+  const out = (kind, name) => {
+    const o = { kind, name, xfo: null };
+    o.setTitle = () => o; o.addMetaTag = () => o; o.evaluate = () => o;
+    o.setXFrameOptionsMode = (m) => { o.xfo = m; return o; };
+    return o;
+  };
+  const web = load(['WebApp.gs'], {
+    HtmlService: {
+      XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' },
+      createHtmlOutputFromFile: (n) => { calls.push(n); return out('file', n); },
+      createTemplateFromFile: (n) => { calls.push(n); return out('template', n); }
+    }
+  });
+  const kb = web.doGet({ parameter: { page: 'KB' } });
+  assert.equal(kb.name, 'Knowledgebase');
+  assert.equal(kb.xfo, 'ALLOWALL');
+  assert.equal(web.doGet({ parameter: { page: 'knowledgebase' } }).name, 'Knowledgebase');
+  assert.equal(web.doGet({ parameter: {} }).name, 'Index');
+  assert.equal(web.doGet(undefined).name, 'Index');
+});
+
+test('User Template Debugger: Vorschlaege zeigen, welcher eine Wert Templates freischaltet', () => {
+  const cfg = load(['Config.gs']);
+  const user = { client: 'KAG', domain: 'Marketing', subdomain: 'Web', businessUnit: 'PC' };
+  const t = (client, domain, subdomain, businessUnit) => ({ client, domain, subdomain, businessUnit });
+  const templates = {
+    'Visible': t('KAG', 'Marketing', 'Web', 'PC'),
+    'Needs Print A': t('KAG', 'Marketing', 'Print', 'PC'),
+    'Needs Print B': t('kag', 'marketing', 'print', 'pc'),
+    'Needs BU HC': t('KAG', 'Marketing', 'Web', 'HC'),
+    'Two fields off': t('KNA', 'Marketing', 'Print', 'PC'),
+    'Empty on template': t('KAG', '', 'Web', 'PC')
+  };
+  const s = plain(cfg.templateUnlockSuggestions_(templates, user));
+  assert.deepEqual(s.map((x) => [x.field, x.value.toLowerCase(), x.unlocks]), [['Subdomain', 'print', 2], ['Business Unit', 'hc', 1]]);
+  assert.deepEqual(s[0].templates, ['Needs Print A', 'Needs Print B']);
+});

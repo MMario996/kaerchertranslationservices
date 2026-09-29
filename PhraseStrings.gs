@@ -35,7 +35,12 @@ var PS_REGION_PROP_  = "PHRASE_STRINGS_REGION";
 var PS_LANGS_        = ["de", "en", "fr", "es", "pt", "zh"];
 var PS_DICTS_        = { app: "ui-app", admin: "ui-admin" };
 
+// true nur waehrend des naechtlichen Triggers (psNightlySync_), der als
+// Deploy-Konto ohne angemeldeten Admin laeuft.
+var psSystemRun_ = false;
+
 function psAssertAdmin_() {
+  if (psSystemRun_) return;
   if (!isAdmin_(getUserEmail_())) throw new Error("Not authorized.");
 }
 
@@ -52,12 +57,16 @@ function psSettings_() {
   };
 }
 
-/** Das Woerterbuch einer Sprache als { key: text } (nur Strings, sortiert). */
+/**
+ * Das Woerterbuch einer Sprache als { key: text } (nur Strings, sortiert) -
+ * inkl. der aus Phrase zurueckgeholten Texte (PhraseStringsSync.gs), damit
+ * ein erneuter Upload diese nicht wieder ueberschreibt.
+ */
 function psDict_(which, lang) {
   var src = which === "admin"
     ? (typeof ADMIN_I18N_ !== "undefined" ? ADMIN_I18N_ : {})
     : (typeof I18N_DICTS_ !== "undefined" ? I18N_DICTS_ : {});
-  var d = src[lang] || {};
+  var d = (typeof psMergedDict_ === "function" ? psMergedDict_(which, lang) : null) || src[lang] || {};
   var out = {};
   Object.keys(d).sort().forEach(function (k) {
     if (typeof d[k] === "string") out[k] = d[k];
@@ -223,7 +232,11 @@ function apiPsGetConfig() {
     counts[which] = {};
     PS_LANGS_.forEach(function (l) { counts[which][l] = Object.keys(psDict_(which, l)).length; });
   });
-  return { project: s.project, region: s.region, hasToken: !!s.token, langs: PS_LANGS_, counts: counts };
+  var props = PropertiesService.getScriptProperties();
+  var nightly = false;
+  try { nightly = typeof psNightlyEnabled_ === "function" && psNightlyEnabled_(); } catch (e) {}
+  return { project: s.project, region: s.region, hasToken: !!s.token, langs: PS_LANGS_, counts: counts,
+    nightly: nightly, lastPull: props.getProperty("PHRASE_STRINGS_LAST_PULL") || "" };
 }
 
 function apiPsSaveConfig(project, region, token) {

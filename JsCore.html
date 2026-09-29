@@ -390,7 +390,69 @@ function stopStartupOverlay_() {
   const o = document.getElementById('overlay'); if(o) o.style.display = 'none';
 }
 
-window.onload = function() { loadAppConfig(); initStickyNav_(); };
+window.onload = function() { loadAppConfig(); initStickyNav_(); initIconFallback_(); };
+
+// --- Icon-Schrift nicht erreichbar -------------------------------------------
+// Blockiert ein Netz Google Fonts, zeigt der Browser statt Symbolen die
+// Namen ("add_circle", "sync_alt"). Dann: bekannte Icons durch ein Zeichen
+// ersetzen, der Rest wird ausgeblendet - auch fuer spaeter eingefuegte Icons.
+const ICON_FALLBACK_ = {
+  close: '\u2715', delete: '\u2716', refresh: '\u21bb', sync: '\u21bb', cloud_sync: '\u21bb', restart_alt: '\u21ba', sync_alt: '\u21c4',
+  tune: '\u2699', settings: '\u2699', settings_applications: '\u2699', build: '\u2699',
+  notifications: '\u237e', notifications_none: '\u237e', notifications_active: '\u237e', dashboard_customize: '\u2261', space_dashboard: '\u2261', grid_view: '\u2261',
+  search: '\u2315', manage_search: '\u2315', expand_more: '\u25be', unfold_more: '\u2195', chevron_right: '\u203a', chevron_left: '\u2039',
+  arrow_forward: '\u2192', arrow_upward: '\u2191', arrow_downward: '\u2193', open_in_new: '\u2197', open_in_full: '\u2922', fullscreen: '\u2922',
+  check: '\u2713', check_circle: '\u2713', task_alt: '\u2713', done_all: '\u2713', fact_check: '\u2713',
+  add: '+', add_circle: '+', add_circle_outline: '+', post_add: '+', playlist_add: '+', person_add: '+', add_link: '+',
+  edit: '\u270e', edit_note: '\u270e', edit_calendar: '\u270e', download: '\u2193', cloud_download: '\u2193',
+  upload: '\u2191', cloud_upload: '\u2191', upload_file: '\u2191', drive_folder_upload: '\u2191', add_to_drive: '\u2191',
+  info: 'i', help_outline: '?', question_mark: '?', live_help: '?', warning: '!', warning_amber: '!', error: '!', error_outline: '!', report_problem: '!', report: '!',
+  lock: '\u26bf', lock_open: '\u26bf', link: '\u26ad', share: '\u2934', content_copy: '\u2398', save: '\u2713',
+  event: '\u25a6', today: '\u25a6', calendar_month: '\u25a6', event_available: '\u25a6', alarm: '\u23f0',
+  home: '\u2302', menu: '\u2630', list: '\u2630', view_list: '\u2630', star: '\u2605', star_border: '\u2606',
+  play_arrow: '\u25b6', play_circle: '\u25b6', send: '\u27a4', light_mode: '\u2600', dark_mode: '\u263e', drag_indicator: '\u22ee',
+  block: '\u2298', history: '\u21ba', visibility: '\u25c9', visibility_off: '\u25cc', keyboard: '\u2328'
+};
+let iconFallbackOn_ = false;
+
+function iconFontMissing_() {
+  const probe = document.createElement('span');
+  probe.className = 'material-icons-outlined';
+  probe.style.cssText = 'position:absolute;visibility:hidden;font-size:24px;white-space:nowrap;';
+  probe.textContent = 'add_circle';
+  document.body.appendChild(probe);
+  const w = probe.offsetWidth;
+  probe.remove();
+  return w > 40; // als Ligatur ~24px breit, als Text ~120px
+}
+
+function applyIconFallback_(root) {
+  (root || document).querySelectorAll('.material-icons-outlined, .material-icons').forEach(el => {
+    const name = el.textContent.trim();
+    if (!/^[a-z0-9_]+$/.test(name)) return; // schon ersetzt
+    el.setAttribute('data-icon', name);
+    const sym = ICON_FALLBACK_[name];
+    el.textContent = sym || '';
+    el.classList.toggle('icon-fb-hidden', !sym);
+  });
+}
+
+function initIconFallback_() {
+  const run = () => {
+    if (iconFallbackOn_ || !iconFontMissing_()) return;
+    iconFallbackOn_ = true;
+    document.documentElement.classList.add('no-icon-font');
+    applyIconFallback_(document);
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; applyIconFallback_(document); });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  const later = () => setTimeout(run, 2500);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(later, later); else later();
+}
 
 // Schatten unter der Kopfzeile nur, wenn darunter gescrollt wird.
 function initStickyNav_() {
@@ -444,6 +506,10 @@ function loadAppConfig() {
 
         initForm(config);
         initPersonal_(config);
+        const kb = document.getElementById('kbHelpLink');
+        if (kb && config.kbUrl) { kb.href = config.kbUrl; kb.style.display = ''; }
+        // Campus-Skript fuer Berechtigte schon im Hintergrund holen (sonst beim Oeffnen des Reiters).
+        if (config.isArticulate || config.effectiveIsAdmin) setTimeout(() => ensureScript_('JsCampus'), 1500);
 
         let startTab = startTabWithHome_(computeStartTab_(config));
         if (!currentImpersonationEmail) {

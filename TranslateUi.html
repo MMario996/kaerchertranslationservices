@@ -66,6 +66,30 @@
     <div id="psPushStatus" class="psu-status"></div>
     <div id="psResults"></div>
   </div>
+
+  <div class="psu-card">
+    <h3><span class="material-icons-outlined">cloud_download</span><span data-i18n="ps_pull_title">Load from Phrase</span></h3>
+    <p class="psu-hint" data-i18n="ps_pull_hint">Fetches the texts edited in Phrase (dictionaries and languages selected above) and shows them in the app right away - no new deployment. Texts with missing placeholders or new HTML are rejected.</p>
+    <div class="psu-row">
+      <button type="button" class="btn btn-primary psu-btn" id="psPullBtn" onclick="psPull_()"><span class="material-icons-outlined">cloud_download</span><span data-i18n="ps_pull">Load from Phrase</span></button>
+    </div>
+    <div id="psPullStatus" class="psu-status"></div>
+    <div id="psPullResults"></div>
+  </div>
+
+  <div class="psu-card">
+    <h3><span class="material-icons-outlined">donut_large</span><span data-i18n="ps_cov_title">Coverage &amp; sync</span></h3>
+    <p class="psu-hint" data-i18n="ps_cov_hint">How many texts are still missing per language (compared with English) and how many texts from Phrase are active.</p>
+    <div id="psCoverage"></div>
+    <div class="psu-row">
+      <label class="psu-chk"><input type="checkbox" id="psNightly" onchange="psSetNightly_(this.checked)"> <span data-i18n="ps_nightly">Sync automatically every night (02:00: upload new keys, fetch translations)</span></label>
+    </div>
+    <div class="psu-row">
+      <span id="psLastPull" class="psu-hint" style="margin:0;"></span>
+      <button type="button" class="btn btn-secondary psu-btn" onclick="psClear_()"><span class="material-icons-outlined">restart_alt</span><span data-i18n="ps_clear">Discard texts from Phrase</span></button>
+    </div>
+    <div id="psCovStatus" class="psu-status"></div>
+  </div>
 </div>
 <script>
 var psCfg_ = null;
@@ -83,7 +107,100 @@ function psLoad_() {
     document.getElementById('psLangs').innerHTML = cfg.langs.map(function (l) {
       return '<label class="psu-chk"><input type="checkbox" class="ps-lang" value="' + l + '" checked> ' + l.toUpperCase() + '</label>';
     }).join('');
+    document.getElementById('psNightly').checked = !!cfg.nightly;
+    psShowLastPull_(cfg.lastPull);
+    psLoadCoverage_();
   }).withFailureHandler(psFail_('psCfgStatus')).apiPsGetConfig();
+}
+
+function psShowLastPull_(iso) {
+  var el = document.getElementById('psLastPull');
+  if (!el) return;
+  var d = iso ? new Date(iso) : null;
+  el.textContent = d && !isNaN(d) ? fmt_(tr_('ps_last_pull', 'Last loaded: {t}'), { t: d.toLocaleString() }) : '';
+}
+
+function psSelection_() {
+  var dicts = [];
+  if (document.getElementById('psDictApp').checked) dicts.push('app');
+  if (document.getElementById('psDictAdmin').checked) dicts.push('admin');
+  var langs = Array.prototype.slice.call(document.querySelectorAll('.ps-lang:checked')).map(function (x) { return x.value; });
+  return { dicts: dicts, langs: langs };
+}
+
+function psPull_() {
+  var sel = psSelection_();
+  if (!sel.dicts.length || !sel.langs.length) { psStatus_('psPullStatus', tr_('ps_pick', 'Please select at least one dictionary and one language.'), 'err'); return; }
+  var btn = document.getElementById('psPullBtn');
+  btn.disabled = true;
+  psStatus_('psPullStatus', tr_('ps_pulling', 'Loading from Phrase...'));
+  document.getElementById('psPullResults').innerHTML = '';
+  google.script.run.withSuccessHandler(function (r) {
+    btn.disabled = false;
+    var active = r.results.reduce(function (n, x) { return n + (x.overrides || 0); }, 0);
+    var bad = r.results.filter(function (x) { return x.state === 'error'; }).length;
+    psStatus_('psPullStatus', bad ? fmt_(tr_('ps_done_err', 'Finished with {n} error(s).'), { n: bad })
+      : fmt_(tr_('ps_pull_done', 'Done: {n} text(s) from Phrase active.'), { n: active }), bad ? 'err' : 'ok');
+    psRenderPull_(r.results);
+    psShowLastPull_(new Date().toISOString());
+    psLoadCoverage_();
+  }).withFailureHandler(function (e) { btn.disabled = false; psFail_('psPullStatus')(e); }).apiPsPull(sel);
+}
+
+function psRenderPull_(rows) {
+  var dictName = function (d) { return d === 'admin' ? tr_('ps_dict_admin', 'Admin area') : tr_('ps_dict_app', 'App (user interface)'); };
+  document.getElementById('psPullResults').innerHTML = '<table style="margin-top:12px;"><thead><tr>' +
+    ['ps_lang:Language', 'ps_dicts:Dictionary', 'ps_col_received:Received', 'ps_col_active:Active', 'ps_col_rejected:Rejected', 'ps_col_state:Status']
+      .map(function (c) { var p = c.split(':'); return '<th>' + escapeHtml(tr_(p[0], p[1])) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' + rows.map(function (r) {
+      var st = r.state === 'success' ? '<span class="psu-pill ok">OK</span>'
+        : r.state === 'no-locale' ? '<span class="psu-pill new">' + escapeHtml(tr_('ps_no_locale', 'Language missing in Phrase')) + '</span>'
+        : '<span class="psu-pill err">' + escapeHtml(tr_('ps_error', 'Error')) + '</span><div style="font-size:11px;color:#c5221f;">' + escapeHtml(r.error || '') + '</div>';
+      var rej = (r.rejected || []).map(function (x) { return escapeHtml(x.key + ': ' + x.reason); }).join('<br>');
+      return '<tr><td>' + r.lang.toUpperCase() + '</td><td>' + escapeHtml(dictName(r.dict)) + '</td><td>' + (r.received != null ? r.received : '-') +
+        '</td><td>' + (r.overrides != null ? r.overrides : '-') + '</td><td>' +
+        (r.rejectedCount ? '<details><summary>' + r.rejectedCount + '</summary><div style="font-size:11.5px;">' + rej + '</div></details>' : (r.state === 'success' ? '0' : '-')) +
+        '</td><td>' + st + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function psLoadCoverage_() {
+  google.script.run.withSuccessHandler(function (cov) {
+    var host = document.getElementById('psCoverage');
+    if (!host) return;
+    var langs = (psCfg_ && psCfg_.langs) || Object.keys(cov.app || {});
+    host.innerHTML = '<table><thead><tr><th>' + escapeHtml(tr_('ps_dicts', 'Dictionary')) + '</th>' +
+      langs.map(function (l) { return '<th>' + l.toUpperCase() + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      ['app', 'admin'].map(function (which) {
+        var name = which === 'admin' ? tr_('ps_dict_admin', 'Admin area') : tr_('ps_dict_app', 'App (user interface)');
+        return '<tr><td>' + escapeHtml(name) + '</td>' + langs.map(function (l) {
+          var c = (cov[which] || {})[l] || { total: 0, missing: 0, sample: [], overrides: 0 };
+          var pill = c.missing ? '<span class="psu-pill err">' + c.missing + ' ' + escapeHtml(tr_('ps_col_missing', 'Missing')) + '</span>'
+            : '<span class="psu-pill ok">100%</span>';
+          var extra = c.overrides ? '<div style="font-size:11px;color:var(--k-ink-2,#777);">' + c.overrides + ' ' + escapeHtml(tr_('ps_col_active', 'Active')) + '</div>' : '';
+          var list = c.missing ? '<details><summary style="font-size:11px;">' + escapeHtml(tr_('ps_show_missing', 'Show missing keys')) +
+            '</summary><div style="font-size:11px;font-family:monospace;">' + c.sample.map(escapeHtml).join('<br>') + (c.missing > c.sample.length ? '<br>…' : '') + '</div></details>' : '';
+          return '<td>' + pill + extra + list + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+  }).withFailureHandler(psFail_('psCovStatus')).apiPsCoverage();
+}
+
+function psSetNightly_(on) {
+  google.script.run.withSuccessHandler(function (state) {
+    document.getElementById('psNightly').checked = !!state;
+    psStatus_('psCovStatus', '', '');
+  }).withFailureHandler(function (e) {
+    document.getElementById('psNightly').checked = !on;
+    psFail_('psCovStatus')(e);
+  }).apiPsSetNightly(!!on);
+}
+
+function psClear_() {
+  showCustomConfirm(tr_('ps_clear_q', 'Discard all texts loaded from Phrase? The app will show the texts from the code again.'), function () {
+    google.script.run.withSuccessHandler(function () { psLoadCoverage_(); document.getElementById('psPullResults').innerHTML = ''; })
+      .withFailureHandler(psFail_('psCovStatus')).apiPsClearOverrides();
+  });
 }
 
 function psStatus_(id, text, cls) {
@@ -124,10 +241,8 @@ function psCheck_() {
 }
 
 function psPush_() {
-  var dicts = [];
-  if (document.getElementById('psDictApp').checked) dicts.push('app');
-  if (document.getElementById('psDictAdmin').checked) dicts.push('admin');
-  var langs = Array.prototype.slice.call(document.querySelectorAll('.ps-lang:checked')).map(function (x) { return x.value; });
+  var sel = psSelection_();
+  var dicts = sel.dicts, langs = sel.langs;
   var overwrite = document.getElementById('psOverwrite').checked;
   if (!dicts.length || !langs.length) { psStatus_('psPushStatus', tr_('ps_pick', 'Please select at least one dictionary and one language.'), 'err'); return; }
   var go = function () {

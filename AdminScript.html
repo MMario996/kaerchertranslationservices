@@ -219,10 +219,7 @@ function toggleAdminHelp(id) {
         const btn  = document.getElementById('subtab-btn-' + n);
         const on = (n === name);
         if (pane) pane.style.display = on ? 'block' : 'none';
-        if (btn) {
-          btn.style.color = on ? '#d93025' : '#999';
-          btn.style.borderBottomColor = on ? '#d93025' : 'transparent';
-        }
+        if (btn) btn.classList.toggle('active', on);
       });
       if (name === 'templates') loadTemplateManager();
       if (name === 'users') loadUserManager();
@@ -1174,19 +1171,43 @@ function toggleAdminHelp(id) {
             }
         });
     }
+    let debugUsersLoaded_ = false;
+    function loadDebugUserList_() {
+        if (debugUsersLoaded_) return;
+        debugUsersLoaded_ = true;
+        google.script.run.withSuccessHandler(list => {
+            const dl = document.getElementById('debugEmailList');
+            if (dl) dl.innerHTML = (list || []).map(e => '<option value="' + escapeHtml(e) + '">').join('');
+        }).withFailureHandler(() => { debugUsersLoaded_ = false; }).apiDebugListUsers();
+    }
+
+    function renderDebugSuggestions_(list) {
+        const box = document.getElementById('debugSuggestions');
+        if (!box) return;
+        if (!list || !list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'block';
+        box.innerHTML = '<b>' + escapeHtml(tr_('dbg_sugg_title', 'Missing assignment')) + '</b>' +
+            '<div style="color:var(--k-ink-2,#666);">' + escapeHtml(tr_('dbg_sugg_hint', 'Add the value to the user in Phrase, then run "Sync Users".')) + '</div><ul>' +
+            list.map(g => '<li title="' + escapeHtml(g.templates.join(', ')) + '"><span class="dbg-n">' + g.unlocks + '</span>' +
+                escapeHtml(fmt_(tr_('dbg_unlocks', '{field} "{value}" would unlock {n} template(s)'), { field: g.field, value: g.value, n: g.unlocks })) + '</li>').join('') +
+            '</ul>';
+    }
+
     function runUserTemplatesDebug() {
         const email = document.getElementById('debugEmail').value.trim();
         if(!email) { showCustomAlert(tr_('ax_d7ce638', 'Please enter an email.'), tr_('ax_902b0d5', 'Error')); return; }
         const c = document.getElementById('debugResultContainer');
         const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
         c.style.display = 'block'; c.textContent = tr_('ax_bc2e1c9', 'Analyzing...');
+        renderDebugSuggestions_(null);
         google.script.run.withSuccessHandler(r => {
             if (!r || !r.success) { c.textContent = tr_('ax_0aa2532', 'Fehler:') + ' ' + ((r && r.error) || 'unknown'); return; }
+            renderDebugSuggestions_(r.suggestions);
             const u = r.userData || {};
             const allowed = r.allowed || [], denied = r.denied || [];
             c.innerHTML = `<strong>${tr_('ax_ea6df25', 'Analyse für:')}</strong> ${esc(r.email)}\n\n` +
                           `<strong>${tr_('ax_0447602', 'User Data (FetchTMS_USERS-Prod):')}</strong>\n` +
-                          (r.userFound ? '' : '\u26A0 Nutzer nicht im User-Sheet gefunden oder ohne Zuordnung.\n') +
+                          (r.userFound ? '' : '\u26A0 ' + tr_('dbg_not_found', 'User not found in the user sheet or without assignment.') + '\n') +
                           `Client: ${esc(u.client)}\nDomain: ${esc(u.domain)}\nSubdomain: ${esc(u.subdomain)}\nBU: ${esc(u.businessUnit)}\n\n` +
                           `<strong>${tr_('ax_4b67cec', 'Erlaubte Templates (')}${allowed.length}):</strong>\n` +
                           allowed.map(x => `\u2713 ${esc(x.name)}`).join('\n') + `\n\n` +

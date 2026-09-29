@@ -1188,6 +1188,25 @@
   body > .container { padding-top:0; }
   .tab-nav { position:sticky; top:0; z-index:60; box-sizing:border-box; width:auto; margin:0 calc(-1 * var(--cpx)) 20px; padding:var(--cpt) var(--cpx) 0; background:var(--kg-wash); transition:box-shadow .2s; }
   .tab-nav.is-stuck { box-shadow:0 10px 18px -14px rgba(0,0,0,.35); }
+  /* Icon-Schrift blockiert (JsCore: initIconFallback_): Zeichen statt Namen */
+  .no-icon-font .material-icons-outlined, .no-icon-font .material-icons { font-family:inherit !important; font-weight:700; font-style:normal; letter-spacing:0; text-transform:none; font-feature-settings:normal; line-height:1; }
+  .no-icon-font .icon-fb-hidden { display:none !important; }
+  /* Admin-Unterreiter: segmentierte Leiste wie die Konsolen-Gruppen */
+  .admin-subtabs { display:flex; gap:4px; margin-bottom:20px; padding:5px; background:var(--kg-glass); border:1px solid var(--k-line); border-radius:14px; box-shadow:var(--kg-elev); width:max-content; max-width:100%; overflow-x:auto; -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); }
+  .admin-subtab-btn { flex:0 0 auto; border:none; background:none; padding:10px 18px; border-radius:10px; font-family:inherit; font-size:13px; font-weight:800; line-height:1; text-transform:uppercase; letter-spacing:.4px; color:var(--k-ink-2,#666); cursor:pointer; white-space:nowrap; transition:background-color .15s, color .15s; }
+  .admin-subtab-btn:hover { background:rgba(0,0,0,.05); color:var(--k-ink,#111); }
+  .admin-subtab-btn.active { background:var(--kg-ink); color:var(--primary-yellow); box-shadow:0 6px 14px -6px rgba(0,0,0,.5); }
+  .admin-subtab-btn:focus-visible { outline:none; box-shadow:var(--kg-ring); }
+  html[data-theme="dark"] .admin-subtab-btn:hover { background:rgba(255,255,255,.06); }
+  /* User Template Debugger */
+  .dbg-result { margin-top:15px; padding:14px; background:var(--k-surface-2,#f6f6f3); border:1px solid var(--k-line,#e6e6e0); border-radius:10px; font-size:12px; white-space:pre-wrap; font-family:ui-monospace, Menlo, Consolas, monospace; line-height:1.6; max-height:400px; overflow-y:auto; }
+  .dbg-sugg { margin-top:15px; padding:12px 14px; border:1px solid var(--k-line,#e6e6e0); border-left:4px solid var(--primary-yellow); border-radius:10px; font-size:12.5px; }
+  .dbg-sugg b { display:block; margin-bottom:4px; }
+  .dbg-sugg ul { margin:6px 0 0; padding-left:18px; } .dbg-sugg li { margin:3px 0; }
+  .dbg-sugg .dbg-n { display:inline-block; min-width:20px; padding:0 6px; border-radius:999px; background:var(--primary-yellow); color:#000; font-weight:800; text-align:center; margin-right:4px; }
+  /* Knoepfe in schmalen Admin-Kacheln: umbrechen statt ueberlaufen */
+  .admin-grid .card .btn { min-width:0; max-width:100%; white-space:normal; line-height:1.2; }
+  .db-links > .btn { flex:1 1 140px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
   /* Admin-Kacheln: einheitlicher Rand statt bunter Oberkanten */
   .admin-grid > .card { border-top:1px solid var(--k-line) !important; }
 </style>

@@ -39,6 +39,29 @@ function loadGuideContent_() {
     .apiGetGuideContent();
 }
 
+// --- NACHGELADENE SKRIPTE (apiGetLazyScript, WebApp.gs) ---------------------------
+// z.B. JsCampus: nur Campus-Nutzer brauchen es. Mehrfache Aufrufe waehrend des
+// Ladens warten gemeinsam; bei Fehler kann ein spaeterer Aufruf neu laden.
+const lazyScripts_ = {};
+function ensureScript_(name, cb) {
+  const st = lazyScripts_[name] || (lazyScripts_[name] = { state: 0, cbs: [] });
+  if (st.state === 2) { if (cb) cb(); return; }
+  if (cb) st.cbs.push(cb);
+  if (st.state === 1) return;
+  st.state = 1;
+  google.script.run.withSuccessHandler(js => {
+    const el = document.createElement('script');
+    el.text = js || '';
+    document.head.appendChild(el);
+    st.state = 2;
+    st.cbs.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } });
+  }).withFailureHandler(err => {
+    st.state = 0;
+    st.cbs = [];
+    showCustomAlert(tr_('ix_lazy_err', 'This area could not be loaded. Please reload the page.') + ' ' + (err && err.message ? err.message : ''), tr_('jx_902b0d5', 'Error'));
+  }).apiGetLazyScript(name);
+}
+
 // --- ADMIN-BEREICH LAZY LOADING -----------------------------------------------
 // Markup und JavaScript des Admin-Bereichs (~113 KB) liegen in AdminConsole.html
 // und AdminScript.html. Beides betrifft nur Admins, wurde aber jedem Nutzer
@@ -140,7 +163,7 @@ function switchTab(tabName) {
   if(tabName === 'guide' || tabName === 'help') loadGuideContent_();
   if(tabName === 'home')      renderHome_();
   if(tabName === 'history')   { mountHistoryView_('tab-history', 'all'); loadMyProjects(); }
-  if(tabName === 'articulate') switchArtSubtab(artSubtab_);
+  if(tabName === 'articulate') ensureScript_('JsCampus', () => switchArtSubtab(artSubtab_));
   if(tabName === 'documentation') switchDocSubtab(docSubtab_);
   if(tabName === 'dashboard') renderDashboard();
   if(tabName === 'admin')     loadAdminContent_(false);

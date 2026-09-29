@@ -1,4 +1,15 @@
+/** Werte von ?page=..., die die Knowledge Base liefern (Knowledgebase.html). */
+var KB_PAGE_ALIASES_ = ["kb", "knowledgebase", "knowledge-base", "wissen"];
+
 function doGet(e) {
+  var page = String((e && e.parameter && e.parameter.page) || "").trim().toLowerCase();
+  if (KB_PAGE_ALIASES_.indexOf(page) >= 0) {
+    // Eigenstaendige Seite, z. B. fuer Google Sites (Einbetten -> URL + ?page=kb).
+    return HtmlService.createHtmlOutputFromFile("Knowledgebase")
+      .setTitle("Knowledge Base - Translation Services")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag("viewport", "width=device-width, initial-scale=1");
+  }
   return HtmlService.createTemplateFromFile("Index")
     .evaluate()
     .setTitle("Translation-Services")
@@ -21,6 +32,19 @@ function include(name) {
 }
 
 /**
+ * Skripte, die nicht im Startdokument stecken, sondern beim ersten Bedarf
+ * nachgeladen werden (ensureScript_ in JsNavigation.html) - haelt die Seite
+ * unter der Apps-Script-Groessengrenze. Nur diese Namen sind erlaubt.
+ */
+var LAZY_SCRIPTS_ = ["JsCampus"];
+
+function apiGetLazyScript(name) {
+  if (LAZY_SCRIPTS_.indexOf(name) < 0) throw new Error("Unknown script: " + name);
+  var src = HtmlService.createHtmlOutputFromFile(name).getContent();
+  return (src.match(/<script>([\s\S]*)<\/script>/) || ["", ""])[1];
+}
+
+/**
  * Liefert die ausgelagerten Guide-/FAQ-Inhalte (GuideContent.html) als HTML-String.
  * Diese ~144 KB stecken bewusst nicht mehr in Index.html: das ausgelieferte
  * Dokument wurde dadurch so gross, dass Apps Script es beim Schreiben in den
@@ -31,16 +55,24 @@ function apiGetGuideContent() {
   return HtmlService.createHtmlOutputFromFile("GuideContent").getContent();
 }
 
+/** Woerterbuch mit Phrase-Uebersteuerungen, sonst das eingebaute. */
+function uiDict_(which, lang) {
+  if (typeof psMergedDict_ === "function") return psMergedDict_(which, lang);
+  var src = which === "admin" ? ADMIN_I18N_ : I18N_DICTS_;
+  return src[lang] || null;
+}
+
 function apiGetConfig(impersonateEmail, uiLang) {
   const cfg = getConfig_(impersonateEmail);
   // Das Woerterbuch der aktiven UI-Sprache reist mit der ohnehin noetigen
   // Config-Antwort mit - so kostet das Auslagern von fr/es/pt/zh keinen
   // zusaetzlichen Roundtrip und es gibt beim Start kein Sprach-Flackern.
+  // uiDict_: inkl. der aus Phrase Strings zurueckgeholten Texte (PhraseStringsSync.gs).
   if (uiLang && typeof I18N_DICTS_ !== "undefined" && I18N_DICTS_[uiLang]) {
     cfg.i18nLang = uiLang;
-    cfg.i18nDict = I18N_DICTS_[uiLang];
+    cfg.i18nDict = uiDict_("app", uiLang);
   }
-  if (typeof I18N_DICTS_ !== "undefined") cfg.i18nEn = I18N_DICTS_.en;
+  if (typeof I18N_DICTS_ !== "undefined") cfg.i18nEn = uiDict_("app", "en");
   return cfg;
 }
 
