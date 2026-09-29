@@ -243,8 +243,16 @@ function inlineRules() {
 // Grundregeln und Handkorrekturen fuer Stellen, die sich nicht aus Farben ableiten lassen.
 const DARK_BASE_ = `
   ${D} { color-scheme: dark; --text-main:#e4e4e4; --text-sub:#a9a9a9; --bg-gray:#1d1f22; --border-light:#34373c;
-    --k-surface:#1b1d20; --k-surface-2:#24272b; --k-ink:#ececec; --k-ink-2:#a3a3a3; --k-line:#34373c; --k-shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35); }
-  ${D} body { background-color:#131416; color:#e4e4e4; }
+    --k-surface:#1b1d20; --k-surface-2:#24272b; --k-ink:#ececec; --k-ink-2:#a3a3a3; --k-line:#34373c; --k-shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    --kg-glass:rgba(34,36,40,.72); --kg-glass-hi:rgba(38,41,46,.92); --kg-hair:rgba(255,255,255,.07); --kg-wash:#131416; --kg-glow:rgba(255,237,0,.08);
+    --kg-elev:0 1px 2px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.35); --kg-elev-hi:0 2px 4px rgba(0,0,0,.5), 0 18px 44px rgba(0,0,0,.45); --kg-ring:0 0 0 3px rgba(255,237,0,.45); }
+  ${D} body { background:radial-gradient(900px 520px at 100% -8%, rgba(255,237,0,.05), transparent 62%), #131416; background-attachment:fixed; color:#e4e4e4; }
+  ${D} input:focus, ${D} select:focus, ${D} textarea:focus { background-color:#1f2124; border-color:#8a8a8a; }
+  ${D} .tab-btn:hover, ${D} .prefs-nav button:hover, ${D} .prefs-reset:hover { background-color:rgba(255,255,255,.05); }
+  ${D} .prefs-nav button.active { background:#2d3035; }
+  ${D} kbd { background:#24272b; border-color:#3b3f45; color:#e4e4e4; }
+  ${D} { --kg-ink:linear-gradient(135deg,#2c2e33 0%,#46494f 100%); }
+  ${D} .prefs-head-ico { color:#000; }
   ${D} input, ${D} select, ${D} textarea { background-color:#1f2124; color:#ececec; border-color:#3b3f45; }
   ${D} input::placeholder, ${D} textarea::placeholder { color:#80858c; }
   ${D} input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); }
@@ -265,16 +273,6 @@ const DARK_BASE_ = `
   ${D} .notif-item.unread { background:rgba(255,237,0,.07); }
   ${D} .notif-ico.n-ok { background:#173522; color:#81c995; } ${D} .notif-ico.n-info { background:#172a45; color:#8ab4f8; }
   ${D} .notif-ico.n-warn { background:#3a2e10; color:#fdd663; } ${D} .notif-ico.n-bad { background:#3d1a18; color:#f28b82; }
-  ${D} .home-kpi .material-icons-outlined { filter:saturate(1.1); }
-  ${D} .home-kpi.k-open .material-icons-outlined { background:#172a45; color:#8ab4f8; }
-  ${D} .home-kpi.k-week .material-icons-outlined { background:#3a3410; color:#fdd663; }
-  ${D} .home-kpi.k-over .material-icons-outlined { background:#26282c; color:#8a8a8a; }
-  ${D} .home-kpi.k-over.hot .material-icons-outlined { background:#3d1a18; color:#f28b82; } ${D} .home-kpi.k-over.hot .home-kpi-n { color:#f28b82; }
-  ${D} .home-kpi.k-done .material-icons-outlined, ${D} .home-card-done .home-card-ico { background:#173522; color:#81c995; }
-  ${D} .home-due.due-soon { background:#3a3410; color:#fdd663; } ${D} .home-due.due-overdue { background:#3d1a18; color:#f28b82; }
-  ${D} .home-card-overdue .home-card-ico { background:#3d1a18; color:#f28b82; }
-  ${D} .home-card-week .home-card-ico { background:#3a3410; color:#fdd663; }
-  ${D} .home-card-open .home-card-ico { background:#172a45; color:#8ab4f8; }
   ${D} .ksync-ok { background:#173522; color:#a8dab5; } ${D} .ksync-err { background:#3d1a18; color:#f6aea9; }
   ${D} .ksync-warn { background:#3a2e10; color:#fde293; } ${D} .ksync-info { background:#172a45; color:#aecbfa; }
   ${D} .ctx-help-q { background:#34373c; color:#d0d0d0; }

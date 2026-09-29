@@ -10,7 +10,7 @@ const vm = require('vm');
 const plain = (v) => JSON.parse(JSON.stringify(v));
 const { load, browserStubs } = require('./lib/load');
 
-const JS_FILES = ['JsCore', 'JsForms', 'JsCampus', 'JsNavigation', 'JsDocumentation', 'JsUpload', 'JsProjects', 'JsDownload', 'JsMisc', 'JsPersonal'].map((n) => n + '.html');
+const JS_FILES = ['JsCore', 'JsForms', 'JsCampus', 'JsNavigation', 'JsDocumentation', 'JsUpload', 'JsProjects', 'JsDownload', 'JsMisc', 'JsPersonal', 'HomeUi'].map((n) => n + '.html');
 const ctx = load(JS_FILES, browserStubs());
 const run = (code) => vm.runInContext(code, ctx);
 const DAY = 86400000;
@@ -173,4 +173,72 @@ test('Startseite: Kachel-Filter fuer "Meine Projekte" (ueberfaellig / diese Woch
   assert.deepEqual(plain([...ctx.homeFilterUids_('week')]), ['soon']);
   assert.deepEqual(plain([...ctx.homeFilterUids_('done30')]), ['done']);
   assert.equal(ctx.homeFilterUids_(''), null);
+});
+
+test('Einstellungen: Standardwerte werden ergaenzt, gespeicherte Werte bleiben', () => {
+  const d = plain(ctx.prefsWithDefaults_({}));
+  assert.equal(d.theme, 'light');
+  assert.equal(d.density, 'comfortable');
+  assert.equal(d.startPage, true);
+  assert.equal(d.shortcuts, true);
+  assert.deepEqual(d.home, { widgets: { quick: true, kpis: true, focus: true, week: true, activity: true, tips: true }, tab: 'auto' });
+  assert.equal(d.notifTypes.length, 8, 'ohne Auswahl: alle Arten');
+  assert.deepEqual(d.pinned, []);
+  const p = plain(ctx.prefsWithDefaults_({ density: 'compact', home: { widgets: { tips: false }, tab: 'pinned' }, notifTypes: ['completed'], pinned: ['A'] }));
+  assert.equal(p.density, 'compact');
+  assert.equal(p.home.widgets.tips, false);
+  assert.equal(p.home.widgets.quick, true);
+  assert.equal(p.home.tab, 'pinned');
+  assert.deepEqual(p.notifTypes, ['completed']);
+  assert.deepEqual(p.pinned, ['A']);
+});
+
+test('Glocke: Arten laut Einstellungen filtern', () => {
+  assert.equal(ctx.notifAllowed_({ type: 'shared' }, {}), true, 'ohne Einstellung alles');
+  assert.equal(ctx.notifAllowed_({ type: 'shared' }, { notifTypes: ['completed'] }), false);
+  assert.equal(ctx.notifAllowed_({ type: 'completed' }, { notifTypes: ['completed'] }), true);
+  assert.equal(ctx.notifAllowed_({ type: 'completed' }, { notifTypes: [] }), false);
+});
+
+test('Startseite: erste Liste - Einstellung, sonst das Dringendste', () => {
+  const L = (o) => Object.assign({ overdue: [], week: [], open: [], done: [], pinned: [] }, o);
+  assert.equal(ctx.homePickTab_('auto', L({ overdue: [1], week: [1] })), 'overdue');
+  assert.equal(ctx.homePickTab_('auto', L({ week: [1], open: [1] })), 'week');
+  assert.equal(ctx.homePickTab_('auto', L({ open: [1] })), 'open');
+  assert.equal(ctx.homePickTab_('auto', L({ pinned: [1] })), 'pinned');
+  assert.equal(ctx.homePickTab_('auto', L({})), 'done');
+  assert.equal(ctx.homePickTab_('pinned', L({ overdue: [1] })), 'pinned');
+  assert.equal(ctx.homePickTab_('quatsch', L({ open: [1] })), 'open');
+});
+
+test('Startseite: Frist als Kurztext (heute, morgen, in n Tagen, ueberfaellig)', () => {
+  const at = (days) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + days); return d; };
+  assert.equal(ctx.homeDayDiff_(at(0)), 0);
+  assert.equal(ctx.homeDayDiff_(at(3)), 3);
+  assert.equal(ctx.homeDayDiff_(at(-2)), -2);
+  assert.equal(ctx.homeDueText_(at(0)), ctx.tr_('hm_due_today', 'Today'));
+  assert.equal(ctx.homeDueText_(at(1)), ctx.tr_('hm_due_tomorrow', 'Tomorrow'));
+  assert.ok(ctx.homeDueText_(at(3)).includes('3'));
+  assert.ok(ctx.homeDueText_(at(-2)).includes('2'));
+});
+
+test('Startseite: Anheften merkt Projekte vorne, zweiter Klick loest', () => {
+  run("userPrefs_ = { pinned: ['B'] }");
+  ctx.togglePin_('A');
+  assert.deepEqual(plain(run('userPrefs_.pinned')), ['A', 'B']);
+  assert.equal(ctx.isPinned_('A'), true);
+  ctx.togglePin_('A');
+  assert.deepEqual(plain(run('userPrefs_.pinned')), ['B']);
+  assert.equal(ctx.isPinned_('A'), false);
+  run('userPrefs_ = {}');
+});
+
+test('Startbereich: Startseite an -> home, sonst Einstellung oder Bereich', () => {
+  run('userPrefs_ = {}');
+  assert.equal(ctx.startTabWithHome_('request'), 'home');
+  run("userPrefs_ = { startPage: false }");
+  assert.equal(ctx.startTabWithHome_('request'), 'request');
+  run("userPrefs_ = { startPage: false, startTab: 'history' }");
+  assert.equal(ctx.startTabWithHome_('request'), 'history');
+  run('userPrefs_ = {}');
 });
