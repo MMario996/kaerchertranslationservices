@@ -276,6 +276,10 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
     parentUid:    parentUid
   }, child);
 
+  // Das Child legt der Phrase-Orchestrator als Funktionsuser an - auch hier
+  // soll der Einreicher des Parents Owner sein.
+  try { phraseAssignSubmitterOwner_(child.uid, rowUser); } catch (e) { console.warn("Pivot child owner: " + e.message); }
+
   console.log("• Pivot: Child-Projekt gefunden fuer Parent " + parentUid + " ? " + child.uid + " (\"" + childName + "\")");
 }
 

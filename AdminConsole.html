@@ -406,16 +406,58 @@
                         <span data-i18n="ax_16e5d6a">SPEICHERN</span>
                     </button>
                 </div>
-                <div class="card" data-cgroup="logs">
+                <div class="card log-card" id="logCard" data-cgroup="logs" style="grid-column: 1 / -1;">
+                    <style>
+                      .log-card .log-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+                      .log-card .log-chip { border:1px solid var(--k-line); background:var(--k-surface-2); border-radius:999px; padding:5px 12px; font:inherit; font-size:12px; font-weight:700; cursor:pointer; color:var(--k-ink); }
+                      .log-card .log-chip.active { background:var(--kg-ink); color:var(--primary-yellow); border-color:transparent; }
+                      .log-card .log-chip .n { opacity:.65; font-weight:600; margin-left:4px; }
+                      .log-card .log-chip.err.active { background:#c5221f; color:#fff; }
+                      .log-card #logSearch { flex:1 1 220px; max-width:360px; height:34px; padding:0 12px; font-size:13px; }
+                      .log-card .log-wrap { max-height:420px; overflow:auto; border:1px solid var(--k-line); border-radius:12px; background:var(--k-surface); }
+                      .log-card table { width:100%; border-collapse:collapse; font-size:12px; }
+                      .log-card th { position:sticky; top:0; background:var(--k-surface-2); text-align:left; padding:8px 10px; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--k-ink-2); border-bottom:1px solid var(--k-line); z-index:1; }
+                      .log-card td { padding:7px 10px; border-bottom:1px solid var(--k-line); vertical-align:top; color:var(--k-ink); }
+                      .log-card td.t { white-space:nowrap; color:var(--k-ink-2); }
+                      .log-card tr.lvl-error td { background:rgba(197,34,31,.07); }
+                      .log-card tr.lvl-error td.a { color:#c5221f; }
+                      .log-card td.a { font-weight:800; white-space:nowrap; }
+                      .log-card .cat { display:inline-block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+                      .log-card .cat-projects { background:#fff6b3; color:#5c4d00; } .log-card .cat-messages { background:#e3f0ff; color:#0b4a9e; }
+                      .log-card .cat-access { background:#f3e5f5; color:#6a1b9a; } .log-card .cat-system { background:#eceff1; color:#37474f; }
+                      .log-card .log-meta { font-size:11px; color:var(--k-ink-2); margin-top:8px; }
+                      .log-card.log-full { position:fixed; inset:18px; z-index:7000; margin:0; overflow:auto; box-shadow:0 30px 80px -20px rgba(0,0,0,.55); }
+                      .log-card.log-full .log-wrap { max-height:calc(100vh - 200px); }
+                      body.log-full-open::before { content:""; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:6999; }
+                    </style>
                     <div class="admin-card-header">
-                        <div class="section-title" data-i18n="ax_83f48b1">System Logs (Last 20)</div>
-                        <div style="display:flex;gap:6px;align-items:center;">
-                            <button class="help-toggle-btn" onclick="openLogsModal()" title="Full screen" style="width:auto;padding:0 8px;border-radius:2px;font-size:11px;letter-spacing:0;" data-i18n-title="ax_764ff8d"><span data-i18n="ax_eaeec83">&#8226; Expand</span></button>
+                        <div class="section-title">
+                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">receipt_long</span>
+                            <span data-i18n="log_title">Protokoll</span>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="btn-refresh" onclick="loadUnifiedLog_()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> <span data-i18n="ax_4d1c826">Reload</span>
+                            </button>
+                            <button class="btn-refresh" onclick="exportUnifiedLogCsv_()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;">download</i> CSV
+                            </button>
+                            <button class="btn-refresh" onclick="toggleUnifiedLogFull_()" style="height:28px;font-size:11px;padding:0 12px;">
+                                <i class="material-icons-outlined" style="font-size:14px;" id="logFullIcon">open_in_full</i>
+                            </button>
                         </div>
                     </div>
-                    <div id="errorLogContainer" style="max-height:280px; overflow-y:auto; background:#1a1a2e; color:#a0e0a0; font-family:monospace; padding:12px; font-size:11px; line-height:1.6; border-radius:2px;">
-                        <div style="color:#666;" data-i18n="ax_cb07885">Loading logs...</div>
+                    <div class="admin-help-panel" style="display:block;margin-bottom:10px;">
+                        <p style="margin:0;" data-i18n="log_help">Alles in einer Liste: Projekte (Einreichungen, Status, Owner, Fristen), versendete Chat-Nachrichten, Zugriffs- und Rechteänderungen sowie Systemaktionen. Fehlgeschlagene Einträge sind rot markiert.</p>
                     </div>
+                    <div class="log-tools" id="logChips"></div>
+                    <div class="log-tools">
+                        <input type="search" id="logSearch" placeholder="Suchen (Nutzer, Projekt, Text …)" data-i18n-placeholder="log_search" oninput="renderUnifiedLog_()">
+                    </div>
+                    <div class="log-wrap" id="unifiedLogContainer">
+                        <div style="padding:20px;text-align:center;color:#888;" data-i18n="ax_cb07885">Loading logs...</div>
+                    </div>
+                    <div class="log-meta" id="logMeta"></div>
                 </div>
 
                 <div class="card" data-cgroup="logs" style="border-top-color:#ff9800;">
@@ -603,22 +645,6 @@
                     </div>
                 </div>
                 
-                <div class="card" data-cgroup="logs" style="border-top-color:#1565c0; grid-column: 1 / -1;">
-                    <div class="admin-card-header">
-                        <div class="section-title" style="color:#1565c0;">
-                            <span class="material-icons-outlined" style="vertical-align:middle;margin-right:5px;">history</span>
-                            <span data-i18n="ax_2b16564">Activity Log</span>
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button class="btn-refresh" onclick="loadAuditLog()" style="height:28px;font-size:11px;padding:0 12px;">
-                                <i class="material-icons-outlined" style="font-size:14px;">refresh</i> <span data-i18n="ax_4d1c826">Reload</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="auditLogContainer" style="max-height:350px;overflow-y:auto;border:1px solid #eee;">
-                        <div style="padding:15px;text-align:center;color:#888;" data-i18n="ax_6b369d4">Click "Reload" to load activity log.</div>
-                    </div>
-                </div>
             </div>
             </div>
 <!-- /admin-subtab-console -->
@@ -633,15 +659,17 @@
               <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;" data-i18n="ax_f66328a">
                 Aus dem Sheet <strong>FetchTMS_USERS-Prod</strong> geladen. <strong>First Name, Last Name, Role</strong> werden live nach Phrase TMS geschrieben. <strong>Clients, Domains, Subdomains, Business Unit, Source Langs, Target Langs, Workflow Steps</strong> sind eure eigenen Filterkriterien und werden nur im Sheet gespeichert. <strong>Username</strong> und <strong>Email</strong> sind nur lesbar. <strong>Status</strong> wird aktuell nur im Sheet gepflegt.
               </div>
+              <div id="umxBar" class="mgrx-bar"></div>
               <div id="userMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
               <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
-                <table class="modern-table" id="userMgrTable" style="table-layout:fixed;width:100%;min-width:1100px;">
+                <table class="modern-table" id="userMgrTable" style="table-layout:fixed;width:100%;min-width:1300px;">
                   <colgroup>
-                    <col style="width:10%;"><col style="width:11%;"><col style="width:11%;"><col style="width:17%;">
-                    <col style="width:11%;"><col style="width:7%;"><col style="width:16%;"><col style="width:17%;">
+                    <col style="width:36px;"><col style="width:9%;"><col style="width:9%;"><col style="width:9%;"><col style="width:15%;">
+                    <col style="width:10%;"><col style="width:6%;"><col style="width:14%;"><col style="width:14%;"><col style="width:17%;">
                   </colgroup>
                   <thead>
                     <tr>
+                      <th style="text-align:center;"><input type="checkbox" id="umxSelectAll" onchange="umxToggleAll_(this)" title="Alle sichtbaren auswählen" data-i18n-title="ax_086101b"></th>
                       <th style="cursor:pointer;" onclick="userMgrSortBy('username')"><span data-i18n="ax_f6039d4">Username</span></th>
                       <th style="cursor:pointer;" onclick="userMgrSortBy('firstName')"><span data-i18n="ax_bc910f8">First Name</span></th>
                       <th style="cursor:pointer;" onclick="userMgrSortBy('lastName')"><span data-i18n="ax_7758723">Last Name</span></th>
@@ -650,8 +678,10 @@
                       <th style="cursor:pointer;" onclick="userMgrSortBy('status')"><span data-i18n="ax_ec53a8c">Status</span></th>
                       <th data-i18n="ax_6929ce2">Segmentierung</th>
                       <th data-i18n="ax_a918e42">Sprachen &amp; Workflow</th>
+                      <th data-i18n="umx_col_portal">Portal &amp; Nutzung</th>
                     </tr>
                     <tr class="filter-row">
+                      <th></th>
                       <th><input type="text" class="um-col" data-field="username" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_d7778d0"></th>
                       <th><input type="text" class="um-col" data-field="firstName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_d7778d0"></th>
                       <th><input type="text" class="um-col" data-field="lastName" oninput="renderUserManager()" placeholder="Filter" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_d7778d0"></th>
@@ -669,6 +699,7 @@
                       <th></th>
                       <th style="font-size:10px;color:#999;font-weight:400;" data-i18n="ax_f5c53c8">Klicke zum Bearbeiten</th>
                       <th style="font-size:10px;color:#999;font-weight:400;" data-i18n="ax_f5c53c8">Klicke zum Bearbeiten</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -692,17 +723,19 @@
                 <button class="btn" style="height:32px;width:auto;padding:0 16px;font-size:12px;background:#d93025;color:#fff;" onclick="batchSetTemplateActive(false)"><span data-i18n="ax_67c1560">&#10003; Deaktivieren</span></button>
                 <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;text-decoration:underline;" onclick="tmplMgrClearSelection()"><span data-i18n="ax_d6d42d9">Auswahl aufheben</span></button>
               </div>
+              <div id="tmxBar" class="mgrx-bar"></div>
               <div id="tmplMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>
               <div class="modern-table-wrap" style="max-height:75vh;overflow:auto;">
-                <table class="modern-table" id="tmplMgrTable" style="table-layout:fixed;width:100%;min-width:1000px;">
+                <table class="modern-table" id="tmplMgrTable" style="table-layout:fixed;width:100%;min-width:1200px;">
                   <colgroup>
                     <col style="width:40px;">
                     <col style="width:60px;">
-                    <col style="width:22%;">
-                    <col style="width:18%;">
+                    <col style="width:19%;">
+                    <col style="width:15%;">
                     <col style="width:70px;">
-                    <col style="width:22%;">
-                    <col style="width:22%;">
+                    <col style="width:18%;">
+                    <col style="width:18%;">
+                    <col style="width:20%;">
                   </colgroup>
                   <thead>
                     <tr>
@@ -713,6 +746,7 @@
                       <th style="cursor:pointer;" onclick="tmplMgrSortBy('sourceLang')"><span data-i18n="ax_f31bbdd">Source</span></th>
                       <th style="cursor:pointer;" onclick="tmplMgrSortBy('targetLangs')"><span data-i18n="ax_91fadc5">Targets</span></th>
                       <th data-i18n="ax_6929ce2">Segmentierung</th>
+                      <th data-i18n="tmx_col_insight">Sichtbarkeit &amp; Nutzung</th>
                     </tr>
                     <tr class="filter-row">
                       <th></th>
@@ -726,6 +760,7 @@
                       <th><input type="text" class="tf-col" data-field="sourceLang" oninput="renderTemplateManager()" placeholder="z.B. de" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_0b35b4d"></th>
                       <th><input type="text" class="tf-col" data-field="targetLangs" oninput="renderTemplateManager()" placeholder="z.B. de_de" style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_18a6521"></th>
                       <th><input type="text" id="tf_segmentation" oninput="renderTemplateManager()" placeholder="Client/Domain/Subdom./BU..." style="width:100%;height:28px;font-size:11px;padding:2px 6px;border:1px solid #ddd;box-sizing:border-box;" data-i18n-placeholder="ax_f4f9447"></th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody></tbody>

@@ -261,6 +261,7 @@ function toggleAdminHelp(id) {
           _tmplMgrRows = (res && res.rows) || [];
           _tmplMgrSelected = {};
           renderTemplateManager();
+          ensureScript_('AdminManagers', function () { tmxLoad_(); });
         })
         .withFailureHandler(e => {
           document.getElementById('tmplMgrLoading').style.display = 'none';
@@ -298,6 +299,7 @@ function toggleAdminHelp(id) {
         for (const f in colFilters) {
           if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
         }
+        if (typeof tmxFilter_ === 'function' && !tmxFilter_(r)) return false;
         return true;
       });
     }
@@ -343,6 +345,7 @@ function toggleAdminHelp(id) {
           <td style="font-size:11px;">${escapeHtml(r.sourceLang)}</td>
           <td style="font-size:11px;line-height:1.6;">${tmplMgrTruncateTargets_(r.targetLangs)}</td>
           <td><span class="truncate-cell" style="font-size:11px;" title="${escapeHtml(segSummary)}">${escapeHtml(segSummary)}</span></td>
+          <td>${typeof tmxCell_ === 'function' ? tmxCell_(r) : ''}</td>
         </tr>`;
       }).join('');
       _tmplMgrUpdateBatchBar();
@@ -428,6 +431,7 @@ function toggleAdminHelp(id) {
           document.getElementById('userMgrLoading').style.display = 'none';
           _userMgrRows = (res && res.rows) || [];
           renderUserManager();
+          ensureScript_('AdminManagers', function () { umxLoad_(); });
         })
         .withFailureHandler(e => {
           document.getElementById('userMgrLoading').style.display = 'none';
@@ -455,6 +459,7 @@ function toggleAdminHelp(id) {
         for (const f in colFilters) {
           if (!String(r[f] || '').toLowerCase().includes(colFilters[f])) return false;
         }
+        if (typeof umxFilter_ === 'function' && !umxFilter_(r)) return false;
         return true;
       });
       if (_userMgrSort.field) {
@@ -489,6 +494,7 @@ function toggleAdminHelp(id) {
         const langOpen = !!_userMgrExpanded[langKey];
 
         html += '<tr data-username="' + escapeHtml(r.username) + '">' +
+          (typeof umxCheckCell_ === 'function' ? umxCheckCell_(r) : '<td></td>') +
           '<td style="font-size:11px;font-weight:700;">' + escapeHtml(r.username) + '</td>' +
           '<td><input type="text" value="' + escapeHtml(r.firstName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'firstName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
           '<td><input type="text" value="' + escapeHtml(r.lastName || '') + '" onblur="userMgrSaveField(\'' + uid + '\',\'lastName\',this.value,this)" style="width:100%;border:1px solid transparent;background:transparent;font-size:12px;padding:4px;box-sizing:border-box;" onfocus="this.style.border=\'1px solid #ccc\';this.style.background=\'#fff\';"></td>' +
@@ -503,10 +509,11 @@ function toggleAdminHelp(id) {
           '</td>' +
           '<td><button type="button" class="expand-btn' + (segOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'seg\')" title="' + escapeHtml(segSummary) + '">' + (segOpen ? '\u25BE' : '\u25B8') + ' ' + escapeHtml(segSummary) + '</button></td>' +
           '<td><button type="button" class="expand-btn' + (langOpen ? ' open' : '') + '" onclick="userMgrToggleExpand(\'' + uid + '\',\'lang\')" title="' + escapeHtml(langSummary) + '">' + (langOpen ? '\u25BE' : '\u25B8') + ' ' + escapeHtml(langSummary) + '</button></td>' +
+          '<td>' + (typeof umxCell_ === 'function' ? umxCell_(r) : '') + '</td>' +
         '</tr>';
 
         if (segOpen) {
-          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
+          html += '<tr class="detail-row"><td colspan="10"><div class="detail-panel-grid">' +
             userMgrDetailField(uid, 'clients', r.clients, tr_('ax_0f55824', 'Clients')) +
             userMgrDetailField(uid, 'domains', r.domains, tr_('ax_78cd2c7', 'Domains')) +
             userMgrDetailField(uid, 'subdomains', r.subdomains, tr_('ax_51e2fe0', 'Subdomains')) +
@@ -514,7 +521,7 @@ function toggleAdminHelp(id) {
             '</div></td></tr>';
         }
         if (langOpen) {
-          html += '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
+          html += '<tr class="detail-row"><td colspan="10"><div class="detail-panel-grid">' +
             userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, tr_('ax_646fcee', 'Source Langs')) +
             userMgrDetailField(uid, 'targetLangs', r.targetLangs, tr_('ax_ef4411e', 'Target Langs')) +
             userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, tr_('ax_cf42a0e', 'Workflow Steps')) +
@@ -1368,59 +1375,99 @@ function toggleAdminHelp(id) {
         })
         .apiRevealScriptProperty(key);
     }
-    function loadAuditLog() {
-      const container = document.getElementById('auditLogContainer');
-      if (!container) return;
-      container.innerHTML = ('<div style="padding:20px;text-align:center;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
+    // --- Gemeinsames Protokoll (Aktivitaeten + Queue + Chat-Nachrichten) ---
+    let unifiedLog_ = { entries: [], counts: {} };
+    let unifiedLogCat_ = 'all';
+    const LOG_CATS_ = [
+      ['all', 'log_cat_all', 'Alle'], ['projects', 'log_cat_projects', 'Projekte'], ['messages', 'log_cat_messages', 'Nachrichten'],
+      ['access', 'log_cat_access', 'Zugriffe & Rechte'], ['system', 'log_cat_system', 'System'], ['error', 'log_cat_error', 'Fehler']
+    ];
+    const LOG_ACTION_LABELS_ = { CHAT_SENT: ['log_a_chat_sent', 'Nachricht gesendet'], CHAT_FAILED: ['log_a_chat_failed', 'Nachricht fehlgeschlagen'],
+      QUEUE_STATUS: ['log_a_queue', 'Upload / Status'], PHRASE_OWNER_SET: ['log_a_owner_set', 'Phrase-Owner gesetzt'], PHRASE_OWNER_FAILED: ['log_a_owner_failed', 'Phrase-Owner fehlgeschlagen'] };
+
+    function loadUnifiedLog_() {
+      const box = document.getElementById('unifiedLogContainer');
+      if (!box) return;
+      box.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>';
       google.script.run
         .withSuccessHandler(res => {
-          let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;">';
-          html += '<thead style="position:sticky;top:0;background:#f0f0f0;"><tr style="text-align:left;">' +
-                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:130px;">' + tr_('ax_a76d4ef', 'Time') + '</th>') +
-                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:150px;">' + tr_('ax_8f9bfe9', 'User') + '</th>') +
-                  ('<th style="padding:8px;border-bottom:1px solid #ddd;width:120px;">' + tr_('ax_004bf6c', 'Action') + '</th>') +
-                  ('<th style="padding:8px;border-bottom:1px solid #ddd;">' + tr_('ax_3ec365d', 'Details') + '</th>') +
-                  '</tr></thead><tbody>';
-          if (res.error) {
-            container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(res.error) + '</div>';
+          if (!res || res.success === false) {
+            box.innerHTML = '<div style="padding:15px;color:#d93025;">' + escapeHtml((res && res.error) || 'Error') + '</div>';
             return;
           }
-          (res.entries || []).forEach(row => {
-            html += `<tr style="border-bottom:1px solid #eee;">
-              <td style="padding:8px;color:#666;">${escapeHtml(row.timestamp)}</td>
-              <td style="padding:8px;color:#1565c0;">${escapeHtml(row.user)}</td>
-              <td style="padding:8px;font-weight:bold;">${escapeHtml(row.action)}</td>
-              <td style="padding:8px;color:#444;">${escapeHtml(row.details)}</td>
-            </tr>`;
-          });
-          html += '</tbody></table>';
-          container.innerHTML = html;
+          unifiedLog_ = res;
+          renderUnifiedLog_();
         })
-        .withFailureHandler(err => {
-          container.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>';
-        })
-        .apiGetAuditLog(100);
+        .withFailureHandler(err => { box.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(err.message) + '</div>'; })
+        .apiGetUnifiedLog({ limit: 500 });
     }
-    function loadErrorLogs() {
-      const container = document.getElementById('errorLogContainer');
-      if(!container) return;
-      google.script.run.withSuccessHandler(logs => {
-        container.innerHTML = logs.map(l => {
-          const isErr = l.status && l.status.toUpperCase().includes('ERROR');
-          return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #333;">
-            <span style="color:#888;">[${l.date}]</span> 
-            <strong style="color:${isErr?'#ff5252':'#4CAF50'};">${l.status}</strong> 
-            <span style="color:#fff;">${l.project}</span> 
-            <span style="color:#aaa;">(${l.user})</span>
-          </div>`;
-        }).join('') || ('<div style="color:#666;">' + tr_('ax_11e1c45', 'No recent logs.') + '</div>');
-      }).apiGetRecentLogs();
+    // Alte Namen (Aufrufe beim Laden der Konsole) zeigen auf das neue Protokoll.
+    function loadErrorLogs() { loadUnifiedLog_(); }
+    function loadAuditLog() { loadUnifiedLog_(); }
+
+    function setUnifiedLogCat_(cat) { unifiedLogCat_ = cat; renderUnifiedLog_(); }
+
+    function filteredUnifiedLog_() {
+      const q = String((document.getElementById('logSearch') || {}).value || '').trim().toLowerCase();
+      return (unifiedLog_.entries || []).filter(e => {
+        if (unifiedLogCat_ === 'error' ? e.level !== 'error' : (unifiedLogCat_ !== 'all' && e.category !== unifiedLogCat_)) return false;
+        return !q || (e.user + ' ' + e.action + ' ' + e.details).toLowerCase().indexOf(q) !== -1;
+      });
     }
-    function openLogsModal() {
-      document.getElementById('logsModal').style.display = 'flex';
-      const body = document.getElementById('logsModalBody');
-      body.innerHTML = document.getElementById('errorLogContainer').innerHTML;
+
+    function renderUnifiedLog_() {
+      const box = document.getElementById('unifiedLogContainer');
+      const chips = document.getElementById('logChips');
+      if (!box || !chips) return;
+      const c = unifiedLog_.counts || {};
+      chips.innerHTML = LOG_CATS_.map(([id, key, fb]) =>
+        `<button type="button" class="log-chip${id === 'error' ? ' err' : ''}${unifiedLogCat_ === id ? ' active' : ''}" onclick="setUnifiedLogCat_('${id}')">${escapeHtml(tr_(key, fb))}<span class="n">${c[id] || 0}</span></button>`).join('');
+      const rows = filteredUnifiedLog_();
+      if (!rows.length) {
+        box.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">' + escapeHtml(tr_('log_empty', 'Keine Einträge für diesen Filter.')) + '</div>';
+      } else {
+        const catLabel = id => { const f = LOG_CATS_.find(x => x[0] === id); return f ? tr_(f[1], f[2]) : id; };
+        const actLabel = a => LOG_ACTION_LABELS_[a] ? tr_(LOG_ACTION_LABELS_[a][0], LOG_ACTION_LABELS_[a][1]) : a;
+        box.innerHTML = '<table><thead><tr>' +
+          '<th>' + escapeHtml(tr_('ax_a76d4ef', 'Time')) + '</th><th>' + escapeHtml(tr_('log_col_cat', 'Bereich')) + '</th>' +
+          '<th>' + escapeHtml(tr_('ax_8f9bfe9', 'User')) + '</th><th>' + escapeHtml(tr_('ax_004bf6c', 'Action')) + '</th>' +
+          '<th>' + escapeHtml(tr_('ax_3ec365d', 'Details')) + '</th></tr></thead><tbody>' +
+          rows.slice(0, 500).map(e => {
+            const t = e.t ? new Date(e.t).toLocaleString() : '';
+            const who = e.category === 'messages' ? '→ ' + e.user : e.user;
+            return `<tr class="lvl-${e.level}"><td class="t">${escapeHtml(t)}</td><td><span class="cat cat-${e.category}">${escapeHtml(catLabel(e.category))}</span></td>` +
+              `<td>${escapeHtml(who)}</td><td class="a" title="${escapeHtml(e.action)}">${escapeHtml(actLabel(e.action))}</td><td>${escapeHtml(e.details)}</td></tr>`;
+          }).join('') + '</tbody></table>';
+      }
+      const meta = document.getElementById('logMeta');
+      if (meta) meta.textContent = rows.length + ' / ' + (c.all || 0) + ' ' + tr_('log_entries', 'Einträge') +
+        ((unifiedLog_.warnings || []).length ? ' · ⚠ ' + unifiedLog_.warnings.join(' · ') : '');
     }
+
+    function exportUnifiedLogCsv_() {
+      const rows = filteredUnifiedLog_();
+      const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const csv = ['Time,Category,Level,User,Action,Details'].concat(rows.map(e =>
+        [e.t, e.category, e.level, e.user, e.action, e.details].map(esc).join(','))).join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'protokoll_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function toggleUnifiedLogFull_() {
+      const card = document.getElementById('logCard');
+      if (!card) return;
+      const on = !card.classList.contains('log-full');
+      card.classList.toggle('log-full', on);
+      document.body.classList.toggle('log-full-open', on);
+      const ic = document.getElementById('logFullIcon');
+      if (ic) ic.textContent = on ? 'close_fullscreen' : 'open_in_full';
+    }
+    document.addEventListener('keydown', e => {
+      const card = document.getElementById('logCard');
+      if (e.key === 'Escape' && card && card.classList.contains('log-full')) toggleUnifiedLogFull_();
+    });
     function escapeHtmlId(unsafe) {
       if (!unsafe) return "id";
       return String(unsafe).replace(/[^a-zA-Z0-9_-]/g, "_");

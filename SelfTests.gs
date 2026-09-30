@@ -13,7 +13,7 @@
 var SELF_TEST_INCLUDE_FILES_ = [
   "Styles", "JsCore", "JsForms", "JsCampus", "JsNavigation", "JsDocumentation",
   "JsUpload", "JsProjects", "JsDownload", "JsMisc", "JsPersonal",
-  "GuideContent", "DarkTheme", "AdminConsole", "AdminScript", "PivotAdminConsole", "PivotAdminScript", "TranslateUi", "HomeUi", "PrefsUi", "Knowledgebase"
+  "GuideContent", "DarkTheme", "AdminConsole", "AdminScript", "PivotAdminConsole", "PivotAdminScript", "TranslateUi", "HomeUi", "PrefsUi", "Knowledgebase", "AdminManagers"
 ];
 
 function apiRunSelfTests() {

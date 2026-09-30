@@ -1,0 +1,497 @@
+<script>
+/* AdminManagers.html - Erweiterungen fuer User Manager und Template Manager.
+   Nachgeladen per ensureScript_('AdminManagers') (apiGetLazyScript), damit der
+   Admin-Bereich selbst nicht weiter waechst. Haengt sich ueber Hooks in
+   AdminScript.html ein: umxCheckCell_, umxCell_, umxFilter_, tmxCell_, tmxFilter_. */
+
+(function injectMgrxCss_() {
+  if (document.getElementById('mgrxCss')) return;
+  const st = document.createElement('style');
+  st.id = 'mgrxCss';
+  st.textContent = `
+  .mgrx-bar { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .mgrx-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .mgrx-chip { border:1px solid var(--k-line,#e8e8e4); background:var(--k-surface-2,#f7f7f5); border-radius:999px; padding:5px 12px; font:inherit; font-size:12px; font-weight:700; cursor:pointer; color:var(--k-ink,#1a1a1a); }
+  .mgrx-chip .n { opacity:.65; font-weight:600; margin-left:4px; }
+  .mgrx-chip.active { background:var(--kg-ink,#222); color:var(--primary-yellow,#FFED00); border-color:transparent; }
+  .mgrx-chip.warn .n { color:#c5221f; opacity:1; }
+  .mgrx-chip.warn.active .n { color:var(--primary-yellow,#FFED00); }
+  .mgrx-btn { display:inline-flex; align-items:center; gap:5px; height:32px; padding:0 12px; border:1px solid var(--k-line,#ddd); border-radius:10px; background:var(--k-surface,#fff); font:inherit; font-size:12px; font-weight:700; cursor:pointer; color:var(--k-ink,#222); }
+  .mgrx-btn .material-icons-outlined { font-size:16px; }
+  .mgrx-btn.primary { background:var(--kg-fill,#FFED00); border-color:transparent; color:#000; }
+  .mgrx-batch { display:none; flex-wrap:wrap; gap:8px; align-items:center; background:#fff9c4; border:1px solid #fff59d; border-radius:12px; padding:8px 12px; font-size:12px; }
+  .mgrx-batch.on { display:flex; }
+  .mgrx-batch select, .mgrx-batch input[type=text] { height:32px; padding:0 8px; font-size:12px; width:auto; min-width:120px; border-radius:8px; }
+  .mgrx-sep { width:1px; align-self:stretch; background:rgba(0,0,0,.12); margin:0 4px; }
+  .mgrx-cell { display:flex; flex-wrap:wrap; gap:4px; align-items:center; font-size:11px; line-height:1.5; }
+  .mgrx-tag { display:inline-block; padding:1px 7px; border-radius:999px; font-size:10px; font-weight:800; background:var(--k-surface-2,#f1f1ee); color:var(--k-ink-2,#555); border:1px solid var(--k-line,#e6e6e0); white-space:nowrap; }
+  .mgrx-tag.y { background:#fff6b3; color:#5c4d00; border-color:transparent; }
+  .mgrx-tag.r { background:#fde2e1; color:#a1170f; border-color:transparent; }
+  .mgrx-tag.g { background:#e6f4ea; color:#136c2e; border-color:transparent; }
+  .mgrx-tag.b { background:#e3f0ff; color:#0b4a9e; border-color:transparent; }
+  .mgrx-more { border:none; background:none; color:#1a73e8; font:inherit; font-size:11px; font-weight:700; cursor:pointer; padding:0 2px; }
+  .mgrx-drawer { position:fixed; inset:0; z-index:6800; background:rgba(0,0,0,.4); display:none; justify-content:flex-end; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+  .mgrx-drawer.open { display:flex; }
+  .mgrx-panel { width:min(620px,100%); height:100%; overflow-y:auto; background:var(--k-surface,#fff); border-left:6px solid var(--primary-yellow,#FFED00); box-shadow:-20px 0 60px rgba(0,0,0,.25); padding:22px 24px 40px; box-sizing:border-box; }
+  .mgrx-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px; }
+  .mgrx-head h3 { margin:0; font-size:17px; text-transform:uppercase; font-weight:800; }
+  .mgrx-head .sub { font-size:12px; color:var(--k-ink-2,#666); margin-top:3px; word-break:break-all; }
+  .mgrx-sec { border:1px solid var(--k-line,#e8e8e4); border-radius:14px; padding:12px 14px; margin-bottom:12px; }
+  .mgrx-sec h4 { margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--k-ink-2,#666); display:flex; align-items:center; gap:6px; }
+  .mgrx-sec h4 .material-icons-outlined { font-size:16px; }
+  .mgrx-kv { display:grid; grid-template-columns:130px minmax(0,1fr); gap:4px 10px; font-size:13px; }
+  .mgrx-kv b { font-weight:700; color:var(--k-ink-2,#666); font-size:12px; }
+  .mgrx-list { font-size:12px; max-height:220px; overflow:auto; margin:0; padding-left:18px; }
+  .mgrx-list li { margin:2px 0; }
+  .mgrx-mini { width:100%; border-collapse:collapse; font-size:12px; }
+  .mgrx-mini td { padding:5px 6px; border-bottom:1px solid var(--k-line,#eee); vertical-align:top; }
+  .mgrx-area { display:inline-flex; align-items:center; gap:6px; margin:3px 8px 3px 0; font-size:12px; }
+  .mgrx-area input { width:auto; }
+  .mgrx-empty { color:var(--k-ink-2,#888); font-size:12px; font-style:italic; }
+  .mgrx-err { color:#c5221f; }
+  `;
+  document.head.appendChild(st);
+})();
+
+const MGRX_AREAS_ = [['general', 'General'], ['marketing', 'Marketing'], ['woma', 'WOMA'], ['cc', 'CC'], ['kec', 'KeC'], ['documentation', 'Doku'], ['campus', 'Campus'], ['admin', 'Admin'], ['light', 'Admin-Light']];
+const mgrxAreaLabel_ = id => (MGRX_AREAS_.find(a => a[0] === id) || [id, id])[1];
+const mgrxDate_ = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(); };
+
+function mgrxCsv_(name, header, rows) {
+  const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = [header.map(esc).join(',')].concat(rows.map(r => r.map(esc).join(','))).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = name + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function mgrxDrawer_() {
+  let d = document.getElementById('mgrxDrawer');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'mgrxDrawer';
+    d.className = 'mgrx-drawer';
+    d.innerHTML = '<div class="mgrx-panel" id="mgrxPanel"></div>';
+    d.addEventListener('click', e => { if (e.target === d) mgrxClose_(); });
+    document.body.appendChild(d);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && d.classList.contains('open')) mgrxClose_(); });
+  }
+  return d;
+}
+function mgrxOpen_(html) {
+  const d = mgrxDrawer_();
+  document.getElementById('mgrxPanel').innerHTML = html;
+  d.classList.add('open');
+}
+function mgrxClose_() { const d = document.getElementById('mgrxDrawer'); if (d) d.classList.remove('open'); }
+function mgrxHead_(title, sub) {
+  return '<div class="mgrx-head"><div><h3>' + escapeHtml(title) + '</h3>' + (sub ? '<div class="sub">' + escapeHtml(sub) + '</div>' : '') + '</div>' +
+    '<button type="button" class="mgrx-btn" onclick="mgrxClose_()" title="Close"><span class="material-icons-outlined">close</span></button></div>';
+}
+function mgrxLoadingPanel_(title) {
+  mgrxOpen_(mgrxHead_(title) + '<div style="text-align:center;padding:40px;"><div class="loader"></div></div>');
+}
+function mgrxActivityList_(items) {
+  if (!items || !items.length) return '<div class="mgrx-empty">' + escapeHtml(tr_('umx_no_activity', 'Keine Einträge im Protokoll.')) + '</div>';
+  return '<table class="mgrx-mini">' + items.map(e =>
+    `<tr${e.level === 'error' ? ' class="mgrx-err"' : ''}><td style="white-space:nowrap;">${escapeHtml(e.t ? new Date(e.t).toLocaleString() : '')}</td><td><b>${escapeHtml(e.action)}</b></td><td>${escapeHtml(e.details)}</td></tr>`).join('') + '</table>';
+}
+
+/* ======================= USER MANAGER ======================= */
+let umxData_ = null;
+let umxSel_ = {};
+let umxQuick_ = '';
+
+const UMX_QUICK_ = [
+  ['', 'umx_q_all', 'Alle'],
+  ['active', 'umx_q_active', 'Aktiv'],
+  ['inactive', 'umx_q_inactive', 'Inaktiv'],
+  ['noseg', 'umx_q_noseg', 'Ohne Segmentierung', true],
+  ['notemplates', 'umx_q_notemplates', 'Keine Templates sichtbar', true],
+  ['noaccess', 'umx_q_noaccess', 'Ohne Portal-Zugriff', true],
+  ['nochat', 'umx_q_nochat', 'Chat nicht verbunden', true],
+  ['open', 'umx_q_open', 'Mit offenen Projekten']
+];
+const UMX_BULK_FIELDS_ = [['businessUnit', 'Business Unit'], ['clients', 'Clients'], ['domains', 'Domains'], ['subdomains', 'Subdomains'],
+  ['sourceLangs', 'Source Langs'], ['targetLangs', 'Target Langs'], ['workflowSteps', 'Workflow Steps'], ['status', 'Status']];
+
+function umxInfo_(r) { return umxData_ && umxData_.byEmail ? umxData_.byEmail[String(r.email || '').toLowerCase()] : null; }
+
+function umxMatch_(r, q) {
+  const i = umxInfo_(r);
+  switch (q) {
+    case 'active': return String(r.status || '').toUpperCase() === 'ACTIVE';
+    case 'inactive': return String(r.status || '').toUpperCase() !== 'ACTIVE';
+    case 'noseg': return !(r.clients && r.domains && r.subdomains && r.businessUnit);
+    case 'notemplates': return !!i && i.visibleTemplates === 0;
+    case 'noaccess': return !!i && !i.areas.length;
+    case 'nochat': return !!i && !i.chat.linked;
+    case 'open': return !!i && i.projects.open > 0;
+    default: return true;
+  }
+}
+function umxFilter_(r) { return umxMatch_(r, umxQuick_); }
+
+function umxLoad_() {
+  umxRenderBar_();
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res || res.success === false) return;
+      umxData_ = res;
+      umxRenderBar_();
+      renderUserManager();
+    })
+    .withFailureHandler(err => console.warn('umx insights: ' + err.message))
+    .apiGetUserManagerInsights();
+}
+
+function umxRenderBar_() {
+  const bar = document.getElementById('umxBar');
+  if (!bar) return;
+  const rows = typeof _userMgrRows !== 'undefined' ? _userMgrRows : [];
+  const chips = UMX_QUICK_.map(([id, key, fb, warn]) => {
+    const n = (!id || umxData_ || ['active', 'inactive', 'noseg'].includes(id)) ? rows.filter(r => umxMatch_(r, id)).length : '…';
+    return `<button type="button" class="mgrx-chip${warn ? ' warn' : ''}${umxQuick_ === id ? ' active' : ''}" onclick="umxSetQuick_('${id}')">${escapeHtml(tr_(key, fb))}<span class="n">${n}</span></button>`;
+  }).join('');
+  const sel = Object.keys(umxSel_).length;
+  const canAccess = !!(umxData_ && umxData_.canEditAccess);
+  const userOpts = rows.map(r => '<option value="' + escapeHtml(r.username) + '">' + escapeHtml([r.firstName, r.lastName].filter(Boolean).join(' ') + ' – ' + (r.email || '')) + '</option>').join('');
+  bar.innerHTML =
+    '<div class="mgrx-row">' + chips + '<span style="flex:1"></span>' +
+      '<button type="button" class="mgrx-btn" onclick="umxExportCsv_()"><span class="material-icons-outlined">download</span>CSV</button></div>' +
+    '<div class="mgrx-batch' + (sel ? ' on' : '') + '" id="umxBatch">' +
+      '<b>' + sel + '</b> ' + escapeHtml(tr_('ax_9894732', 'ausgewählt')) +
+      '<span class="mgrx-sep"></span>' +
+      '<select id="umxField">' + UMX_BULK_FIELDS_.map(f => '<option value="' + f[0] + '">' + escapeHtml(f[1]) + '</option>').join('') + '</select>' +
+      '<select id="umxMode"><option value="add">' + escapeHtml(tr_('umx_mode_add', 'hinzufügen')) + '</option><option value="remove">' + escapeHtml(tr_('umx_mode_remove', 'entfernen')) + '</option><option value="replace">' + escapeHtml(tr_('umx_mode_replace', 'ersetzen')) + '</option></select>' +
+      '<input type="text" id="umxValue" placeholder="' + escapeHtml(tr_('umx_value_ph', 'Wert, z. B. KAG')) + '">' +
+      '<button type="button" class="mgrx-btn primary" onclick="umxApplyBulk_()">' + escapeHtml(tr_('umx_apply', 'Anwenden')) + '</button>' +
+      '<span class="mgrx-sep"></span>' +
+      '<input type="text" id="umxCopyFrom" list="umxUserList" placeholder="' + escapeHtml(tr_('umx_copy_ph', 'Zuordnung übernehmen von …')) + '"><datalist id="umxUserList">' + userOpts + '</datalist>' +
+      '<button type="button" class="mgrx-btn" onclick="umxCopySegmentation_()">' + escapeHtml(tr_('umx_copy', 'Übernehmen')) + '</button>' +
+      (canAccess ? '<span class="mgrx-sep"></span><select id="umxArea">' + MGRX_AREAS_.filter(a => a[0] !== 'light').map(a => '<option value="' + a[0] + '">' + escapeHtml(a[1]) + '</option>').join('') + '</select>' +
+        '<button type="button" class="mgrx-btn" onclick="umxBulkAccess_(true)">' + escapeHtml(tr_('umx_grant', 'Zugriff geben')) + '</button>' +
+        '<button type="button" class="mgrx-btn" onclick="umxBulkAccess_(false)">' + escapeHtml(tr_('umx_revoke', 'entziehen')) + '</button>' : '') +
+      '<button type="button" class="mgrx-more" onclick="umxClearSel_()">' + escapeHtml(tr_('ax_d6d42d9', 'Auswahl aufheben')) + '</button>' +
+    '</div>';
+  const field = document.getElementById('umxField');
+  if (field) field.onchange = () => { const m = document.getElementById('umxMode'); if (m) m.disabled = field.value === 'status'; };
+}
+
+function umxSetQuick_(id) { umxQuick_ = id; umxRenderBar_(); renderUserManager(); }
+
+function umxCheckCell_(r) {
+  return '<td style="text-align:center;"><input type="checkbox"' + (umxSel_[r.username] ? ' checked' : '') + ' onchange="umxToggle_(\'' + escapeJs(r.username) + '\', this.checked)"></td>';
+}
+function umxToggle_(username, on) { if (on) umxSel_[username] = true; else delete umxSel_[username]; umxRenderBar_(); }
+function umxToggleAll_(cb) {
+  _userMgrFiltered().forEach(r => { if (cb.checked) umxSel_[r.username] = true; else delete umxSel_[r.username]; });
+  umxRenderBar_(); renderUserManager();
+}
+function umxClearSel_() { umxSel_ = {}; const m = document.getElementById('umxSelectAll'); if (m) m.checked = false; umxRenderBar_(); renderUserManager(); }
+
+function umxCell_(r) {
+  const i = umxInfo_(r);
+  const btn = '<button type="button" class="mgrx-more" onclick="umxOpenDetail_(\'' + escapeJs(r.email || '') + '\')">' + escapeHtml(tr_('umx_details', 'Details')) + ' ›</button>';
+  if (!i) return '<div class="mgrx-cell"><span class="mgrx-empty">…</span>' + btn + '</div>';
+  const areas = i.areas.length ? i.areas.map(a => '<span class="mgrx-tag y">' + escapeHtml(mgrxAreaLabel_(a)) + '</span>').join('')
+    : '<span class="mgrx-tag r">' + escapeHtml(tr_('umx_no_access', 'kein Zugriff')) + '</span>';
+  const tpl = '<span class="mgrx-tag ' + (i.visibleTemplates ? 'b' : 'r') + '" title="' + escapeHtml(tr_('umx_visible_templates', 'Sichtbare Templates')) + '">' + i.visibleTemplates + ' ' + escapeHtml(tr_('umx_tpl_short', 'Templ.')) + '</span>';
+  const prj = '<span class="mgrx-tag" title="' + escapeHtml(tr_('umx_projects', 'Projekte')) + (i.projects.last ? ' · ' + mgrxDate_(i.projects.last) : '') + '">' + i.projects.total + ' ' + escapeHtml(tr_('umx_prj_short', 'Proj.')) + (i.projects.open ? ' (' + i.projects.open + ' ' + escapeHtml(tr_('umx_open', 'offen')) + ')' : '') + '</span>';
+  const chat = '<span class="mgrx-tag ' + (i.chat.linked ? (i.chat.on ? 'g' : '') : 'r') + '" title="Google Chat">Chat ' + (i.chat.linked ? (i.chat.on ? '✓' : '–') : '✗') + '</span>';
+  return '<div class="mgrx-cell">' + areas + tpl + prj + chat + btn + '</div>';
+}
+
+function umxSelectedUsernames_() { return Object.keys(umxSel_); }
+
+function umxApplyBulk_() {
+  const names = umxSelectedUsernames_();
+  const field = document.getElementById('umxField').value;
+  const mode = field === 'status' ? 'replace' : document.getElementById('umxMode').value;
+  let value = document.getElementById('umxValue').value.trim();
+  if (field === 'status') value = /^(in|0|no|nein|false|aus)/i.test(value) ? 'INACTIVE' : 'ACTIVE';
+  if (!value && mode !== 'replace') { showCustomAlert(tr_('umx_need_value', 'Bitte einen Wert eingeben.')); return; }
+  const label = (UMX_BULK_FIELDS_.find(f => f[0] === field) || [field, field])[1];
+  showCustomConfirm(names.length + ' ' + tr_('umx_users', 'Nutzer') + ': ' + label + ' ' + mode + ' „' + value + '“?', () => {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || !res.success) { showCustomAlert((res && res.error) || 'Error', tr_('ax_902b0d5', 'Error')); return; }
+        (res.changed || []).forEach(c => { const r = _userMgrRows.find(x => x.username === c.username); if (r) r[field] = c.value; });
+        showToast_(res.changed.length + ' ' + tr_('umx_changed', 'Nutzer geändert'), 'ok');
+        renderUserManager(); umxLoad_();
+      })
+      .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
+      .apiBulkUpdateUserField(names, field, value, mode);
+  }, tr_('ax_cb4b782', 'Batch-Änderung'));
+}
+
+function umxCopySegmentation_() {
+  const from = document.getElementById('umxCopyFrom').value.trim();
+  const names = umxSelectedUsernames_().filter(n => n !== from);
+  if (!from || !_userMgrRows.some(r => r.username === from)) { showCustomAlert(tr_('umx_pick_source', 'Bitte einen Nutzer aus der Liste wählen (Username).')); return; }
+  showCustomConfirm(tr_('umx_copy_confirm', 'Client, Domain, Subdomain und Business Unit übernehmen von') + ' ' + from + ' → ' + names.length + ' ' + tr_('umx_users', 'Nutzer') + '?', () => {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || !res.success) { showCustomAlert((res && res.error) || 'Error', tr_('ax_902b0d5', 'Error')); return; }
+        loadUserManager();
+      })
+      .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
+      .apiCopyUserSegmentation(from, names);
+  }, tr_('ax_cb4b782', 'Batch-Änderung'));
+}
+
+function umxBulkAccess_(grant) {
+  const emails = umxSelectedUsernames_().map(u => (_userMgrRows.find(r => r.username === u) || {}).email).filter(Boolean);
+  const area = document.getElementById('umxArea').value;
+  showCustomConfirm(emails.length + ' ' + tr_('umx_users', 'Nutzer') + ': ' + mgrxAreaLabel_(area) + ' ' + (grant ? tr_('umx_grant', 'Zugriff geben') : tr_('umx_revoke', 'entziehen')) + '?', () => {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.errors && res.errors.length) showCustomAlert(res.errors.join('\n'), tr_('ax_902b0d5', 'Error'));
+        umxLoad_();
+      })
+      .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
+      .apiSetAccessBulk(emails, [area], grant);
+  }, tr_('ax_cb4b782', 'Batch-Änderung'));
+}
+
+function umxExportCsv_() {
+  const rows = _userMgrFiltered().map(r => {
+    const i = umxInfo_(r) || { areas: [], projects: {}, chat: {} };
+    return [r.username, r.firstName, r.lastName, r.email, r.role, r.status, r.clients, r.domains, r.subdomains, r.businessUnit,
+      r.sourceLangs, r.targetLangs, r.workflowSteps, i.areas.map(mgrxAreaLabel_).join(' '), i.visibleTemplates, i.projects.total, i.projects.open,
+      i.chat.linked ? (i.chat.on ? 'on' : 'off') : 'not linked'];
+  });
+  mgrxCsv_('users', ['Username', 'First Name', 'Last Name', 'Email', 'Role', 'Status', 'Clients', 'Domains', 'Subdomains', 'Business Unit',
+    'Source Langs', 'Target Langs', 'Workflow Steps', 'Portal', 'Visible templates', 'Projects', 'Open projects', 'Chat'], rows);
+}
+
+function umxOpenDetail_(email) {
+  if (!email) return;
+  mgrxLoadingPanel_(email);
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res || !res.success) { mgrxOpen_(mgrxHead_(email) + '<div class="mgrx-err">' + escapeHtml((res && res.error) || 'Error') + '</div>'); return; }
+      umxRenderDetail_(res);
+    })
+    .withFailureHandler(err => mgrxOpen_(mgrxHead_(email) + '<div class="mgrx-err">' + escapeHtml(err.message) + '</div>'))
+    .apiGetUserDetail(email);
+}
+
+function umxRenderDetail_(d) {
+  const u = d.user || {};
+  const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || d.email;
+  const canAccess = !!(umxData_ && umxData_.canEditAccess);
+  const areaHtml = MGRX_AREAS_.filter(a => a[0] !== 'light').map(([id, label]) => {
+    const on = d.areas.indexOf(id) !== -1;
+    return canAccess
+      ? `<label class="mgrx-area"><input type="checkbox"${on ? ' checked' : ''} onchange="umxSetArea_('${escapeJs(d.email)}','${id}',this)"> ${escapeHtml(label)}</label>`
+      : (on ? '<span class="mgrx-tag y">' + escapeHtml(label) + '</span> ' : '');
+  }).join('') + (d.areas.indexOf('light') !== -1 ? ' <span class="mgrx-tag">Admin-Light</span>' : '');
+  const sugg = (d.templates.suggestions || []).map(s => '<li>' + escapeHtml(s.field + ' „' + s.value + '“') + ' → +' + s.unlocks + ' ' + escapeHtml(tr_('umx_templates', 'Templates')) + '</li>').join('');
+  const prj = d.projects.length ? '<table class="mgrx-mini">' + d.projects.map(p =>
+    `<tr><td style="white-space:nowrap;">${escapeHtml(mgrxDate_(p.ts))}</td><td>${escapeHtml(p.name)}${p.own ? '' : ' <span class="mgrx-tag">' + escapeHtml(tr_('umx_shared', 'geteilt')) + '</span>'}</td><td><span class="mgrx-tag">${escapeHtml(p.status)}</span></td></tr>`).join('') + '</table>'
+    : '<div class="mgrx-empty">' + escapeHtml(tr_('umx_no_projects', 'Noch keine Projekte.')) + '</div>';
+  const isAdmin = !!(configData && configData.isAdmin);
+  mgrxOpen_(mgrxHead_(name, d.email) +
+    '<div class="mgrx-row" style="margin-bottom:12px;">' +
+      (isAdmin ? '<button type="button" class="mgrx-btn primary" onclick="umxImpersonate_(\'' + escapeJs(d.email) + '\')"><span class="material-icons-outlined">visibility</span>' + escapeHtml(tr_('umx_view_as', 'Als Nutzer ansehen')) + '</button>' : '') +
+      (isAdmin ? '<button type="button" class="mgrx-btn" onclick="umxDebug_(\'' + escapeJs(d.email) + '\')"><span class="material-icons-outlined">bug_report</span>' + escapeHtml(tr_('umx_debugger', 'Template-Debugger')) + '</button>' : '') +
+    '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">badge</span>' + escapeHtml(tr_('umx_profile', 'Profil')) + '</h4><div class="mgrx-kv">' +
+      '<b>Username</b><span>' + escapeHtml(u.username || '–') + '</span><b>Role</b><span>' + escapeHtml(u.role || '–') + '</span>' +
+      '<b>Status</b><span>' + escapeHtml(u.status || '–') + '</span>' +
+      '<b>Client</b><span>' + escapeHtml(u.clients || '–') + '</span><b>Domain</b><span>' + escapeHtml(u.domains || '–') + '</span>' +
+      '<b>Subdomain</b><span>' + escapeHtml(u.subdomains || '–') + '</span><b>Business Unit</b><span>' + escapeHtml(u.businessUnit || '–') + '</span>' +
+      '<b>Google Chat</b><span>' + (d.chat.linked ? (d.chat.on ? '✓ ' + escapeHtml(tr_('umx_chat_on', 'verbunden, Benachrichtigungen an')) : escapeHtml(tr_('umx_chat_off', 'verbunden, Benachrichtigungen aus'))) : '✗ ' + escapeHtml(tr_('umx_chat_none', 'Bot noch nie geöffnet'))) + '</span>' +
+    '</div></div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">lock_open</span>' + escapeHtml(tr_('umx_areas', 'Portal-Bereiche')) + '</h4>' + (areaHtml || '<div class="mgrx-empty">' + escapeHtml(tr_('umx_no_access', 'kein Zugriff')) + '</div>') + '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">description</span>' + escapeHtml(tr_('umx_visible_templates', 'Sichtbare Templates')) + ' · ' + d.templates.allowed.length + ' / ' + d.templates.total + '</h4>' +
+      (d.templates.allowed.length ? '<details><summary style="cursor:pointer;font-size:12px;font-weight:700;">' + escapeHtml(tr_('umx_show_list', 'Liste anzeigen')) + '</summary><ul class="mgrx-list">' + d.templates.allowed.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></details>' : '') +
+      (sugg ? '<div style="font-size:12px;margin-top:8px;"><b>' + escapeHtml(tr_('dbg_sugg_title', 'Fehlende Zuordnung')) + ':</b><ul class="mgrx-list">' + sugg + '</ul></div>' : '') +
+    '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">folder_open</span>' + escapeHtml(tr_('umx_recent_projects', 'Letzte Projekte')) + '</h4>' + prj + '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">history</span>' + escapeHtml(tr_('umx_activity', 'Aktivitäten')) + '</h4>' + mgrxActivityList_(d.activity) + '</div>');
+}
+
+function umxSetArea_(email, area, cb) {
+  cb.disabled = true;
+  google.script.run
+    .withSuccessHandler(res => {
+      cb.disabled = false;
+      if (res && res.errors && res.errors.length) { cb.checked = !cb.checked; showCustomAlert(res.errors.join('\n'), tr_('ax_902b0d5', 'Error')); return; }
+      umxLoad_();
+    })
+    .withFailureHandler(err => { cb.disabled = false; cb.checked = !cb.checked; showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')); })
+    .apiSetAccessBulk([email], [area], cb.checked);
+}
+
+function umxImpersonate_(email) {
+  const inp = document.getElementById('impersonateEmailInput');
+  if (!inp || typeof toggleImpersonation !== 'function') return;
+  mgrxClose_();
+  inp.value = email;
+  toggleImpersonation();
+}
+
+function umxDebug_(email) {
+  mgrxClose_();
+  switchAdminSubtab('console');
+  switchConsoleGroup('logs');
+  const inp = document.getElementById('debugEmail');
+  if (inp) { inp.value = email; runUserTemplatesDebug(); inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+/* ======================= TEMPLATE MANAGER ======================= */
+let tmxData_ = null;
+let tmxQuick_ = '';
+
+const TMX_QUICK_ = [
+  ['', 'umx_q_all', 'Alle'],
+  ['active', 'umx_q_active', 'Aktiv'],
+  ['inactive', 'umx_q_inactive', 'Inaktiv'],
+  ['nobody', 'tmx_q_nobody', 'Für niemanden sichtbar', true],
+  ['incomplete', 'tmx_q_incomplete', 'Segmentierung unvollständig', true],
+  ['unused', 'tmx_q_unused', 'Nie genutzt'],
+  ['pivot', 'tmx_q_pivot', 'Pivot'],
+  ['watched', 'tmx_q_watched', 'Mit Watchern']
+];
+
+function tmxInfo_(r) { return tmxData_ && tmxData_.byUid ? tmxData_.byUid[r.uid] : null; }
+
+function tmxMatch_(r, q) {
+  const i = tmxInfo_(r);
+  switch (q) {
+    case 'active': return !!r.active;
+    case 'inactive': return !r.active;
+    case 'nobody': return !!i && i.visibleUsers === 0;
+    case 'incomplete': return !(r.client && r.domain && r.subDomain && r.businessUnit);
+    case 'unused': return !!i && i.usage.count === 0;
+    case 'pivot': return !!i && !!i.pivot;
+    case 'watched': return !!i && i.watchers.length > 0;
+    default: return true;
+  }
+}
+function tmxFilter_(r) { return tmxMatch_(r, tmxQuick_); }
+
+function tmxLoad_() {
+  tmxRenderBar_();
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res || res.success === false) return;
+      tmxData_ = res;
+      tmxRenderBar_();
+      renderTemplateManager();
+    })
+    .withFailureHandler(err => console.warn('tmx insights: ' + err.message))
+    .apiGetTemplateManagerInsights();
+}
+
+function tmxRenderBar_() {
+  const bar = document.getElementById('tmxBar');
+  if (!bar) return;
+  const rows = typeof _tmplMgrRows !== 'undefined' ? _tmplMgrRows : [];
+  bar.innerHTML = '<div class="mgrx-row">' + TMX_QUICK_.map(([id, key, fb, warn]) => {
+    const n = (!id || tmxData_ || ['active', 'inactive', 'incomplete'].includes(id)) ? rows.filter(r => tmxMatch_(r, id)).length : '…';
+    return `<button type="button" class="mgrx-chip${warn ? ' warn' : ''}${tmxQuick_ === id ? ' active' : ''}" onclick="tmxSetQuick_('${id}')">${escapeHtml(tr_(key, fb))}<span class="n">${n}</span></button>`;
+  }).join('') + '<span style="flex:1"></span><button type="button" class="mgrx-btn" onclick="tmxExportCsv_()"><span class="material-icons-outlined">download</span>CSV</button></div>';
+}
+
+function tmxSetQuick_(id) { tmxQuick_ = id; tmxRenderBar_(); renderTemplateManager(); }
+
+function tmxCell_(r) {
+  const i = tmxInfo_(r);
+  const btn = '<button type="button" class="mgrx-more" onclick="tmxOpenDetail_(\'' + escapeJs(r.uid) + '\')">' + escapeHtml(tr_('umx_details', 'Details')) + ' ›</button>';
+  const missing = [['client', 'Client'], ['domain', 'Domain'], ['subDomain', 'Subdomain'], ['businessUnit', 'BU']].filter(f => !r[f[0]]).map(f => f[1]);
+  const miss = missing.length ? '<span class="mgrx-tag r" title="' + escapeHtml(tr_('tmx_missing_hint', 'Fehlende Felder: niemand sieht dieses Template')) + '">' + escapeHtml(tr_('tmx_missing', 'fehlt')) + ': ' + escapeHtml(missing.join(', ')) + '</span>' : '';
+  if (!i) return '<div class="mgrx-cell">' + miss + '<span class="mgrx-empty">…</span>' + btn + '</div>';
+  const vis = '<span class="mgrx-tag ' + (i.visibleUsers ? 'b' : 'r') + '">' + i.visibleUsers + ' ' + escapeHtml(tr_('tmx_users_short', 'Nutzer')) + '</span>';
+  const use = '<span class="mgrx-tag" title="' + escapeHtml(tr_('tmx_last_used', 'Zuletzt genutzt')) + ': ' + escapeHtml(mgrxDate_(i.usage.last) || '–') + '">' + i.usage.count + ' ' + escapeHtml(tr_('umx_prj_short', 'Proj.')) + '</span>';
+  const pv = i.pivot ? '<span class="mgrx-tag y">Pivot ' + escapeHtml(i.pivot === 'parent' ? 'Parent' : 'Child') + '</span>' : '';
+  const w = i.watchers.length ? '<span class="mgrx-tag" title="' + escapeHtml(i.watchers.join(', ')) + '">👁 ' + i.watchers.length + '</span>' : '';
+  return '<div class="mgrx-cell">' + vis + use + miss + pv + w + btn + '</div>';
+}
+
+function tmxExportCsv_() {
+  const rows = _tmplMgrFiltered().map(r => {
+    const i = tmxInfo_(r) || { usage: {}, watchers: [] };
+    return [r.uid, r.displayName, r.phraseName, r.active ? 'yes' : 'no', r.sourceLang, r.targetLangs, r.client, r.domain, r.subDomain, r.businessUnit,
+      i.visibleUsers, i.usage.count, i.usage.last, i.pivot || '', (i.watchers || []).join(' ')];
+  });
+  mgrxCsv_('templates', ['UID', 'Display Name', 'Phrase Name', 'Active', 'Source', 'Targets', 'Client', 'Domain', 'Subdomain', 'Business Unit',
+    'Visible users', 'Projects', 'Last used', 'Pivot', 'Watchers'], rows);
+}
+
+function tmxOpenDetail_(uid) {
+  const r = _tmplMgrRows.find(x => x.uid === uid) || { displayName: uid };
+  mgrxLoadingPanel_(r.displayName);
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res || !res.success) { mgrxOpen_(mgrxHead_(r.displayName) + '<div class="mgrx-err">' + escapeHtml((res && res.error) || 'Error') + '</div>'); return; }
+      tmxRenderDetail_(res);
+    })
+    .withFailureHandler(err => mgrxOpen_(mgrxHead_(r.displayName) + '<div class="mgrx-err">' + escapeHtml(err.message) + '</div>'))
+    .apiGetTemplateDetail(uid);
+}
+
+function tmxRenderDetail_(d) {
+  const t = d.template;
+  const i = tmxInfo_(t) || { watchers: [], pivot: '', usage: { count: d.projects.length, last: '' } };
+  const users = d.visibleUsers.length
+    ? '<input type="search" placeholder="' + escapeHtml(tr_('umx_filter', 'Filtern …')) + '" oninput="tmxFilterUsers_(this.value)" style="height:32px;font-size:12px;margin-bottom:6px;">' +
+      '<ul class="mgrx-list" id="tmxUserList">' + d.visibleUsers.map(u => '<li data-q="' + escapeHtml((u.email + ' ' + u.name).toLowerCase()) + '">' + escapeHtml(u.name ? u.name + ' – ' + u.email : u.email) +
+        (String(u.status || '').toUpperCase() === 'INACTIVE' ? ' <span class="mgrx-tag">inaktiv</span>' : '') + '</li>').join('') + '</ul>'
+    : '<div class="mgrx-err" style="font-size:12px;">' + escapeHtml(tr_('tmx_nobody_hint', 'Kein Nutzer sieht dieses Template. Segmentierung am Template in Phrase prüfen oder Nutzern die passenden Werte zuordnen.')) + '</div>';
+  const prj = d.projects.length ? '<table class="mgrx-mini">' + d.projects.map(p =>
+    `<tr><td style="white-space:nowrap;">${escapeHtml(mgrxDate_(p.ts))}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.owner)}</td><td><span class="mgrx-tag">${escapeHtml(p.status)}</span></td></tr>`).join('') + '</table>'
+    : '<div class="mgrx-empty">' + escapeHtml(tr_('umx_no_projects', 'Noch keine Projekte.')) + '</div>';
+  mgrxOpen_(mgrxHead_(t.displayName, t.uid) +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">edit</span>' + escapeHtml(tr_('tmx_display_name', 'Anzeigename im Portal')) + '</h4>' +
+      '<div class="mgrx-row"><input type="text" id="tmxName" value="' + escapeHtml(t.displayName) + '" style="flex:1;height:34px;font-size:13px;">' +
+      '<button type="button" class="mgrx-btn primary" onclick="tmxSaveName_(\'' + escapeJs(t.uid) + '\')">' + escapeHtml(tr_('tmx_save', 'Speichern')) + '</button></div>' +
+      '<label class="mgrx-area" style="margin-top:8px;"><input type="checkbox"' + (t.active ? ' checked' : '') + ' onchange="tmxSetActive_(\'' + escapeJs(t.uid) + '\', this)"> ' + escapeHtml(tr_('tmx_active_hint', 'Aktiv (im Upload-Formular sichtbar)')) + '</label>' +
+    '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">info</span>' + escapeHtml(tr_('tmx_info', 'Template')) + '</h4><div class="mgrx-kv">' +
+      '<b>Phrase Name</b><span>' + escapeHtml(t.phraseName || '–') + '</span><b>Source</b><span>' + escapeHtml(t.sourceLang || '–') + '</span>' +
+      '<b>Targets</b><span>' + escapeHtml(t.targetLangs || '–') + '</span>' +
+      '<b>Client</b><span>' + escapeHtml(t.client || '–') + '</span><b>Domain</b><span>' + escapeHtml(t.domain || '–') + '</span>' +
+      '<b>Subdomain</b><span>' + escapeHtml(t.subDomain || '–') + '</span><b>Business Unit</b><span>' + escapeHtml(t.businessUnit || '–') + '</span>' +
+      '<b>Pivot</b><span>' + escapeHtml(i.pivot || '–') + '</span><b>Watcher</b><span>' + escapeHtml((i.watchers || []).join(', ') || '–') + '</span>' +
+    '</div>' + (d.missing.length ? '<div class="mgrx-err" style="font-size:12px;margin-top:8px;">' + escapeHtml(tr_('tmx_missing', 'fehlt')) + ': ' + escapeHtml(d.missing.join(', ')) + ' – ' + escapeHtml(tr_('tmx_missing_hint', 'Fehlende Felder: niemand sieht dieses Template')) + '</div>' : '') +
+    '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">group</span>' + escapeHtml(tr_('tmx_visible_for', 'Sichtbar für')) + ' · ' + d.visibleUsers.length + '</h4>' + users + '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">folder_open</span>' + escapeHtml(tr_('umx_recent_projects', 'Letzte Projekte')) + '</h4>' + prj + '</div>');
+}
+
+function tmxFilterUsers_(q) {
+  q = String(q || '').toLowerCase();
+  document.querySelectorAll('#tmxUserList li').forEach(li => { li.style.display = !q || li.dataset.q.indexOf(q) !== -1 ? '' : 'none'; });
+}
+
+function tmxSaveName_(uid) {
+  const name = document.getElementById('tmxName').value.trim();
+  google.script.run
+    .withSuccessHandler(res => {
+      if (!res || !res.success) { showCustomAlert((res && res.error) || 'Error', tr_('ax_902b0d5', 'Error')); return; }
+      const r = _tmplMgrRows.find(x => x.uid === uid);
+      if (r) r.displayName = res.displayName;
+      renderTemplateManager();
+      mgrxClose_();
+    })
+    .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
+    .apiSetTemplateDisplayName(uid, name);
+}
+
+function tmxSetActive_(uid, cb) {
+  cb.disabled = true;
+  google.script.run
+    .withSuccessHandler(() => {
+      cb.disabled = false;
+      const r = _tmplMgrRows.find(x => x.uid === uid);
+      if (r) r.active = cb.checked;
+      renderTemplateManager();
+    })
+    .withFailureHandler(err => { cb.disabled = false; cb.checked = !cb.checked; showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')); })
+    .apiSetTemplateActive(uid, cb.checked);
+}
+</script>

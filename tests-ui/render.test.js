@@ -261,3 +261,100 @@ test('Campus-Skript wird erst beim Oeffnen des Reiters geladen', async () => {
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Protokoll: eine Liste mit Kategorien, Nachrichten-Filter, Fehler rot, Suche', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiGetUnifiedLog: { success: true, warnings: [], counts: { all: 3, projects: 1, messages: 2, access: 0, system: 0, error: 1 }, entries: [
+      { t: '2026-09-30T10:00:00.000Z', user: 'anna@kaercher.com', action: 'CHAT_SENT', details: 'Project submitted', category: 'messages', level: 'ok' },
+      { t: '2026-09-30T09:00:00.000Z', user: 'ben@kaercher.com', action: 'CHAT_FAILED', details: 'Hi | Kein Direktchat', category: 'messages', level: 'error' },
+      { t: '2026-09-30T08:00:00.000Z', user: 'anna@kaercher.com', action: 'PROJECT_CREATE', details: 'Flyer', category: 'projects', level: 'ok' } ] }
+  }`);
+  await openAdmin(page, 'logs');
+  await page.waitForFunction(() => document.querySelectorAll('#unifiedLogContainer tbody tr').length === 3);
+  assert.equal(await page.locator('#auditLogContainer').count(), 0, 'altes Aktivitaetsprotokoll entfernt');
+  await page.evaluate(() => setUnifiedLogCat_('messages'));
+  assert.equal(await page.locator('#unifiedLogContainer tbody tr').count(), 2);
+  assert.equal(await page.locator('#unifiedLogContainer tr.lvl-error').count(), 1);
+  await page.fill('#logSearch', 'direktchat');
+  await page.waitForFunction(() => document.querySelectorAll('#unifiedLogContainer tbody tr').length === 1);
+  await page.evaluate(() => toggleUnifiedLogFull_());
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('logCard')).position), 'fixed');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+const MGR_MOCKS = `{
+  apiGetUsersForManager: { success: true, rows: [
+    { username: 'anna', firstName: 'Anna', lastName: 'A', email: 'anna@kaercher.com', role: 'SUBMITTER', status: 'ACTIVE', clients: 'KAG', domains: 'Marketing', subdomains: 'Web', businessUnit: 'PC' },
+    { username: 'ben', firstName: 'Ben', lastName: 'B', email: 'ben@kaercher.com', role: 'SUBMITTER', status: 'ACTIVE', clients: '', domains: '', subdomains: '', businessUnit: '' },
+    { username: 'cara', firstName: 'Cara', lastName: 'C', email: 'cara@kaercher.com', role: 'GUEST', status: 'INACTIVE', clients: 'KAG', domains: 'Marketing', subdomains: 'Web', businessUnit: 'PC' } ] },
+  apiGetUserManagerInsights: { success: true, canEditAccess: true, templateTotal: 4, byEmail: {
+    'anna@kaercher.com': { areas: ['general', 'marketing'], chat: { on: true, linked: true }, projects: { total: 3, open: 1, last: '2026-09-01' }, visibleTemplates: 2 },
+    'ben@kaercher.com': { areas: [], chat: { on: false, linked: false }, projects: { total: 0, open: 0, last: '' }, visibleTemplates: 0 },
+    'cara@kaercher.com': { areas: ['general'], chat: { on: false, linked: true }, projects: { total: 0, open: 0, last: '' }, visibleTemplates: 2 } } },
+  apiBulkUpdateUserField: (names, field, value, mode) => ({ success: true, changed: names.map((n) => ({ username: n, value: 'PC, HC' })) }),
+  apiGetUserDetail: (email) => ({ success: true, email, user: { username: 'anna', firstName: 'Anna', lastName: 'A', role: 'SUBMITTER', status: 'ACTIVE', clients: 'KAG' },
+    areas: ['general'], chat: { on: true, linked: true }, templates: { allowed: ['Flyer [en]'], total: 4, suggestions: [{ field: 'Subdomain', value: 'Print', unlocks: 2 }] },
+    projects: [{ uid: 'P1', name: 'Flyer 2026', status: 'NEW', ts: '2026-09-01', own: true }], activity: [{ t: '2026-09-01T10:00:00Z', action: 'CHAT_SENT', details: 'Project submitted', level: 'ok' }] }),
+  apiGetTemplatesForManager: { success: true, rows: [
+    { uid: 'T1', displayName: 'Flyer', phraseName: 'MKT Flyer', sourceLang: 'en', targetLangs: 'de_de', client: 'KAG', domain: 'Marketing', subDomain: 'Web', businessUnit: 'PC', active: true },
+    { uid: 'T2', displayName: 'Orphan', phraseName: 'X', sourceLang: 'en', targetLangs: 'fr_fr', client: 'KAG', domain: '', subDomain: 'Web', businessUnit: 'PC', active: false } ] },
+  apiGetTemplateManagerInsights: { success: true, userTotal: 3, byUid: {
+    T1: { visibleUsers: 2, missing: [], usage: { count: 5, last: '2026-09-20' }, watchers: ['boss@kaercher.com'], pivot: 'parent' },
+    T2: { visibleUsers: 0, missing: ['Domain'], usage: { count: 0, last: '' }, watchers: [], pivot: '' } } },
+  apiBatchSetTemplateActive: { success: true, changed: 2 },
+  apiGetTemplateDetail: (uid) => ({ success: true, template: { uid, displayName: 'Orphan', phraseName: 'X', active: false, client: 'KAG', domain: '', subDomain: 'Web', businessUnit: 'PC' },
+    missing: ['Domain'], visibleUsers: [], projects: [] }),
+  apiSetTemplateDisplayName: (uid, name) => ({ success: true, displayName: name })
+}`;
+
+test('User Manager: Kennzahlen-Filter, Mehrfachbearbeitung und Detailansicht', async () => {
+  const { page, errors } = await openApp(null, MGR_MOCKS);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('users'));
+  await page.waitForFunction(() => /2 templ/i.test(document.querySelector('#userMgrTable tbody').innerText));
+  assert.match(await page.locator('#umxBar').innerText(), /3/);
+  await page.evaluate(() => umxSetQuick_('noaccess'));
+  assert.equal(await page.locator('#userMgrTable tbody tr[data-username]').count(), 1, 'nur Ben ohne Zugriff');
+  await page.evaluate(() => umxSetQuick_(''));
+  await page.locator('#userMgrTable tbody tr[data-username="anna"] input[type=checkbox]').first().check();
+  await page.locator('#userMgrTable tbody tr[data-username="cara"] input[type=checkbox]').first().check();
+  await page.waitForFunction(() => document.getElementById('umxBatch').classList.contains('on'));
+  await page.selectOption('#umxField', 'businessUnit');
+  await page.selectOption('#umxMode', 'add');
+  await page.fill('#umxValue', 'HC');
+  await page.evaluate(() => umxApplyBulk_());
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiBulkUpdateUserField'));
+  const call = await page.evaluate(() => __calls.find((c) => c.fn === 'apiBulkUpdateUserField').args);
+  assert.deepEqual(call, [['anna', 'cara'], 'businessUnit', 'HC', 'add']);
+  await page.evaluate(() => umxOpenDetail_('anna@kaercher.com'));
+  await page.waitForFunction(() => /Flyer 2026/.test(document.getElementById('mgrxPanel').innerText));
+  assert.match(await page.locator('#mgrxPanel').innerText(), /Print/);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.getElementById('mgrxDrawer').classList.contains('open')), false);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Template Manager: unsichtbare Templates finden, Mehrfach-Aktivieren, Anzeigename', async () => {
+  const { page, errors } = await openApp(null, MGR_MOCKS);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('templates'));
+  await page.waitForFunction(() => /0 Nutzer|0 users/.test(document.querySelector('#tmplMgrTable tbody').innerText));
+  await page.evaluate(() => tmxSetQuick_('nobody'));
+  assert.equal(await page.locator('#tmplMgrTable tbody tr').count(), 1);
+  assert.match(await page.locator('#tmplMgrTable tbody').innerText(), /Orphan/);
+  await page.evaluate(() => tmxSetQuick_(''));
+  await page.evaluate(() => { tmplMgrToggleOne('T1', true); tmplMgrToggleOne('T2', true); batchSetTemplateActive(true); });
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiBatchSetTemplateActive'));
+  assert.deepEqual(await page.evaluate(() => __calls.find((c) => c.fn === 'apiBatchSetTemplateActive').args), [['T1', 'T2'], true]);
+  await page.evaluate(() => tmxOpenDetail_('T2'));
+  await page.waitForFunction(() => document.getElementById('tmxName'));
+  await page.fill('#tmxName', 'Orphan (neu)');
+  await page.evaluate(() => tmxSaveName_('T2'));
+  await page.waitForFunction(() => /Orphan \(neu\)/.test(document.querySelector('#tmplMgrTable tbody').innerText));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
