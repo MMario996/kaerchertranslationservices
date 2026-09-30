@@ -76,7 +76,9 @@ Google Apps Script (V8), Web-App "Execute as: USER_DEPLOYING", Zugriff: DOMAIN
 | Google Chat | `Upload.gs` (Senden, doPost), `ChatToken.gs` (Nutzer-Mapping), `ChatCommands.gs` (Slash-Commands), `Chatbot.gs` (Gemini), `Messagetemplates.gs` |
 | Persönlich | `UserPrefs.gs`, `Presets.gs`, `CalendarSync.gs`, `Announcements.gs`, `GermanHolidays.gs` |
 | Übersetzung der UI | `I18nDicts.gs` (App: de/en/fr/es/pt/zh), `AdminI18n.gs`, `PhraseStrings.gs`, `PhraseStringsSync.gs` |
-| Betrieb | `Auditlog.gs`, `Adminadvanced.gs` (Script Properties), `SelfTests.gs`, `Triggers.gs`, `SheetSetup.gs`, `HeaderRepair.gs`, `Debug.gs`, `Test.gs`, `Testregistry.gs`, `Kecdebugscan.gs` |
+| Knowledge Base | `Knowledgebase.gs` (`apiKbChunk`), `Knowledgebase.html`, `KbData*.html` (erzeugt), Quelle `kb-src/*.md`, Build `tools/build-kb.js` |
+| Admin-Manager | `AdminManagers.gs` (Kennzahlen, Mehrfachbearbeitung, Details), `AdminManagers.html` (nachgeladen) |
+| Betrieb | `Auditlog.gs` (inkl. gemeinsames Protokoll `apiGetUnifiedLog`), `Adminadvanced.gs` (Script Properties), `SelfTests.gs`, `Triggers.gs`, `SheetSetup.gs`, `HeaderRepair.gs`, `Debug.gs`, `Test.gs`, `Testregistry.gs`, `Kecdebugscan.gs` |
 
 ### Oberfläche (`.html`)
 
@@ -104,7 +106,7 @@ Stellen aber **per festem Index** geschrieben – Spalten nie umsortieren.
 | `User_Presets` | Gespeicherte Formular-Vorlagen | (pro Nutzer: Template, Sprachen, Notiz) |
 | `Announcements` | Banner/Chat-Ankündigungen | Zielgruppe, Zeitraum, Text, aktiv |
 | `NotificationLog` | Einträge der Glocke | Zeit, Empfänger, Typ, Projekt … |
-| `AuditLog` | Admin-/Projektaktionen | Zeit, Nutzer, Aktion, Details |
+| `AuditLog` | Gemeinsames Protokoll: Admin-/Projektaktionen, Phrase-Owner, jede Chat-Nachricht (`CHAT_SENT`/`CHAT_FAILED`) | Zeit, Nutzer (bei Nachrichten: Empfänger), Aktion, Details |
 | `Message_Templates` | Texte der Chat-Nachrichten (DE/EN) | Key, Text DE, Text EN |
 | `Watchers` | Wer bei neuen Projekten einer Vorlage informiert wird | Konfiguration |
 | `PivotTemplateLinks`, `PivotLanguageMap` | Pivot-Workflow | Parent/Child-Template, Sprache → Options-Wert |
@@ -165,6 +167,7 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 | `DRIVE_SAVE_OAUTH_CLIENT_ID`, `DRIVE_SAVE_OAUTH_CLIENT_SECRET` | OAuth-Client für Drive-Export und Kalender |
 | `GEMINI_API_KEY` | Chat-Bot (Gemini) |
 | `MAX_FILE_SIZE_MB` | Upload-Limit (Standard 100) |
+| `PHRASE_SET_REAL_OWNER` | `false` = API-Funktionsuser bleibt Phrase-Owner (Standard: Einreicher wird Owner) |
 | `MAINT_START`, `MAINT_END`, `MAINT_MSG` | Wartungsmodus |
 | `KEC_CLIENT_ID`, `KEC_DOMAIN_ID`, `KEC_BUSINESS_UNIT_ID` | Welche Phrase-Projekte als KeC gelten |
 | `AUTO_SYNC_ENABLED`, `AUTO_SYNC_LAST_RUN` … | Status-Autosync |

@@ -5,7 +5,8 @@
  * - Provides: phraseCreateProjectFromTemplate_, phraseUploadJob_, phraseUploadReference_
  * - Utility: phraseFetchJson_ (with 429 retry + exponential backoff)
  *
- * REMOVED: phraseSetProjectOwner_ ? Funktionsuser bleibt Owner (keine Phrase-Mails an Einreicher)
+ * OWNER:   phraseAssignSubmitterOwner_ - Einreicher wird echter Projekt-Owner (alle Reiter),
+ *          abschaltbar ueber Script Property PHRASE_SET_REAL_OWNER = "false"
  * NEW:     phraseSetProjectCreator_ ? überschreibt CF "Project Creator" (Default "SET VALUE")
  *          via GET (Instanz-UID holen) + PUT updateInstances (Wert setzen)
  *          Custom Field UID: rP6yDs6jzepIbpoxiknpN1 (STRING, allowedEntities: PROJECT)
@@ -233,10 +234,36 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
 }
 
 /**
+ * Ob der Einreicher als echter Phrase-Owner gesetzt wird. Standard: ja, fuer
+ * alle Reiter. Script Property PHRASE_SET_REAL_OWNER = "false" schaltet es ab
+ * (dann bleibt der API-Funktionsuser Owner, z. B. falls Phrase-Systemmails an
+ * Einreicher unerwuenscht sind). Reine Funktion (getestet).
+ */
+function realOwnerEnabled_(propValue) {
+  return String(propValue == null ? "" : propValue).trim().toLowerCase() !== "false";
+}
+
+/**
+ * Setzt den Einreicher als Owner des Phrase-Projekts (wenn eingeschaltet) und
+ * protokolliert das Ergebnis. Non-blocking.
+ * @return {{ok:boolean, skipped?:boolean, reason?:string}}
+ */
+function phraseAssignSubmitterOwner_(projectUid, userEmail) {
+  if (!realOwnerEnabled_(PropertiesService.getScriptProperties().getProperty("PHRASE_SET_REAL_OWNER"))) {
+    return { ok: false, skipped: true, reason: "disabled" };
+  }
+  var res = phraseSetProjectOwner_(projectUid, userEmail);
+  try {
+    logAuditEvent_(userEmail, res.ok ? "PHRASE_OWNER_SET" : "PHRASE_OWNER_FAILED",
+      projectUid + (res.ok ? " -> " + userEmail : ": " + res.reason));
+  } catch (e) {}
+  return res;
+}
+
+/**
  * Setzt den ECHTEN Phrase-Owner des Projekts auf den Einreicher.
- * NUR für WOMA und Competence Center genutzt (siehe apiCreateProjectAndUpload).
- * Bei allen anderen Templates bleibt der Funktionsuser (DE10E20592) Owner,
- * damit keine ungewollten Phrase-Systemmails an Einreicher gehen.
+ * Aufruf ueber phraseAssignSubmitterOwner_ (alle Reiter + Dokumentation).
+ * Hat der Einreicher keinen Phrase-User, bleibt der Funktionsuser Owner.
  *
  * Getestet: PATCH /api2/v1/projects/{uid} erwartet {"owner":{"id": <numerische ID>}}.
  * Mit "uid" statt "id" antwortet Phrase mit 404 ResourceNotFound.
@@ -246,15 +273,16 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
  *
  * @param {string} projectUid  Phrase Projekt-UID
  * @param {string} userEmail   E-Mail des Einreichers
+ * @return {{ok:boolean, reason?:string}}
  */
 function phraseSetProjectOwner_(projectUid, userEmail) {
-  if (!projectUid || !userEmail) return;
+  if (!projectUid || !userEmail) return { ok: false, reason: "missing input" };
 
   try {
     const phraseUser = phraseGetUserByEmail_(userEmail);
     if (!phraseUser || !phraseUser.id) {
-      console.warn("\u26A0 phraseSetProjectOwner_: Kein Phrase-User für " + userEmail + " gefunden ? Owner bleibt unverändert.");
-      return;
+      console.warn("\u26A0 phraseSetProjectOwner_: Kein Phrase-User für " + userEmail + " gefunden - Owner bleibt unverändert.");
+      return { ok: false, reason: "no Phrase user for " + userEmail };
     }
 
     const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid));
@@ -268,12 +296,15 @@ function phraseSetProjectOwner_(projectUid, userEmail) {
 
     const code = res.getResponseCode();
     if (code >= 400) {
-      console.warn("\u26A0 phraseSetProjectOwner_ PUT HTTP " + code + ": " + res.getContentText().substring(0, 200));
-    } else {
-      console.log("\u2022 Project Owner gesetzt: " + projectUid + " ? " + userEmail + " (Phrase id: " + phraseUser.id + ")");
+      const body = res.getContentText().substring(0, 200);
+      console.warn("\u26A0 phraseSetProjectOwner_ PATCH HTTP " + code + ": " + body);
+      return { ok: false, reason: "HTTP " + code + ": " + body };
     }
+    console.log("\u2022 Project Owner gesetzt: " + projectUid + " -> " + userEmail + " (Phrase id: " + phraseUser.id + ")");
+    return { ok: true };
   } catch (e) {
     console.warn("\u26A0 phraseSetProjectOwner_ fehlgeschlagen für " + projectUid + ": " + e.message);
+    return { ok: false, reason: e.message };
   }
 }
 

@@ -194,3 +194,111 @@ test('User Template Debugger: Vorschlaege zeigen, welcher eine Wert Templates fr
   assert.deepEqual(s.map((x) => [x.field, x.value.toLowerCase(), x.unlocks]), [['Subdomain', 'print', 2], ['Business Unit', 'hc', 1]]);
   assert.deepEqual(s[0].templates, ['Needs Print A', 'Needs Print B']);
 });
+
+test('Phrase-Owner: Einreicher ist standardmaessig Owner, abschaltbar per Property', () => {
+  const api = load(['ProjectsApi.gs']);
+  assert.equal(api.realOwnerEnabled_(null), true);
+  assert.equal(api.realOwnerEnabled_(''), true);
+  assert.equal(api.realOwnerEnabled_('true'), true);
+  assert.equal(api.realOwnerEnabled_(' FALSE '), false);
+});
+
+test('Phrase-Owner: wird fuer jeden Reiter gesetzt, Ergebnis landet im Protokoll', () => {
+  const logged = [];
+  const patched = [];
+  const api = load(['ProjectsApi.gs'], {
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k === 'PHRASE_API_TOKEN' ? 't' : null) }) },
+    UrlFetchApp: {
+      fetch: (url, o) => {
+        if (/\/users\?email=/.test(url)) return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ content: [{ id: 42, uid: 'U', userName: 'anna', email: 'anna@x.de' }] }), getHeaders: () => ({}) };
+        patched.push([url, o.method, o.payload]);
+        return { getResponseCode: () => 200, getContentText: () => '{}' };
+      }
+    },
+    logAuditEvent_: (u, a, d) => logged.push([u, a, d])
+  });
+  const r = api.phraseAssignSubmitterOwner_('P1', 'anna@x.de');
+  assert.equal(r.ok, true);
+  assert.equal(patched.length, 1);
+  assert.equal(patched[0][1], 'patch');
+  assert.deepEqual(JSON.parse(patched[0][2]), { owner: { id: 42 } });
+  assert.deepEqual(logged, [['anna@x.de', 'PHRASE_OWNER_SET', 'P1 -> anna@x.de']]);
+  // Upload setzt den Owner nicht mehr nur fuer WOMA/CC
+  const upload = require('fs').readFileSync(require('path').join(__dirname, '..', 'Upload.gs'), 'utf8');
+  assert.ok(!/setRealOwner/.test(upload));
+  assert.ok(/phraseAssignSubmitterOwner_\(projectUid, userEmail\)/.test(upload));
+});
+
+test('Protokoll: Kategorien, Fehler-Markierung und Zusammenfuehren nach Zeit', () => {
+  const log = load(['Auditlog.gs']);
+  assert.equal(log.auditCategory_('CHAT_SENT'), 'messages');
+  assert.equal(log.auditCategory_('PROJECT_CREATE'), 'projects');
+  assert.equal(log.auditCategory_('PHRASE_OWNER_FAILED'), 'projects');
+  assert.equal(log.auditCategory_('WHITELIST_ADD'), 'access');
+  assert.equal(log.auditCategory_('PROP_EDIT'), 'system');
+  assert.equal(log.auditLevel_('CHAT_FAILED', ''), 'error');
+  assert.equal(log.auditLevel_('QUEUE_STATUS', 'Flyer | ERROR | P1'), 'error');
+  assert.equal(log.auditLevel_('QUEUE_STATUS', 'Flyer | COMPLETED | P1'), 'ok');
+  const m = plain(log.mergeLogEntries_(
+    [{ ms: 1000, user: 'a', action: 'CHAT_SENT', details: 'x' }, { ms: 3000, user: 'b', action: 'PROP_EDIT', details: '' }],
+    [{ ms: 2000, user: 'c', action: 'QUEUE_STATUS', details: 'P | ERROR' }], 10));
+  assert.deepEqual(m.entries.map((e) => e.user), ['b', 'c', 'a']);
+  assert.deepEqual(m.counts, { all: 3, projects: 1, messages: 1, access: 0, system: 1, error: 1 });
+});
+
+test('Protokoll: jede Chat-Nachricht wird mit erster Textzeile erfasst', () => {
+  const logged = [];
+  const log = load(['Auditlog.gs'], { logAuditEvent_: (u, a, d) => logged.push([u, a, d]) });
+  // logAuditEvent_ aus Auditlog.gs ueberschreibt den Stub - erneut setzen
+  log.logAuditEvent_ = (u, a, d) => logged.push([u, a, d]);
+  log.logChatMessage_('anna@x.de', true, '<users/123> ✅ *Project submitted*\nmore');
+  log.logChatMessage_('ben@x.de', false, 'Hi', 'Kein Direktchat');
+  assert.deepEqual(logged, [['anna@x.de', 'CHAT_SENT', '✅ Project submitted'], ['ben@x.de', 'CHAT_FAILED', 'Hi | Kein Direktchat']]);
+});
+
+test('User Manager: Mehrfachwerte ersetzen, ergaenzen, entfernen', () => {
+  const m = load(['AdminManagers.gs']);
+  assert.equal(m.mergeMultiValue_('KAG, KNA', 'kna; KFR', 'add'), 'KAG, KNA, KFR');
+  assert.equal(m.mergeMultiValue_('KAG, KNA\nKFR', 'kna', 'remove'), 'KAG, KFR');
+  assert.equal(m.mergeMultiValue_('KAG', 'X, Y', 'replace'), 'X, Y');
+  assert.equal(m.mergeMultiValue_('', '', 'replace'), '');
+});
+
+test('Manager-Kennzahlen: Projekte je Eigentuemer, Template-Nutzung, fehlende Segmentierung', () => {
+  const m = load(['AdminManagers.gs']);
+  const rows = [
+    { owner: 'a@x.de', status: 'NEW', timestamp: '2026-09-01T00:00:00Z', templateName: 'Marketing Flyer [en]' },
+    { owner: 'a@x.de', status: 'COMPLETED', timestamp: '2026-09-10T00:00:00Z', templateName: 'Marketing Flyer Express [en]' },
+    { owner: 'b@x.de', status: 'CANCELLED', timestamp: '2026-08-01T00:00:00Z', templateName: 'Other' }
+  ];
+  assert.deepEqual(plain(m.aggregateProjectsByOwner_(rows)), {
+    'a@x.de': { total: 2, open: 1, last: '2026-09-10T00:00:00Z' },
+    'b@x.de': { total: 1, open: 0, last: '2026-08-01T00:00:00Z' }
+  });
+  const usage = plain(m.templateUsage_(rows, [{ uid: 'T1', displayName: 'Marketing Flyer' }, { uid: 'T2', displayName: 'Marketing Flyer Express' }]));
+  assert.deepEqual(usage, { T1: { count: 1, last: '2026-09-01T00:00:00Z' }, T2: { count: 1, last: '2026-09-10T00:00:00Z' } }, 'laengster Name gewinnt');
+  assert.deepEqual(plain(m.templateMissingFields_({ client: 'KAG', domain: '', subDomain: 'Web', businessUnit: '' })), ['Domain', 'Business Unit']);
+});
+
+test('Knowledge Base: apiKbChunk liefert nur bekannte Pakete', () => {
+  const kb = load(['Knowledgebase.gs'], {
+    HtmlService: { createHtmlOutputFromFile: (n) => ({ getContent: () => '{"' + n + '":1}' }) }
+  });
+  const count = kb.KB_CHUNK_COUNT_;
+  assert.ok(count > 0);
+  assert.equal(kb.apiKbChunk(1), '{"KbData1":1}');
+  assert.equal(kb.apiKbChunk(String(count)), '{"KbData' + count + '":1}');
+  assert.throws(() => kb.apiKbChunk(0));
+  assert.throws(() => kb.apiKbChunk(count + 1));
+  assert.throws(() => kb.apiKbChunk('1; x'));
+  assert.throws(() => kb.apiKbChunk(1.5));
+});
+
+test('Knowledge-Base-Build: Hinweis-Ueberschriften werden zu Callouts, Code bleibt unberuehrt', () => {
+  const { preprocess, safeJson } = require('../tools/build-kb.js');
+  const out = preprocess('#### Title\n\n##### Note\n\nBeware.\n\n```\n# not a heading\n```');
+  assert.match(out, /^### Title/m);
+  assert.match(out, /^> \[!note\]\n>\n> Beware\./m);
+  assert.match(out, /^# not a heading$/m);
+  assert.equal(safeJson({ u: 'https://x/</a>' }), '{"u":"https:\\/\\/x\\/\\u003c\\/a>"}');
+});

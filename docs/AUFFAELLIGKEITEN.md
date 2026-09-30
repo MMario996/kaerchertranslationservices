@@ -36,6 +36,9 @@ geladene Datei – das hängt von der Dateireihenfolge im Projekt ab und ist nic
 
 ## Fehler / Inkonsistenzen
 
+Behoben: `apiBatchSetTemplateActive` fehlte (Mehrfach-Aktivieren im Template Manager schlug fehl) –
+jetzt in `AdminManagers.gs`.
+
 | # | | Fund | Wirkung | Vorschlag |
 |---|---|---|---|---|
 | F1 | 🟠 | `apiSaveDocExportEligibilitySettings` prüft `access.isAdmin`, aber `apiCheckAccess()` liefert kein `isAdmin`. | Speichern schlägt **immer** mit „Not authorized“ fehl. | `isAdmin_(getUserEmail_())` verwenden. |

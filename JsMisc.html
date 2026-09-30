@@ -272,15 +272,6 @@
 
 
 
-    function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
-    function filterLogs() {
-      const q = document.getElementById('logsSearchInput').value.toLowerCase();
-      const rows = document.getElementById('logsModalBody').children;
-      for(let i=0; i<rows.length; i++) {
-        rows[i].style.display = rows[i].innerText.toLowerCase().includes(q) ? 'block' : 'none';
-      }
-    }
-
     function runKecDebug(suffix) {
       const inputEl = document.getElementById('kecDebugInput' + suffix);
       const panelEl = document.getElementById('kecDebugPanel' + suffix);

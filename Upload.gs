@@ -42,7 +42,6 @@ function apiCreateProjectAndUpload(payload) {
   console.log("\u2022 Starting project creation for user:", userEmail);
 
   const portalType = String(payload.portalType || "").trim().toLowerCase();
-  const setRealOwner = (portalType === "woma" || portalType === "cc");
 
   const templateUid = String(payload.templateUid || "").trim();
   const projectName = String(payload.projectName || "").trim();
@@ -147,7 +146,8 @@ function apiCreateProjectAndUpload(payload) {
         dateDue:     dueDate || undefined
       });
       phraseSetProjectCreator_(projectUid, userEmail);
-      if (setRealOwner) phraseSetProjectOwner_(projectUid, userEmail);
+      // Einreicher wird echter Phrase-Owner - fuer alle Reiter (abschaltbar, siehe ProjectsApi.gs).
+      phraseAssignSubmitterOwner_(projectUid, userEmail);
       if (portalType === "articulate" && campusReviewType) {
         phraseSetProjectSingleSelectFieldByName_(projectUid, "Review", campusReviewType);
       }
@@ -672,6 +672,17 @@ function requireChatBotService_() {
 }
 
 function sendPrivateMessage_(userEmail, messageText) {
+  try {
+    const result = sendPrivateMessageRaw_(userEmail, messageText);
+    logChatMessage_(normalizeEmail_(userEmail), true, messageText);
+    return result;
+  } catch (e) {
+    logChatMessage_(normalizeEmail_(userEmail), false, messageText, e.message);
+    throw e;
+  }
+}
+
+function sendPrivateMessageRaw_(userEmail, messageText) {
   const normalizedEmail  = normalizeEmail_(userEmail);
   if (!normalizedEmail) throw new Error("Ungültige Empfänger-E-Mail.");
   const service          = requireChatBotService_();
@@ -751,7 +762,12 @@ function sendThreadReply_(userEmail, threadMessageName, replyText) {
 
   const code = res.getResponseCode();
   const body = res.getContentText();
-  if (code >= 400) { console.warn("Thread reply failed (" + code + "):", body); return null; }
+  if (code >= 400) {
+    console.warn("Thread reply failed (" + code + "):", body);
+    logChatMessage_(userEmail, false, replyText, "HTTP " + code + " " + String(body).slice(0, 150));
+    return null;
+  }
+  logChatMessage_(userEmail, true, replyText);
   try { return JSON.parse(body); } catch(e) { return null; }
 }
 

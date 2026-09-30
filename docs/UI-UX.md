@@ -218,8 +218,13 @@ Jobs eines Projekts. Rechts „Gespeicherte Kurse“ mit Suche und Vollbild-Tabe
 - Anleitung und FAQ werden beim ersten Öffnen nachgeladen (`GuideContent.html`).
 - Hilfe & Support: Kacheln zu Taskbox-Formularen (Problem melden, Berechtigung beantragen,
   Beratung zu Phrase) und E-Learnings.
-- Knowledge Base: eigene Seite unter `?page=kb`, einbettbar in Google Sites; Inhaltsverzeichnis,
-  Suche filtert das Verzeichnis und springt zum ersten Treffer.
+- Knowledge Base: eigene Seite unter `?page=kb`, einbettbar in Google Sites, mit der kompletten
+  Phrase-Dokumentation (Strings, Orchestrator, Portal, Studio, Global). Kopfzeile mit großer Suche
+  (`/` oder `Strg/⌘+K`, Pfeiltasten + Enter), Produkt-Filter, Navigation Produkt → Bereich →
+  Artikel, Startansicht mit Produktkarten und „Zuletzt aktualisiert“, Artikel mit Brotkrumen,
+  „Auf dieser Seite“, Hinweisboxen (Note/Tip/Important), Zurück/Weiter und Link zum Original.
+  Volltextsuche nach dem Nachladen aller Pakete (Status oben rechts), Treffer im Artikel gelb
+  markiert. Hell/Dunkel wie im Portal (umschaltbar), mobil mit Menü-Schublade.
 
 ### Einstellungen (Dialog, `PrefsUi.html`)
 
@@ -243,6 +248,18 @@ optional als Toast.
 
 Unterreiter: **Console** (Gruppen: Zugriffe · System · Kommunikation · Protokolle & Diagnose),
 **User Manager**, **Template Manager**, **Pivot Templates**, **Tests**, **Translate UI**.
+
+- **Protokoll** (Console → Protokolle & Diagnose): eine Liste statt System- und Aktivitätsprotokoll;
+  Filter-Chips Alle/Projekte/Nachrichten/Zugriffe & Rechte/System/Fehler, Suche, CSV, Vollbild;
+  Fehler rot; versendete Chat-Nachrichten mit Empfänger und erster Textzeile.
+- **User Manager:** Kennzahlen-Chips (aktiv, inaktiv, ohne Segmentierung, keine Templates sichtbar,
+  ohne Portal-Zugriff, Chat nicht verbunden, offene Projekte), Spalte „Portal & Nutzung“,
+  Mehrfachauswahl mit Feld ändern (hinzufügen/entfernen/ersetzen), „Zuordnung übernehmen von …“,
+  Zugriff geben/entziehen, Detail-Schublade (Profil, Bereiche, sichtbare Templates mit
+  Freischalt-Tipps, letzte Projekte, Aktivitäten, „Als Nutzer ansehen“), CSV.
+- **Template Manager:** Kennzahlen-Chips (für niemanden sichtbar, Segmentierung unvollständig, nie
+  genutzt, Pivot, mit Watchern), Spalte „Sichtbarkeit & Nutzung“, Detail-Schublade (Anzeigename
+  ändern, aktiv, wer sieht es, letzte Projekte), Mehrfach-Aktivieren, CSV.
 Admin-Light sieht nur freigegebene Unterreiter. Console-Kacheln u. a.: Zugriffs-Übersicht
 (Matrix Nutzer × Bereich, Mehrfachänderung), User View Simulator, Wartungsmodus,
 Systemkonfiguration, Google Drive Export, Whitelists, Administratoren, Admin-Light,

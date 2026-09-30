@@ -243,6 +243,7 @@ function apiUploadDocXmlBatch(payload) {
     });
 
     try { phraseSetProjectCreator_(projectUid, callerEmail); } catch (e) { /* ignore */ }
+    try { phraseAssignSubmitterOwner_(projectUid, callerEmail); } catch (e) { /* ignore */ }
     try { phraseSetProjectCustomFieldByName_(projectUid, "IA Number", String(payload.iaNumber).trim()); } catch (e) { /* ignore */ }
 
     // -- Referenzdateien an Phrase hochladen ---------------------------------

@@ -149,6 +149,7 @@ Einträge mit ⚠️ sind in `AUFFAELLIGKEITEN.md` erklärt.
 | `apiGetPivotAdminContent()` | offen ⚠️ | `{ html, js }` Pivot-Admin |
 | `apiGetTranslateUiContent()` | Admin | `{ html, js }` Translate UI |
 | `apiGetGermanHolidays(years)` | offen | Feiertage (für Fristprüfung im Browser) |
+| `apiKbChunk(n)` | offen, nur `1..KB_CHUNK_COUNT_` | Knowledge-Base-Paket als JSON-Text `{ artikelId: html }` |
 
 ### 3.2 Projekt anlegen
 
@@ -195,7 +196,8 @@ Antwort: `{ success, timedOut, projectUid, allProjectUids, jobUids, jobMapping, 
 refResults, createdProjects, errors }`.
 Ablauf pro Vorlagen-Gruppe: `POST v2/projects/applyTemplate/{templateUid}` → je Hauptdatei
 `POST v1/projects/{uid}/jobs` → je Referenz `POST v2/projects/{uid}/references` → Custom Field
-„Project Creator“ setzen → Queue-Zeile → Chat.
+„Project Creator“ setzen → Einreicher als Owner (`PATCH v1/projects/{uid}` `{owner:{id}}`, abschaltbar
+über `PHRASE_SET_REAL_OWNER=false`) → Queue-Zeile → Chat (jede Nachricht landet im Protokoll).
 
 ### 3.3 Meine Projekte, Details, Aktionen
 
@@ -301,12 +303,13 @@ gehört.
 | Script Properties | `apiGetAllScriptProperties()`, `apiSetScriptProperty(k, v)` / `apiUpdateScriptProperty`, `apiAddScriptProperty(k, v)`, `apiDeleteScriptProperty(k)`, `apiRevealScriptProperty(k)` (nie für sensible Keys) | Admin |
 | Sync | `apiTriggerManualSync(type, mode)` mit `type` = `templates`/`users`/`notifications`/`chatmappings`, `mode` = `full`/`add_only`; `apiSyncNotifications()`, `apiResolveChatMappings()`, `apiToggleAutoSync(enable)`, `apiGetAutoSyncStatus()` (offen) | Admin |
 | User Manager | `apiGetUsersForManager()`, `apiUpdateUserField(username, field, value, syncToPhrase)` | Light:users |
-| Template Manager | `apiGetTemplatesForManager()`, `apiSetTemplateActive(templateUid, active)` | Light:templates |
+| User Manager (erweitert) | `apiGetUserManagerInsights()`, `apiGetUserDetail(email)`, `apiBulkUpdateUserField(usernames, field, value, "replace"\|"add"\|"remove")` (nur Sheet-Felder), `apiCopyUserSegmentation(fromUsername, toUsernames)` | Light:users (Bereiche ändern: `apiSetAccessBulk`, Admin) |
+| Template Manager | `apiGetTemplatesForManager()`, `apiSetTemplateActive(templateUid, active)`, `apiBatchSetTemplateActive(uids, active)`, `apiGetTemplateManagerInsights()`, `apiGetTemplateDetail(uid)`, `apiSetTemplateDisplayName(uid, name)` | Light:templates |
 | Debugger | `apiDebugListUsers()`, `apiDebugUserTemplates(email)`, `apiDebugPivotFindChild(name)` | Admin |
 | Pivot | `apiGetPivotTemplateLinks()`, `apiAdd/RemovePivotTemplateLink(parent, child)`, `apiGetPivotLanguageMap()`, `apiGetPivotFieldOptionValues()`, `apiSet/RemovePivotLanguageMapping(…)` | Light:pivot |
 | Pivot (Batch) | `apiPivotListTemplates(force)`, `apiAdd/RemovePivotTemplateLinksBatch(pairs)`, `apiRefreshPivotLinkDetails()`, `apiSetPivotLanguageMappingsBatch(entries)` | Pivot |
 | Kommunikation | `apiAdminListAnnouncements()`, `apiAdminSaveAnnouncement(a)`, `apiAdminSetAnnouncementActive(id, active)`, `apiAdminDeleteAnnouncement(id)`, `apiAdminSendAnnouncementChat(id)`, `apiGetMessageTemplates()`, `apiSaveMessageTemplate(key, de, en)`, `apiResetMessageTemplate(key)`, `apiTestChatBot(email)`, `apiGetWatcherConfig()`, `apiSaveWatcherConfig(arr)` | Admin |
-| Protokolle | `apiGetAuditLog(limit)`, `apiPurgeOldAuditEntries(days)` | Admin |
+| Protokoll | `apiGetUnifiedLog({limit})` (AuditLog inkl. Chat-Nachrichten + letzte Queue-Zeilen, mit `category` und `level`), `apiGetAuditLog(limit)`, `apiPurgeOldAuditEntries(days)` | Admin |
 | Diagnose | `apiHealthCheck()` / `apiRunHealthCheck()`, `apiRunSelfTests()` (Light:tests) | Admin |
 | Translate UI | `apiPsGetConfig()`, `apiPsSaveConfig(project, region, token)`, `apiPsCheck()`, `apiPsPush({dicts, langs, overwrite})`, `apiPsPull({dicts, langs})`, `apiPsCoverage()`, `apiPsClearOverrides()`, `apiPsSetNightly(enabled)` | Admin |
 
@@ -349,7 +352,7 @@ angesprochen; mutierende Befehle prüfen Eigentümer/Geteilt/Admin wie das Porta
 
 | Dienst | Auth-Verfahren | Zugangsdaten | Scope / Rechte |
 |---|---|---|---|
-| **Phrase TMS** | statischer API-Token, `Authorization: Bearer <token>` | `PHRASE_API_TOKEN` | Rechte des technischen Phrase-Nutzers (bleibt Projekt-Eigentümer; echter Einreicher geht ins Custom Field „Project Creator“) |
+| **Phrase TMS** | statischer API-Token, `Authorization: Bearer <token>` | `PHRASE_API_TOKEN` | Rechte des technischen Phrase-Nutzers; er legt Projekte an, danach wird der Einreicher Owner (und steht im Custom Field „Project Creator“) |
 | **Phrase Strings** | a) klassischer Token (64 Hex): `Authorization: token <t>`; b) Plattform-Token: OAuth 2.0 Token Exchange (RFC 8693) an `https://{eu|us}.phrase.com/idm/oauth/token` → JWT (~4 h, im Script-Cache) als `Bearer`; c) JWT direkt | `PHRASE_STRINGS_TOKEN`, `_PROJECT`, `_REGION` | read+write auf das Strings-Projekt |
 | **Google Chat** | Service Account, JWT-Bearer über OAuth2-Bibliothek (`OAuth2.createService("TranslationChatBot_v3")`) | `CHAT_CLIENT_EMAIL`, `CHAT_PRIVATE_KEY` | `https://www.googleapis.com/auth/chat.bot` |
 | **Drive „Save to Drive“** | 3-legged OAuth pro Nutzer (Authorization Code, offline), Token in **User Properties** | `DRIVE_SAVE_OAUTH_CLIENT_ID/SECRET` | `drive.file` (nur selbst angelegte Dateien) |

@@ -183,24 +183,55 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
   await page.close();
 });
 
-test('Knowledge Base: Inhaltsverzeichnis, Suche mit Treffern, keine Fehler', async () => {
+test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierung, mobil ohne Scrollen', async () => {
+  const root = path.join(__dirname, '..');
   const kbFile = path.join(path.dirname(file), 'kb.html');
-  fs.writeFileSync(kbFile, fs.readFileSync(path.join(__dirname, '..', 'Knowledgebase.html'), 'utf8'));
+  fs.writeFileSync(kbFile, fs.readFileSync(path.join(root, 'Knowledgebase.html'), 'utf8'));
+  const chunks = {};
+  fs.readdirSync(root).filter((f) => /^KbData\d+\.html$/.test(f)).forEach((f) => { chunks[f.match(/\d+/)[0]] = fs.readFileSync(path.join(root, f), 'utf8'); });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(/^https?:/, (r) => r.abort()); // Bilder von support.phrase.com nicht laden
+  await page.addInitScript((C) => {
+    window.__kbCalls = [];
+    function runner() {
+      let ok = null, fail = null;
+      const p = new Proxy({}, { get: (t, k) => {
+        if (k === 'withSuccessHandler') return (h) => { ok = h; return p; };
+        if (k === 'withFailureHandler') return (h) => { fail = h; return p; };
+        return (n) => { window.__kbCalls.push(n); setTimeout(() => (C[n] ? ok(C[n]) : fail(new Error('no chunk'))), 5); };
+      } });
+      return p;
+    }
+    window.google = { script: { run: new Proxy({}, { get: (t, k) => runner()[k] }) } };
+  }, chunks);
   await page.goto('file://' + kbFile);
-  const tocCount = await page.locator('#tocList > li').count();
-  const sections = await page.locator('section.kb').count();
-  assert.equal(tocCount, sections);
-  await page.fill('#q', 'Child Project Creation');
-  await page.waitForFunction(() => document.querySelectorAll('mark').length > 0);
-  const visible = await page.locator('section.kb:not(.hidden)').count();
-  assert.ok(visible > 0 && visible < sections, 'Suche blendet Abschnitte aus');
-  await page.fill('#q', 'zzzz-nichts');
-  await page.waitForFunction(() => getComputedStyle(document.getElementById('noHits')).display === 'block');
-  await page.fill('#q', '');
-  await page.waitForFunction((n) => document.querySelectorAll('section.kb:not(.hidden)').length === n, sections);
+  const man = await page.evaluate(() => JSON.parse(document.getElementById('kbManifest').textContent));
+  assert.equal(await page.locator('#prodGrid .pcard').count(), man.products.length, 'eine Karte je Produkt');
+  assert.equal(await page.locator('#nav details.prod').count(), man.products.length);
+  // Volltext: alle Pakete geladen, Suche nach einem Begriff aus dem Artikeltext (nicht nur Titel)
+  await page.waitForFunction(() => document.getElementById('status').classList.contains('ready'), null, { timeout: 20000 });
+  assert.equal(await page.evaluate(() => new Set(window.__kbCalls).size), man.chunks, 'jedes Paket einmal geladen');
+  await page.fill('#q', 'Video localization hours');
+  await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
+  assert.match(await page.locator('#results .res').first().innerText(), /Video Localization Hours/);
+  await page.fill('#q', 'runtime-data zzzz-nichts');
+  await page.waitForFunction(() => /Keine Treffer|No results/.test(document.getElementById('main').innerText));
+  await page.fill('#q', 'MTU consumption limits');
+  await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
+  await page.press('#q', 'Enter');
+  await page.waitForFunction(() => document.querySelector('#content mark'));
+  assert.match(await page.locator('article.doc h1').innerText(), /Phrase Portal/);
+  assert.ok(await page.locator('#content .callout').count() > 0, 'Hinweisboxen gerendert');
+  // Interner Link auf einen anderen Artikel oeffnet ihn in der Knowledge Base
+  const internal = await page.locator('#content a[data-kb]').first().getAttribute('href');
+  await page.evaluate((h) => { location.hash = h; }, internal);
+  await page.waitForFunction((id) => document.querySelector('#nav a.active') && document.querySelector('#nav a.active').dataset.id === id, internal.split('/')[2]);
+  // Produktfilter
+  await page.click('#chips .chip[data-p="Phrase-Studio"]');
+  assert.equal(await page.locator('#nav details.prod').count(), 1);
+  await page.click('#chips .chip[data-p=""]');
   await page.setViewportSize({ width: 390, height: 780 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');
@@ -258,6 +289,103 @@ test('Campus-Skript wird erst beim Oeffnen des Reiters geladen', async () => {
   assert.equal(loads, 1);
   await page.evaluate(() => { switchTab('home'); switchTab('articulate'); });
   assert.equal(await page.evaluate(() => __calls.filter((c) => c.fn === 'apiGetLazyScript').length), 1, 'nur einmal geladen');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Protokoll: eine Liste mit Kategorien, Nachrichten-Filter, Fehler rot, Suche', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiGetUnifiedLog: { success: true, warnings: [], counts: { all: 3, projects: 1, messages: 2, access: 0, system: 0, error: 1 }, entries: [
+      { t: '2026-09-30T10:00:00.000Z', user: 'anna@kaercher.com', action: 'CHAT_SENT', details: 'Project submitted', category: 'messages', level: 'ok' },
+      { t: '2026-09-30T09:00:00.000Z', user: 'ben@kaercher.com', action: 'CHAT_FAILED', details: 'Hi | Kein Direktchat', category: 'messages', level: 'error' },
+      { t: '2026-09-30T08:00:00.000Z', user: 'anna@kaercher.com', action: 'PROJECT_CREATE', details: 'Flyer', category: 'projects', level: 'ok' } ] }
+  }`);
+  await openAdmin(page, 'logs');
+  await page.waitForFunction(() => document.querySelectorAll('#unifiedLogContainer tbody tr').length === 3);
+  assert.equal(await page.locator('#auditLogContainer').count(), 0, 'altes Aktivitaetsprotokoll entfernt');
+  await page.evaluate(() => setUnifiedLogCat_('messages'));
+  assert.equal(await page.locator('#unifiedLogContainer tbody tr').count(), 2);
+  assert.equal(await page.locator('#unifiedLogContainer tr.lvl-error').count(), 1);
+  await page.fill('#logSearch', 'direktchat');
+  await page.waitForFunction(() => document.querySelectorAll('#unifiedLogContainer tbody tr').length === 1);
+  await page.evaluate(() => toggleUnifiedLogFull_());
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('logCard')).position), 'fixed');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+const MGR_MOCKS = `{
+  apiGetUsersForManager: { success: true, rows: [
+    { username: 'anna', firstName: 'Anna', lastName: 'A', email: 'anna@kaercher.com', role: 'SUBMITTER', status: 'ACTIVE', clients: 'KAG', domains: 'Marketing', subdomains: 'Web', businessUnit: 'PC' },
+    { username: 'ben', firstName: 'Ben', lastName: 'B', email: 'ben@kaercher.com', role: 'SUBMITTER', status: 'ACTIVE', clients: '', domains: '', subdomains: '', businessUnit: '' },
+    { username: 'cara', firstName: 'Cara', lastName: 'C', email: 'cara@kaercher.com', role: 'GUEST', status: 'INACTIVE', clients: 'KAG', domains: 'Marketing', subdomains: 'Web', businessUnit: 'PC' } ] },
+  apiGetUserManagerInsights: { success: true, canEditAccess: true, templateTotal: 4, byEmail: {
+    'anna@kaercher.com': { areas: ['general', 'marketing'], chat: { on: true, linked: true }, projects: { total: 3, open: 1, last: '2026-09-01' }, visibleTemplates: 2 },
+    'ben@kaercher.com': { areas: [], chat: { on: false, linked: false }, projects: { total: 0, open: 0, last: '' }, visibleTemplates: 0 },
+    'cara@kaercher.com': { areas: ['general'], chat: { on: false, linked: true }, projects: { total: 0, open: 0, last: '' }, visibleTemplates: 2 } } },
+  apiBulkUpdateUserField: (names, field, value, mode) => ({ success: true, changed: names.map((n) => ({ username: n, value: 'PC, HC' })) }),
+  apiGetUserDetail: (email) => ({ success: true, email, user: { username: 'anna', firstName: 'Anna', lastName: 'A', role: 'SUBMITTER', status: 'ACTIVE', clients: 'KAG' },
+    areas: ['general'], chat: { on: true, linked: true }, templates: { allowed: ['Flyer [en]'], total: 4, suggestions: [{ field: 'Subdomain', value: 'Print', unlocks: 2 }] },
+    projects: [{ uid: 'P1', name: 'Flyer 2026', status: 'NEW', ts: '2026-09-01', own: true }], activity: [{ t: '2026-09-01T10:00:00Z', action: 'CHAT_SENT', details: 'Project submitted', level: 'ok' }] }),
+  apiGetTemplatesForManager: { success: true, rows: [
+    { uid: 'T1', displayName: 'Flyer', phraseName: 'MKT Flyer', sourceLang: 'en', targetLangs: 'de_de', client: 'KAG', domain: 'Marketing', subDomain: 'Web', businessUnit: 'PC', active: true },
+    { uid: 'T2', displayName: 'Orphan', phraseName: 'X', sourceLang: 'en', targetLangs: 'fr_fr', client: 'KAG', domain: '', subDomain: 'Web', businessUnit: 'PC', active: false } ] },
+  apiGetTemplateManagerInsights: { success: true, userTotal: 3, byUid: {
+    T1: { visibleUsers: 2, missing: [], usage: { count: 5, last: '2026-09-20' }, watchers: ['boss@kaercher.com'], pivot: 'parent' },
+    T2: { visibleUsers: 0, missing: ['Domain'], usage: { count: 0, last: '' }, watchers: [], pivot: '' } } },
+  apiBatchSetTemplateActive: { success: true, changed: 2 },
+  apiGetTemplateDetail: (uid) => ({ success: true, template: { uid, displayName: 'Orphan', phraseName: 'X', active: false, client: 'KAG', domain: '', subDomain: 'Web', businessUnit: 'PC' },
+    missing: ['Domain'], visibleUsers: [], projects: [] }),
+  apiSetTemplateDisplayName: (uid, name) => ({ success: true, displayName: name })
+}`;
+
+test('User Manager: Kennzahlen-Filter, Mehrfachbearbeitung und Detailansicht', async () => {
+  const { page, errors } = await openApp(null, MGR_MOCKS);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('users'));
+  await page.waitForFunction(() => /2 templ/i.test(document.querySelector('#userMgrTable tbody').innerText));
+  assert.match(await page.locator('#umxBar').innerText(), /3/);
+  await page.evaluate(() => umxSetQuick_('noaccess'));
+  assert.equal(await page.locator('#userMgrTable tbody tr[data-username]').count(), 1, 'nur Ben ohne Zugriff');
+  await page.evaluate(() => umxSetQuick_(''));
+  await page.locator('#userMgrTable tbody tr[data-username="anna"] input[type=checkbox]').first().check();
+  await page.locator('#userMgrTable tbody tr[data-username="cara"] input[type=checkbox]').first().check();
+  await page.waitForFunction(() => document.getElementById('umxBatch').classList.contains('on'));
+  await page.selectOption('#umxField', 'businessUnit');
+  await page.selectOption('#umxMode', 'add');
+  await page.fill('#umxValue', 'HC');
+  await page.evaluate(() => umxApplyBulk_());
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiBulkUpdateUserField'));
+  const call = await page.evaluate(() => __calls.find((c) => c.fn === 'apiBulkUpdateUserField').args);
+  assert.deepEqual(call, [['anna', 'cara'], 'businessUnit', 'HC', 'add']);
+  await page.evaluate(() => umxOpenDetail_('anna@kaercher.com'));
+  await page.waitForFunction(() => /Flyer 2026/.test(document.getElementById('mgrxPanel').innerText));
+  assert.match(await page.locator('#mgrxPanel').innerText(), /Print/);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.getElementById('mgrxDrawer').classList.contains('open')), false);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Template Manager: unsichtbare Templates finden, Mehrfach-Aktivieren, Anzeigename', async () => {
+  const { page, errors } = await openApp(null, MGR_MOCKS);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('templates'));
+  await page.waitForFunction(() => /0 Nutzer|0 users/.test(document.querySelector('#tmplMgrTable tbody').innerText));
+  await page.evaluate(() => tmxSetQuick_('nobody'));
+  assert.equal(await page.locator('#tmplMgrTable tbody tr').count(), 1);
+  assert.match(await page.locator('#tmplMgrTable tbody').innerText(), /Orphan/);
+  await page.evaluate(() => tmxSetQuick_(''));
+  await page.evaluate(() => { tmplMgrToggleOne('T1', true); tmplMgrToggleOne('T2', true); batchSetTemplateActive(true); });
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiBatchSetTemplateActive'));
+  assert.deepEqual(await page.evaluate(() => __calls.find((c) => c.fn === 'apiBatchSetTemplateActive').args), [['T1', 'T2'], true]);
+  await page.evaluate(() => tmxOpenDetail_('T2'));
+  await page.waitForFunction(() => document.getElementById('tmxName'));
+  await page.fill('#tmxName', 'Orphan (neu)');
+  await page.evaluate(() => tmxSaveName_('T2'));
+  await page.waitForFunction(() => /Orphan \(neu\)/.test(document.querySelector('#tmplMgrTable tbody').innerText));
   assert.deepEqual(errors, []);
   await page.close();
 });
