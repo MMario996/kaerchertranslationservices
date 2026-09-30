@@ -72,7 +72,7 @@ npm ci && npm run build:kb
 
 Das Skript (`tools/build-kb.js`) schreibt das Inhaltsverzeichnis in `Knowledgebase.html` und die
 Artikel in Pakete `KbData1.html … KbDataN.html` (je ~120 KB, wegen der Apps-Script-Größengrenze).
-Die Seite lädt die Pakete per `apiKbChunk(n)` (`Knowledgebase.gs`) im Hintergrund nach; danach
+Die Seite lädt die Pakete per `apiKbChunk(n)` (`KnowledgebaseApi.gs`) im Hintergrund nach; danach
 läuft die Volltextsuche im Browser. Alle erzeugten Dateien committen – `clasp push` nimmt sie mit.
 Links auf andere Phrase-Hilfeartikel zeigen, wenn der Artikel im Export ist, in die Knowledge Base.
 

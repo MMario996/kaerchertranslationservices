@@ -36,7 +36,7 @@ function include(name) {
  * nachgeladen werden (ensureScript_ in JsNavigation.html) - haelt die Seite
  * unter der Apps-Script-Groessengrenze. Nur diese Namen sind erlaubt.
  */
-var LAZY_SCRIPTS_ = ["JsCampus", "AdminManagers"];
+var LAZY_SCRIPTS_ = ["JsCampus", "AdminManagersUi"];
 
 function apiGetLazyScript(name) {
   if (LAZY_SCRIPTS_.indexOf(name) < 0) throw new Error("Unknown script: " + name);

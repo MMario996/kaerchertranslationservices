@@ -19,7 +19,7 @@ const lazyUserFiles = ['HomeUi.html', 'PrefsUi.html'];
 // Nachgeladene Skripte (apiGetLazyScript, WebApp.gs).
 const lazyScripts = ['JsCampus.html'];
 // Nachgeladene Admin-Skripte (ebenfalls apiGetLazyScript, Texte aus ADMIN_I18N_).
-const lazyAdminScripts = ['AdminManagers.html'];
+const lazyAdminScripts = ['AdminManagersUi.html'];
 const uiFiles = ['Index.html', ...jsFiles, ...lazyScripts, ...lazyAdminScripts, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
 
 test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', () => {
@@ -139,7 +139,7 @@ test('Knowledge Base: Manifest und Artikel-Pakete passen zusammen (npm run build
   assert.ok(m, 'Manifest vorhanden');
   assert.ok(!/\/\//.test(m[1]) && !/</.test(m[1]), 'Manifest ohne "//" und "<" (Apps Script)');
   const man = JSON.parse(m[1]);
-  const count = Number((read('Knowledgebase.gs').match(/var KB_CHUNK_COUNT_ = (\d+);/) || [])[1]);
+  const count = Number((read('KnowledgebaseApi.gs').match(/var KB_CHUNK_COUNT_ = (\d+);/) || [])[1]);
   assert.equal(man.chunks, count, 'KB_CHUNK_COUNT_ passt zum Manifest');
   const files = fs.readdirSync(REPO_ROOT).filter((f) => /^KbData\d+\.html$/.test(f));
   assert.equal(files.length, count, 'eine Datei je Paket');
@@ -196,4 +196,10 @@ test('Nachgeladene Admin-Skripte: erlaubt, in SelfTests bekannt, Texte in ADMIN_
       assert.deepEqual(missing, [], f + ': fehlt in ADMIN_I18N_.' + l);
     });
   });
+});
+
+test('Kein Dateiname doppelt (Apps Script erlaubt z. B. nicht X.gs und X.html zugleich)', () => {
+  const names = fs.readdirSync(REPO_ROOT).filter((f) => /\.(gs|html)$/.test(f) && f !== 'preview.html').map((f) => f.replace(/\.(gs|html)$/, '').toLowerCase());
+  const dups = names.filter((n, i) => names.indexOf(n) !== i);
+  assert.deepEqual(dups, [], 'doppelte Namen: ' + dups.join(', '));
 });

@@ -281,7 +281,7 @@ test('Manager-Kennzahlen: Projekte je Eigentuemer, Template-Nutzung, fehlende Se
 });
 
 test('Knowledge Base: apiKbChunk liefert nur bekannte Pakete', () => {
-  const kb = load(['Knowledgebase.gs'], {
+  const kb = load(['KnowledgebaseApi.gs'], {
     HtmlService: { createHtmlOutputFromFile: (n) => ({ getContent: () => '{"' + n + '":1}' }) }
   });
   const count = kb.KB_CHUNK_COUNT_;

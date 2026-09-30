@@ -261,7 +261,7 @@ function toggleAdminHelp(id) {
           _tmplMgrRows = (res && res.rows) || [];
           _tmplMgrSelected = {};
           renderTemplateManager();
-          ensureScript_('AdminManagers', function () { tmxLoad_(); });
+          ensureScript_('AdminManagersUi', function () { tmxLoad_(); });
         })
         .withFailureHandler(e => {
           document.getElementById('tmplMgrLoading').style.display = 'none';
@@ -431,7 +431,7 @@ function toggleAdminHelp(id) {
           document.getElementById('userMgrLoading').style.display = 'none';
           _userMgrRows = (res && res.rows) || [];
           renderUserManager();
-          ensureScript_('AdminManagers', function () { umxLoad_(); });
+          ensureScript_('AdminManagersUi', function () { umxLoad_(); });
         })
         .withFailureHandler(e => {
           document.getElementById('userMgrLoading').style.display = 'none';

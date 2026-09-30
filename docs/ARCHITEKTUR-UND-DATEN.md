@@ -76,8 +76,8 @@ Google Apps Script (V8), Web-App "Execute as: USER_DEPLOYING", Zugriff: DOMAIN
 | Google Chat | `Upload.gs` (Senden, doPost), `ChatToken.gs` (Nutzer-Mapping), `ChatCommands.gs` (Slash-Commands), `Chatbot.gs` (Gemini), `Messagetemplates.gs` |
 | Persönlich | `UserPrefs.gs`, `Presets.gs`, `CalendarSync.gs`, `Announcements.gs`, `GermanHolidays.gs` |
 | Übersetzung der UI | `I18nDicts.gs` (App: de/en/fr/es/pt/zh), `AdminI18n.gs`, `PhraseStrings.gs`, `PhraseStringsSync.gs` |
-| Knowledge Base | `Knowledgebase.gs` (`apiKbChunk`), `Knowledgebase.html`, `KbData*.html` (erzeugt), Quelle `kb-src/*.md`, Build `tools/build-kb.js` |
-| Admin-Manager | `AdminManagers.gs` (Kennzahlen, Mehrfachbearbeitung, Details), `AdminManagers.html` (nachgeladen) |
+| Knowledge Base | `KnowledgebaseApi.gs` (`apiKbChunk`), `Knowledgebase.html`, `KbData*.html` (erzeugt), Quelle `kb-src/*.md`, Build `tools/build-kb.js` |
+| Admin-Manager | `AdminManagers.gs` (Kennzahlen, Mehrfachbearbeitung, Details), `AdminManagersUi.html` (nachgeladen) |
 | Betrieb | `Auditlog.gs` (inkl. gemeinsames Protokoll `apiGetUnifiedLog`), `Adminadvanced.gs` (Script Properties), `SelfTests.gs`, `Triggers.gs`, `SheetSetup.gs`, `HeaderRepair.gs`, `Debug.gs`, `Test.gs`, `Testregistry.gs`, `Kecdebugscan.gs` |
 
 ### Oberfläche (`.html`)
