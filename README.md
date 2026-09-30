@@ -62,16 +62,16 @@ Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
 
 ## Knowledge Base (`?page=kb`)
 
-Eigenständige Seite mit der kompletten Phrase-Dokumentation (Strings, Orchestrator, Portal, Studio,
+Eigenständige Seite mit der kompletten Phrase-Dokumentation (TMS, Strings, Orchestrator, Portal, Studio,
 Global), einbettbar in Google Sites, voll durchsuchbar. Quelle sind die Markdown-Exporte in
-`kb-src/*.md`. Nach einer Änderung dort (oder einem neuen Export, z. B. `Phrase-TMS.md`):
+`kb-src/*.md`. Nach einer Änderung dort (oder einem neuen Export):
 
 ```
 npm ci && npm run build:kb
 ```
 
 Das Skript (`tools/build-kb.js`) schreibt das Inhaltsverzeichnis in `Knowledgebase.html` und die
-Artikel in Pakete `KbData1.html … KbDataN.html` (je ~120 KB, wegen der Apps-Script-Größengrenze).
+Artikel in Pakete `KbData1.html … KbDataN.html` (je ~120 KB, ein sehr langer Artikel ggf. allein; wegen der Apps-Script-Größengrenze).
 Die Seite lädt die Pakete per `apiKbChunk(n)` (`KnowledgebaseApi.gs`) im Hintergrund nach; danach
 läuft die Volltextsuche im Browser. Alle erzeugten Dateien committen – `clasp push` nimmt sie mit.
 Links auf andere Phrase-Hilfeartikel zeigen, wenn der Artikel im Export ist, in die Knowledge Base.

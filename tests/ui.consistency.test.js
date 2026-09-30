@@ -148,8 +148,11 @@ test('Knowledge Base: Manifest und Artikel-Pakete passen zusammen (npm run build
   for (let n = 1; n <= count; n++) {
     const raw = read('KbData' + n + '.html');
     assert.ok(!/\/\//.test(raw) && !/</.test(raw), 'KbData' + n + ' ohne "//" und "<"');
-    assert.ok(Buffer.byteLength(raw, 'utf8') < 150000, 'KbData' + n + ' klein genug');
-    Object.keys(JSON.parse(raw)).forEach((id) => ids.add(id));
+    const obj = JSON.parse(raw);
+    // Pakete ~120 KB; nur ein einzelner, sehr langer Artikel darf allein groesser sein.
+    assert.ok(Buffer.byteLength(raw, 'utf8') < 150000 || Object.keys(obj).length === 1, 'KbData' + n + ' klein genug');
+    assert.ok(Buffer.byteLength(raw, 'utf8') < 600000, 'KbData' + n + ' unter der Apps-Script-Grenze');
+    Object.keys(obj).forEach((id) => ids.add(id));
   }
   const missing = man.articles.filter((a) => !ids.has(a.id)).map((a) => a.id);
   assert.deepEqual(missing, [], 'jeder Artikel steckt in einem Paket');

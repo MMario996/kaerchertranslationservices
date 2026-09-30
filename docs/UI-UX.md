@@ -219,12 +219,13 @@ Jobs eines Projekts. Rechts „Gespeicherte Kurse“ mit Suche und Vollbild-Tabe
 - Hilfe & Support: Kacheln zu Taskbox-Formularen (Problem melden, Berechtigung beantragen,
   Beratung zu Phrase) und E-Learnings.
 - Knowledge Base: eigene Seite unter `?page=kb`, einbettbar in Google Sites, mit der kompletten
-  Phrase-Dokumentation (Strings, Orchestrator, Portal, Studio, Global). Kopfzeile mit großer Suche
-  (`/` oder `Strg/⌘+K`, Pfeiltasten + Enter), Produkt-Filter, Navigation Produkt → Bereich →
-  Artikel, Startansicht mit Produktkarten und „Zuletzt aktualisiert“, Artikel mit Brotkrumen,
-  „Auf dieser Seite“, Hinweisboxen (Note/Tip/Important), Zurück/Weiter und Link zum Original.
-  Volltextsuche nach dem Nachladen aller Pakete (Status oben rechts), Treffer im Artikel gelb
-  markiert. Hell/Dunkel wie im Portal (umschaltbar), mobil mit Menü-Schublade.
+  Phrase-Dokumentation (TMS, Strings, Orchestrator, Portal, Studio, Global; 414 Artikel). Aufbau wie
+  das Portal: Sprachleiste (6 Sprachen, `appLang`) und Hell/Dunkel oben rechts, Reiterleiste mit
+  **Start + einem Reiter je Produkt**, Start wie die Portal-Startseite (Hero mit Suche, Produkt-
+  Kacheln, Kennzahlen, „Zuletzt aktualisiert“, Suchtipps). Produkt-Reiter: Seitenleiste mit den
+  Bereichen, Bereichs-Karten mit Artikelliste. Artikel: Brotkrumen, „Auf dieser Seite“,
+  Hinweisboxen, Zurück/Weiter, Link zum Original. Volltextsuche (`/`, `Strg/⌘+K`, Pfeiltasten +
+  Enter) mit Produktfilter und gelber Markierung im Artikel; mobil mit Menü-Schublade.
 
 ### Einstellungen (Dialog, `PrefsUi.html`)
 
