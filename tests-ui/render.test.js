@@ -183,24 +183,55 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
   await page.close();
 });
 
-test('Knowledge Base: Inhaltsverzeichnis, Suche mit Treffern, keine Fehler', async () => {
+test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierung, mobil ohne Scrollen', async () => {
+  const root = path.join(__dirname, '..');
   const kbFile = path.join(path.dirname(file), 'kb.html');
-  fs.writeFileSync(kbFile, fs.readFileSync(path.join(__dirname, '..', 'Knowledgebase.html'), 'utf8'));
+  fs.writeFileSync(kbFile, fs.readFileSync(path.join(root, 'Knowledgebase.html'), 'utf8'));
+  const chunks = {};
+  fs.readdirSync(root).filter((f) => /^KbData\d+\.html$/.test(f)).forEach((f) => { chunks[f.match(/\d+/)[0]] = fs.readFileSync(path.join(root, f), 'utf8'); });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(/^https?:/, (r) => r.abort()); // Bilder von support.phrase.com nicht laden
+  await page.addInitScript((C) => {
+    window.__kbCalls = [];
+    function runner() {
+      let ok = null, fail = null;
+      const p = new Proxy({}, { get: (t, k) => {
+        if (k === 'withSuccessHandler') return (h) => { ok = h; return p; };
+        if (k === 'withFailureHandler') return (h) => { fail = h; return p; };
+        return (n) => { window.__kbCalls.push(n); setTimeout(() => (C[n] ? ok(C[n]) : fail(new Error('no chunk'))), 5); };
+      } });
+      return p;
+    }
+    window.google = { script: { run: new Proxy({}, { get: (t, k) => runner()[k] }) } };
+  }, chunks);
   await page.goto('file://' + kbFile);
-  const tocCount = await page.locator('#tocList > li').count();
-  const sections = await page.locator('section.kb').count();
-  assert.equal(tocCount, sections);
-  await page.fill('#q', 'Child Project Creation');
-  await page.waitForFunction(() => document.querySelectorAll('mark').length > 0);
-  const visible = await page.locator('section.kb:not(.hidden)').count();
-  assert.ok(visible > 0 && visible < sections, 'Suche blendet Abschnitte aus');
-  await page.fill('#q', 'zzzz-nichts');
-  await page.waitForFunction(() => getComputedStyle(document.getElementById('noHits')).display === 'block');
-  await page.fill('#q', '');
-  await page.waitForFunction((n) => document.querySelectorAll('section.kb:not(.hidden)').length === n, sections);
+  const man = await page.evaluate(() => JSON.parse(document.getElementById('kbManifest').textContent));
+  assert.equal(await page.locator('#prodGrid .pcard').count(), man.products.length, 'eine Karte je Produkt');
+  assert.equal(await page.locator('#nav details.prod').count(), man.products.length);
+  // Volltext: alle Pakete geladen, Suche nach einem Begriff aus dem Artikeltext (nicht nur Titel)
+  await page.waitForFunction(() => document.getElementById('status').classList.contains('ready'), null, { timeout: 20000 });
+  assert.equal(await page.evaluate(() => new Set(window.__kbCalls).size), man.chunks, 'jedes Paket einmal geladen');
+  await page.fill('#q', 'Video localization hours');
+  await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
+  assert.match(await page.locator('#results .res').first().innerText(), /Video Localization Hours/);
+  await page.fill('#q', 'runtime-data zzzz-nichts');
+  await page.waitForFunction(() => /Keine Treffer|No results/.test(document.getElementById('main').innerText));
+  await page.fill('#q', 'MTU consumption limits');
+  await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
+  await page.press('#q', 'Enter');
+  await page.waitForFunction(() => document.querySelector('#content mark'));
+  assert.match(await page.locator('article.doc h1').innerText(), /Phrase Portal/);
+  assert.ok(await page.locator('#content .callout').count() > 0, 'Hinweisboxen gerendert');
+  // Interner Link auf einen anderen Artikel oeffnet ihn in der Knowledge Base
+  const internal = await page.locator('#content a[data-kb]').first().getAttribute('href');
+  await page.evaluate((h) => { location.hash = h; }, internal);
+  await page.waitForFunction((id) => document.querySelector('#nav a.active') && document.querySelector('#nav a.active').dataset.id === id, internal.split('/')[2]);
+  // Produktfilter
+  await page.click('#chips .chip[data-p="Phrase-Studio"]');
+  assert.equal(await page.locator('#nav details.prod').count(), 1);
+  await page.click('#chips .chip[data-p=""]');
   await page.setViewportSize({ width: 390, height: 780 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');

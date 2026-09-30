@@ -279,3 +279,26 @@ test('Manager-Kennzahlen: Projekte je Eigentuemer, Template-Nutzung, fehlende Se
   assert.deepEqual(usage, { T1: { count: 1, last: '2026-09-01T00:00:00Z' }, T2: { count: 1, last: '2026-09-10T00:00:00Z' } }, 'laengster Name gewinnt');
   assert.deepEqual(plain(m.templateMissingFields_({ client: 'KAG', domain: '', subDomain: 'Web', businessUnit: '' })), ['Domain', 'Business Unit']);
 });
+
+test('Knowledge Base: apiKbChunk liefert nur bekannte Pakete', () => {
+  const kb = load(['Knowledgebase.gs'], {
+    HtmlService: { createHtmlOutputFromFile: (n) => ({ getContent: () => '{"' + n + '":1}' }) }
+  });
+  const count = kb.KB_CHUNK_COUNT_;
+  assert.ok(count > 0);
+  assert.equal(kb.apiKbChunk(1), '{"KbData1":1}');
+  assert.equal(kb.apiKbChunk(String(count)), '{"KbData' + count + '":1}');
+  assert.throws(() => kb.apiKbChunk(0));
+  assert.throws(() => kb.apiKbChunk(count + 1));
+  assert.throws(() => kb.apiKbChunk('1; x'));
+  assert.throws(() => kb.apiKbChunk(1.5));
+});
+
+test('Knowledge-Base-Build: Hinweis-Ueberschriften werden zu Callouts, Code bleibt unberuehrt', () => {
+  const { preprocess, safeJson } = require('../tools/build-kb.js');
+  const out = preprocess('#### Title\n\n##### Note\n\nBeware.\n\n```\n# not a heading\n```');
+  assert.match(out, /^### Title/m);
+  assert.match(out, /^> \[!note\]\n>\n> Beware\./m);
+  assert.match(out, /^# not a heading$/m);
+  assert.equal(safeJson({ u: 'https://x/</a>' }), '{"u":"https:\\/\\/x\\/\\u003c\\/a>"}');
+});

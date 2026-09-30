@@ -10,7 +10,7 @@ var I18N_DICTS_ = {
   de: {
     "ix_lazy_err": "Dieser Bereich konnte nicht geladen werden. Bitte die Seite neu laden.",
     "kb_title": "Knowledge Base",
-    "kb_desc": "Alles zu Phrase TMS, Strings, Orchestrator und dem Portal.",
+    "kb_desc": "Die komplette Phrase-Dokumentation (Strings, Orchestrator, Portal, Studio, Global) – voll durchsuchbar.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Als Nächstes fällig",
     "pf_nav_general": "Allgemein",
@@ -1021,7 +1021,7 @@ var I18N_DICTS_ = {
   en: {
     "ix_lazy_err": "This area could not be loaded. Please reload the page.",
     "kb_title": "Knowledge Base",
-    "kb_desc": "Everything about Phrase TMS, Strings, Orchestrator and the portal.",
+    "kb_desc": "The complete Phrase documentation (Strings, Orchestrator, Portal, Studio, Global) – fully searchable.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Up next",
     "pf_nav_general": "General",
@@ -2032,7 +2032,7 @@ var I18N_DICTS_ = {
   fr: {
     "ix_lazy_err": "Cette section n'a pas pu être chargée. Veuillez recharger la page.",
     "kb_title": "Base de connaissances",
-    "kb_desc": "Tout sur Phrase TMS, Strings, Orchestrator et le portail.",
+    "kb_desc": "Toute la documentation Phrase (Strings, Orchestrator, Portal, Studio, Global) – entièrement consultable.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Prochaines échéances",
     "pf_nav_general": "Général",
@@ -3042,7 +3042,7 @@ var I18N_DICTS_ = {
   es: {
     "ix_lazy_err": "No se pudo cargar esta sección. Vuelva a cargar la página.",
     "kb_title": "Base de conocimientos",
-    "kb_desc": "Todo sobre Phrase TMS, Strings, Orchestrator y el portal.",
+    "kb_desc": "Toda la documentación de Phrase (Strings, Orchestrator, Portal, Studio, Global), con búsqueda completa.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos vencimientos",
     "pf_nav_general": "General",
@@ -4052,7 +4052,7 @@ var I18N_DICTS_ = {
   pt: {
     "ix_lazy_err": "Não foi possível carregar esta área. Recarregue a página.",
     "kb_title": "Base de conhecimento",
-    "kb_desc": "Tudo sobre Phrase TMS, Strings, Orchestrator e o portal.",
+    "kb_desc": "Toda a documentação do Phrase (Strings, Orchestrator, Portal, Studio, Global), totalmente pesquisável.",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "Próximos prazos",
     "pf_nav_general": "Geral",
@@ -5062,7 +5062,7 @@ var I18N_DICTS_ = {
   zh: {
     "ix_lazy_err": "无法加载此区域。请重新加载页面。",
     "kb_title": "知识库",
-    "kb_desc": "关于 Phrase TMS、Strings、Orchestrator 和门户的全部信息。",
+    "kb_desc": "完整的 Phrase 文档（Strings、Orchestrator、Portal、Studio、Global），支持全文搜索。",
     // --- Startseite (HomeUi) + erweiterte Einstellungen ---
     "hm_up_next": "即将到期",
     "pf_nav_general": "常规",

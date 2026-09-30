@@ -95,6 +95,16 @@ function selfTestRegistry_() {
       if (missing.length) return { status: "error", message: "Fehlt im Apps-Script-Projekt: " + missing.join(", ") };
       return selfTestOk_(SELF_TEST_INCLUDE_FILES_.length + " Dateien vorhanden");
     }},
+    { group: "Oberfläche", name: "Knowledge Base: alle Artikel-Pakete lesbar", fn: function () {
+      var bad = [];
+      var articles = 0;
+      for (var n = 1; n <= KB_CHUNK_COUNT_; n++) {
+        try { articles += Object.keys(JSON.parse(apiKbChunk(n))).length; } catch (e) { bad.push("KbData" + n + " (" + e.message + ")"); }
+      }
+      if (!KB_CHUNK_COUNT_) return { status: "error", message: "Keine Pakete (npm run build:kb ausführen)" };
+      if (bad.length) return { status: "error", message: "Fehlt/defekt: " + bad.join(", ") };
+      return selfTestOk_(KB_CHUNK_COUNT_ + " Pakete, " + articles + " Artikel");
+    }},
     { group: "Konfiguration", name: "Übersetzungen vollständig", fn: function () {
       var core = HtmlService.createHtmlOutputFromFile("JsCore").getContent();
       var enBlock = core.slice(core.search(/\n\s*en\s*:\s*\{/));

@@ -60,6 +60,29 @@ Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
   Logik, Script Properties, Oberflächen-Dateien, Übersetzungen, Sheets sowie Phrase- und
   Drive-Anbindung. Nur lesend. Für Admin-Light-Nutzer über das Recht „Tests“ freigebbar.
 
+## Knowledge Base (`?page=kb`)
+
+Eigenständige Seite mit der kompletten Phrase-Dokumentation (Strings, Orchestrator, Portal, Studio,
+Global), einbettbar in Google Sites, voll durchsuchbar. Quelle sind die Markdown-Exporte in
+`kb-src/*.md`. Nach einer Änderung dort (oder einem neuen Export, z. B. `Phrase-TMS.md`):
+
+```
+npm ci && npm run build:kb
+```
+
+Das Skript (`tools/build-kb.js`) schreibt das Inhaltsverzeichnis in `Knowledgebase.html` und die
+Artikel in Pakete `KbData1.html … KbDataN.html` (je ~120 KB, wegen der Apps-Script-Größengrenze).
+Die Seite lädt die Pakete per `apiKbChunk(n)` (`Knowledgebase.gs`) im Hintergrund nach; danach
+läuft die Volltextsuche im Browser. Alle erzeugten Dateien committen – `clasp push` nimmt sie mit.
+Links auf andere Phrase-Hilfeartikel zeigen, wenn der Artikel im Export ist, in die Knowledge Base.
+
+## Phrase-Owner
+
+Der Einreicher wird in allen Reitern (und Dokumentation, Pivot-Folgeprojekt) als **Owner** des
+Phrase-Projekts gesetzt, der API-Funktionsuser bleibt nur Ersteller. Abschalten: Script Property
+`PHRASE_SET_REAL_OWNER` = `false`. Ergebnis steht im Admin-Protokoll (`PHRASE_OWNER_SET` /
+`PHRASE_OWNER_FAILED`, z. B. wenn der Einreicher keinen Phrase-User hat).
+
 ## Phrase Strings (Admin → Translate UI)
 
 Token aus **Phrase Platform → Profil → Access tokens** (Dienst „Strings“, z. B.
