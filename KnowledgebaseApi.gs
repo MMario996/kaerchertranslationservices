@@ -1,5 +1,5 @@
 /**
- * Knowledgebase.gs
+ * KnowledgebaseApi.gs
  *
  * Knowledge Base (?page=kb, Knowledgebase.html) mit der Phrase-Dokumentation
  * (TMS, Strings, Orchestrator, Portal, Studio, Global). Die Seite enthaelt nur

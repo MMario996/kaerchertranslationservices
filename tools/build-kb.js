@@ -274,7 +274,7 @@ function build() {
   fs.writeFileSync(kbFile, kb.replace(re, () => block));
 
   // Anzahl Pakete auch serverseitig (apiKbChunk erlaubt nur 1..N).
-  const gsFile = path.join(ROOT, 'Knowledgebase.gs');
+  const gsFile = path.join(ROOT, 'KnowledgebaseApi.gs');
   const gs = fs.readFileSync(gsFile, 'utf8').replace(/var KB_CHUNK_COUNT_ = \d+;/, 'var KB_CHUNK_COUNT_ = ' + chunks.length + ';');
   fs.writeFileSync(gsFile, gs);
 
