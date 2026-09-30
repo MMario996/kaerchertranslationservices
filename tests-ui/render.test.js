@@ -389,3 +389,44 @@ test('Template Manager: unsichtbare Templates finden, Mehrfach-Aktivieren, Anzei
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Knowledge Base in Apps Script: Links bleiben in der Seite (kein Sprung ins leere Sandbox-Fenster)', async () => {
+  const root = path.join(__dirname, '..');
+  const kbFile = path.join(path.dirname(file), 'kb2.html');
+  fs.writeFileSync(kbFile, fs.readFileSync(path.join(root, 'Knowledgebase.html'), 'utf8'));
+  const chunks = {};
+  fs.readdirSync(root).filter((f) => /^KbData\d+\.html$/.test(f)).forEach((f) => { chunks[f.match(/\d+/)[0]] = fs.readFileSync(path.join(root, f), 'utf8'); });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(/^https?:/, (r) => r.abort());
+  await page.addInitScript((C) => {
+    window.__pushes = [];
+    function runner() {
+      let ok = null;
+      const p = new Proxy({}, { get: (t, k) => {
+        if (k === 'withSuccessHandler') return (h) => { ok = h; return p; };
+        if (k === 'withFailureHandler') return () => p;
+        return (n) => setTimeout(() => ok(C[n]), 5);
+      } });
+      return p;
+    }
+    window.google = { script: {
+      run: new Proxy({}, { get: (t, k) => runner()[k] }),
+      history: { push: (s, q, h) => window.__pushes.push(h), replace: () => {}, setChangeHandler: (f) => { window.__histHandler = f; } },
+      url: { getLocation: (cb) => setTimeout(() => cb({ hash: '/a/22916939527196', parameter: { page: 'kb' } }), 0) }
+    } };
+  }, chunks);
+  await page.goto('file://' + kbFile);
+  const startUrl = page.url();
+  await page.waitForFunction(() => /Video Localization Hours/.test((document.querySelector('article.doc h1') || {}).textContent || ''), null, { timeout: 15000 });
+  assert.equal(await page.locator('base').count(), 0, 'kein <base target=_top>');
+  await page.click('#nav a[data-id="21177186715420"]');
+  await page.waitForFunction(() => /Audio Transcription/.test((document.querySelector('article.doc h1') || {}).textContent || ''));
+  assert.equal(page.url(), startUrl, 'Seite nicht verlassen');
+  assert.deepEqual(await page.evaluate(() => window.__pushes), ['/a/21177186715420']);
+  await page.evaluate(() => window.__histHandler({ state: { h: '#/a/22916939527196' } }));
+  await page.waitForFunction(() => /Video Localization Hours/.test((document.querySelector('article.doc h1') || {}).textContent || ''));
+  assert.deepEqual(errors, []);
+  await page.close();
+});

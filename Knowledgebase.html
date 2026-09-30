@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Knowledge Base – Phrase</title>
@@ -518,8 +517,15 @@
   // ---- Routing: #/  #/p/<key>  #/a/<id>[/<anker>]  #/s/<suche> ----
   var currentRoute = { view: 'home' };
   var lastSearchTerms = [];
+  // In Apps Script laeuft die Seite in einem Sandbox-iframe: Links duerfen nicht
+  // das ganze Fenster umleiten (sonst leere userCodeAppPanel-Seite). Navigation
+  // daher intern; mit google.script.history bleibt die Adresse (?page=kb#/a/..)
+  // teilbar und Zurueck/Vor funktioniert. Ohne Apps Script (Tests, Vorschau):
+  // normales location.hash.
+  var gsh = (window.google && google.script && google.script.history) ? google.script.history : null;
+  var curHash = gsh ? '' : String(location.hash || '');
   function parseHash() {
-    var h = decodeURIComponent(String(location.hash || '').replace(/^#\/?/, ''));
+    var h = decodeURIComponent(String(curHash || '').replace(/^#\/?/, ''));
     var m;
     if ((m = /^a\/([^/]+)(?:\/(.+))?$/.exec(h))) return { view: 'article', id: m[1], anchor: m[2] || '' };
     if ((m = /^p\/(.+)$/.exec(h))) return { view: 'product', key: m[1] };
@@ -544,7 +550,17 @@
     markNav();
     closeNav();
   }
-  function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
+  function go(hash, replace) {
+    hash = String(hash || '#/');
+    if (!gsh) {
+      if (replace) { history.replaceState(null, '', hash); curHash = hash; return; }
+      if (location.hash === hash) route(); else location.hash = hash;
+      return;
+    }
+    curHash = hash;
+    try { gsh[replace ? 'replace' : 'push']({ h: hash }, { page: 'kb' }, hash.replace(/^#/, '')); } catch (e) {}
+    if (!replace) route();
+  }
 
   // ---- Ereignisse ----
   var typing = null;
@@ -555,7 +571,7 @@
     typing = setTimeout(function () {
       selIdx = 0;
       if (v.trim()) {
-        if (currentRoute.view === 'search') { history.replaceState(null, '', '#/s/' + encodeURIComponent(v)); currentRoute = { view: 'search', q: v }; lastSearchTerms = terms(v); renderSearch(v); }
+        if (currentRoute.view === 'search') { go('#/s/' + encodeURIComponent(v), true); currentRoute = { view: 'search', q: v }; lastSearchTerms = terms(v); renderSearch(v); }
         else go('#/s/' + encodeURIComponent(v));
       } else if (currentRoute.view === 'search') go('#/');
     }, 140);
@@ -603,7 +619,19 @@
   function closeNav() { $('nav').classList.remove('open'); $('backdrop').classList.remove('on'); }
   $('menuBtn').addEventListener('click', function () { $('nav').classList.add('open'); $('backdrop').classList.add('on'); });
   $('backdrop').addEventListener('click', closeNav);
-  window.addEventListener('hashchange', route);
+  if (gsh) {
+    try { gsh.setChangeHandler(function (e) { curHash = (e && e.state && e.state.h) || (e && e.location && e.location.hash ? '#' + e.location.hash : '#/'); route(); }); } catch (e) {}
+  } else {
+    window.addEventListener('hashchange', function () { curHash = String(location.hash || ''); route(); });
+  }
+  // Interne Links (#/...) selbst behandeln, externe Links immer in neuem Tab.
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var href = a.getAttribute('href') || '';
+    if (href.charAt(0) === '#') { e.preventDefault(); go(href.length > 1 ? href : '#/'); return; }
+    if (/^https?:/i.test(href)) a.setAttribute('target', '_blank');
+  });
   window.addEventListener('scroll', function () {
     $('toTop').classList.toggle('on', window.scrollY > 600);
     var otp = $('otp');
@@ -622,7 +650,11 @@
   renderChips();
   renderNav();
   updateStatus();
-  route();
+  if (gsh && google.script.url && google.script.url.getLocation) {
+    google.script.url.getLocation(function (loc) { curHash = loc && loc.hash ? '#' + String(loc.hash).replace(/^#/, '') : ''; route(); });
+  } else {
+    route();
+  }
   loadAllInBackground();
 })();
 </script>
