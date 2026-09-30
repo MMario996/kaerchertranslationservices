@@ -208,8 +208,9 @@ test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierun
   }, chunks);
   await page.goto('file://' + kbFile);
   const man = await page.evaluate(() => JSON.parse(document.getElementById('kbManifest').textContent));
-  assert.equal(await page.locator('#prodGrid .pcard').count(), man.products.length, 'eine Karte je Produkt');
-  assert.equal(await page.locator('#nav details.prod').count(), man.products.length);
+  assert.equal(await page.locator('#prodGrid .h-tile').count(), man.products.length, 'eine Kachel je Produkt');
+  assert.equal(await page.locator('#tabs .tab-btn[data-p]').count(), man.products.length, 'ein Reiter je Produkt');
+  assert.ok(await page.locator('#tabs .tab-btn[data-p="Phrase-TMS"]').count() === 1, 'TMS-Reiter vorhanden');
   // Volltext: alle Pakete geladen, Suche nach einem Begriff aus dem Artikeltext (nicht nur Titel)
   await page.waitForFunction(() => document.getElementById('status').classList.contains('ready'), null, { timeout: 20000 });
   assert.equal(await page.evaluate(() => new Set(window.__kbCalls).size), man.chunks, 'jedes Paket einmal geladen');
@@ -217,7 +218,7 @@ test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierun
   await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
   assert.match(await page.locator('#results .res').first().innerText(), /Video Localization Hours/);
   await page.fill('#q', 'runtime-data zzzz-nichts');
-  await page.waitForFunction(() => /Keine Treffer|No results/.test(document.getElementById('main').innerText));
+  await page.waitForFunction(() => /Keine Treffer|No results/.test(document.getElementById('view').innerText));
   await page.fill('#q', 'MTU consumption limits');
   await page.waitForFunction(() => document.querySelectorAll('#results .res').length > 0);
   await page.press('#q', 'Enter');
@@ -228,10 +229,12 @@ test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierun
   const internal = await page.locator('#content a[data-kb]').first().getAttribute('href');
   await page.evaluate((h) => { location.hash = h; }, internal);
   await page.waitForFunction((id) => document.querySelector('#nav a.active') && document.querySelector('#nav a.active').dataset.id === id, internal.split('/')[2]);
-  // Produktfilter
-  await page.click('#chips .chip[data-p="Phrase-Studio"]');
-  assert.equal(await page.locator('#nav details.prod').count(), 1);
-  await page.click('#chips .chip[data-p=""]');
+  // Produkt-Reiter
+  await page.click('#tabs .tab-btn[data-p="Phrase-Studio"]');
+  await page.waitForFunction(() => /Studio/.test((document.querySelector('#nav .section-title') || {}).textContent || ''));
+  assert.match(await page.locator('#tabs .tab-btn.active').innerText(), /STUDIO/i);
+  await page.click('#tabs .tab-btn[data-go="#/"]');
+  await page.waitForFunction(() => document.getElementById('prodGrid'));
   await page.setViewportSize({ width: 390, height: 780 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');

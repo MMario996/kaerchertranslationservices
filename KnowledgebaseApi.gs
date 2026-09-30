@@ -13,7 +13,7 @@
  */
 
 // Wird von tools/build-kb.js gesetzt.
-var KB_CHUNK_COUNT_ = 19;
+var KB_CHUNK_COUNT_ = 35;
 
 /** Ein Artikel-Paket als JSON-Text ({ artikelId: html }). */
 function apiKbChunk(n) {
