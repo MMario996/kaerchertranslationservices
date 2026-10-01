@@ -1,6 +1,10 @@
 # kaerchertranslationservices
 Kärcher Translation Services – Google-Apps-Script-Web-App (Portal für Übersetzungsprojekte über Phrase TMS).
 
+> 📚 **Dokumentation:** Überblick über dieses Repo in [`docs/DOKUMENTATION.md`](docs/DOKUMENTATION.md), Fachdokumente in [`docs/`](docs/README.md). **Gesamtdokumentation aller acht Kärcher-Translation-Repositories** (Systemlandkarte, alle Datenbanken mit IDs, FAQ, Paket für Gemini Gem / NotebookLM): [`wissensbasis/`](wissensbasis/README.md).
+
+![Systemlandkarte](wissensbasis/systemlandkarte.png)
+
 ## Aufbau der Oberfläche
 
 `Index.html` ist nur noch das Gerüst. Styles und Skripte liegen in eigenen Dateien und werden

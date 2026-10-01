@@ -7,7 +7,8 @@
     "test": "node tests/run-all.js",
     "test:ui": "node --test --test-concurrency=1 tests-ui/render.test.js",
     "preview": "node tools/build-preview.js > preview.html",
-    "build:kb": "node tools/build-kb.js"
+    "build:kb": "node tools/build-kb.js",
+    "build:wissensbasis": "node tools/build-wissensbasis.js"
   },
   "engines": {
     "node": ">=18"

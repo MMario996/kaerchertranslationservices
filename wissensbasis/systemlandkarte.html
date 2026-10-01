@@ -1,0 +1,317 @@
+<title>Kärcher Translation Tools</title>
+<meta name="description" content="Systemlandkarte der acht Kärcher-Translation-Repositories: Anwendungen, Datenbanken und externe Dienste.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: drei Spalten (Datenbanken · Anwendungen · Dienste) als Diagramm, darunter Detailkarte und Tabellen */
+:root {
+  --bg: #f4f4f1;
+  --surface: #ffffff;
+  --ink: #1f2124;
+  --muted: #5d6066;
+  --line: #c9cbc6;
+  --brand: #ffed00;
+  --brand-ink: #1f2124;
+  --anthra: #3a3a3a;
+  --db: #e7efe9;
+  --db-edge: #5b8a6b;
+  --svc: #eceaf3;
+  --svc-edge: #6d6496;
+  --app: #ffffff;
+  --app-edge: #3a3a3a;
+  --hi: #d4a900;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Barlow", "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181a; --surface: #212225; --ink: #ececea; --muted: #a3a6ab; --line: #3d3f43;
+    --brand: #ffed00; --brand-ink: #17181a; --anthra: #d9d9d6;
+    --db: #1f2c24; --db-edge: #7fb592; --svc: #26233a; --svc-edge: #a59ce0;
+    --app: #2a2b2f; --app-edge: #cfd0cc; --hi: #ffed00;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181a; --surface: #212225; --ink: #ececea; --muted: #a3a6ab; --line: #3d3f43;
+  --brand: #ffed00; --brand-ink: #17181a; --anthra: #d9d9d6;
+  --db: #1f2c24; --db-edge: #7fb592; --svc: #26233a; --svc-edge: #a59ce0;
+  --app: #2a2b2f; --app-edge: #cfd0cc; --hi: #ffed00;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px; }
+header { display: grid; gap: 6px; border-left: 8px solid var(--brand); padding-left: 16px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4vw, 42px); line-height: 1.05; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 70ch; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 22px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 2px solid; display: inline-block; }
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+.diagram svg { display: block; min-width: 980px; width: 100%; height: auto; }
+.node { cursor: pointer; }
+.node:focus { outline: none; }
+.node:focus-visible rect { stroke: var(--hi); stroke-width: 3.5; }
+.node text { font-family: var(--font-body); }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.6; transition: stroke .15s, opacity .15s; }
+.edge.dashed { stroke-dasharray: 5 4; }
+.dim .edge { opacity: .15; }
+.dim .node { opacity: .35; }
+.dim .node.on, .dim .edge.on { opacity: 1; }
+.edge.on { stroke: var(--hi); stroke-width: 2.6; }
+.edge-label { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.colhead { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: .08em; fill: var(--muted); }
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; display: grid; gap: 10px; }
+.detail h3 { font-family: var(--font-display); font-size: 24px; margin: 0; }
+.detail .kind { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.detail p { margin: 0; max-width: 80ch; }
+.kv { display: grid; grid-template-columns: minmax(120px, 200px) 1fr; gap: 6px 16px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: 13px; background: var(--brand); color: var(--brand-ink); }
+tr:last-child td { border-bottom: 0; }
+td code { overflow-wrap: anywhere; }
+.hint { font-size: 13px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+@media (prefers-reduced-motion: reduce) { .edge { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Kärcher Translation Tools</h1>
+    <p class="lede">Acht Apps-Script-Projekte rund um Phrase TMS und Gemini: welche Anwendung welche Datenbank nutzt und mit welchen Diensten sie spricht. Auf ein Element klicken, um seine Verbindungen hervorzuheben und Details zu sehen.</p>
+  </header>
+
+  <section>
+    <div class="legend" aria-label="Legende">
+      <span><i class="sw" style="background:var(--db);border-color:var(--db-edge)"></i>Google Sheet (Datenbank)</span>
+      <span><i class="sw" style="background:var(--app);border-color:var(--app-edge)"></i>Anwendung (Repository)</span>
+      <span><i class="sw" style="background:var(--svc);border-color:var(--svc-edge)"></i>Externer Dienst</span>
+      <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4"/></svg>nur lesend / Code übernommen</span>
+    </div>
+  </section>
+
+  <section class="diagram" id="diagram" aria-label="Systemlandkarte"></section>
+
+  <section class="detail" id="detail" aria-live="polite"></section>
+
+  <section>
+    <h2>Datenbanken</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Sheet</th><th>ID / Property</th><th>Genutzt von</th><th>Tabs</th></tr></thead>
+        <tbody id="dbtable"></tbody>
+      </table>
+    </div>
+    <p class="hint">Link-Muster: <code>https://docs.google.com/spreadsheets/d/&lt;ID&gt;/edit</code>. Wo keine ID steht, liegt sie nur in der genannten Script Property.</p>
+  </section>
+
+  <section class="grid2">
+    <div>
+      <h2>Phrase-Objekte im Code</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Objekt</th><th>UID</th><th>Projekt</th></tr></thead>
+          <tbody>
+            <tr><td>Custom Field „AutoFix“</td><td><code>1uw8kvE6WNhT6Gw0XeX4Z4</code></td><td>AutoFix Hub</td></tr>
+            <tr><td>Workflow-Schritt</td><td><code>PE Gemini</code></td><td>AutoFix Hub</td></tr>
+            <tr><td>Custom Field „Mention Digest“ = True</td><td><code>AxFjBOkLFMEx9VW5H0hwN1</code> / <code>BHRFl72Ug1nt8iU3FR0Xy1</code></td><td>Mention Digest</td></tr>
+            <tr><td>MT-Profile Marketing / Technical / General</td><td><code>Zpfa4GJsY5rl4J9q070rV5</code> · <code>GrigHtkTDZUF4xYGWFmpI2</code> · <code>gC20LvuraAQGr2lXlrubL4</code></td><td>Translation Add-on</td></tr>
+            <tr><td>Vorlagen Terminology check LLM / ALG</td><td><code>pNoERiZ1YTileyUe4Za1j6</code> · <code>arpmvYCEAqGl0OmKV9f3s3</code></td><td>TermCheck</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2>Zeitgesteuerte Abläufe</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Projekt</th><th>Funktion</th><th>Takt</th></tr></thead>
+          <tbody>
+            <tr><td>Translation Services</td><td><code>autoSyncProjectStatuses_</code></td><td>15 min</td></tr>
+            <tr><td>Translation Services</td><td><code>calendarSyncAllTrigger</code></td><td>stündlich</td></tr>
+            <tr><td>Translation Services</td><td><code>psNightlySync_</code></td><td>täglich 02:00</td></tr>
+            <tr><td>AutoFix Hub</td><td><code>autoFixPoller</code></td><td>5 / 10 / 30 min</td></tr>
+            <tr><td>Mention Digest</td><td><code>mentionScanRun_</code>, <code>intervalDigestRun_</code></td><td>5 min</td></tr>
+            <tr><td>Mention Digest</td><td><code>dailyDigestRun_</code> / <code>weeklyDigestRun_</code></td><td>täglich / montags 8 Uhr</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var DB = [
+    { id: 'acc', label: 'Access-Sheet', sub: '1mU8zWhR…', kind: 'Google Sheet', full: '1mU8zWhR-E8_fmBcLtMh1qIwST9FibKT5UfH7oaivs0Q', prop: 'ACCESS_SHEET_ID', tabs: 'Whitelist*, FetchTemplate-Prod, FetchTMS_USERS-Prod, Maintenance, Notifications, UserPrefs, CalendarSync, User_Presets, Announcements, NotificationLog, AuditLog, Message_Templates, Watchers, PivotTemplateLinks, PivotLanguageMap', desc: 'Zugang, Rollen, Vorlagen, Nutzerzuordnung, Einstellungen und Protokoll des Portals („Sync DB“). Der Mention Digest liest daraus nur das Tab Notifications.' },
+    { id: 'ops', label: 'Ops-Sheet (Queue)', sub: '1xi0ZtFx…', kind: 'Google Sheet', full: '1xi0ZtFxxurNu25URrhpHmfSLy8nld_SXm0KmkXxRCpQ', prop: 'OPS_SHEET_ID', tabs: 'Queue', desc: 'Eine Zeile je im Portal angelegtem Phrase-Projekt („Uploads DB“). Zeilen nie löschen, Status CANCELLED setzen.' },
+    { id: 'doc', label: 'Dokumentations-Sheet', sub: '1_EFW_It…', kind: 'Google Sheet', full: '1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs', prop: 'fest im Code', tabs: 'Queue, Board, Archive', desc: 'Bereich Dokumentation im Portal: Import-Queue, Kanban-Board und Archiv.' },
+    { id: 'art', label: 'Articulate-Registry', sub: '1V6oyZVw…', kind: 'Google Sheet', full: '1V6oyZVw7-CPy8Bs5_sGl9Cg886b2T6r7FLGgp1gfBRY', prop: 'fest im Code', tabs: 'Projects', desc: 'Zuordnung Rise-Kurs ↔ Phrase-Projekt/Job ↔ Drive-Ordner ↔ Firebase-Pfad und Live-URL.' },
+    { id: 'afs', label: 'AutoFix-Sheet', sub: '1LFoBCuz…', kind: 'Google Sheet', full: '1LFoBCuz7h1xdi58djRPedAXgtj4RZ_T5EnvJbTKtkp8', prop: 'AUTOFIX_DB_SHEET_ID · PH_CONFIG.autofixSheetId', tabs: 'Settings (peInstructions_<space>), Run Log, Audit Log, Prompt Spaces, Prompt Hub Import, PH_Spaces, PH_Versions, PH_Users, PH_Requests, PH_TestCases, PH_Audit', desc: '„AutoFix Hub - Database“. Gemeinsame Datenbank von AutoFix Hub und Prompt Hub.' },
+    { id: 'lqa', label: 'AutoLQA-Datenbank', sub: 'DB_SHEET_ID', kind: 'Google Sheet', full: '', prop: 'DB_SHEET_ID (wird automatisch angelegt)', tabs: 'Settings, Profiles, Reports, Issues, Audit Log, Run History, LQA Export', desc: '„AutoLQA Hub - Database“: Reports, Issues und MQM-Profile.' },
+    { id: 'mds', label: 'Mention-Digest-Sheet', sub: 'MENTION_SHEET_ID', kind: 'Google Sheet', full: '', prop: 'MENTION_SHEET_ID', tabs: 'User_Settings, Pending_Mentions, Global_Settings, Mention_Templates, Run_Log, Notification_Rules', desc: 'Nutzereinstellungen, gepufferte Erwähnungen, Regeln und Vorlagen.' },
+    { id: 'ulog', label: 'Add-on Usage Log', sub: 'ADMIN_USAGE_LOG_SHEET_ID', kind: 'Google Sheet', full: '', prop: 'ADMIN_USAGE_LOG_SHEET_ID', tabs: 'Usage Log', desc: 'Protokoll jeder Übersetzung im Translation Add-on (nur für Admins).' },
+    { id: 'tlog', label: 'TermCheck Rules Log', sub: 'CUSTOM_RULES_LOG_SHEET_ID', kind: 'Google Sheet', full: '', prop: 'CUSTOM_RULES_LOG_SHEET_ID', tabs: 'Custom', desc: 'Protokoll neu angelegter eigener Author-Check-Regeln.' }
+  ];
+  var APPS = [
+    { id: 'kts', label: 'Translation Services', sub: 'kaerchertranslationservices', kind: 'Web-App · Portal', desc: 'Portal zum Anlegen, Verfolgen, Teilen und Herunterladen von Phrase-Projekten, mit Chat-Benachrichtigungen, Kalender-Sync, Dokumentation, Pivot-Workflow, Campus-Vorschau und Knowledge Base.', props: 'ADMIN_EMAILS, ACCESS_SHEET_ID, OPS_SHEET_ID, PHRASE_API_TOKEN, PHRASE_STRINGS_*, CHAT_CLIENT_EMAIL, CHAT_PRIVATE_KEY, SERVICE_ACCOUNT_JSON, DRIVE_SAVE_OAUTH_*, GEMINI_API_KEY', ai: 'gemini-2.0-flash (Chat-Bot)' },
+    { id: 'arp', label: 'Articulate Rise Patcher', sub: 'articulate-rise-patcher', kind: 'Apps-Script-Code', desc: 'Übersetzte Rise-XLIFF → Patches → runtime-data.js → Firebase-Hosting-Vorschau. Ursprung des Campus-Moduls im Portal.', props: 'SERVICE_ACCOUNT_JSON', ai: '–' },
+    { id: 'af', label: 'AutoFix Hub', sub: 'autofix-hub', kind: 'Web-App · Trigger', desc: 'Post-editiert Jobs im Schritt „PE Gemini“ von Projekten mit Custom Field „AutoFix“ und lädt die MXLIFF zurück.', props: 'PHRASE_API_TOKEN, GEMINI_API_KEY, AUTOFIX_DB_SHEET_ID, AUTOFIX_HUB_ACCESS, AUTOFIX_HUB_CONFIG', ai: 'gemini-3.6-flash, Temp 0.1' },
+    { id: 'ph', label: 'Prompt Hub', sub: 'Prompt-hub', kind: 'Web-App', desc: 'Pflege, Prüfung, Live-Test und Versionierung der Post-Editing-Prompts; veröffentlicht in das AutoFix-Sheet.', props: 'PH_CONFIG, PH_ADMINS, GEMINI_API_KEY', ai: 'freigegebene Liste, Standard gemini-3.6-flash' },
+    { id: 'lqa', label: 'AutoLQA Hub', sub: 'autolqa-hub', kind: 'Web-App (nur Eigentümer)', desc: 'KI-LQA nach DQF-MQM mit Termbase- und TM-Kontext; Befunde als Kommentar oder LQA-Assessment zurück nach Phrase.', props: 'PHRASE_API_TOKEN, GEMINI_API_KEY, DB_SHEET_ID', ai: 'gemini-2.5-pro (Default, prüfen)' },
+    { id: 'md', label: 'Mention Digest', sub: 'phrase-notification-hub', kind: 'Web-App · Trigger', desc: 'Chat-Benachrichtigungen bei @Erwähnungen in Phrase-Kommentaren: sofort, Intervall, täglich, wöchentlich; Abwesenheit und Projekt-Regeln.', props: 'MENTION_SHEET_ID, ACCESS_SHEET_ID, PHRASE_API_TOKEN, CHAT_CLIENT_EMAIL, CHAT_PRIVATE_KEY, ADMIN_EMAILS', ai: '–' },
+    { id: 'add', label: 'Translation Add-on', sub: 'k-rcher-translation-add-on', kind: 'Workspace-Add-on', desc: 'Übersetzt in Docs, Sheets und Slides über Phrase MT, mit Gemini-Fallback und optionalem Gemini-Post-Editing.', props: 'PHRASE_API_TOKEN, GEMINI_API_KEY, GEMINI_PE_ENABLED, MT_PROFILE_*, ADMIN_USAGE_LOG_SHEET_ID', ai: 'gemini-3.6-flash' },
+    { id: 'tc', label: 'TermCheck', sub: 'term-author-checker', kind: 'Workspace-Add-on · Web-App', desc: 'Terminologiesuche in Phrase-Termbanken und Author Check (Grammatik, Terminologie, Stil) für Docs, Sheets, Slides und PDFs in Drive.', props: 'PHRASE_API_TOKEN, ADMIN_EMAILS, GEMINI_API_KEY, AI_MODEL, ALLOWED_TB_UIDS, CUSTOM_RULES_LOG_SHEET_ID, WEBAPP_URL', ai: 'gemini-3.6-flash, Temp 0.2' }
+  ];
+  var SVC = [
+    { id: 'phrase', label: 'Phrase TMS', sub: 'cloud.memsource.com', kind: 'Externer Dienst', desc: 'Translation-Management-System: Projekte, Jobs, Workflow-Schritte, MT-Profile, Termbanken, TM, Kommentare, LQA. Zugriff über PHRASE_API_TOKEN (Bearer).' },
+    { id: 'gemini', label: 'Gemini', sub: 'Apigee-Proxy 34-111-99-134.nip.io', kind: 'Externer Dienst', desc: 'Google Gemini über das Kärcher-Gateway. Aufruf …/gemini/v1beta/models/<modell>:generateContent mit Header x-api-key. Sicher freigeschaltet: gemini-3.6-flash.' },
+    { id: 'chat', label: 'Google Chat', sub: 'Phrase Chatbot', kind: 'Externer Dienst', desc: 'Ein gemeinsamer Bot (Service Account, Scope chat.bot) für Portal und Mention Digest. Nur das Portal empfängt Slash-Commands.' },
+    { id: 'fb', label: 'Firebase Hosting', sub: 'kaercher-course-preview', kind: 'Externer Dienst', desc: 'Live-Vorschauen übersetzter Rise-Kurse unter https://kaercher-course-preview.web.app/<pfad>/scormcontent/index.html.' },
+    { id: 'strings', label: 'Phrase Strings', sub: 'api.phrase.com', kind: 'Externer Dienst', desc: 'Übersetzung der Portal-Oberfläche (Admin → Translate UI), nächtlicher Abgleich.' },
+    { id: 'gws', label: 'Drive · Kalender', sub: 'Google Workspace', kind: 'Externer Dienst', desc: 'Dateien und SCORM-Ordner in Drive, „In Drive speichern“ und Kalender-Sync im Portal (OAuth je Nutzer), PDF-Prüfung in TermCheck, Dokumente im Add-on.' }
+  ];
+  // [von, nach, gestrichelt, Beschriftung]
+  var LINKS = [
+    ['kts','acc'],['kts','ops'],['kts','doc'],['kts','art'],['arp','art'],
+    ['af','afs'],['ph','afs'],['lqa','lqa_db'],['md','mds'],['md','acc',1],['add','ulog'],['tc','tlog'],
+    ['kts','phrase'],['af','phrase'],['lqa','phrase'],['md','phrase'],['add','phrase'],['tc','phrase'],['arp','phrase',1],
+    ['kts','gemini'],['af','gemini'],['ph','gemini'],['lqa','gemini'],['add','gemini'],['tc','gemini'],
+    ['kts','chat'],['md','chat'],
+    ['kts','fb'],['arp','fb'],
+    ['kts','strings'],
+    ['kts','gws'],['arp','gws'],['add','gws'],['tc','gws']
+  ];
+  // AutoLQA-App und -DB teilen sich die ID "lqa": DB intern umbenennen
+  DB[5].id = 'lqa_db';
+
+  var W = 1240, colX = { db: 24, app: 470, svc: 950 }, colW = { db: 260, app: 300, svc: 266 };
+  var NS = 'http://www.w3.org/2000/svg';
+  var nodes = {};
+  function place(list, col, top, gap, h) {
+    list.forEach(function (n, i) { n.col = col; n.x = colX[col]; n.y = top + i * gap; n.w = colW[col]; n.h = h; nodes[n.id] = n; });
+  }
+  place(DB, 'db', 70, 84, 60);
+  place(APPS, 'app', 70, 94, 68);
+  place(SVC, 'svc', 110, 118, 64);
+  var H = 70 + 7 * 94 + 68 + 30;
+
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Diagramm: Datenbanken links, Anwendungen in der Mitte, externe Dienste rechts');
+  function el(name, attrs, parent, text) {
+    var e = document.createElementNS(NS, name);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  el('text', { x: colX.db, y: 40, class: 'colhead' }, null, 'DATENBANKEN (GOOGLE SHEETS)');
+  el('text', { x: colX.app, y: 40, class: 'colhead' }, null, 'ANWENDUNGEN (REPOSITORIES)');
+  el('text', { x: colX.svc, y: 40, class: 'colhead' }, null, 'EXTERNE DIENSTE');
+
+  var edgeLayer = el('g', {});
+  var nodeLayer = el('g', {});
+  var edges = [];
+  LINKS.forEach(function (l) {
+    var a = nodes[l[0]], b = nodes[l[1]];
+    var x1, y1, x2, y2;
+    if (b.col === 'db') { x1 = a.x; y1 = a.y + a.h / 2; x2 = b.x + b.w; y2 = b.y + b.h / 2; }
+    else { x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = b.x; y2 = b.y + b.h / 2; }
+    var mx = (x1 + x2) / 2;
+    var p = el('path', { d: 'M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2, class: 'edge' + (l[2] ? ' dashed' : '') }, edgeLayer);
+    edges.push({ a: l[0], b: l[1], el: p });
+  });
+  // App-zu-App-Verbindungen in der Mittelspalte
+  function vlink(fromId, toId, label, dashed) {
+    var a = nodes[fromId], b = nodes[toId];
+    var x = a.x + a.w - 34;
+    var y1 = a.y, y2 = b.y + b.h;
+    if (a.y > b.y) { y1 = a.y; y2 = b.y + b.h; } else { y1 = a.y + a.h; y2 = b.y; }
+    var p = el('path', { d: 'M' + x + ',' + y1 + ' L' + x + ',' + y2, class: 'edge' + (dashed ? ' dashed' : ''), 'marker-end': 'url(#arr)' }, edgeLayer);
+    el('text', { x: x - 6, y: (y1 + y2) / 2 + 4, class: 'edge-label', 'text-anchor': 'end' }, edgeLayer, label);
+    edges.push({ a: fromId, b: toId, el: p });
+  }
+  var defs = el('defs', {});
+  var m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' }, defs);
+  el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--muted)' }, m);
+  vlink('ph', 'af', 'Prompt veröffentlichen');
+  vlink('arp', 'kts', 'Code übernommen', true);
+
+  function drawNode(n) {
+    var g = el('g', { class: 'node', tabindex: '0', role: 'button', 'aria-label': n.label + ' – Details anzeigen', 'data-id': n.id }, nodeLayer);
+    var fill = n.col === 'db' ? 'var(--db)' : n.col === 'svc' ? 'var(--svc)' : 'var(--app)';
+    var stroke = n.col === 'db' ? 'var(--db-edge)' : n.col === 'svc' ? 'var(--svc-edge)' : 'var(--app-edge)';
+    el('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: n.col === 'app' ? 4 : 10, fill: fill, stroke: stroke, 'stroke-width': n.col === 'app' ? 2 : 1.5 }, g);
+    if (n.col === 'app') el('rect', { x: n.x, y: n.y, width: 8, height: n.h, fill: 'var(--brand)' }, g);
+    var tx = n.x + (n.col === 'app' ? 20 : 14);
+    el('text', { x: tx, y: n.y + n.h / 2 - 3, 'font-size': n.col === 'app' ? 17 : 15, 'font-weight': 600, fill: 'var(--ink)', style: n.col === 'app' ? 'font-family:var(--font-display)' : '' }, g, n.label);
+    el('text', { x: tx, y: n.y + n.h / 2 + 16, 'font-size': 12, fill: 'var(--muted)', style: 'font-family:var(--font-mono)' }, g, n.sub);
+    g.addEventListener('click', function () { select(n.id); });
+    g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(n.id); } });
+    n.g = g;
+  }
+  DB.concat(APPS, SVC).forEach(drawNode);
+  document.getElementById('diagram').appendChild(svg);
+
+  var detail = document.getElementById('detail');
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function names(ids) { return ids.map(function (i) { return nodes[i].label; }).join(', '); }
+  var current = null;
+  function select(id) {
+    if (current === id) { current = null; svg.classList.remove('dim'); edges.forEach(function (e) { e.el.classList.remove('on'); }); Object.keys(nodes).forEach(function (k) { nodes[k].g.classList.remove('on'); }); showIntro(); return; }
+    current = id;
+    svg.classList.add('dim');
+    var linked = {}; linked[id] = 1;
+    edges.forEach(function (e) {
+      var on = e.a === id || e.b === id;
+      e.el.classList.toggle('on', on);
+      if (on) { linked[e.a] = 1; linked[e.b] = 1; }
+    });
+    Object.keys(nodes).forEach(function (k) { nodes[k].g.classList.toggle('on', !!linked[k]); });
+    var n = nodes[id];
+    var nb = Object.keys(linked).filter(function (k) { return k !== id; });
+    var rows = [];
+    if (n.col === 'db') {
+      if (n.full) rows.push(['Sheet-ID', '<code>' + esc(n.full) + '</code>']);
+      rows.push(['Konfiguration', '<code>' + esc(n.prop) + '</code>']);
+      rows.push(['Tabs', esc(n.tabs)]);
+      rows.push(['Genutzt von', esc(names(nb))]);
+      if (n.full) rows.push(['Link', '<a href="https://docs.google.com/spreadsheets/d/' + esc(n.full) + '/edit">Sheet öffnen</a>']);
+    } else if (n.col === 'app') {
+      rows.push(['Repository', '<code>MMario996/' + esc(n.sub) + '</code>']);
+      rows.push(['Gemini', esc(n.ai)]);
+      rows.push(['Script Properties', '<code>' + esc(n.props) + '</code>']);
+      rows.push(['Verbunden mit', esc(names(nb))]);
+    } else {
+      rows.push(['Genutzt von', esc(names(nb))]);
+    }
+    detail.innerHTML = '<div class="kind">' + esc(n.kind) + '</div><h3>' + esc(n.label) + '</h3><p>' + esc(n.desc) + '</p><dl class="kv">' +
+      rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+  }
+  function showIntro() {
+    detail.innerHTML = '<div class="kind">So liest man die Karte</div><h3>Drei Spalten, eine Richtung</h3>' +
+      '<p>Links stehen die Google Sheets, die als Datenbanken dienen, in der Mitte die acht Anwendungen, rechts die Dienste, mit denen sie sprechen. Fast alles läuft über Phrase TMS und den Gemini-Proxy. AutoFix Hub und Prompt Hub teilen sich ein Sheet; der Prompt Hub schreibt dort die Prompts hinein, die AutoFix liest.</p>' +
+      '<p class="hint">Klicken Sie auf ein Element, um seine Verbindungen und Details zu sehen. Ein zweiter Klick hebt die Auswahl auf.</p>';
+  }
+  showIntro();
+
+  var tb = document.getElementById('dbtable');
+  var usedBy = {};
+  LINKS.forEach(function (l) { if (nodes[l[1]].col === 'db') (usedBy[l[1]] = usedBy[l[1]] || []).push(nodes[l[0]].label + (l[2] ? ' (lesend)' : '')); });
+  tb.innerHTML = DB.map(function (d) {
+    var idc = d.full ? '<code>' + esc(d.full) + '</code><br><span class="hint">' + esc(d.prop) + '</span>' : '<code>' + esc(d.prop) + '</code>';
+    return '<tr><td><strong>' + esc(d.label) + '</strong></td><td>' + idc + '</td><td>' + esc((usedBy[d.id] || []).join(', ')) + '</td><td>' + esc(d.tabs) + '</td></tr>';
+  }).join('');
+})();
+</script>
