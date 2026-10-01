@@ -455,6 +455,9 @@ function checkArticulateBatchCompatibility() {
         if (info.scormMatchWarning) {
           resEl.style.color = '#c62828';
           resEl.innerText = '\u26A0 ' + info.scormMatchWarning;
+        } else if (info.scormKind === 'storyline') {
+          resEl.style.color = '#e65100';
+          resEl.innerText = '\u26A0 ' + info.scormWarning;
         } else if (info.scormMatchRatio !== null) {
           resEl.style.color = '#2e7d32';
           resEl.innerText = '\u2713 ' + info.scormMatchRatio + tr_('jx_7464c23', '% übereinstimmung (') +
@@ -638,6 +641,7 @@ function runArticulatePreview(id, onDone, openTab) {
 
       resultBox.style.display = 'block';
       resultBox.innerHTML =
+        (res.warning ? '<div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:#fff4dc;border:1px solid #f0c870;color:#5c4400;font-size:12px;text-align:left;">\u26A0 ' + escapeHtmlJs(res.warning) + '</div>' : '') +
         '<a href="' + escapeHtmlJs(res.liveUrl) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">' +
           '<i class="material-icons-outlined" style="margin-right:8px;">open_in_new</i> ' +
           t_('art_btn_open_preview', 'Preview öffnen') +
@@ -843,6 +847,9 @@ function articulateValidateInputs() {
           ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' +
             t_('art_warn_langmismatch', 'Deine Eingabe weicht von der Job-Sprache ab') +
             ': <strong>' + escapeHtmlJs(info.jobTargetLang) + '</strong></div>'
+          : '') +
+        (info.scormWarning
+          ? '<div style="margin-top:8px;color:#e65100;">\u26A0 ' + escapeHtmlJs(info.scormWarning) + '</div>'
           : '') +
         (info.scormMatchWarning
           ? '<div style="margin-top:8px;color:#c62828;font-weight:600;">\u26A0 ' +

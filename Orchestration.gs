@@ -1,7 +1,7 @@
 /**
  * Orchestration.gs
  *
- * Verbindet das Patchen von runtime-data.js (RisePatcher.gs) mit dem
+ * Verbindet das Patchen der Rise-Kursdaten (ScormCourse.gs / RisePatcher.gs) mit dem
  * Live-Deploy nach Firebase Hosting (FirebaseHostingDeploy.gs) - ohne
  * Umweg ueber eine heruntergeladene ZIP.
  */
@@ -19,30 +19,10 @@ function patchAndDeployScormToFirebase(scormZipFileId, patches, siteId, pathPref
   var zipFile = DriveApp.getFileById(scormZipFileId);
   var blobs = Utilities.unzip(zipFile.getBlob());
 
-  var found = findRuntimeDataBlob_(blobs);
-  var jsText = found.blob.getDataAsString("UTF-8");
-
-  var patchResult = patchRuntimeDataJs_(jsText, patches);
-
-  var patchedBlob = Utilities.newBlob(
-    patchResult.patchedJs,
-    "application/javascript",
-    found.blob.getName()
-  );
-  blobs[found.index] = patchedBlob;
-
-  // Fuer den ZIP-Weg leiten wir den Pfad weiterhin aus dem Blob-Namen ab
-  // (funktioniert nur zuverlaessig bei kleinen ZIPs, die Utilities.unzip
-  // ueberhaupt verarbeiten kann - siehe patchAndDeployScormFolderToFirebase
-  // fuer den Weg ohne diese Groessenbeschraenkung).
-  var fileEntries = blobs.map(function (blob) {
-    var name = blob.getName();
-    var scormIndex = name.split("/").indexOf("scormcontent");
-    var path = scormIndex >= 0 ? name.split("/").slice(scormIndex).join("/") : name;
-    return { path: path, blob: blob };
-  });
-
-  var deployResult = deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix);
+  // Pfade aus den ZIP-Blob-Namen; Erkennung + Patch wie beim Ordner-Weg (ScormCourse.gs)
+  var prep = scormPrepareDeploy_(blobs.map(function (blob) { return { path: blob.getName(), blob: blob }; }), patches);
+  var deployResult = deployBlobsToFirebaseHosting(siteId, prep.entries, pathPrefix, prep.entryHtml);
+  var patchResult = { applied: prep.applied, unmatched: prep.unmatched };
 
   return {
     liveUrl: deployResult.liveUrl,
@@ -91,19 +71,9 @@ function patchAndDeployScormFolderToFirebase(scormFolderId, patches, siteId, pat
     );
   }
 
-  var found = findRuntimeDataEntry_(fileEntries);
-  var jsText = found.entry.blob.getDataAsString("UTF-8");
-
-  var patchResult = patchRuntimeDataJs_(jsText, patches);
-
-  var patchedBlob = Utilities.newBlob(
-    patchResult.patchedJs,
-    "application/javascript",
-    "runtime-data.js"
-  );
-  fileEntries[found.index] = { path: found.entry.path, blob: patchedBlob };
-
-  var deployResult = deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix);
+  var prep = scormPrepareDeploy_(fileEntries, patches);
+  var deployResult = deployBlobsToFirebaseHosting(siteId, prep.entries, pathPrefix, prep.entryHtml);
+  var patchResult = { applied: prep.applied, unmatched: prep.unmatched };
 
   return {
     liveUrl: deployResult.liveUrl,

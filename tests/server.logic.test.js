@@ -302,3 +302,84 @@ test('Knowledge-Base-Build: Hinweis-Ueberschriften werden zu Callouts, Code blei
   assert.match(out, /^# not a heading$/m);
   assert.equal(safeJson({ u: 'https://x/</a>' }), '{"u":"https:\\/\\/x\\/\\u003c\\/a>"}');
 });
+
+// --- SCORM-Erkennung (Campus-Preview) -------------------------------------
+function scormCtx() {
+  const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
+  const ctx = load(['RisePatcher.gs', 'ScormCourse.gs'], {
+    Utilities: {
+      base64Decode: (s) => [...Buffer.from(s, 'base64')],
+      base64Encode: (bytes) => Buffer.from(bytes).toString('base64'),
+      newBlob: (data, mime, name) => ({
+        getBytes: () => (typeof data === 'string' ? [...Buffer.from(data, 'utf8')] : data),
+        getDataAsString: () => (typeof data === 'string' ? data : Buffer.from(data).toString('utf8')),
+        getName: () => name, getContentType: () => mime
+      })
+    }
+  });
+  const course = { course: { title: 'Kurs', description: 'Beschreibung '.repeat(30), lessons: [{ id: 'L1', title: 'Lektion', items: [{ id: 'i1', paragraph: 'Hallo Welt' }] }] } };
+  return { ctx, b64, course, long: b64(JSON.stringify(course)) };
+}
+
+test('SCORM: aktueller Rise-Export (runtime-data.js) wird erkannt und gepatcht', () => {
+  const { ctx, long } = scormCtx();
+  const entries = [
+    { path: 'scormdriver/scormdriver.js', text: 'x' },
+    { path: 'scormcontent/index.html', text: '<html></html>' },
+    { path: 'scormcontent/lib/runtime-data.js', text: '__jsonp("runtime-data.js","' + long + '")' }
+  ];
+  const info = ctx.scormInspect_(entries);
+  assert.equal(info.ok, true);
+  assert.equal(info.kind, 'rise');
+  assert.equal(info.located.format, 'runtime-data');
+  const prep = ctx.scormPrepareDeploy_(entries, [{ scopeId: 'course', path: 'title', text: 'Course' }]);
+  assert.equal(prep.applied, 1);
+  assert.equal(prep.entryHtml, 'scormcontent/index.html');
+});
+
+test('SCORM: aelterer Rise-Export ohne runtime-data.js (Kursdaten in index.html), eine Ebene tiefer', () => {
+  const { ctx, long } = scormCtx();
+  const entries = [
+    { path: 'EN_KnowledgeCheck/scormdriver/scormdriver.js', text: 'x' },
+    { path: 'EN_KnowledgeCheck/scormcontent/index.html', text: '<script>window.courseData = "' + long + '";</script>' },
+    { path: 'EN_KnowledgeCheck/scormcontent/lib/main.bundle.js', text: 'var a="' + 'A'.repeat(300) + '";' }
+  ];
+  const info = ctx.scormInspect_(entries);
+  assert.equal(info.ok, true, info.error);
+  assert.equal(info.root, 'EN_KnowledgeCheck');
+  assert.equal(info.located.format, 'embedded');
+  assert.match(info.warning, /Unterordner/);
+  const prep = ctx.scormPrepareDeploy_(entries, [{ scopeId: 'L1', path: 'items|id:i1|paragraph', text: 'Hello world' }]);
+  assert.equal(prep.applied, 1);
+  const idx = prep.entries.find((e) => e.path === 'scormcontent/index.html');
+  assert.ok(idx, 'Pfade relativ zum Kurs-Ordner');
+  const html = idx.blob.getDataAsString();
+  const m = /courseData = "([^"]+)"/.exec(html);
+  assert.equal(JSON.parse(Buffer.from(m[1], 'base64').toString('utf8')).course.lessons[0].items[0].paragraph, 'Hello world');
+  assert.ok(html.startsWith('<script>window.courseData = "') && html.endsWith('";</script>'), 'Rest der Datei unveraendert');
+});
+
+test('SCORM: Storyline wird gehostet (ohne Patch), nur scormdriver.js ergibt eine klare Meldung', () => {
+  const { ctx } = scormCtx();
+  const story = [
+    { path: 'story.html', text: '<html>' }, { path: 'index_lms.html', text: '<html>' },
+    { path: 'story_content/user.js', text: '' }, { path: 'lms/scormdriver.js', text: '' }
+  ];
+  const s = ctx.scormInspect_(story);
+  assert.equal(s.ok, true);
+  assert.equal(s.kind, 'storyline');
+  assert.equal(s.entryHtml, 'index_lms.html');
+  assert.match(s.warning, /Storyline/);
+  const prep = ctx.scormPrepareDeploy_(story, [{ scopeId: 'x', path: 'y', text: 'z' }]);
+  assert.equal(prep.applied, 0);
+  assert.equal(prep.entryHtml, 'index_lms.html');
+
+  const driverOnly = ctx.scormInspect_([{ path: 'scormdriver/scormdriver.js', text: '' }, { path: 'imsmanifest.xml', text: '' }]);
+  assert.equal(driverOnly.ok, false);
+  assert.match(driverOnly.error, /nur der SCORM-Treiber/);
+  assert.match(driverOnly.error, /imsmanifest\.xml/);
+
+  const two = ctx.scormInspect_([{ path: 'A/scormcontent/index.html', text: '' }, { path: 'B/scormcontent/index.html', text: '' }]);
+  assert.equal(two.ok, false);
+  assert.match(two.error, /mehrere Rise-Kurse/);
+});

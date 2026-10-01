@@ -29,28 +29,32 @@ var FIREBASE_HOSTING_API_ = "https://firebasehosting.googleapis.com/v1beta1";
  *                               VOLLSTAENDIGE relative Pfad, z.B.
  *                               "scormcontent/index.html"
  * @param {string} [pathPrefix]
+ * @param {string} [entryHtml]  Startdatei relativ zum Export, Standard
+ *                               "scormcontent/index.html" (Rise); Storyline:
+ *                               "story.html" bzw. "index_lms.html"
  * @return {Object} {liveUrl, versionName, uploadedFileCount, totalFileCount}
  */
-function deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix) {
-  // Guard: sicherstellen, dass scormcontent/index.html wirklich am erwarteten
-  // Pfad liegt ? sonst wird zwar erfolgreich deployt, aber die liveUrl 404t.
+function deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix, entryHtml) {
+  entryHtml = entryHtml || "scormcontent/index.html";
+  // Guard: sicherstellen, dass die Startdatei wirklich am erwarteten Pfad
+  // liegt - sonst wird zwar erfolgreich deployt, aber die liveUrl 404t.
   var hasIndex = fileEntries.some(function (e) {
-    return /(^|\/)scormcontent\/index\.html$/.test(String(e.path || ""));
+    return String(e.path || "").replace(/^\/+/, "") === entryHtml;
   });
   if (!hasIndex) {
     var samplePaths = fileEntries.slice(0, 8).map(function (e) { return e.path; }).join("\n  ");
     throw new Error(
-      "Deploy abgebrochen: Es wurde kein 'scormcontent/index.html' auf der " +
+      "Deploy abgebrochen: Es wurde kein '" + entryHtml + "' auf der " +
       "erwarteten Pfad-Ebene gefunden. Der Drive-Ordner ist vermutlich eine " +
       "Ebene zu tief verschachtelt.\n\n" +
-      "Erwartet: der ausgewählte Ordner enthält DIREKT 'scormcontent/'.\n\n" +
+      "Erwartet: der ausgewählte Ordner enthält DIREKT '" + entryHtml + "'.\n\n" +
       "Gefundene Pfade (Auszug):\n  " + samplePaths
     );
   }
 
   // 404-Fallback mitdeployen, damit ein Pfad-Mismatch nicht die nackte
   // Firebase-Standardseite zeigt, sondern einen Hinweis mit Direktlink.
-  var idxPath = "/scormcontent/index.html";
+  var idxPath = "/" + entryHtml;
   if (pathPrefix) idxPath = "/" + pathPrefix.replace(/^\/|\/$/g, "") + idxPath;
   var notFoundHtml =
     '<!doctype html><meta charset="utf-8"><title>Preview nicht gefunden</title>' +
@@ -158,7 +162,7 @@ function deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix) {
   Logger.log("FERTIG - Release ist live.");
 
   var basePath = pathPrefix ? "/" + pathPrefix.replace(/^\/|\/$/g, "") : "";
-  var liveUrl = "https://" + siteId + ".web.app" + basePath + "/scormcontent/index.html";
+  var liveUrl = "https://" + siteId + ".web.app" + basePath + "/" + entryHtml;
 
   return {
     liveUrl: liveUrl,

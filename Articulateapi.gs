@@ -104,7 +104,8 @@ function apiListArticulateProjectsForUi() {
  * Geprueft wird:
  *   1. Phrase-Projekt existiert?
  *   2. Job existiert in DIESEM Projekt? (nicht nur irgendwo)
- *   3. Drive-Ordner existiert, lesbar, und enthaelt runtime-data.js?
+ *   3. Drive-Ordner existiert, lesbar, und enthaelt einen SCORM-Export
+ *      (Rise mit Kursdaten oder Storyline, siehe ScormCourse.gs)?
  *   3b. Passt der Job inhaltlich zu DIESEM Kurs? (SCORM-Match-Check)
  *   4. Gibt es bereits einen Eintrag mit gleichem Firebase-Pfad?
  *      (der wuerde sonst still ueberschrieben)
@@ -172,28 +173,23 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
   }
   info.folderName = folder.getName();
 
-  // Enthaelt der Ordner ueberhaupt einen SCORM-Export?
-  var runtimeDataBlob = null;
+  // Enthaelt der Ordner einen SCORM-Export? Rise (aktuell/aelter, auch eine
+  // Ebene tiefer) oder Storyline - siehe ScormCourse.gs.
+  var scorm;
   try {
     var entries = collectFileEntriesRecursive_(folder, "");
-    for (var i = 0; i < entries.length; i++) {
-      if (entries[i].path.indexOf("runtime-data.js") !== -1) {
-        runtimeDataBlob = entries[i].blob;
-        break;
-      }
-    }
     info.fileCount = entries.length;
+    scorm = scormInspect_(entries);
   } catch (e) {
     throw new Error("Drive-Ordner konnte nicht gelesen werden: " + e.message);
   }
-  if (!runtimeDataBlob) {
-    throw new Error(
-      "Im Ordner '" + info.folderName + "' wurde keine 'runtime-data.js' " +
-      "gefunden. Wurde der SCORM-Export wirklich ENTPACKT hochgeladen " +
-      "(nicht als ZIP-Datei)? Der Ordner muss einen Unterordner " +
-      "'scormcontent' enthalten."
-    );
+  if (!scorm.ok) {
+    throw new Error("Im Ordner '" + info.folderName + "' wurde kein verwendbarer SCORM-Export gefunden. " + scorm.error);
   }
+  info.scormKind = scorm.kind;
+  info.scormRoot = scorm.root;
+  info.scormWarning = scorm.warning;
+  info.scormDataFile = scorm.located ? scorm.located.path : "";
 
   // ?? 3b) TEST: Passt der Job inhaltlich zu DIESEM Kurs? ------------------
   // Baut denselben Index wie beim echten Patchen auf (buildIndex_ aus
@@ -205,9 +201,8 @@ function validateArticulateInputs_(projectUid, jobUid, driveFolderId, firebasePa
   info.scormTotalSegments = null;
   info.scormMatchWarning = "";
   try {
-    var runtimeJsText = runtimeDataBlob.getDataAsString("UTF-8");
-    var scormData = decodeRuntimeData_(runtimeJsText);
-    var scormIndex = buildIndex_(scormData);
+    if (!scorm.patchable) throw new Error("Storyline: kein Abgleich moeglich");
+    var scormIndex = buildIndex_(scorm.located.data);
 
     var xliffBlobForCheck = phraseDownloadTargetFile_(projectUid, jobUid);
     var xliffTextForCheck = xliffBlobForCheck.getDataAsString("UTF-8");

@@ -197,6 +197,8 @@ function apiGenerateArticulatePreview(params) {
     uploadedFileCount: result.uploadedFileCount,
     totalFileCount: result.totalFileCount,
     skippedFiles: (result.skippedFiles || []).length,
+    scormKind: result.scormKind || "rise",
+    warning: result.warning || "",
   };
 }
 
@@ -214,28 +216,21 @@ function patchAndDeployScormFolderToFirebase_withProgress_(
   var filterResult = filterFileEntriesForPreview_(allEntries, null);
   var fileEntries = filterResult.kept;
 
-  var found = findRuntimeDataEntry_(fileEntries);
-  var jsText = found.entry.blob.getDataAsString("UTF-8");
-
-  setPreviewProgress_(sessionId, 55, "?bersetzungen werden eingesetzt...");
-  var patchResult = patchRuntimeDataJs_(jsText, patches);
-
-  var patchedBlob = Utilities.newBlob(
-    patchResult.patchedJs,
-    "application/javascript",
-    "runtime-data.js"
-  );
-  fileEntries[found.index] = { path: found.entry.path, blob: patchedBlob };
+  // Rise (aktuell/aelter, auch eine Ebene tiefer) oder Storyline - siehe ScormCourse.gs
+  setPreviewProgress_(sessionId, 55, "Übersetzungen werden eingesetzt...");
+  var prep = scormPrepareDeploy_(fileEntries, patches);
 
   setPreviewProgress_(sessionId, 65, "Preview wird zu Firebase hochgeladen...");
-  var deployResult = deployBlobsToFirebaseHosting(siteId, fileEntries, pathPrefix);
+  var deployResult = deployBlobsToFirebaseHosting(siteId, prep.entries, pathPrefix, prep.entryHtml);
 
   return {
     liveUrl: deployResult.liveUrl,
-    applied: patchResult.applied,
-    unmatched: patchResult.unmatched,
+    applied: prep.applied,
+    unmatched: prep.unmatched,
     uploadedFileCount: deployResult.uploadedFileCount,
     totalFileCount: deployResult.totalFileCount,
     skippedFiles: filterResult.skipped,
+    scormKind: prep.kind,
+    warning: prep.warning,
   };
 }

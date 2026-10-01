@@ -208,7 +208,10 @@ test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierun
   }, chunks);
   await page.goto('file://' + kbFile);
   const man = await page.evaluate(() => JSON.parse(document.getElementById('kbManifest').textContent));
-  assert.equal(await page.locator('#prodGrid .h-tile').count(), man.products.length, 'eine Kachel je Produkt');
+  // Keine Startseite: geoeffnet wird direkt das erste Produkt (TMS)
+  assert.equal(await page.locator('#tabs .tab-btn[data-go="#/"]').count(), 0, 'kein Start-Reiter');
+  await page.waitForFunction(() => /TMS/.test((document.querySelector('#nav .section-title') || {}).textContent || ''));
+  assert.match(await page.locator('#tabs .tab-btn.active').innerText(), /TMS/);
   assert.equal(await page.locator('#tabs .tab-btn[data-p]').count(), man.products.length, 'ein Reiter je Produkt');
   assert.ok(await page.locator('#tabs .tab-btn[data-p="Phrase-TMS"]').count() === 1, 'TMS-Reiter vorhanden');
   // Volltext: alle Pakete geladen, Suche nach einem Begriff aus dem Artikeltext (nicht nur Titel)
@@ -225,16 +228,20 @@ test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierun
   await page.waitForFunction(() => document.querySelector('#content mark'));
   assert.match(await page.locator('article.doc h1').innerText(), /Phrase Portal/);
   assert.ok(await page.locator('#content .callout').count() > 0, 'Hinweisboxen gerendert');
+
   // Interner Link auf einen anderen Artikel oeffnet ihn in der Knowledge Base
   const internal = await page.locator('#content a[data-kb]').first().getAttribute('href');
   await page.evaluate((h) => { location.hash = h; }, internal);
   await page.waitForFunction((id) => document.querySelector('#nav a.active') && document.querySelector('#nav a.active').dataset.id === id, internal.split('/')[2]);
+  await page.waitForFunction(() => document.querySelector('.pager a'));
+  const pager = await page.evaluate(() => [...document.querySelectorAll('.pager a')].map((a) => a.getBoundingClientRect().height));
+  assert.ok(pager.every((h) => h <= 50), 'Weiter/Zurueck als schlanke Buttons (' + pager.join(', ') + ')');
   // Produkt-Reiter
   await page.click('#tabs .tab-btn[data-p="Phrase-Studio"]');
   await page.waitForFunction(() => /Studio/.test((document.querySelector('#nav .section-title') || {}).textContent || ''));
   assert.match(await page.locator('#tabs .tab-btn.active').innerText(), /STUDIO/i);
-  await page.click('#tabs .tab-btn[data-go="#/"]');
-  await page.waitForFunction(() => document.getElementById('prodGrid'));
+  await page.click('#tabs .tab-btn[data-p="Phrase-TMS"]');
+  await page.waitForFunction(() => /TMS/.test((document.querySelector('#nav .section-title') || {}).textContent || ''));
   await page.setViewportSize({ width: 390, height: 780 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'kein horizontales Scrollen auf dem Handy (' + overflow + 'px)');
