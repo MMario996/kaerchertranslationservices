@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Oeffentliche IDs (Google-Sheets/Drive), keine Geheimnisse"
+regexes = ['''(1V6oyZVw7-CPy8Bs5_sGl9Cg886b2T6r7FLGgp1gfBRY|1_EFW_ItawRvutiVrcNIamKTSYPFsA5XFGR1s6PctYxs|1mU8zWhR-E8_fmBcLtMh1qIwST9FibKT5UfH7oaivs0Q|1xi0ZtFxxurNu25URrhpHmfSLy8nld_SXm0KmkXxRCpQ)''']

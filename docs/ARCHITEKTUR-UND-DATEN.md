@@ -61,6 +61,8 @@ Google Apps Script (V8), Web-App "Execute as: USER_DEPLOYING", Zugriff: DOMAIN
 
 ## Dateien
 
+Alle hier genannten `.gs`- und `.html`-Dateien liegen unter `src/` (Repository-Standard, siehe `docs/gesamt/STRUKTUR-STANDARD.md`).
+
 ### Server (`.gs`)
 
 | Bereich | Dateien |
@@ -195,8 +197,9 @@ Kalender-Sync. Trigger laufen als Deploy-Konto **ohne** angemeldeten Nutzer.
 - **Lokal/CI:** `npm test` (Node ≥ 18, ohne Abhängigkeiten: Logik + UI-Konsistenz),
   `npm run test:ui` (Playwright/Chromium gegen gemocktes `google.script.run`, siehe
   `tools/build-preview.js`). Vorschau: `npm run preview` → `preview.html`.
-- **CD:** `.github/workflows/ci.yml` – nach grünem CI auf `main` `clasp push` (Dateiauswahl
-  `.claspignore`: nur `*.gs`, `*.html`, `appsscript.json`) und optional `clasp deploy`.
+- **CD:** `.github/workflows/deploy.yml` (ruft `ci.yml` auf) – nach grünem CI auf `main` `clasp push` aus `src/`
+  (`rootDir: src`, Dateiauswahl `.claspignore`: nur `*.gs`, `*.html`, `appsscript.json`) und optional `clasp deploy`
+  über `.github/actions/clasp-deploy`.
   Secrets: `CLASPRC_JSON`, `APPS_SCRIPT_ID`, optional `APPS_SCRIPT_DEPLOYMENT_ID`.
 - **In der App:** Admin → Tests (`SelfTests.gs`), nur lesend.
 - **Health:** Admin-Reiter „Health“ (`apiHealthCheck`).

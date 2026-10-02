@@ -1,0 +1,36 @@
+name: CD
+
+# Nach gruener CI auf main wird der Code (src/) per clasp ins Apps-Script-Projekt
+# geschoben und optional die Web-App-Bereitstellung aktualisiert. Gleiche
+# Deploy-Aktion wie in allen Kaercher-Translation-Repositories.
+# Laeuft nur, wenn die Secrets gesetzt sind (sonst Hinweis, kein Fehler):
+#   CLASPRC_JSON, APPS_SCRIPT_ID, optional APPS_SCRIPT_DEPLOYMENT_ID
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  deploy:
+    name: Deploy nach Apps Script
+    needs: [ci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/clasp-deploy
+        with:
+          clasprc: ${{ secrets.CLASPRC_JSON }}
+          script-id: ${{ secrets.APPS_SCRIPT_ID }}
+          deployment-id: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
+          description: CI ${{ github.sha }}

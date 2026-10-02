@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..');
+const ROOT = path.join(__dirname, '..', 'src'); // Apps-Script-Code liegt unter src/
 const STYLES = path.join(ROOT, 'Styles.html');
 const DARK_FILE = path.join(ROOT, 'DarkTheme.html');
 const BEGIN = '/* DARK-THEME:BEGIN - generiert von tools/gen-dark-theme.js, nicht von Hand aendern */';

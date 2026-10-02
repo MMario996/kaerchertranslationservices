@@ -261,6 +261,7 @@ function slugifyForPath_(text) {
   return String(text || "")
     .toLowerCase()
     .replace(/[----]/g, function (c) {
+      // eslint-disable-next-line no-dupe-keys -- Altlast: Umlaute wurden beim Sync zu "?" (siehe docs/DOKUMENTATION.md, Auffaelligkeiten)
       return { "?": "ae", "?": "oe", "?": "ue", "?": "ss" }[c];
     })
     .replace(/[^a-z0-9]+/g, "-")

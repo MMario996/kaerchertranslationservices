@@ -1,0 +1,15 @@
+{
+  "apiGetMarketingWhitelist": "mehrfach deklariert in src/AdminMarketing.gs, src/WebApp.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiAddMarketingWhitelist": "mehrfach deklariert in src/AdminMarketing.gs, src/WebApp.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiRemoveMarketingWhitelist": "mehrfach deklariert in src/AdminMarketing.gs, src/WebApp.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "isMarketingUser_": "mehrfach deklariert in src/AdminMarketing.gs, src/Config.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiSetMaintenance": "mehrfach deklariert in src/Apialiases.gs, src/Code.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiGetKecWhitelist": "mehrfach deklariert in src/Apialiases.gs, src/KecWhitelistAliases.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiAddKecWhitelist": "mehrfach deklariert in src/Apialiases.gs, src/KecWhitelistAliases.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiRemoveKecWhitelist": "mehrfach deklariert in src/Apialiases.gs, src/KecWhitelistAliases.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "findIdForEmail": "mehrfach deklariert in src/ChatToken.gs, src/ChatToken.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "fixCorruptChatToken": "mehrfach deklariert in src/ChatToken.gs, src/Code.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "onMessage": "mehrfach deklariert in src/Chatbot.gs, src/Upload.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "apiDownloadTargetFile": "mehrfach deklariert in src/DownloadTargetFile.gs, src/DownloadZip.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)",
+  "phraseApiUrlV3_": "mehrfach deklariert in src/ProjectsApi.gs, src/Upload.gs (Altlast, siehe docs/DOKUMENTATION.md – die zuletzt geladene Datei gewinnt)"
+}

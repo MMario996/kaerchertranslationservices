@@ -5,9 +5,13 @@ const path = require('path');
 const vm = require('vm');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
+// Apps-Script-Code liegt (wie in allen Repos) unter src/.
+const SRC = path.join(REPO_ROOT, 'src');
 
 function read(fileName) {
-  return fs.readFileSync(path.join(REPO_ROOT, fileName), 'utf8');
+  // App-Dateien aus src/, Repo-Dateien (.claspignore, kb-src/...) aus dem Wurzelordner
+  const base = /^(\.|kb-src\/)/.test(fileName) ? REPO_ROOT : SRC;
+  return fs.readFileSync(path.join(base, fileName), 'utf8');
 }
 
 /** Inhalt aller <script>-Bloecke einer HTML-Datei. */
@@ -65,4 +69,4 @@ function browserStubs() {
   };
 }
 
-module.exports = { REPO_ROOT, read, scriptsOf, load, browserStubs };
+module.exports = { REPO_ROOT, read, scriptsOf, load, browserStubs, SRC };

@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const read = (f) => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8');
 
 // Mock: google.script.run.withSuccessHandler(..).withFailureHandler(..).apiX(args)
 // antwortet mit window.__mock[apiX] (Wert oder Funktion); window.__calls protokolliert.

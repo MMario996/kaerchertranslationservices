@@ -1,4 +1,4 @@
-# Nur App-Dateien nach Apps Script hochladen (clasp push im CD-Job).
+# clasp laeuft mit rootDir "src": nur App-Dateien hochladen.
 **/**
 !*.gs
 !*.html

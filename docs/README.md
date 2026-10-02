@@ -11,6 +11,9 @@ Stand: aus dem Code auf `main` abgeleitet (Commit `9459502`). Bei Widersprüchen
 | [`ARCHITEKTUR-UND-DATEN.md`](ARCHITEKTUR-UND-DATEN.md) | Systemüberblick, Dateien, Sheets (Datenmodell), Script Properties, Trigger, Deploy, Tests | Immer zuerst – der Rahmen für alles andere |
 | [`API.md`](API.md) | Aufrufmodell (`google.script.run`), Authentifizierung & Rollen, alle `api*`-Endpunkte, HTTP-Einstiege, externe APIs (Phrase TMS, Phrase Strings, Google Chat, Drive, Kalender, Firebase, Gemini) | Wenn Server-Funktionen aufgerufen, geändert oder neu gebaut werden |
 | [`UI-UX.md`](UI-UX.md) | Designsystem „Kaercher Glass“, Layout, Navigation, Bildschirme, Abläufe, Zustände, Sprachen, Barrierefreiheit, UI-Regeln | Wenn an der Oberfläche gearbeitet wird |
+| [`DOKUMENTATION.md`](DOKUMENTATION.md) | Standard-Dokumentation (wie in allen Repos) mit Anhang A–E | Überblick |
+| [`ENDPOINTS.md`](ENDPOINTS.md) | alle Phrase- und sonstigen Endpunkte des Portals | Schnittstellen |
+| [`gesamt/`](gesamt/) | **Gesamtdokumentation aller zehn Repositories**: Systemlandkarte, Endpunkt-Matrix, Struktur-Standard, Doku je Anwendung | Zusammenhänge zwischen den Anwendungen |
 | [`AUFFAELLIGKEITEN.md`](AUFFAELLIGKEITEN.md) | Beim Analysieren gefundene Fehler, Namenskonflikte und Sicherheitslücken | Vor Änderungen an Berechtigungen, Downloads oder doppelt definierten Funktionen |
 
 ## Einem Modell übergeben

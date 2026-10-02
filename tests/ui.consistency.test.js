@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { REPO_ROOT, read, scriptsOf } = require('./lib/load');
+const { REPO_ROOT, SRC, read, scriptsOf } = require('./lib/load');
 
 const index = read('Index.html');
 const includes = [...index.matchAll(/<\?!= include\('(\w+)'\); \?>/g)].map((m) => m[1]);
@@ -25,7 +25,7 @@ const uiFiles = ['Index.html', ...jsFiles, ...lazyScripts, ...lazyAdminScripts, 
 test('Index.html bindet Styles und alle Js-Dateien ein, jede Datei existiert', () => {
   assert.ok(includes.includes('Styles'));
   assert.ok(jsFiles.length >= 5, 'Js-Module eingebunden');
-  includes.forEach((n) => assert.ok(fs.existsSync(path.join(REPO_ROOT, n + '.html')), n + '.html fehlt'));
+  includes.forEach((n) => assert.ok(fs.existsSync(path.join(SRC, n + '.html')), n + '.html fehlt'));
 });
 
 test('SelfTests.gs kennt alle eingebundenen und nachgeladenen Dateien', () => {
@@ -51,7 +51,7 @@ test('Alle Skripte sind syntaktisch gueltig', () => {
   [...jsFiles, ...lazyScripts, ...lazyAdminScripts, 'HomeUi.html', 'AdminScript.html', 'PivotAdminScript.html', 'TranslateUi.html'].forEach((f) => {
     assert.doesNotThrow(() => new vm.Script(scriptsOf(f), { filename: f }), f);
   });
-  fs.readdirSync(REPO_ROOT).filter((f) => f.endsWith('.gs')).forEach((f) => {
+  fs.readdirSync(SRC).filter((f) => f.endsWith('.gs')).forEach((f) => {
     assert.doesNotThrow(() => new vm.Script(read(f), { filename: f }), f);
   });
 });
@@ -141,7 +141,7 @@ test('Knowledge Base: Manifest und Artikel-Pakete passen zusammen (npm run build
   const man = JSON.parse(m[1]);
   const count = Number((read('KnowledgebaseApi.gs').match(/var KB_CHUNK_COUNT_ = (\d+);/) || [])[1]);
   assert.equal(man.chunks, count, 'KB_CHUNK_COUNT_ passt zum Manifest');
-  const files = fs.readdirSync(REPO_ROOT).filter((f) => /^KbData\d+\.html$/.test(f));
+  const files = fs.readdirSync(SRC).filter((f) => /^KbData\d+\.html$/.test(f));
   assert.equal(files.length, count, 'eine Datei je Paket');
   assert.ok(read('.claspignore').includes('!*.html'), 'Pakete werden mit clasp hochgeladen');
   const ids = new Set();
@@ -202,7 +202,7 @@ test('Nachgeladene Admin-Skripte: erlaubt, in SelfTests bekannt, Texte in ADMIN_
 });
 
 test('Kein Dateiname doppelt (Apps Script erlaubt z. B. nicht X.gs und X.html zugleich)', () => {
-  const names = fs.readdirSync(REPO_ROOT).filter((f) => /\.(gs|html)$/.test(f) && f !== 'preview.html').map((f) => f.replace(/\.(gs|html)$/, '').toLowerCase());
+  const names = fs.readdirSync(SRC).filter((f) => /\.(gs|html)$/.test(f) && f !== 'preview.html').map((f) => f.replace(/\.(gs|html)$/, '').toLowerCase());
   const dups = names.filter((n, i) => names.indexOf(n) !== i);
   assert.deepEqual(dups, [], 'doppelte Namen: ' + dups.join(', '));
 });

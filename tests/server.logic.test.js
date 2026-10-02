@@ -224,7 +224,7 @@ test('Phrase-Owner: wird fuer jeden Reiter gesetzt, Ergebnis landet im Protokoll
   assert.deepEqual(JSON.parse(patched[0][2]), { owner: { id: 42 } });
   assert.deepEqual(logged, [['anna@x.de', 'PHRASE_OWNER_SET', 'P1 -> anna@x.de']]);
   // Upload setzt den Owner nicht mehr nur fuer WOMA/CC
-  const upload = require('fs').readFileSync(require('path').join(__dirname, '..', 'Upload.gs'), 'utf8');
+  const upload = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Upload.gs'), 'utf8');
   assert.ok(!/setRealOwner/.test(upload));
   assert.ok(/phraseAssignSubmitterOwner_\(projectUid, userEmail\)/.test(upload));
 });

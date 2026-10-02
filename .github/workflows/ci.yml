@@ -1,32 +1,51 @@
-name: CI/CD
+name: CI
 
-# CI: jede Aenderung (Pull Request und main) durchlaeuft
-#   1. Logik- und Konsistenztests (npm test, ohne Abhaengigkeiten)
-#   2. Browser-Tests der echten Oberflaeche (npm run test:ui, Chromium):
-#      Start ohne JS-Fehler, Startseite nur eigene Projekte, kein gelber
-#      Schleier, klebende Kopfzeile, volle Admin-Kachelreihen, Template-Debugger
-# CD: nach gruenem CI auf main wird der Code per clasp ins Apps-Script-Projekt
-#     geschoben (und optional die Web-App-Bereitstellung aktualisiert).
-#     Laeuft nur, wenn die Secrets CLASPRC_JSON und APPS_SCRIPT_ID gesetzt sind.
-
+# Standard-Pipeline aller Kaercher-Translation-Repositories (Vorbild: Prompt Hub).
+# Jede Aenderung (Pull Request, Aufruf aus dem Deploy-Workflow, naechtlich) durchlaeuft:
+#   1. Statische Pruefungen: ESLint, Struktur (tools/check-structure.js), Zeichenkodierung
+#   2. Logik-Tests (Node 20 + 22): Syntax aller src/*.gs, gemeinsamer Namensraum, Manifest
+#   3. Browser-Tests der echten Oberflaeche (Chromium)
+#   4. Sicherheit: Secret-Scan (gitleaks) und npm audit
+#   5. Zusammenfassung im Job-Summary
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  unit:
-    name: Logik & Konsistenz (Node ${{ matrix.node }})
+  static:
+    name: Lint & Qualitaet
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: ESLint
+        run: npm run lint
+      - name: Struktur und Zeichenkodierung
+        run: npm run check
+
+  unit:
+    name: Logik-Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 22]
     steps:
@@ -39,50 +58,64 @@ jobs:
   ui:
     name: Oberflaeche (Chromium)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
 
-  deploy:
-    name: Deploy nach Apps Script
-    needs: [unit, ui]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  security:
+    name: Sicherheit
     runs-on: ubuntu-latest
-    env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
-      APPS_SCRIPT_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
-      - name: Secrets vorhanden?
-        id: gate
-        run: |
-          if [ -z "$CLASPRC_JSON" ] || [ -z "$APPS_SCRIPT_ID" ]; then
-            echo "::notice::Deploy uebersprungen - Secrets CLASPRC_JSON und APPS_SCRIPT_ID nicht gesetzt."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/checkout@v4
-        if: steps.gate.outputs.run == 'true'
-      - uses: actions/setup-node@v4
-        if: steps.gate.outputs.run == 'true'
         with:
-          node-version: 20
-      - name: clasp einrichten
-        if: steps.gate.outputs.run == 'true'
+          fetch-depth: 0
+      - name: Secret-Scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+  summary:
+    name: Zusammenfassung
+    if: always()
+    needs: [static, unit, ui, security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ergebnis
+        env:
+          R_STATIC: ${{ needs.static.result }}
+          R_UNIT: ${{ needs.unit.result }}
+          R_UI: ${{ needs.ui.result }}
+          R_SECURITY: ${{ needs.security.result }}
         run: |
-          npm install -g @google/clasp@2
-          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
-          printf '{"scriptId":"%s","rootDir":"."}' "$APPS_SCRIPT_ID" > .clasp.json
-      - name: Code hochladen (clasp push)
-        if: steps.gate.outputs.run == 'true'
-        run: clasp push --force
-      - name: Web-App-Bereitstellung aktualisieren
-        if: steps.gate.outputs.run == 'true' && env.APPS_SCRIPT_DEPLOYMENT_ID != ''
-        run: clasp deploy --deploymentId "$APPS_SCRIPT_DEPLOYMENT_ID" --description "CI ${GITHUB_SHA::7}"
+          icon() { case "$1" in success) echo "OK";; skipped) echo "übersprungen";; cancelled) echo "abgebrochen";; *) echo "FEHLER";; esac; }
+          {
+            echo "## CI"
+            echo ""
+            echo "| Prüfung | Ergebnis |"
+            echo "|---|---|"
+            echo "| Lint, Struktur, Kodierung | $(icon "$R_STATIC") |"
+            echo "| Logik-Tests (Node 20/22) | $(icon "$R_UNIT") |"
+            echo "| Oberfläche (Chromium) | $(icon "$R_UI") |"
+            echo "| Sicherheit (gitleaks, npm audit) | $(icon "$R_SECURITY") |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for r in "$R_STATIC" "$R_UNIT" "$R_UI" "$R_SECURITY"; do
+            case "$r" in success|skipped) ;; *) exit 1;; esac
+          done

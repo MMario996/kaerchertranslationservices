@@ -19,6 +19,7 @@ const { marked } = require('marked');
 
 const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'kb-src');
+const APP = path.join(ROOT, 'src'); // Apps-Script-Code
 const CHUNK_BYTES = 120000; // nach Escaping gemessen, deutlich unter den Apps-Script-Grenzen
 // Reihenfolge der Produkte in der Navigation; unbekannte Dateien folgen alphabetisch.
 const ORDER = ['Phrase-TMS', 'Phrase-Strings', 'Phrase-Orchestrator', 'Phrase-Portal', 'Phrase-Studio', 'Global'];
@@ -262,11 +263,11 @@ function build() {
   pushChunk();
 
   // Alte Pakete entfernen, neue schreiben.
-  fs.readdirSync(ROOT).filter((f) => /^KbData\d+\.html$/.test(f)).forEach((f) => fs.unlinkSync(path.join(ROOT, f)));
-  chunks.forEach((c, i) => fs.writeFileSync(path.join(ROOT, 'KbData' + (i + 1) + '.html'), safeJson(c)));
+  fs.readdirSync(APP).filter((f) => /^KbData\d+\.html$/.test(f)).forEach((f) => fs.unlinkSync(path.join(APP, f)));
+  chunks.forEach((c, i) => fs.writeFileSync(path.join(APP, 'KbData' + (i + 1) + '.html'), safeJson(c)));
   manifest.chunks = chunks.length;
 
-  const kbFile = path.join(ROOT, 'Knowledgebase.html');
+  const kbFile = path.join(APP, 'Knowledgebase.html');
   const kb = fs.readFileSync(kbFile, 'utf8');
   const re = /<!--KB_MANIFEST-->[\s\S]*?<!--\/KB_MANIFEST-->/;
   if (!re.test(kb)) throw new Error('Marker <!--KB_MANIFEST--> fehlt in Knowledgebase.html');
@@ -274,7 +275,7 @@ function build() {
   fs.writeFileSync(kbFile, kb.replace(re, () => block));
 
   // Anzahl Pakete auch serverseitig (apiKbChunk erlaubt nur 1..N).
-  const gsFile = path.join(ROOT, 'KnowledgebaseApi.gs');
+  const gsFile = path.join(APP, 'KnowledgebaseApi.gs');
   const gs = fs.readFileSync(gsFile, 'utf8').replace(/var KB_CHUNK_COUNT_ = \d+;/, 'var KB_CHUNK_COUNT_ = ' + chunks.length + ';');
   fs.writeFileSync(gsFile, gs);
 

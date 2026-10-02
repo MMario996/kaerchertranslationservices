@@ -1,34 +1,37 @@
 # kaerchertranslationservices
+
 Kärcher Translation Services – Google-Apps-Script-Web-App (Portal für Übersetzungsprojekte über Phrase TMS).
+
+> 📚 **Dokumentation:** Fachliche Doku, Datenbanken, Abläufe in [`docs/DOKUMENTATION.md`](docs/DOKUMENTATION.md) · alle Phrase- und sonstigen Endpunkte in [`docs/ENDPOINTS.md`](docs/ENDPOINTS.md) · CI/CD in [`docs/CI-CD.md`](docs/CI-CD.md) · Gesamtübersicht aller zehn Kärcher-Translation-Repositories mit Systemlandkarte: [`kaerchertranslationservices/docs/gesamt`](https://github.com/MMario996/kaerchertranslationservices/tree/main/docs/gesamt).
 
 ## Aufbau der Oberfläche
 
-`Index.html` ist nur noch das Gerüst. Styles und Skripte liegen in eigenen Dateien und werden
-serverseitig über `include()` (`WebApp.gs`) eingebunden:
+`src/Index.html` ist nur noch das Gerüst. Styles und Skripte liegen in eigenen Dateien und werden
+serverseitig über `include()` (`src/WebApp.gs`) eingebunden:
 
 | Datei | Inhalt |
 |---|---|
-| `Styles.html` | alle Styles |
-| `JsCore.html` | Globale Variablen, Dialoge, Übersetzungen (DE/EN), Start |
-| `JsForms.html` | Projektformulare, Navigation, Templates, Sprachen |
-| `JsCampus.html` | Campus/Articulate |
-| `JsNavigation.html` | Reiterwechsel, nachgeladene Bereiche (Anleitung, Admin) |
-| `JsDocumentation.html` | Dokumentation: Import und Meine Projekte |
-| `JsUpload.html` | Dateiauswahl, Drive-Picker, Absenden |
-| `JsProjects.html` | Meine Projekte, Kalender, Detailansicht, Dashboard |
-| `JsDownload.html` | Download-Dialog, Drive-Speichern, Notizen, Termin |
-| `JsMisc.html` | Vorlagen, Admin-Hilfen, Tour, Selbsttest-Anzeige |
-| `JsPersonal.html` | Einstellungen, Glocke, Tastenkürzel, Team-Ansicht, Kalender, Lader der Startseite |
+| `src/Styles.html` | alle Styles |
+| `src/JsCore.html` | Globale Variablen, Dialoge, Übersetzungen (DE/EN), Start |
+| `src/JsForms.html` | Projektformulare, Navigation, Templates, Sprachen |
+| `src/JsCampus.html` | Campus/Articulate |
+| `src/JsNavigation.html` | Reiterwechsel, nachgeladene Bereiche (Anleitung, Admin) |
+| `src/JsDocumentation.html` | Dokumentation: Import und Meine Projekte |
+| `src/JsUpload.html` | Dateiauswahl, Drive-Picker, Absenden |
+| `src/JsProjects.html` | Meine Projekte, Kalender, Detailansicht, Dashboard |
+| `src/JsDownload.html` | Download-Dialog, Drive-Speichern, Notizen, Termin |
+| `src/JsMisc.html` | Vorlagen, Admin-Hilfen, Tour, Selbsttest-Anzeige |
+| `src/JsPersonal.html` | Einstellungen, Glocke, Tastenkürzel, Team-Ansicht, Kalender, Lader der Startseite |
 
 Nachgeladen (nicht im Startdokument, das an der Apps-Script-Größengrenze liegt):
 
 | Datei | Inhalt | Server |
 |---|---|---|
-| `HomeUi.html` | Startseite: Styles + Skript (Suche/Befehle, Schnellstart, Kennzahlen, Meine Arbeit, nächste Frist, 7 Tage, Aktivitäten, Tipps) | `apiGetHomeUi()` |
-| `PrefsUi.html` | Markup des Einstellungsdialogs | `apiGetPrefsUi()` |
-| `GuideContent.html`, `AdminConsole.html`/`AdminScript.html`, `DarkTheme.html` | Anleitung, Admin, dunkler Modus | siehe `WebApp.gs`/`UserPrefs.gs` |
+| `src/HomeUi.html` | Startseite: Styles + Skript (Suche/Befehle, Schnellstart, Kennzahlen, Meine Arbeit, nächste Frist, 7 Tage, Aktivitäten, Tipps) | `apiGetHomeUi()` |
+| `src/PrefsUi.html` | Markup des Einstellungsdialogs | `apiGetPrefsUi()` |
+| `src/GuideContent.html`, `src/AdminConsole.html`/`src/AdminScript.html`, `src/DarkTheme.html` | Anleitung, Admin, dunkler Modus | siehe `src/WebApp.gs`/`src/UserPrefs.gs` |
 
-**Design:** „Kaercher Glass“ (Ende von `Styles.html`) überträgt die Prinzipien von
+**Design:** „Kaercher Glass“ (Ende von `src/Styles.html`) überträgt die Prinzipien von
 [plass-ui](https://github.com/MMario996/plass-ui) auf die Kärcher-CI: Gedrücktes ist eine getönte
 Fläche (Verlauf Gelb, Schatten in Gelb), Inhalt liegt auf klarem Glas (durchscheinend, Weichzeichner,
 weiße Haarlinie), Tiefe entsteht nur über Licht und Schatten. Nach CSS-Änderungen
@@ -37,7 +40,7 @@ weiße Haarlinie), Tiefe entsteht nur über Licht und Schatten. Nach CSS-Änderu
 **Wichtig beim Synchronisieren nach Apps Script:** alle diese Dateien müssen im Apps-Script-Projekt
 existieren. Fehlt eine, startet die Seite nicht. Der Selbsttest (Admin → Tests) prüft das.
 
-Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
+Weitere Übersetzungen (fr/es/pt/zh) liegen in `src/I18nDicts.gs`.
 
 ## Tests
 
@@ -56,7 +59,7 @@ Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
   GitHub → Settings → Secrets anlegen: `CLASPRC_JSON` (Inhalt von `~/.clasprc.json` nach
   `clasp login`), `APPS_SCRIPT_ID` (Projekteinstellungen → Script-ID), optional
   `APPS_SCRIPT_DEPLOYMENT_ID`. Ohne Secrets wird der Deploy übersprungen.
-- **In der App:** Admin → **Tests** (`SelfTests.gs`). Prüft in der echten Apps-Script-Umgebung
+- **In der App:** Admin → **Tests** (`src/SelfTests.gs`). Prüft in der echten Apps-Script-Umgebung
   Logik, Script Properties, Oberflächen-Dateien, Übersetzungen, Sheets sowie Phrase- und
   Drive-Anbindung. Nur lesend. Für Admin-Light-Nutzer über das Recht „Tests“ freigebbar.
 
@@ -70,9 +73,9 @@ Global), einbettbar in Google Sites, voll durchsuchbar. Quelle sind die Markdown
 npm ci && npm run build:kb
 ```
 
-Das Skript (`tools/build-kb.js`) schreibt das Inhaltsverzeichnis in `Knowledgebase.html` und die
+Das Skript (`tools/build-kb.js`) schreibt das Inhaltsverzeichnis in `src/Knowledgebase.html` und die
 Artikel in Pakete `KbData1.html … KbDataN.html` (je ~120 KB, ein sehr langer Artikel ggf. allein; wegen der Apps-Script-Größengrenze).
-Die Seite lädt die Pakete per `apiKbChunk(n)` (`KnowledgebaseApi.gs`) im Hintergrund nach; danach
+Die Seite lädt die Pakete per `apiKbChunk(n)` (`src/KnowledgebaseApi.gs`) im Hintergrund nach; danach
 läuft die Volltextsuche im Browser. Alle erzeugten Dateien committen – `clasp push` nimmt sie mit.
 Links auf andere Phrase-Hilfeartikel zeigen, wenn der Artikel im Export ist, in die Knowledge Base.
 
@@ -90,3 +93,25 @@ Token aus **Phrase Platform → Profil → Access tokens** (Dienst „Strings“
 IDM-Endpunkt (`https://eu.phrase.com/idm/oauth/token`, bzw. `us.` für die US-Region) gegen ein
 JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische Strings-Token
 (64 Hex-Zeichen) werden weiterhin direkt verwendet. „Verbindung prüfen“ zeigt die erkannte Art an.
+
+## Repository-Standard
+
+Alle Kärcher-Translation-Repositories sind gleich aufgebaut (Vorbild: Prompt Hub); `tools/check-structure.js` prüft das in der CI.
+
+| Pfad | Inhalt |
+|---|---|
+| `src/` | Apps-Script-Code inkl. `appsscript.json` (clasp `rootDir`) |
+| `tests/` | Node-Tests, Einstieg `tests/run-all.js`; `gas.syntax.test.js` prüft Syntax, Manifest und doppelte Namen |
+| `tools/` | `check-structure.js`, `check-encoding.js`, Build-Skripte |
+| `docs/` | `DOKUMENTATION.md`, `ENDPOINTS.md`, `CI-CD.md` |
+| `.github/` | `ci.yml`, `deploy.yml`, `actions/clasp-deploy`, Dependabot, CODEOWNERS, PR-Vorlage |
+
+```bash
+npm ci
+npm test        # Logik-Tests
+npm run lint    # ESLint
+npm run check   # Struktur, Zeichenkodierung, generierte Dateien
+npm run ci      # alles zusammen
+```
+
+Lokal deployen: `.clasp.json` mit `{"scriptId":"…","rootDir":"src"}`, dann `clasp push`.

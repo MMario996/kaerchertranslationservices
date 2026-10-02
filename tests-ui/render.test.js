@@ -184,7 +184,7 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
 });
 
 test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierung, mobil ohne Scrollen', async () => {
-  const root = path.join(__dirname, '..');
+  const root = path.join(__dirname, '..', 'src');
   const kbFile = path.join(path.dirname(file), 'kb.html');
   fs.writeFileSync(kbFile, fs.readFileSync(path.join(root, 'Knowledgebase.html'), 'utf8'));
   const chunks = {};
@@ -394,7 +394,7 @@ test('Template Manager: unsichtbare Templates finden, Mehrfach-Aktivieren, Anzei
 });
 
 test('Knowledge Base in Apps Script: Links bleiben in der Seite (kein Sprung ins leere Sandbox-Fenster)', async () => {
-  const root = path.join(__dirname, '..');
+  const root = path.join(__dirname, '..', 'src');
   const kbFile = path.join(path.dirname(file), 'kb2.html');
   fs.writeFileSync(kbFile, fs.readFileSync(path.join(root, 'Knowledgebase.html'), 'utf8'));
   const chunks = {};
