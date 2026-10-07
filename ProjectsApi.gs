@@ -114,7 +114,7 @@ function phraseGetUserByEmail_(email) {
     for (const u of users) {
       if (u.email && u.email.toLowerCase().trim() === email.toLowerCase().trim()) {
         console.log("\u2022 Phrase User gefunden: " + email + " ? userName: " + u.userName);
-        return { id: u.id, uid: u.uid, userName: u.userName };
+        return { id: u.id, uid: u.uid, userName: u.userName, firstName: u.firstName || "", lastName: u.lastName || "" };
       }
     }
     console.warn("\u26A0 Phrase User nicht gefunden für E-Mail: " + email);
@@ -703,7 +703,7 @@ function phraseCreateProjectFromTemplate_(templateUid, options) {
  * Upload main file as job (v1)
  * POST /api2/v1/projects/{projectUid}/jobs
  */
-function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptional) {
+function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptional, opts) {
   const mem = {
     targetLangs: Array.isArray(targetLangs) ? targetLangs : String(targetLangs || "").split(",").map(s => s.trim()).filter(Boolean),
     // Ohne dieses Flag ignoriert Phrase die im Projekt/Template hinterlegten
@@ -714,6 +714,12 @@ function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptiona
     useProjectFileImportSettings: true
   };
   if (dueIsoOptional) mem.due = dueIsoOptional;
+  // Gespeicherte Import-Settings (z.B. KeC-Spalten fuer multilinguale Excel-Dateien,
+  // KecSettings.gs) - laut Phrase mutually exclusive mit useProjectFileImportSettings.
+  if (opts && opts.importSettingsUid) {
+    delete mem.useProjectFileImportSettings;
+    mem.importSettings = { uid: opts.importSettingsUid };
+  }
 
   const url = phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/jobs");
 

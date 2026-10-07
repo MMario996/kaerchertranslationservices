@@ -1,17 +1,18 @@
 <script>
 // JsUpload.html - eingebunden in Index.html via include() (WebApp.gs)
 
-/** KeC: Unterreiter "Import" (Formular) / "Debugger". */
+/** KeC: Unterreiter "Import" (Formular) / "Debugger" / "Einstellungen" (KecSettingsUi.html). */
 function switchKecSubtab(suffix, name) {
-  const isImport = name !== 'debug';
   const imp = document.getElementById('kecsub-import' + suffix);
-  const dbg = document.getElementById('kecsub-debug' + suffix);
-  if (!imp || !dbg) return;
-  imp.style.display = isImport ? 'block' : 'none';
-  dbg.style.display = isImport ? 'none' : 'block';
-  document.getElementById('kecsubBtn-import' + suffix).classList.toggle('active', isImport);
-  document.getElementById('kecsubBtn-debug' + suffix).classList.toggle('active', !isImport);
-  if (!isImport) { const inp = document.getElementById('kecDebugInput' + suffix); if (inp) inp.focus(); }
+  if (!imp) return;
+  ['import', 'debug', 'settings'].forEach(n => {
+    const pane = document.getElementById('kecsub-' + n + suffix);
+    const btn = document.getElementById('kecsubBtn-' + n + suffix);
+    if (pane) pane.style.display = n === name ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', n === name);
+  });
+  if (name === 'debug') { const inp = document.getElementById('kecDebugInput' + suffix); if (inp) inp.focus(); }
+  if (name === 'settings') ensureScript_('KecSettingsUi', () => kecSettingsRender_(suffix));
 }
 
 

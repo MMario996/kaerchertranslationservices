@@ -1075,6 +1075,7 @@
     <div class="docsub-nav">
       <button type="button" class="docsub-btn active" id="kecsubBtn-import_{SUFFIX}" onclick="switchKecSubtab('_{SUFFIX}', 'import')"><span class="material-icons-outlined">upload_file</span> <span data-i18n="ix_72d6d7a">Import</span></button>
       <button type="button" class="docsub-btn" id="kecsubBtn-debug_{SUFFIX}" onclick="switchKecSubtab('_{SUFFIX}', 'debug')"><span class="material-icons-outlined">bug_report</span> <span data-i18n="ix_b94d8a0">Debugger</span></button>
+      <button type="button" class="docsub-btn" id="kecsubBtn-settings_{SUFFIX}" onclick="switchKecSubtab('_{SUFFIX}', 'settings')"><span class="material-icons-outlined">tune</span> <span data-i18n="kec_settings_tab">Settings</span></button>
     </div>
     <div id="kecsub-import_{SUFFIX}">
       <form id="projectForm_{SUFFIX}">
@@ -1133,6 +1134,7 @@
             <div class="form-row">
               <label data-i18n="lbl_projectname">Project Name <span class="required">*</span></label>
               <input type="text" id="projectName_{SUFFIX}" data-i18n-placeholder="ph_projectname" placeholder="Auto-filled from filename..." required>
+              <div id="kecNameHint_{SUFFIX}" class="kec-name-hint" hidden></div>
             </div>
             
             <div class="form-row" style="display:flex; gap:20px;">
@@ -1234,6 +1236,8 @@
         <div id="kecDebugPanel_{SUFFIX}" class="art-panel" style="display:none;"></div>
       </div>
     </div>
+
+    <div id="kecsub-settings_{SUFFIX}" style="display:none;"></div>
 
   </div>
 </template>

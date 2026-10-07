@@ -339,10 +339,22 @@
           }
           log += '\u2022 Gate 3-5: Metadaten korrekt<br>';
 
+          if (r.bufferOk === false) {
+            panelEl.style.background = '#fff3f3';
+            panelEl.style.border = '1px solid #ffcdd2';
+            log += '<span style="color:#d93025;">\u2022 Gate 6: ' + escapeHtml(tr_('kec_dbg_buf_fail', 'Buffer expired – the project is older than your buffer allows.')) +
+              ' (' + escapeHtml(String(r.details.bufferHours)) + ' h, ' + escapeHtml(tr_('kec_buf_until', 'upload until')) + ' ' +
+              escapeHtml(new Date(r.details.bufferUntil).toLocaleString(currentLang)) + ')</span>';
+            panelEl.innerHTML = log;
+            return;
+          }
+          log += '\u2022 Gate 6: ' + escapeHtml(tr_('kec_dbg_buf_ok', 'Within buffer')) + ' (' + escapeHtml(String(r.details.bufferHours)) + ' h' +
+            (r.details.bufferUntil ? ', ' + escapeHtml(tr_('kec_buf_until', 'upload until')) + ' ' + escapeHtml(new Date(r.details.bufferUntil).toLocaleString(currentLang)) : '') + ')<br>';
+
           if (!r.workflowOk) {
             panelEl.style.background = '#fff3f3';
             panelEl.style.border = '1px solid #ffcdd2';
-            log += ('<span style="color:#d93025;">' + tr_('jx_b5cfc37', '• Gate 6: Workflow blockiert – ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.') + '</span>');
+            log += ('<span style="color:#d93025;">' + tr_('jx_b5cfc37', '• Gate 7: Workflow blockiert – ab Schritt 2 ist ein Job bereits ACCEPTED/COMPLETED.') + '</span>');
             panelEl.innerHTML = log;
             return;
           }

@@ -1,0 +1,386 @@
+<!-- KecSettingsUi.html - Unterreiter "Einstellungen" im Reiter KeC Projects.
+     Nachgeladen per ensureScript_('KecSettingsUi') (apiGetLazyScript, WebApp.gs),
+     damit das Startdokument nicht waechst. Server: KecSettings.gs. -->
+<script>
+const kecSet_ = { state: 0, cbs: [], saved: null, options: null, draft: null, unlocked: false, suffix: '' };
+
+(function kecSettingsCss_() {
+  if (document.getElementById('kecSettingsCss')) return;
+  const st = document.createElement('style');
+  st.id = 'kecSettingsCss';
+  st.textContent = [
+    '.kecset-wrap { display:grid; gap:20px; max-width:900px; }',
+    '.kecset-wrap .card { margin:0; }',
+    '.kecset-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }',
+    '.kecset-head .section-title { margin:0; border:none; padding:0; }',
+    '.kecset-hint { font-size:13px; color:#666; line-height:1.5; margin:6px 0 16px; }',
+    '.kecset-parts { display:grid; gap:6px; margin-bottom:16px; }',
+    '.kecset-part { display:flex; align-items:center; gap:10px; padding:8px 12px; border:1px solid rgba(0,0,0,.08); background:rgba(0,0,0,.02); }',
+    '.kecset-part label { flex:1; margin:0; display:flex; align-items:center; gap:10px; font-weight:600; text-transform:none; letter-spacing:0; cursor:pointer; }',
+    '.kecset-part input[type=checkbox] { width:18px; height:18px; margin:0; }',
+    '.kecset-part small { color:#888; font-weight:400; }',
+    '.kecset-mv { background:none; border:1px solid rgba(0,0,0,.15); width:30px; height:30px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }',
+    '.kecset-mv:disabled { opacity:.35; cursor:default; }',
+    '.kecset-mv .material-icons-outlined { font-size:18px; }',
+    '.kecset-row { display:flex; gap:16px; flex-wrap:wrap; }',
+    '.kecset-row > div { flex:1; min-width:180px; }',
+    '.kecset-row select, .kecset-row input, .kecset-tc input { width:100%; height:44px; box-sizing:border-box; padding-top:0; padding-bottom:0; line-height:normal; }',
+    '.kecset-preview { margin-top:14px; padding:10px 14px; border-left:4px solid var(--primary-yellow); background:rgba(0,0,0,.03); font-family:monospace; font-size:13px; word-break:break-all; }',
+    '.kecset-tc { display:grid; grid-template-columns:1fr 110px 40px; gap:8px; align-items:center; margin-bottom:8px; }',
+    '.kecset-tc-head { font-size:11px; font-weight:700; text-transform:uppercase; color:#888; }',
+    '.kecset-locked input, .kecset-locked select { background:rgba(0,0,0,.04); }',
+    '.kecset-lock { display:inline-flex; align-items:center; gap:6px; }',
+    '.kecset-badge { font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; background:rgba(0,0,0,.06); }',
+    '.kecset-badge.open { background:var(--primary-yellow); color:#000; }',
+    '.kecset-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-bottom:40px; }',
+    '.kecset-actions .btn { flex:0 0 auto; }',
+    '.kec-name-hint { font-size:12px; color:#666; margin-top:6px; line-height:1.4; }',
+    '.kec-name-hint strong { font-family:monospace; font-weight:600; }'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+const KEC_PART_LABELS_ = {
+  date:     ['kec_part_date', 'Date', 'yyyy-mm-dd'],
+  time:     ['kec_part_time', 'Time', 'hh:mm'],
+  owner:    ['kec_part_owner', 'Project owner', 'kec_part_owner_hint'],
+  creator:  ['kec_part_creator', 'Project creator', 'kec_part_creator_hint'],
+  source:   ['kec_part_source', 'Source language', ''],
+  targets:  ['kec_part_targets', 'Target languages', ''],
+  template: ['kec_part_template', 'Template', '']
+};
+
+function kecSetEsc_(v) { return escapeHtml(String(v == null ? '' : v)); }
+function kecSetClone_(o) { return JSON.parse(JSON.stringify(o)); }
+
+/** Laedt die Einstellungen einmal vom Server; weitere Aufrufe warten mit. */
+function kecSettingsLoad_(cb) {
+  if (kecSet_.state === 2) { if (cb) cb(); return; }
+  if (cb) kecSet_.cbs.push(cb);
+  if (kecSet_.state === 1) return;
+  kecSet_.state = 1;
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) {
+      kecSet_.state = 0;
+      kecSet_.cbs = [];
+      showCustomAlert(kecSetEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error'));
+      return;
+    }
+    kecSet_.saved = res.settings;
+    kecSet_.options = res.options;
+    kecSet_.state = 2;
+    kecSet_.cbs.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } });
+  }).withFailureHandler(err => {
+    kecSet_.state = 0;
+    kecSet_.cbs = [];
+    showCustomAlert(kecSetEsc_(err && err.message ? err.message : String(err)), tr_('jx_902b0d5', 'Error'));
+  }).apiGetKecUserSettings();
+}
+
+/** Hinweis am Projektnamen bei jeder Eingabe aktualisieren (nur einmal registrieren). */
+function kecSettingsWatchName_(suffix) {
+  const inp = document.getElementById('projectName' + suffix);
+  if (inp && !inp.dataset.kecHint) {
+    inp.dataset.kecHint = '1';
+    inp.addEventListener('input', () => kecSettingsUpdateHint_(suffix));
+  }
+}
+
+/** Beim Aufbau des KeC-Formulars: Einstellungen holen, Hinweis am Projektnamen zeigen. */
+function kecSettingsInit_(suffix) {
+  kecSet_.suffix = suffix;
+  kecSettingsWatchName_(suffix);
+  kecSettingsLoad_(() => kecSettingsUpdateHint_(suffix));
+}
+
+/** Beispielwerte fuer die Vorschau (die echten setzt der Server beim Anlegen). */
+function kecSettingsSample_() {
+  const now = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return {
+    date: now.getFullYear() + '-' + p(now.getMonth() + 1) + '-' + p(now.getDate()),
+    time: p(now.getHours()) + ':' + p(now.getMinutes()),
+    owner: 'Max Mustermann',
+    creator: 'mmustermann',
+    source: 'en',
+    targets: 'de_de,fr_fr',
+    template: 'KeC Marketing'
+  };
+}
+
+/** Gleiche Regel wie kecBuildProjectName_ (KecSettings.gs). */
+function kecSettingsBuildName_(base, s) {
+  const sample = kecSettingsSample_();
+  const extras = (s.nameParts || []).map(k => sample[k] || '').filter(Boolean);
+  base = String(base || '').trim();
+  if (!extras.length) return base;
+  const add = extras.join(s.nameSep);
+  if (!base) return add;
+  return s.namePos === 'prefix' ? add + s.nameSep + base : base + s.nameSep + add;
+}
+
+function kecSettingsUpdateHint_(suffix) {
+  const el = document.getElementById('kecNameHint' + suffix);
+  if (!el || !kecSet_.saved) return;
+  const s = kecSet_.saved;
+  if (!s.nameParts.length) { el.hidden = true; return; }
+  const inp = document.getElementById('projectName' + suffix);
+  const base = (inp && inp.value.trim()) || tr_('kec_name_base', 'Project name');
+  el.hidden = false;
+  el.innerHTML = '<span class="material-icons-outlined" style="font-size:14px;vertical-align:-2px;">auto_fix_high</span> ' +
+    kecSetEsc_(tr_('kec_name_hint', 'New projects are created as:')) + ' <strong>' + kecSetEsc_(kecSettingsBuildName_(base, s)) + '</strong>';
+}
+
+// --- Darstellung --------------------------------------------------------------
+
+function kecSettingsRender_(suffix) {
+  kecSet_.suffix = suffix;
+  // Wer "Einstellungen" vor dem verzoegerten kecSettingsInit_ oeffnet, bekommt den Hinweis trotzdem.
+  kecSettingsWatchName_(suffix);
+  const root = document.getElementById('kecsub-settings' + suffix);
+  if (!root) return;
+  if (kecSet_.state !== 2) {
+    root.innerHTML = '<div class="card"><div class="kecset-hint">' + kecSetEsc_(tr_('kec_loading', 'Loading settings...')) + '</div></div>';
+    kecSettingsLoad_(() => kecSettingsRender_(suffix));
+    return;
+  }
+  if (!kecSet_.draft) kecSet_.draft = kecSetClone_(kecSet_.saved);
+  const d = kecSet_.draft;
+  const opts = kecSet_.options;
+  const locked = !kecSet_.unlocked;
+  const dis = locked ? ' disabled' : '';
+
+  // Gewaehlte Zusaetze in ihrer Reihenfolge oben, danach die uebrigen.
+  const order = d.nameParts.concat(opts.nameParts.filter(k => d.nameParts.indexOf(k) < 0));
+  const partsHtml = order.map(k => {
+    const on = d.nameParts.indexOf(k) >= 0;
+    const idx = d.nameParts.indexOf(k);
+    const lab = KEC_PART_LABELS_[k] || [k, k, ''];
+    const hint = lab[2] ? (lab[2].indexOf('kec_') === 0 ? tr_(lab[2], '') : lab[2]) : '';
+    return '<div class="kecset-part">' +
+      '<label><input type="checkbox"' + (on ? ' checked' : '') + ' onchange="kecSettingsTogglePart_(\'' + k + '\', this.checked)"> ' +
+      kecSetEsc_(tr_(lab[0], lab[1])) + (hint ? ' <small>' + kecSetEsc_(hint) + '</small>' : '') + '</label>' +
+      '<button type="button" class="kecset-mv" title="' + kecSetEsc_(tr_('kec_up', 'Up')) + '"' + (on && idx > 0 ? '' : ' disabled') +
+      ' onclick="kecSettingsMovePart_(\'' + k + '\', -1)"><span class="material-icons-outlined">arrow_upward</span></button>' +
+      '<button type="button" class="kecset-mv" title="' + kecSetEsc_(tr_('kec_down', 'Down')) + '"' + (on && idx < d.nameParts.length - 1 ? '' : ' disabled') +
+      ' onclick="kecSettingsMovePart_(\'' + k + '\', 1)"><span class="material-icons-outlined">arrow_downward</span></button>' +
+      '</div>';
+  }).join('');
+
+  const sepLabels = { ' - ': '" - "  (Name - 2026-10-07)', '_': '"_"  (Name_2026-10-07)', ' ': '" "  (Name 2026-10-07)' };
+  const sepHtml = opts.nameSeps.map(s => '<option value="' + kecSetEsc_(s) + '"' + (d.nameSep === s ? ' selected' : '') + '>' + kecSetEsc_(sepLabels[s] || s) + '</option>').join('');
+
+  const tcRows = Object.keys(d.xlsx.targetColumns);
+  const tcHtml = (tcRows.length ? tcRows : ['']).map((lang, i) =>
+    '<div class="kecset-tc">' +
+      '<input type="text" data-tc-lang="' + i + '" value="' + kecSetEsc_(lang) + '" placeholder="de_de"' + dis + ' oninput="kecSettingsReadTargets_()">' +
+      '<input type="text" data-tc-col="' + i + '" value="' + kecSetEsc_(lang ? d.xlsx.targetColumns[lang] : '') + '" placeholder="B" maxlength="3"' + dis + ' oninput="kecSettingsReadTargets_()">' +
+      '<button type="button" class="kecset-mv" title="' + kecSetEsc_(tr_('kec_remove', 'Remove')) + '"' + dis + ' onclick="kecSettingsRemoveTarget_(' + i + ')"><span class="material-icons-outlined">close</span></button>' +
+    '</div>').join('');
+
+  const bufHtml = opts.bufferHours.map(h => '<option value="' + h + '"' + (d.bufferHours === h ? ' selected' : '') + '>' + h + ' h</option>').join('');
+
+  root.innerHTML =
+    '<div class="kecset-wrap">' +
+
+    // 1) Projektname
+    '<div class="card" style="border-top:5px solid var(--primary-yellow);">' +
+      '<div class="kecset-head"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">drive_file_rename_outline</span>' +
+        kecSetEsc_(tr_('kec_name_title', 'Project name additions')) + '</div></div>' +
+      '<div class="kecset-hint">' + kecSetEsc_(tr_('kec_name_desc', 'Selected values are added to the name of every new KeC project, in the order shown. Use the arrows to change the order.')) + '</div>' +
+      '<div class="kecset-parts">' + partsHtml + '</div>' +
+      '<div class="kecset-row">' +
+        '<div><label>' + kecSetEsc_(tr_('kec_name_sep', 'Separator')) + '</label><select onchange="kecSet_.draft.nameSep=this.value;kecSettingsRefreshPreview_()">' + sepHtml + '</select></div>' +
+        '<div><label>' + kecSetEsc_(tr_('kec_name_pos', 'Position')) + '</label><select onchange="kecSet_.draft.namePos=this.value;kecSettingsRefreshPreview_()">' +
+          '<option value="suffix"' + (d.namePos !== 'prefix' ? ' selected' : '') + '>' + kecSetEsc_(tr_('kec_name_pos_suffix', 'After the name')) + '</option>' +
+          '<option value="prefix"' + (d.namePos === 'prefix' ? ' selected' : '') + '>' + kecSetEsc_(tr_('kec_name_pos_prefix', 'Before the name')) + '</option>' +
+        '</select></div>' +
+      '</div>' +
+      '<div class="kecset-preview" id="kecSetPreview"></div>' +
+    '</div>' +
+
+    // 2) Multilinguale Excel-Dateien (gesperrt)
+    '<div class="card' + (locked ? ' kecset-locked' : '') + '" style="border-top:5px solid #9c27b0;">' +
+      '<div class="kecset-head"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">table_view</span>' +
+        kecSetEsc_(tr_('kec_xlsx_title', 'Multilingual Excel files')) + '</div>' +
+        '<div class="kecset-lock"><span class="kecset-badge' + (locked ? '' : ' open') + '">' + kecSetEsc_(locked ? tr_('kec_locked', 'Locked') : tr_('kec_unlocked', 'Unlocked')) + '</span>' +
+        '<button type="button" class="btn btn-secondary" style="width:auto;height:36px;padding:0 14px;font-size:12px;" onclick="kecSettingsToggleLock_()">' +
+          '<span class="material-icons-outlined" style="font-size:18px;">' + (locked ? 'lock_open' : 'lock') + '</span> ' +
+          kecSetEsc_(locked ? tr_('kec_unlock', 'Unlock') : tr_('kec_lock', 'Lock')) + '</button></div>' +
+      '</div>' +
+      '<div class="kecset-hint">' + kecSetEsc_(tr_('kec_xlsx_desc', 'Applies to .xlsx/.xls main files uploaded in this tab (new and linked projects). Changes have to be confirmed before they are saved.')) + '</div>' +
+      '<div class="form-row"><label style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;">' +
+        '<input type="checkbox" style="width:18px;height:18px;margin:0;"' + (d.xlsx.enabled ? ' checked' : '') + dis + ' onchange="kecSet_.draft.xlsx.enabled=this.checked"> ' +
+        kecSetEsc_(tr_('kec_xlsx_enabled', 'Use these columns for multilingual Excel files')) + '</label></div>' +
+      '<div class="kecset-row">' +
+        '<div><label>' + kecSetEsc_(tr_('kec_xlsx_source', 'Source language column')) + ' <span class="required">*</span></label>' +
+          '<input type="text" maxlength="3" value="' + kecSetEsc_(d.xlsx.sourceColumn) + '" placeholder="A"' + dis + ' oninput="kecSet_.draft.xlsx.sourceColumn=this.value.toUpperCase()"></div>' +
+        '<div><label>' + kecSetEsc_(tr_('kec_xlsx_context', 'Context column (optional)')) + '</label>' +
+          '<input type="text" maxlength="3" value="' + kecSetEsc_(d.xlsx.contextColumn) + '" placeholder="-"' + dis + ' oninput="kecSet_.draft.xlsx.contextColumn=this.value.toUpperCase()"></div>' +
+        '<div><label>' + kecSetEsc_(tr_('kec_xlsx_start', 'Translate from row')) + '</label>' +
+          '<input type="number" min="1" step="1" value="' + kecSetEsc_(d.xlsx.startRow) + '"' + dis + ' oninput="kecSet_.draft.xlsx.startRow=parseInt(this.value,10)||1"></div>' +
+      '</div>' +
+      '<div class="form-row" style="margin-top:16px;"><label>' + kecSetEsc_(tr_('kec_xlsx_targets', 'Target language columns')) + '</label>' +
+        '<div class="kecset-tc kecset-tc-head"><span>' + kecSetEsc_(tr_('kec_xlsx_lang', 'Phrase language code')) + '</span><span>' + kecSetEsc_(tr_('kec_xlsx_col', 'Column')) + '</span><span></span></div>' +
+        '<div id="kecSetTargets">' + tcHtml + '</div>' +
+        '<button type="button" class="btn btn-secondary" style="width:auto;height:36px;padding:0 14px;font-size:12px;"' + dis + ' onclick="kecSettingsAddTarget_()">' +
+          '<span class="material-icons-outlined" style="font-size:18px;">add</span> ' + kecSetEsc_(tr_('kec_xlsx_add', 'Add target language')) + '</button>' +
+      '</div>' +
+    '</div>' +
+
+    // 3) Puffer verlinkte Projekte
+    '<div class="card" style="border-top:5px solid #607d8b;">' +
+      '<div class="kecset-head"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">schedule</span>' +
+        kecSetEsc_(tr_('kec_buf_title', 'Upload buffer for linked projects')) + '</div></div>' +
+      '<div class="kecset-hint">' + kecSetEsc_(tr_('kec_buf_desc', 'Files can be added to an existing project ("Add to Existing Open Project") only up to this many hours after the project was created in Phrase (creation date and time).')) + '</div>' +
+      '<div class="kecset-row"><div style="max-width:220px;"><label>' + kecSetEsc_(tr_('kec_buf_label', 'Buffer')) + '</label>' +
+        '<select onchange="kecSet_.draft.bufferHours=Number(this.value)">' + bufHtml + '</select></div></div>' +
+    '</div>' +
+
+    '<div class="kecset-actions">' +
+      '<button type="button" class="btn btn-secondary" style="width:auto;padding:0 24px;" onclick="kecSettingsDiscard_()">' + kecSetEsc_(tr_('kec_discard', 'Discard changes')) + '</button>' +
+      '<button type="button" class="btn btn-primary" style="width:auto;padding:0 36px;" onclick="kecSettingsSave_()">' + kecSetEsc_(tr_('kec_save', 'Save settings')) + '</button>' +
+    '</div>' +
+    '</div>';
+  kecSettingsRefreshPreview_();
+}
+
+function kecSettingsRefreshPreview_() {
+  const el = document.getElementById('kecSetPreview');
+  if (!el || !kecSet_.draft) return;
+  const inp = document.getElementById('projectName' + kecSet_.suffix);
+  const base = (inp && inp.value.trim()) || tr_('kec_name_base', 'Project name');
+  el.textContent = tr_('kec_preview', 'Preview:') + ' ' + kecSettingsBuildName_(base, kecSet_.draft);
+}
+
+// --- Bearbeiten -----------------------------------------------------------------
+
+function kecSettingsTogglePart_(key, on) {
+  const parts = kecSet_.draft.nameParts.filter(k => k !== key);
+  if (on) parts.push(key);
+  kecSet_.draft.nameParts = parts;
+  kecSettingsRender_(kecSet_.suffix);
+}
+
+function kecSettingsMovePart_(key, dir) {
+  const parts = kecSet_.draft.nameParts;
+  const i = parts.indexOf(key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= parts.length) return;
+  parts[i] = parts[j];
+  parts[j] = key;
+  kecSettingsRender_(kecSet_.suffix);
+}
+
+/** Liest die Zielsprachen-Zeilen aus dem Formular in den Entwurf. */
+function kecSettingsReadTargets_() {
+  const out = {};
+  document.querySelectorAll('#kecSetTargets [data-tc-lang]').forEach(inp => {
+    const i = inp.getAttribute('data-tc-lang');
+    const col = document.querySelector('#kecSetTargets [data-tc-col="' + i + '"]');
+    const lang = inp.value.trim().toLowerCase().replace(/-/g, '_');
+    if (lang) out[lang] = col ? col.value.trim().toUpperCase() : '';
+  });
+  kecSet_.draft.xlsx.targetColumns = out;
+  return out;
+}
+
+function kecSettingsAddTarget_() {
+  kecSettingsReadTargets_();
+  const host = document.getElementById('kecSetTargets');
+  if (!host) return;
+  const i = host.querySelectorAll('[data-tc-lang]').length + 1000;
+  const row = document.createElement('div');
+  row.className = 'kecset-tc';
+  row.innerHTML = '<input type="text" data-tc-lang="' + i + '" placeholder="de_de" oninput="kecSettingsReadTargets_()">' +
+    '<input type="text" data-tc-col="' + i + '" placeholder="B" maxlength="3" oninput="kecSettingsReadTargets_()">' +
+    '<button type="button" class="kecset-mv" onclick="this.parentNode.remove();kecSettingsReadTargets_()"><span class="material-icons-outlined">close</span></button>';
+  host.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function kecSettingsRemoveTarget_(i) {
+  const inp = document.querySelector('#kecSetTargets [data-tc-lang="' + i + '"]');
+  if (inp && inp.parentNode) inp.parentNode.remove();
+  kecSettingsReadTargets_();
+}
+
+function kecSettingsToggleLock_() {
+  if (kecSet_.unlocked) {
+    kecSettingsReadTargets_();
+    kecSet_.unlocked = false;
+    kecSettingsRender_(kecSet_.suffix);
+    return;
+  }
+  showCustomConfirm(tr_('kec_unlock_confirm', 'Unlock the Excel column settings for editing? Wrong columns lead to wrong source or target texts in Phrase.'), () => {
+    kecSet_.unlocked = true;
+    kecSettingsRender_(kecSet_.suffix);
+  }, tr_('kec_unlock', 'Unlock'));
+}
+
+function kecSettingsDiscard_() {
+  kecSet_.draft = null;
+  kecSet_.unlocked = false;
+  kecSettingsRender_(kecSet_.suffix);
+}
+
+/** Lesbare Liste der Aenderungen an den Excel-Einstellungen (fuer die Bestaetigung). */
+function kecSettingsXlsxChanges_(a, b) {
+  const out = [];
+  const yn = v => v ? tr_('kec_on', 'on') : tr_('kec_off', 'off');
+  if (a.enabled !== b.enabled) out.push(tr_('kec_xlsx_enabled', 'Use these columns for multilingual Excel files') + ': ' + yn(a.enabled) + ' → ' + yn(b.enabled));
+  if (a.sourceColumn !== b.sourceColumn) out.push(tr_('kec_xlsx_source', 'Source language column') + ': ' + a.sourceColumn + ' → ' + b.sourceColumn);
+  if (a.contextColumn !== b.contextColumn) out.push(tr_('kec_xlsx_context', 'Context column (optional)') + ': ' + (a.contextColumn || '-') + ' → ' + (b.contextColumn || '-'));
+  if (a.startRow !== b.startRow) out.push(tr_('kec_xlsx_start', 'Translate from row') + ': ' + a.startRow + ' → ' + b.startRow);
+  const langs = Object.keys(Object.assign({}, a.targetColumns, b.targetColumns)).sort();
+  langs.forEach(l => {
+    const x = a.targetColumns[l] || '-';
+    const y = b.targetColumns[l] || '-';
+    if (x !== y) out.push(l + ': ' + x + ' → ' + y);
+  });
+  return out;
+}
+
+/** Prueft den Entwurf; liefert eine Fehlermeldung oder ''. */
+function kecSettingsValidate_(d) {
+  const colRe = /^[A-Z]{1,3}$/;
+  const x = d.xlsx;
+  if (!colRe.test(x.sourceColumn || '')) return tr_('kec_err_source', 'Please enter a valid source column (e.g. A).');
+  if (x.contextColumn && !colRe.test(x.contextColumn)) return tr_('kec_err_context', 'The context column must be a column letter (e.g. D) or empty.');
+  if (!(x.startRow >= 1)) return tr_('kec_err_row', 'The start row must be 1 or higher.');
+  const used = [x.sourceColumn].concat(x.contextColumn ? [x.contextColumn] : []);
+  for (const lang of Object.keys(x.targetColumns)) {
+    const col = x.targetColumns[lang];
+    if (!/^[a-z]{2,3}(_[a-z0-9]{2,8})*$/.test(lang)) return tr_('kec_err_lang', 'Invalid language code:') + ' ' + lang;
+    if (!colRe.test(col)) return tr_('kec_err_col', 'Invalid column for') + ' ' + lang;
+    if (used.indexOf(col) >= 0) return tr_('kec_err_dup', 'Column used more than once:') + ' ' + col;
+    used.push(col);
+  }
+  if (x.enabled && !Object.keys(x.targetColumns).length) return tr_('kec_err_targets', 'Please add at least one target language column.');
+  return '';
+}
+
+function kecSettingsSave_() {
+  if (!kecSet_.draft) return;
+  if (kecSet_.unlocked) kecSettingsReadTargets_();
+  const d = kecSet_.draft;
+  const err = kecSettingsValidate_(d);
+  if (err) { showCustomAlert(kecSetEsc_(err), tr_('jx_902b0d5', 'Error')); return; }
+  const changes = kecSettingsXlsxChanges_(kecSet_.saved.xlsx, d.xlsx);
+  const doSave = () => {
+    google.script.run.withSuccessHandler(res => {
+      if (!res || !res.success) { showCustomAlert(kecSetEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+      kecSet_.saved = res.settings;
+      kecSet_.draft = null;
+      kecSet_.unlocked = false;
+      kecSettingsRender_(kecSet_.suffix);
+      kecSettingsUpdateHint_(kecSet_.suffix);
+      showToast_(tr_('kec_saved', 'KeC settings saved.'), 'ok');
+    }).withFailureHandler(e => {
+      showCustomAlert(kecSetEsc_(e && e.message ? e.message : String(e)), tr_('jx_902b0d5', 'Error'));
+    }).apiSaveKecUserSettings(d);
+  };
+  if (!changes.length) { doSave(); return; }
+  showCustomConfirm(tr_('kec_confirm_changes', 'Save these changes to the Excel column settings?') + '\n\n• ' + changes.join('\n• '), doSave, tr_('kec_confirm_title', 'Confirm changes'));
+}
+</script>
