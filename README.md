@@ -42,7 +42,7 @@ Weitere Übersetzungen (fr/es/pt/zh) liegen in `I18nDicts.gs`.
 
 ## Tests
 
-- **Lokal / GitHub:** `npm test` (Node ≥ 18, keine Abhängigkeiten). Prüft die Logik (Status,
+- **Lokal / GitHub:** `npm ci && npm test` (Node ≥ 18; `marked` für den Knowledge-Base-Test). Prüft die Logik (Status,
   Archiv, Fristen, Kalender, Download-Auswahl, Notizen, Dateinamen) und die Konsistenz der
   Oberfläche (alle eingebundenen Dateien vorhanden, jeder Button ruft eine existierende Funktion
   auf, jeder Übersetzungsschlüssel existiert).

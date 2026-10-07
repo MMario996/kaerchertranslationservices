@@ -1,7 +1,7 @@
 name: CI/CD
 
 # CI: jede Aenderung (Pull Request und main) durchlaeuft
-#   1. Logik- und Konsistenztests (npm test, ohne Abhaengigkeiten)
+#   1. Logik- und Konsistenztests (npm test)
 #   2. Browser-Tests der echten Oberflaeche (npm run test:ui, Chromium):
 #      Start ohne JS-Fehler, Startseite nur eigene Projekte, kein gelber
 #      Schleier, klebende Kopfzeile, volle Admin-Kachelreihen, Template-Debugger
@@ -34,6 +34,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
+      # tests/server.logic.test.js prueft tools/build-kb.js, das "marked" braucht.
+      - run: npm ci
       - run: npm test
 
   ui:

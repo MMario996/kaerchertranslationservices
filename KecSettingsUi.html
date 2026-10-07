@@ -77,14 +77,19 @@ function kecSettingsLoad_(cb) {
   }).apiGetKecUserSettings();
 }
 
-/** Beim Aufbau des KeC-Formulars: Einstellungen holen, Hinweis am Projektnamen zeigen. */
-function kecSettingsInit_(suffix) {
-  kecSet_.suffix = suffix;
+/** Hinweis am Projektnamen bei jeder Eingabe aktualisieren (nur einmal registrieren). */
+function kecSettingsWatchName_(suffix) {
   const inp = document.getElementById('projectName' + suffix);
   if (inp && !inp.dataset.kecHint) {
     inp.dataset.kecHint = '1';
     inp.addEventListener('input', () => kecSettingsUpdateHint_(suffix));
   }
+}
+
+/** Beim Aufbau des KeC-Formulars: Einstellungen holen, Hinweis am Projektnamen zeigen. */
+function kecSettingsInit_(suffix) {
+  kecSet_.suffix = suffix;
+  kecSettingsWatchName_(suffix);
   kecSettingsLoad_(() => kecSettingsUpdateHint_(suffix));
 }
 
@@ -130,6 +135,8 @@ function kecSettingsUpdateHint_(suffix) {
 
 function kecSettingsRender_(suffix) {
   kecSet_.suffix = suffix;
+  // Wer "Einstellungen" vor dem verzoegerten kecSettingsInit_ oeffnet, bekommt den Hinweis trotzdem.
+  kecSettingsWatchName_(suffix);
   const root = document.getElementById('kecsub-settings' + suffix);
   if (!root) return;
   if (kecSet_.state !== 2) {
