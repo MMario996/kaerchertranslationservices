@@ -9,7 +9,9 @@ const kecSet_ = { state: 0, cbs: [], saved: null, options: null, draft: null, un
   const st = document.createElement('style');
   st.id = 'kecSettingsCss';
   st.textContent = [
-    '.kecset-wrap { display:grid; gap:20px; max-width:900px; }',
+    '.kecset-wrap { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:20px; align-items:stretch; max-width:1500px; }',
+    '.kecset-full { grid-column:1 / -1; }',
+    '@media (max-width: 1100px) { .kecset-wrap { grid-template-columns:minmax(0, 1fr); } }',
     '.kecset-wrap .card { margin:0; }',
     '.kecset-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }',
     '.kecset-head .section-title { margin:0; border:none; padding:0; }',
@@ -229,7 +231,7 @@ function kecSettingsRender_(suffix) {
     '</div>' +
 
     // 3) Puffer verlinkte Projekte
-    '<div class="card" style="border-top:5px solid #607d8b;">' +
+    '<div class="card kecset-full" style="border-top:5px solid #607d8b;">' +
       '<div class="kecset-head"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:middle;margin-right:6px;">schedule</span>' +
         kecSetEsc_(tr_('kec_buf_title', 'Upload buffer for linked projects')) + '</div></div>' +
       '<div class="kecset-hint">' + kecSetEsc_(tr_('kec_buf_desc', 'Files can be added to an existing project ("Add to Existing Open Project") only up to this many hours after the project was created in Phrase (creation date and time).')) + '</div>' +
@@ -237,7 +239,7 @@ function kecSettingsRender_(suffix) {
         '<select onchange="kecSet_.draft.bufferHours=Number(this.value)">' + bufHtml + '</select></div></div>' +
     '</div>' +
 
-    '<div class="kecset-actions">' +
+    '<div class="kecset-actions kecset-full">' +
       '<button type="button" class="btn btn-secondary" style="width:auto;padding:0 24px;" onclick="kecSettingsDiscard_()">' + kecSetEsc_(tr_('kec_discard', 'Discard changes')) + '</button>' +
       '<button type="button" class="btn btn-primary" style="width:auto;padding:0 36px;" onclick="kecSettingsSave_()">' + kecSetEsc_(tr_('kec_save', 'Save settings')) + '</button>' +
     '</div>' +
