@@ -24,8 +24,16 @@
  *
  * Tokens: anders als beim Drive-Export muss der stuendliche Trigger auch
  * ohne angemeldeten Nutzer an den Token kommen. Er liegt daher pro Nutzer in
- * den Script Properties (Service-Name "Cal_<hash>"), die E-Mail steckt
- * signiert im OAuth-State-Token.
+ * den Script Properties (Service-Name "Cal_<hash>").
+ *
+ * Rueckleitung nach der Google-Freigabe: NICHT ueber /usercallback. Dessen
+ * State-Token (ScriptApp.newStateToken) gilt nur fuer den Nutzer, der es
+ * erzeugt hat - das ist bei "Execute as: Me" das Deploy-Konto, waehrend
+ * /usercallback als der verbindende Nutzer laeuft. Fuer alle ausser dem
+ * Deploy-Konto endete die Freigabe darum mit "Das State-Token ist ungueltig
+ * oder abgelaufen". Stattdessen leitet Google auf die Web-App selbst (/exec,
+ * doGet -> calendarHandleRedirect_), die E-Mail steckt in einem eigenen,
+ * per HMAC signierten State (calSignState_/calVerifyState_).
  *
  * Einmalige Einrichtung (Admin):
  *  1. Im GCP-Projekt des Apps-Script-Projekts die "Google Calendar API"
@@ -33,7 +41,11 @@
  *  2. Auf dem OAuth-Zustimmungsbildschirm den Scope
  *     https://www.googleapis.com/auth/calendar.app.created ergaenzen.
  *  3. Client-ID/-Secret sind dieselben wie unter "Google Drive Export"
- *     (Admin-Bereich) - keine weitere Konfiguration noetig.
+ *     (Admin-Bereich). Beim OAuth-Client in der Cloud Console zusaetzlich
+ *     die URL der Web-App (endet auf /exec, siehe calRedirectUri_) unter
+ *     "Authorized redirect URIs" eintragen. Weicht sie ab (z. B. andere
+ *     Bereitstellung), die richtige in der Script Property CAL_REDIRECT_URI
+ *     hinterlegen.
  *  4. Den stuendlichen Trigger legt die App beim ersten Einschalten selbst
  *     an (calendarEnsureTrigger_, als Deploy-Konto).
  *
@@ -66,6 +78,15 @@ function calServiceName_(email) {
   return "Cal_" + digest.map(function (b) { return ("0" + (b & 0xff).toString(16)).slice(-2); }).join("").slice(0, 20);
 }
 
+var CAL_STATE_PREFIX_ = "cal1";
+var CAL_STATE_TTL_MS_ = 60 * 60 * 1000;
+
+/** Ziel der Google-Rueckleitung: die Web-App selbst (laeuft als Deploy-Konto). */
+function calRedirectUri_() {
+  var custom = PropertiesService.getScriptProperties().getProperty("CAL_REDIRECT_URI");
+  return String(custom || ScriptApp.getService().getUrl() || "").trim();
+}
+
 function calOAuthService_(email) {
   var props = PropertiesService.getScriptProperties();
   return OAuth2.createService(calServiceName_(email))
@@ -73,7 +94,10 @@ function calOAuthService_(email) {
     .setTokenUrl("https://oauth2.googleapis.com/token")
     .setClientId(props.getProperty(DRIVE_SAVE_CLIENT_ID_PROP_) || "")
     .setClientSecret(props.getProperty(DRIVE_SAVE_CLIENT_SECRET_PROP_) || "")
+    // Pflichtangabe der Bibliothek fuer getAuthorizationUrl; aufgerufen wird
+    // es nicht, weil die Rueckleitung ueber calRedirectUri_ laeuft.
     .setCallbackFunction("calendarOAuthCallback_")
+    .setRedirectUri(calRedirectUri_())
     .setPropertyStore(PropertiesService.getScriptProperties())
     .setScope(CAL_SCOPE_)
     .setParam("access_type", "offline")
@@ -81,22 +105,92 @@ function calOAuthService_(email) {
     .setParam("login_hint", String(email || ""));
 }
 
-/** Callback der OAuth2-Bibliothek; die E-Mail kommt signiert aus dem State-Token. */
-function calendarOAuthCallback_(request) {
-  var email = String((request && request.parameter && request.parameter.calEmail) || "").toLowerCase();
+/** Geheimnis fuer die State-Signatur (einmalig erzeugt, Script Properties). */
+function calStateSecret_() {
+  var props = PropertiesService.getScriptProperties();
+  var secret = props.getProperty("CAL_STATE_SECRET");
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty("CAL_STATE_SECRET", secret);
+  }
+  return secret;
+}
+
+function calStateSig_(payload, secret) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload, secret)).replace(/=+$/, "");
+}
+
+/** State fuer die Google-Freigabe: "cal1.<email>.<ablauf>.<hmac>" (E-Mail web-safe Base64). */
+function calSignState_(email, secret, nowMs) {
+  var exp = (typeof nowMs === "number" ? nowMs : Date.now()) + CAL_STATE_TTL_MS_;
+  var payload = CAL_STATE_PREFIX_ + "." +
+    Utilities.base64EncodeWebSafe(String(email || "").toLowerCase().trim()).replace(/=+$/, "") + "." + exp;
+  return payload + "." + calStateSig_(payload, secret);
+}
+
+/** Prueft Signatur und Ablauf; liefert die E-Mail oder "". */
+function calVerifyState_(state, secret, nowMs) {
+  var parts = String(state || "").split(".");
+  if (parts.length !== 4 || parts[0] !== CAL_STATE_PREFIX_) return "";
+  var payload = parts.slice(0, 3).join(".");
+  if (calStateSig_(payload, secret) !== parts[3]) return "";
+  if (Number(parts[2]) < (typeof nowMs === "number" ? nowMs : Date.now())) return "";
+  var b64 = parts[1] + "===".slice((parts[1].length + 3) % 4);
+  try {
+    return Utilities.newBlob(Utilities.base64DecodeWebSafe(b64)).getDataAsString();
+  } catch (e) {
+    return "";
+  }
+}
+
+function calIsOAuthRedirect_(e) {
+  var p = (e && e.parameter) || {};
+  return String(p.state || "").indexOf(CAL_STATE_PREFIX_ + ".") === 0 && !!(p.code || p.error);
+}
+
+/**
+ * Rueckleitung von Google (doGet, laeuft als Deploy-Konto): State pruefen,
+ * Code gegen Token tauschen, Token unter dem Nutzer speichern. Einschalten
+ * und erster Abgleich passieren danach wie bisher ueber die Web-App
+ * (apiSetCalendarSyncOptions).
+ */
+function calendarHandleRedirect_(e) {
+  var p = e.parameter;
+  var email = calVerifyState_(p.state, calStateSecret_());
   var ok = false;
-  try { ok = !!email && calOAuthService_(email).handleCallback(request); } catch (e) { ok = false; }
-  // Achtung: /usercallback laeuft als der zugreifende Nutzer, nicht als
-  // Deploy-Konto - hier also KEINE Sheets/Trigger anfassen. Das Einschalten
-  // und der erste Abgleich passieren danach ueber die Web-App
-  // (apiSetCalendarSyncOptions), die als Deploy-Konto laeuft.
+  var reason = "";
+  if (!email) {
+    reason = "Link expired or invalid.";
+  } else {
+    var viewer = "";
+    try { viewer = String(Session.getActiveUser().getEmail() || "").toLowerCase(); } catch (err) {}
+    if (viewer && viewer !== email) {
+      reason = "Signed in as " + viewer + ", but the request was started for " + email + ".";
+    } else {
+      try { ok = calOAuthService_(email).handleCallback({ parameter: { code: p.code, error: p.error } }); }
+      catch (err) { reason = err.message; }
+      if (!ok && !reason) reason = "Access was not granted.";
+    }
+  }
+  try { logAuditEvent_(email || "unknown", ok ? "CALENDAR_CONNECTED" : "CALENDAR_CONNECT_FAILED", ok ? "" : reason); } catch (err) {}
+  return calendarResultPage_(ok, reason);
+}
+
+/** Frueheres Ziel unter /usercallback - bleibt fuer bereits geoeffnete alte Links. */
+function calendarOAuthCallback_(request) {
+  return calendarResultPage_(false, "Please start the connection again in the Translation Services portal.");
+}
+
+function calendarResultPage_(ok, reason) {
+  var esc = function (t) { return String(t || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]; }); };
   var body = ok
     ? "<p style=\"font-size:40px;margin:0\">📅</p><p><b>Google Calendar connected.</b></p>" +
       "<p>Go back to the Translation Services portal - your deadlines are synced into the calendar \"" + CAL_NAME_ + "\" automatically.<br>" +
       "You can close this tab.</p>" +
       "<script>setTimeout(function(){ window.close(); }, 2500);</" + "script>"
-    : "<p>⚠️ Authorization denied or failed.</p><p>You can close this tab and try again.</p>";
-  return HtmlService.createHtmlOutput("<html><body style=\"font-family:sans-serif;padding:30px;text-align:center;\">" + body + "</body></html>");
+    : "<p>⚠️ Authorization denied or failed.</p><p>" + esc(reason) + "</p><p>You can close this tab and try again.</p>";
+  return HtmlService.createHtmlOutput("<html><body style=\"font-family:sans-serif;padding:30px;text-align:center;\">" + body + "</body></html>")
+    .setTitle("Google Calendar - Translation Services");
 }
 
 // ============================================================================
@@ -196,7 +290,8 @@ function apiGetCalendarAuthUrl(lang) {
   if (!apiGetDriveSaveConfig().configured) return { success: false, error: "not_configured" };
   try {
     calRowUpsert_(email, { lang: CAL_TEXT_[lang] ? lang : "en" });
-    return { success: true, url: calOAuthService_(email).getAuthorizationUrl({ calEmail: email.toLowerCase() }) };
+    var service = calOAuthService_(email).setParam("state", calSignState_(email, calStateSecret_()));
+    return { success: true, url: service.getAuthorizationUrl() };
   } catch (e) {
     return { success: false, error: e.message };
   }
