@@ -44,7 +44,7 @@ function apiCreateProjectAndUpload(payload) {
   const portalType = String(payload.portalType || "").trim().toLowerCase();
 
   const templateUid = String(payload.templateUid || "").trim();
-  const projectName = String(payload.projectName || "").trim();
+  let projectName   = String(payload.projectName || "").trim();
   const sourceLang  = String(payload.sourceLang  || "").trim();
 
   let targetLangs = payload.targetLangs;
@@ -76,6 +76,17 @@ function apiCreateProjectAndUpload(payload) {
 
   const mainFiles = payload.mainFiles || payload.allMainFiles || [];
   if (!Array.isArray(mainFiles) || mainFiles.length === 0) return { ok: false, error: "Main file missing." };
+
+  // KeC: persoenliche Einstellungen (KecSettings.gs) - Zusaetze im Projektnamen,
+  // Spalten fuer multilinguale Excel-Dateien.
+  const kecSettings = portalType === "kec" ? kecSettingsFor_(userEmail) : null;
+  if (kecSettings && kecSettings.nameParts.length) {
+    const nameCtx = kecNameContextFor_(userEmail, kecSettings);
+    nameCtx.sourceLang   = sourceLang;
+    nameCtx.targetLangs  = targetLangs;
+    nameCtx.templateName = String(payload.templateName || "").trim();
+    projectName = kecBuildProjectName_(projectName, kecSettings, nameCtx);
+  }
 
   const refFiles = [...(payload.refFiles || [])];
   const refDriveIds = Array.isArray(payload.refDriveIds) ? payload.refDriveIds : [];
@@ -203,7 +214,9 @@ function apiCreateProjectAndUpload(payload) {
           const blob         = resolveFileToBlob_(mainFiles[i]);
           const mainFileName = blob.getName();
 
-          const up = phraseUploadJob_(projectUid, blob, mainFileName, groupLangs);
+          const up = kecSettings
+            ? kecUploadJob_(projectUid, blob, mainFileName, groupLangs, kecSettings, overallErrors)
+            : phraseUploadJob_(projectUid, blob, mainFileName, groupLangs);
 
           const jobsArr = Array.isArray(up.jobs) ? up.jobs : [];
           const extractedUids = jobsArr.map(j => String(j.uid || "")).filter(Boolean);
@@ -363,6 +376,7 @@ function apiCreateProjectAndUpload(payload) {
   return {
     success:         true,
     timedOut:        hasTimeoutWarning,
+    projectName:     projectName,
     projectUid:      overallProjectUids[0],
     allProjectUids:  overallProjectUids,
     jobUids:         overallJobUids,

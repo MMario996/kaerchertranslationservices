@@ -17,7 +17,7 @@ const jsFiles = includes.filter((n) => n.startsWith('Js')).map((n) => n + '.html
 // Nachgeladene Teile der Nutzeroberflaeche (nicht im Startdokument, siehe UserPrefs.gs).
 const lazyUserFiles = ['HomeUi.html', 'PrefsUi.html'];
 // Nachgeladene Skripte (apiGetLazyScript, WebApp.gs).
-const lazyScripts = ['JsCampus.html'];
+const lazyScripts = ['JsCampus.html', 'KecSettingsUi.html'];
 // Nachgeladene Admin-Skripte (ebenfalls apiGetLazyScript, Texte aus ADMIN_I18N_).
 const lazyAdminScripts = ['AdminManagersUi.html'];
 const uiFiles = ['Index.html', ...jsFiles, ...lazyScripts, ...lazyAdminScripts, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];

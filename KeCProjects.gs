@@ -8,6 +8,8 @@
  *   Level 1 ("Translation" / MT) EGAL, ab Level 2 blockt jeder Job, der NICHT "NEW" oder "EMAILED" ist.
  * - Upload neuer Dateien in bestehendes Phrase-Projekt
  * - Einzelprojekt-Debugger für das Frontend
+ * - Puffer: nur Projekte, deren Erstellung (dateCreated) hoechstens N Stunden
+ *   zurueckliegt (persoenliche Einstellung, KecSettings.gs)
  *
  * FIX (Admin-Konfiguration): Client/Domain/Business-Unit IDs sind jetzt in Script
  * Properties gespeichert (KEC_CLIENT_ID, KEC_DOMAIN_ID, KEC_BUSINESS_UNIT_ID) statt
@@ -91,6 +93,7 @@ function apiGetEligibleKeCProjects() {
     const kecClientId = getKecClientId_();
     const kecDomainId = getKecDomainId_();
     const kecBuId     = getKecBusinessUnitId_();
+    const bufferHours = kecSettingsFor_(caller).bufferHours;
 
     // Phrase v1 /projects ignoriert clientId/domainId/businessUnitId Query-Params.
     // Daher: Alle NEW-Projekte paginiert laden, dann clientseitig filtern.
@@ -145,16 +148,25 @@ function apiGetEligibleKeCProjects() {
       return clientOk && domainOk && buOk;
     });
 
+    // Puffer nach Projekterstellung (spart zugleich die Workflow-Abfragen fuer alte Projekte)
+    const withinBuffer = matching.filter(p => {
+      const buf = kecBufferCheck_(p.dateCreated, bufferHours);
+      if (!buf.ok) console.log("KeC: " + p.name + " ? " + buf.reason);
+      p._kecBufferUntil = buf.until;
+      return buf.ok;
+    });
+    console.log("KeC: " + withinBuffer.length + " von " + matching.length + " Projekten im Puffer (" + bufferHours + " h).");
+
     console.log("KeC: " + matching.length + " Projekte nach Metadaten-Filter. Prüfe Workflow-Zustände...");
 
-    if (!matching.length) {
-      return { success: true, projects: [] };
+    if (!withinBuffer.length) {
+      return { success: true, projects: [], bufferHours: bufferHours };
     }
 
     // Workflow-Eligibility prüfen
     const eligible = [];
 
-    for (const p of matching) {
+    for (const p of withinBuffer) {
       try {
         const eligibilityInfo = _kecCheckProjectEligibility_(p.uid);
         if (!eligibilityInfo.eligible) {
@@ -172,7 +184,9 @@ function apiGetEligibleKeCProjects() {
           projectName: String(p.name || p.uid || "").trim(),
           sourceLang:  sourceLang,
           targetLangs: targetLangs,
-          dueDate:     p.dateDue || ""
+          dueDate:     p.dateDue || "",
+          dateCreated: p.dateCreated || "",
+          bufferUntil: p._kecBufferUntil || ""
         });
 
         console.log("KeC Match: " + p.name);
@@ -184,7 +198,7 @@ function apiGetEligibleKeCProjects() {
 
     eligible.sort((a, b) => a.projectName.localeCompare(b.projectName));
     console.log("KeC: " + eligible.length + " finale Projekte an Frontend übergeben.");
-    return { success: true, projects: eligible };
+    return { success: true, projects: eligible, bufferHours: bufferHours };
 
   } catch (e) {
     console.error("apiGetEligibleKeCProjects failed:", e);
@@ -291,6 +305,7 @@ function apiDebugSingleKeCProject(projectUid) {
     clientOk: false,
     domainOk: false,
     buOk: false,
+    bufferOk: false,
     workflowOk: false,
     details: {}
   };
@@ -359,7 +374,16 @@ function apiDebugSingleKeCProject(projectUid) {
     report.domainOk = actualDomainId === kecDomainId  || actualDomainName === "Marketing Content";
     report.buOk     = actualBuId === kecBuId || actualBuName === "MMV-P";
 
-    // GATE 6: Workflow (exakter Abgleich zur zentralen Prüflogik)
+    // GATE 6: Puffer nach Projekterstellung (persoenliche Einstellung)
+    const bufferHours = kecSettingsFor_(caller).bufferHours;
+    const buf = kecBufferCheck_(project.dateCreated, bufferHours);
+    report.bufferOk = buf.ok;
+    report.details.bufferHours = bufferHours;
+    report.details.dateCreated = project.dateCreated || "";
+    report.details.bufferUntil = buf.until;
+    if (!buf.ok) report.details.bufferError = buf.reason;
+
+    // GATE 7: Workflow (exakter Abgleich zur zentralen Prüflogik)
     const eligibility = _kecCheckProjectEligibility_(projectUid);
     if (eligibility.eligible) {
       report.workflowOk = true;
@@ -444,6 +468,15 @@ function apiUploadToExistingProject(payload) {
       project = {};
     }
 
+    const kecSettings = kecSettingsFor_(userEmail);
+    const buf = kecBufferCheck_(project && project.dateCreated, kecSettings.bufferHours);
+    if (!buf.ok) {
+      return {
+        success: false,
+        error: "Projekt ist nicht mehr für zusätzliche Uploads geeignet.\n\nGrund: " + buf.reason
+      };
+    }
+
     const targetLangs = eligibility.targetLangs.length
       ? eligibility.targetLangs
       : (Array.isArray(project.targetLangs) ? project.targetLangs : []);
@@ -487,7 +520,7 @@ function apiUploadToExistingProject(payload) {
       try {
         const blob          = resolveFileToBlob_(mainFiles[i]);
         const mainFileName  = blob.getName();
-        const up            = phraseUploadJob_(projectUid, blob, mainFileName, targetLangs);
+        const up            = kecUploadJob_(projectUid, blob, mainFileName, targetLangs, kecSettings, overallErrors);
         const jobsArr       = Array.isArray(up.jobs) ? up.jobs : [];
         const extractedUids = jobsArr.map(j => String(j.uid || "")).filter(Boolean);
 

@@ -64,7 +64,8 @@ function lazyParts() {
     adminI18n: adminDicts,
     lazy: {
       JsCampus: (read('JsCampus.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
-      AdminManagersUi: (read('AdminManagersUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1]
+      AdminManagersUi: (read('AdminManagersUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
+      KecSettingsUi: (read('KecSettingsUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1]
     },
     admin: { html: read('AdminConsole.html'), js: read('AdminScript.html').replace(/^\s*<script>|<\/script>\s*$/g, '') },
     home: read('HomeUi.html'),

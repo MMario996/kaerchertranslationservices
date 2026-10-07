@@ -183,6 +183,53 @@ test('User Template Debugger zeigt Ergebnis und Fehler an', async () => {
   await page.close();
 });
 
+test('KeC Projects: Unterreiter Einstellungen - Namenszusatz, gesperrte Excel-Spalten, Puffer', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiGetKecUserSettings: { success: true,
+      settings: { nameParts: [], nameSep: ' - ', namePos: 'suffix', bufferHours: 2,
+        xlsx: { enabled: false, sourceColumn: 'A', targetColumns: {}, contextColumn: '', startRow: 2 } },
+      options: { nameParts: ['date', 'time', 'owner', 'creator', 'source', 'targets', 'template'], nameSeps: [' - ', '_', ' '], bufferHours: [2, 4, 8, 24, 48] } },
+    apiSaveKecUserSettings: (s) => ({ success: true, settings: s })
+  }`);
+  await page.evaluate(() => { switchTab('kec'); switchKecSubtab('_kec', 'settings'); });
+  await page.waitForFunction(() => document.getElementById('kecSetPreview'));
+  const root = page.locator('#kecsub-settings_kec');
+  assert.ok(await page.locator('#kecsub-import_kec').isHidden(), 'Import ausgeblendet');
+  // Namenszusatz: Datum + Owner, Owner nach oben schieben
+  await root.locator('.kecset-part', { hasText: /current date|datum/i }).locator('input').check();
+  await root.locator('.kecset-part', { hasText: /owner/i }).locator('input').check();
+  await root.locator('.kecset-part', { hasText: /owner/i }).locator('button').first().click();
+  assert.match(await page.locator('#kecSetPreview').innerText(), / - Max Mustermann - \d{4}-\d\d-\d\d$/);
+  // Excel-Bereich ist gesperrt, Entsperren braucht Bestaetigung
+  assert.ok(await root.locator('input[placeholder="A"]').isDisabled(), 'gesperrt');
+  await root.getByRole('button', { name: /Unlock|Entsperren/ }).click();
+  await page.click('#customDialogConfirmBtn');
+  await root.locator('input[type=checkbox]').last().check();
+  await root.locator('[data-tc-lang="0"]').fill('de_de');
+  await root.locator('[data-tc-col="0"]').fill('b');
+  await root.locator('input[type=number]').fill('3');
+  await root.locator('select').last().selectOption('8');
+  await root.getByRole('button', { name: /Save settings|Einstellungen speichern/ }).click();
+  // Aenderung an den Excel-Spalten muss bestaetigt werden
+  await page.waitForFunction(() => document.getElementById('customDialogOverlay').style.display === 'flex');
+  assert.match(await page.locator('#customDialogMessage').innerText(), /row: 2 → 3[\s\S]*de_de: - → B/);
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiSaveKecUserSettings'));
+  const saved = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSaveKecUserSettings').args[0]);
+  assert.deepEqual(saved.nameParts, ['owner', 'date']);
+  assert.deepEqual(saved.xlsx, { enabled: true, sourceColumn: 'A', targetColumns: { de_de: 'B' }, contextColumn: '', startRow: 3 });
+  assert.equal(saved.bufferHours, 8);
+  // Nach dem Speichern ist der Excel-Bereich wieder gesperrt
+  await page.waitForFunction(() => !kecSet_.unlocked && kecSet_.saved.bufferHours === 8);
+  assert.ok(await root.locator('input[placeholder="A"]').isDisabled(), 'wieder gesperrt');
+  // Hinweis am Projektnamen im Import-Formular
+  await page.evaluate(() => switchKecSubtab('_kec', 'import'));
+  await page.fill('#projectName_kec', 'Flyer');
+  assert.match(await page.locator('#kecNameHint_kec').innerText(), /Flyer - Max Mustermann - \d{4}-/);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
 test('Knowledge Base: Produkte, Navigation, Volltextsuche, Artikel mit Markierung, mobil ohne Scrollen', async () => {
   const root = path.join(__dirname, '..');
   const kbFile = path.join(path.dirname(file), 'kb.html');

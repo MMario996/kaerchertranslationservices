@@ -314,6 +314,9 @@ function attachKecFormLogic(suffix) {
 
     setupFileListeners(suffix);
     loadUserPresets(suffix);
+    // Unterreiter "Einstellungen" (KecSettingsUi.html, nachgeladen) - im Hintergrund,
+    // damit der Hinweis zum Namenszusatz am Projektnamen gleich sichtbar ist.
+    setTimeout(() => ensureScript_('KecSettingsUi', () => kecSettingsInit_(suffix)), 1500);
 
     const exSel = document.getElementById('existingProjectUid' + suffix);
     if (exSel) {
@@ -477,7 +480,8 @@ function scanKeCProjects(suffix) {
                 res.projects.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.projectUid;
-                    opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")";
+                    opt.text = p.projectName + " (" + p.sourceLang + " -> " + (p.targetLangs || []).join(', ') + ")" +
+                      (p.bufferUntil ? " \u00b7 " + tr_('kec_buf_until', 'upload until') + " " + new Date(p.bufferUntil).toLocaleString(currentLang, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : "");
                     exSel.appendChild(opt);
                 });
                 showCustomAlert("\u2713 " + res.projects.length + ' ' + tr_('jx_131038b', 'eligible KeC projects loaded into dropdown.'), tr_('jx_796cb40', 'Scan Complete'));
@@ -490,7 +494,8 @@ function scanKeCProjects(suffix) {
                   tr_('jx_d415775', '• Client: AKW') + '\n' +
                   tr_('jx_a10b342', '• Domain: Marketing Content') + '\n' +
                   tr_('jx_f21b06d', '• Business Unit: MMV-P') + '\n\n' +
-                  tr_('jx_47cd0a7', 'Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.') + '\n\n' +
+                  tr_('jx_47cd0a7', 'Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.') + '\n' +
+                  tr_('kec_buf_rule', '• Created no longer ago than your buffer (KeC Projects → Settings):') + ' ' + ((res && res.bufferHours) || 2) + ' h\n\n' +
                   tr_('jx_a0be7e5', 'Nutze den – Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.'),
                   tr_('jx_d45235e', 'Scan-Ergebnis')
                 ); 
