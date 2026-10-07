@@ -2,6 +2,8 @@
 var KB_PAGE_ALIASES_ = ["kb", "knowledgebase", "knowledge-base", "wissen"];
 
 function doGet(e) {
+  // Rueckleitung nach der Google-Kalender-Freigabe (siehe CalendarSync.gs).
+  if (calIsOAuthRedirect_(e)) return calendarHandleRedirect_(e);
   var page = String((e && e.parameter && e.parameter.page) || "").trim().toLowerCase();
   if (KB_PAGE_ALIASES_.indexOf(page) >= 0) {
     // Eigenstaendige Seite, z. B. fuer Google Sites (Einbetten -> URL + ?page=kb).

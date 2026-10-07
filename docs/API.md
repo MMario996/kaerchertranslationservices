@@ -323,7 +323,8 @@ gehört.
 | `GET <webapp-url>?page=kb` (`knowledgebase`, `knowledge-base`, `wissen`) | Browser / Google Sites | eigenständige Knowledge-Base-Seite |
 | `GET <webapp-url>?tab=history` | Links aus Chat | öffnet direkt „Meine Projekte“ |
 | `POST <webapp-url>` (`doPost`) | Google Chat | Event-JSON; `type` = `ADDED_TO_SPACE` → Begrüßung, `MESSAGE` → Hinweistext, `APP_COMMAND` → Slash-Command. Antwort JSON. ⚠️ keine Prüfung, dass die Anfrage von Google Chat stammt |
-| `https://script.google.com/macros/d/{SCRIPT_ID}/usercallback` | Google OAuth | Callback für Drive-Export (`driveSaveOAuthCallback_`) und Kalender (`calendarOAuthCallback_`) |
+| `GET <webapp-url>?state=cal1.…&code=…` | Google OAuth | Rückleitung der Kalender-Freigabe (`calendarHandleRedirect_`, signierter State, läuft als Deploy-Konto) |
+| `https://script.google.com/macros/d/{SCRIPT_ID}/usercallback` | Google OAuth | Callback für Drive-Export (`driveSaveOAuthCallback_`) |
 
 Zusätzlich registriert (Chat-API-Konfiguration, Verbindung „Apps Script“):
 `onAddedToSpace`, `onMessage`, `onRemovedFromSpace`, `onAppCommand`.
@@ -403,7 +404,9 @@ Web-Links (keine API): `…/web/project/show/{uid}`, `…/web/job/{jobUid}/trans
 ### Einmalige Einrichtung OAuth (Drive + Kalender)
 
 1. GCP-Projekt des Apps-Script-Projekts → OAuth-Client-ID Typ „Webanwendung“.
-2. Redirect-URI: `https://script.google.com/macros/d/{SCRIPT_ID}/usercallback`
+2. Redirect-URIs: `https://script.google.com/macros/d/{SCRIPT_ID}/usercallback` (Drive-Export)
+   **und** die Web-App-URL (`…/exec`, Kalender). Weicht die von `ScriptApp.getService().getUrl()`
+   gelieferte URL ab, die verwendete in der Script Property `CAL_REDIRECT_URI` hinterlegen
    (keine JavaScript-Origins – `*.googleusercontent.com` ist dort nicht erlaubt, deshalb kein
    Browser-Flow mit Google Identity Services).
 3. Calendar API aktivieren, Scope `calendar.app.created` am Zustimmungsbildschirm.

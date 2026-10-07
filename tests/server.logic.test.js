@@ -163,7 +163,7 @@ test('doGet: ?page=kb liefert die Knowledge Base (einbettbar), sonst das Portal'
     o.setXFrameOptionsMode = (m) => { o.xfo = m; return o; };
     return o;
   };
-  const web = load(['WebApp.gs'], {
+  const web = load(['WebApp.gs', 'CalendarSync.gs'], {
     HtmlService: {
       XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' },
       createHtmlOutputFromFile: (n) => { calls.push(n); return out('file', n); },
@@ -176,6 +176,9 @@ test('doGet: ?page=kb liefert die Knowledge Base (einbettbar), sonst das Portal'
   assert.equal(web.doGet({ parameter: { page: 'knowledgebase' } }).name, 'Knowledgebase');
   assert.equal(web.doGet({ parameter: {} }).name, 'Index');
   assert.equal(web.doGet(undefined).name, 'Index');
+  // Rueckleitung der Kalender-Freigabe landet nicht im Portal
+  web.calendarHandleRedirect_ = (e) => ({ name: 'calendar', state: e.parameter.state });
+  assert.equal(web.doGet({ parameter: { state: 'cal1.x.1.y', code: '4/abc' } }).name, 'calendar');
 });
 
 test('User Template Debugger: Vorschlaege zeigen, welcher eine Wert Templates freischaltet', () => {
