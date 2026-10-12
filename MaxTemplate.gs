@@ -168,7 +168,7 @@ function maxTplGet_(url) {
 }
 
 function maxTplCached_(key, seconds, fn) {
-  var cache = CacheService.getScriptCache();
+  var cache = phraseScriptCache_();
   var hit = cache.get(key);
   if (hit) { try { return JSON.parse(hit); } catch (e) {} }
   var val = fn();

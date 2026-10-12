@@ -143,7 +143,7 @@ Eine Zeile pro angelegtem Phrase-Projekt (bei mehreren Template-UIDs mehrere Zei
 | T | Chat-Thread (Message-Name) | für Antworten im selben Chat-Thread |
 | U | Chat-Threads der Geteilten (JSON `{email: thread}`) | wird beim Abschluss geleert |
 | V | Downloaded At | letzter Download, für das Archiv |
-| (Kopfzeile) | `JobMapping`, `Pivot Role`, `Pivot Link`, `Created By` | nur per Kopfzeilen-Name; `Created By` = Consultant, der für den Eigentümer eingereicht hat |
+| (Kopfzeile) | `JobMapping`, `Pivot Role`, `Pivot Link`, `Created By`, `Pivot Langs` | nur per Kopfzeilen-Name; `Created By` = Consultant, der für den Eigentümer eingereicht hat |
 
 **Status-Werte:** `NEW`, `QUEUED_UPLOAD`, `UPLOADED`, `ASSIGNED`, `ACCEPTED`, `COMPLETED`,
 `NOTIFIED`, `DELIVERED`, `CANCELLED`/`CANCELED`, `REJECTED`, Pivot: `WAITING_CHILD`.
@@ -182,6 +182,7 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 | `AUTO_SYNC_ENABLED`, `AUTO_SYNC_LAST_RUN` … | Status-Autosync |
 | `CAMPUS_BATCH_ENABLED`, `CAMPUS_BATCH_TEMPLATE_NAMES` | Campus-Batch-Nachbearbeitung |
 | `TERMBASE_UID` | Termbase für `/termsearch` |
+| `PHRASE_SANDBOX_API_TOKEN`, `PHRASE_SANDBOX_BASE_URL`, `SANDBOX_TEMPLATE_SHEET`, `SANDBOX_OPS_SHEET_ID`, `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID`, dynamisch `SANDBOX_ON__<email>` | Admin-Sandbox (`Sandbox.gs`) |
 | `CONSULTING_FOLDER_ID` | Drive-Ordner für Consulting-Anfragen (wird beim ersten Mal angelegt) |
 | `PRECALC_PRICE_LIST_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Preisliste der Quote, `false` = aus |
 | `PROMPT_HUB_URL`, `MAXTPL_PROMPT_FIELD`, `MAXTPL_PORTALS` | Maximaltemplate: Link zum Prompt-Hub, Custom Field für den Prompt (Standard `AI Prompt`), Bereiche (Standard `marketing`) |

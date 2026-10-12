@@ -343,8 +343,8 @@ function apiSetTemplateDisplayName(uid, name) {
   uid = String(uid || "").trim();
   name = String(name || "").replace(/\s+/g, " ").trim();
   if (!uid || !name) return { success: false, error: "UID und Name sind Pflicht." };
-  var sh = openAccessSS_().getSheetByName(TEMPLATE_SHEET_NAME);
-  if (!sh) return { success: false, error: "Sheet " + TEMPLATE_SHEET_NAME + " nicht gefunden." };
+  var sh = openAccessSS_().getSheetByName(templateSheetName_());
+  if (!sh) return { success: false, error: "Sheet " + templateSheetName_() + " nicht gefunden." };
   var data = sh.getDataRange().getValues();
   var h = data[0].map(function (x) { return String(x).trim().toLowerCase(); });
   var cUid = h.findIndex(function (x) { return x.indexOf("uid") !== -1; });
@@ -366,8 +366,8 @@ function apiBatchSetTemplateActive(uids, active) {
   var caller = assertManager_("templates");
   var list = (Array.isArray(uids) ? uids : [uids]).map(function (u) { return String(u || "").trim(); }).filter(Boolean);
   if (!list.length) return { success: false, error: "Keine Templates ausgewaehlt." };
-  var sh = openAccessSS_().getSheetByName(TEMPLATE_SHEET_NAME);
-  if (!sh) throw new Error("Sheet " + TEMPLATE_SHEET_NAME + " nicht gefunden.");
+  var sh = openAccessSS_().getSheetByName(templateSheetName_());
+  if (!sh) throw new Error("Sheet " + templateSheetName_() + " nicht gefunden.");
   var data = sh.getDataRange().getValues();
   var h = data[0].map(function (x) { return String(x).trim().toLowerCase(); });
   var cUid = h.findIndex(function (x) { return x.indexOf("uid") !== -1; });

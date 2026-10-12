@@ -130,7 +130,7 @@ function apiGetTemplatesForManager() {
   if (!isAdmin_(caller) && !isAdminLightWithAccess_(caller, 'templates')) throw new Error("Not authorized. Admin only.");
 
   const ss = openAccessSS_();
-  const sh = ss.getSheetByName("FetchTemplate-Prod");
+  const sh = ss.getSheetByName(templateSheetName_());
   if (!sh) return { success: true, rows: [] };
 
   const data = sh.getDataRange().getValues();
@@ -184,8 +184,8 @@ function apiSetTemplateActive(templateUid, active) {
   const newVal = active ? "yes" : "no";
 
   const ss = openAccessSS_();
-  let sh = ss.getSheetByName("FetchTemplate-Prod");
-  if (!sh) throw new Error("Sheet FetchTemplate-Prod nicht gefunden.");
+  let sh = ss.getSheetByName(templateSheetName_());
+  if (!sh) throw new Error("Sheet " + templateSheetName_() + " nicht gefunden.");
 
   const data = sh.getDataRange().getValues();
   const hLower = data[0].map(h => String(h).trim().toLowerCase());
@@ -336,10 +336,9 @@ function apiUpdateUserField(username, field, value, syncToPhrase) {
  * Funktion wie getPhraseHeaders_()), den hier statt der Inline-Konstruktion nutzen.
  */
 function _syncUserFieldToPhrase_(username, field, value) {
-  const token = PropertiesService.getScriptProperties().getProperty('PHRASE_API_TOKEN');
-  if (!token) throw new Error("PHRASE_API_TOKEN fehlt in Script Properties.");
-  const headers = { Authorization: "Bearer " + token };
-  const base = "https://cloud.memsource.com/web/api2/v1";
+  // Zentrale Helfer (ProjectsApi.gs): beachten auch die Admin-Sandbox.
+  const headers = { Authorization: getPhraseAuthHeader_() };
+  const base = getPhraseWebBaseUrl_() + "/api2/v1";
 
   // 1) Phrase-UID per userName-Lookup ermitteln
   const searchUrl = base + "/users?userName=" + encodeURIComponent(username);

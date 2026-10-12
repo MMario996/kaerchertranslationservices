@@ -124,6 +124,8 @@ function initForm(config) {
     if (btnDoc) btnDoc.style.display = 'none';
   }
 
+  const sbx = document.getElementById('sandboxBanner');
+  if (sbx) sbx.hidden = !config.sandbox;
   if (config.isImpersonating) {
     document.getElementById('simulationBanner').style.display = 'flex';
     document.getElementById('simulatedUserDisplay').innerText = config.effectiveUser;

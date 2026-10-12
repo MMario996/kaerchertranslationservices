@@ -84,6 +84,7 @@ function getConfig_(impersonateEmail) {
     maintenance: maintenance,
     adminLightSubtabs: adminLightSubtabs,
     deputyFor: deputyFor,
+    sandbox: (function () { try { return sandboxActive_(); } catch (e) { return false; } })(),
     isConsultant: !isImpersonating && typeof isMarketingConsultant_ === "function" && isMarketingConsultant_(currentUser),
     precalcEnabled: typeof precalcEnabled_ === "function" && precalcEnabled_(),
     maxTemplatePortals: (function () { try { return maxTplAllowed_(effectiveUser) ? maxTplPortals_() : []; } catch (e) { return []; } })(),
@@ -206,6 +207,7 @@ function getAccessSheetId_() {
 }
 
 function getOpsSheetId_() {
+  if (sandboxActive_() && sandboxOpsSheetId_()) return sandboxOpsSheetId_();
   return PropertiesService.getScriptProperties().getProperty("OPS_SHEET_ID") || DEFAULT_OPS_SHEET_ID;
 }
 
@@ -283,8 +285,8 @@ function templateMatchesUser_(template, userData) {
 
 function readTemplates_() {
   const ss = SpreadsheetApp.openById(getAccessSheetId_());
-  const sh = ss.getSheetByName(TEMPLATE_SHEET_NAME);
-  if (!sh) throw new Error("Template sheet not found: " + TEMPLATE_SHEET_NAME);
+  const sh = ss.getSheetByName(templateSheetName_());
+  if (!sh) throw new Error("Template sheet not found: " + templateSheetName_());
 
   const values = sh.getDataRange().getValues();
   if (!values || values.length < 2) return {};

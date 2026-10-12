@@ -631,3 +631,26 @@ test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von"
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Admin-Sandbox: Banner im Sandbox-Modus, Schalter nur fuer Admins in den Einstellungen', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiGetPrefsUi: ${JSON.stringify(parts.prefs.replace(/^\s*<!--[\s\S]*?-->\s*/, ''))},
+    apiGetChatPreference: { enabled: true },
+    apiGetTeamSettings: { success: true, team: {}, businessUnits: [], buColleagues: 0 },
+    apiGetCalendarSyncStatus: { configured: false },
+    apiGetDeputySettings: { success: true, deputy: {}, principals: [] },
+    apiGetSandboxStatus: { success: true, configured: true, active: true, baseUrl: 'https://sandbox.example/web', templateSheet: 'FetchTemplate-Test', opsSheetUrl: '', creatorField: false },
+    apiSetSandboxMode: (on) => ({ success: true, active: on })
+  }`, { configPatch: { sandbox: true } });
+  assert.ok(await page.locator('#sandboxBanner').isVisible(), 'Banner sichtbar');
+  await page.evaluate(() => openPreferences());
+  await page.waitForSelector('#preferencesModal');
+  assert.ok(await page.locator('#prefsNavSandbox').isVisible(), 'Admin sieht den Bereich');
+  await page.evaluate(() => prefsShowSec_('sandbox'));
+  await page.waitForFunction(() => /FetchTemplate-Test/.test(document.getElementById('prefSandboxInfo').innerText));
+  await page.click('#prefSandboxBtn');
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiSetSandboxMode'));
+  assert.equal(await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSetSandboxMode').args[0]), false, 'aktiv -> beenden');
+  assert.deepEqual(errors, []);
+  await page.close();
+});

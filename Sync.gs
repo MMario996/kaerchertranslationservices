@@ -290,10 +290,12 @@ function syncTemplatesSmart_(mode) {
   phraseTemplates.forEach(t => { if (t.uid) tmsMap[t.uid] = t; });
 
   const ss = openAccessSS_();
-  let sh = ss.getSheetByName("FetchTemplate-Prod");
+  // Sandbox.gs: im Sandbox-Modus in das Sandbox-Vorlagen-Sheet.
+  const tplSheet = templateSheetName_();
+  let sh = ss.getSheetByName(tplSheet);
   if (!sh) {
-    sh = ss.getSheetByName("Templates");
-    if (!sh) sh = ss.insertSheet("FetchTemplate-Prod");
+    sh = sandboxActive_() ? null : ss.getSheetByName("Templates");
+    if (!sh) sh = ss.insertSheet(tplSheet);
   }
 
   const data = sh.getDataRange().getValues();

@@ -187,6 +187,7 @@ function personalPrefsOpen_() {
       : '(' + tr_('pf_team_bu_none', 'no business unit stored for you') + ')';
   }).apiGetTeamSettings();
   deputyPrefsLoad_();
+  sandboxPrefsLoad_();
   const cs = document.getElementById('prefCalStatus');
   cs.textContent = tr_('jx_8524de9', 'Loading...');
   google.script.run.withSuccessHandler(st => { cs.textContent = calStatusLine_(st); })
@@ -368,6 +369,43 @@ function deputyErrorText_(code) {
   return ({ invalid_email: tr_('dp_err_email', 'Please enter a valid e-mail address.'),
             self: tr_('dp_err_self', 'You cannot be your own deputy.'),
             range: tr_('dp_err_range', 'The end date is before the start date.') })[code] || String(code || 'Error');
+}
+
+// --- Admin-Sandbox (Sandbox.gs) -------------------------------------------------
+let sandboxStatus_ = null;
+
+function sandboxPrefsLoad_() {
+  const nav = document.getElementById('prefsNavSandbox');
+  if (!nav) return;
+  nav.hidden = !(configData && configData.isAdmin);
+  if (nav.hidden) return;
+  const info = document.getElementById('prefSandboxInfo');
+  info.textContent = tr_('jx_8524de9', 'Loading...');
+  google.script.run.withSuccessHandler(st => {
+    sandboxStatus_ = st && st.success ? st : null;
+    if (!sandboxStatus_) { info.textContent = (st && st.error) || ''; return; }
+    const rows = [
+      [tr_('sbx_state', 'Status'), st.active ? tr_('sbx_on', 'Sandbox active') : tr_('sbx_off', 'Production')],
+      [tr_('sbx_configured', 'Sandbox token'), st.configured ? '✓' : tr_('sbx_missing', 'missing (Script Property PHRASE_SANDBOX_API_TOKEN)')],
+      ['URL', st.baseUrl],
+      [tr_('sbx_templates', 'Template sheet'), st.templateSheet],
+      [tr_('sbx_creator', 'Field "Project Creator"'), st.creatorField ? '✓' : tr_('sbx_creator_missing', 'not set (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID) – skipped')]
+    ];
+    info.innerHTML = rows.map(r => '<div><b>' + escapeHtml(r[0]) + ':</b> ' + escapeHtml(r[1]) + '</div>').join('') +
+      (st.opsSheetUrl ? '<div><a href="' + escapeHtml(st.opsSheetUrl) + '" target="_blank">' + escapeHtml(tr_('sbx_ops', 'Sandbox project list (Sheet)')) + '</a></div>' : '');
+    document.getElementById('prefSandboxBtn').disabled = !st.configured && !st.active;
+    document.getElementById('prefSandboxBtnText').textContent = st.active ? tr_('sbx_exit', 'Exit sandbox') : tr_('sbx_enter', 'Switch to sandbox');
+  }).withFailureHandler(e => { info.textContent = e.message; }).apiGetSandboxStatus();
+}
+
+/** Sandbox an/aus: danach die App neu laden (Vorlagen, Projekte, Config kommen aus der anderen Umgebung). */
+function sandboxToggle_(on) {
+  google.script.run.withSuccessHandler(st => {
+    if (!st || !st.success) { showCustomAlert(escapeHtml((st && st.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+    const url = String((configData && configData.kbUrl) || '').replace(/\?page=kb$/, '');
+    showCustomAlert(escapeHtml(on ? tr_('sbx_now_on', 'Sandbox mode is on. The page is reloaded.') : tr_('sbx_now_off', 'Back in production. The page is reloaded.')), 'Sandbox');
+    setTimeout(() => { if (url) window.open(url, '_top'); else location.reload(); }, 900);
+  }).withFailureHandler(e => showCustomAlert(escapeHtml(e.message), tr_('jx_902b0d5', 'Error'))).apiSetSandboxMode(!!on);
 }
 
 // --- Angeheftete Projekte ---------------------------------------------------

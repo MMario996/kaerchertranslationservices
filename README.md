@@ -116,3 +116,25 @@ JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische S
 Einstellungen → **Vertretung**: E-Mail, optional Von/Bis, an/aus (Sheet `Deputies`). Solange aktiv,
 bekommt die Vertretung eine Kopie jeder Chat-Nachricht und hat die Rechte der vertretenen Person
 (Projekte in Meine Projekte, bearbeiten wie Eigentümer, Bereiche und Vorlagen).
+
+## Admin-Sandbox
+
+Einstellungen → **Sandbox (Admin)**: schaltet das Portal nur für den angemeldeten Admin auf die
+Phrase-Sandbox um (oranger Banner, Chat-Nachrichten mit „[SANDBOX]“). Umgeschaltet werden
+Phrase-Token und URL, das Vorlagen-Sheet, das OPS-Spreadsheet (eigene Queue, Consulting,
+Kalkulation) und die Phrase-Caches. Nutzer-Sheet, Whitelists und Einstellungen bleiben gleich;
+der Nutzer-Sync ist in der Sandbox gesperrt. Trigger (Auto-Sync) laufen immer gegen Produktion.
+
+| Script Property | Zweck |
+|---|---|
+| `PHRASE_SANDBOX_API_TOKEN` | Token der Sandbox (Pflicht) |
+| `PHRASE_SANDBOX_BASE_URL` | Basis-URL der Sandbox (Standard wie `PHRASE_API_BASE_URL`) |
+| `SANDBOX_TEMPLATE_SHEET` | Vorlagen-Sheet (Standard `FetchTemplate-Test`; „Templates synchronisieren“ füllt es aus der Sandbox) |
+| `SANDBOX_OPS_SHEET_ID` | OPS-Spreadsheet der Sandbox (wird beim ersten Einschalten angelegt) |
+| `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID` | Custom Field „Project Creator“ in der Sandbox (ohne: wird übersprungen) |
+
+## Downloads
+
+Heruntergeladen werden nur die Sprachen, die zum Projekt eingereicht wurden; beim Pivot-Child
+nur die gewählten Pivot-Sprachen (Queue-Spalte „Pivot Langs“, für ältere Projekte aus dem
+Custom Field „Pivot languages“ über das Sprachen-Mapping). Abgebrochene Jobs fallen weg.

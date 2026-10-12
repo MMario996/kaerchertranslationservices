@@ -15,9 +15,19 @@
 // --- Custom Field UID ? Project Creator (Feld-Definition-UID, nicht Instanz-UID) ??
 var CF_PROJECT_CREATOR_UID_ = "rP6yDs6jzepIbpoxiknpN1";
 
+/** UID des Custom Fields "Project Creator" - in der Sandbox eine andere (Sandbox.gs). */
+function cfProjectCreatorUid_() {
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) {
+    return String(PropertiesService.getScriptProperties().getProperty("PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID") || "").trim();
+  }
+  return CF_PROJECT_CREATOR_UID_;
+}
+
 function getPhraseWebBaseUrl_() {
   const props = PropertiesService.getScriptProperties();
-  const v = String(props.getProperty("PHRASE_API_BASE_URL") || "").trim() || "https://cloud.memsource.com/web";
+  // Admin-Sandbox (Sandbox.gs): eigene Basis-URL, sonst dieselbe wie Produktion.
+  const sbx = (typeof sandboxActive_ === "function" && sandboxActive_()) ? String(props.getProperty("PHRASE_SANDBOX_BASE_URL") || "").trim() : "";
+  const v = sbx || String(props.getProperty("PHRASE_API_BASE_URL") || "").trim() || "https://cloud.memsource.com/web";
   return v.replace(/\/+$/, "");
 }
 
@@ -36,6 +46,10 @@ function phraseApiUrlV3_(path) {
 
 function getPhraseToken_() {
   const props = PropertiesService.getScriptProperties();
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) {
+    const sbx = String(props.getProperty("PHRASE_SANDBOX_API_TOKEN") || "").trim();
+    if (sbx) return sbx;
+  }
   const token =
     String(props.getProperty("PHRASE_API_TOKEN") || "").trim() ||
     String(props.getProperty("PHRASE_TOKEN") || "").trim() ||
@@ -152,6 +166,8 @@ function phraseGetUserIdByEmail_(email) {
  * @param {string} userEmail   E-Mail des Einreichers
  */
 function phraseSetProjectCreator_(projectUid, userEmail) {
+  // Sandbox ohne konfigurierte Feld-UID: nichts setzen (Feld gibt es dort evtl. nicht).
+  if (!cfProjectCreatorUid_()) return;
   if (!projectUid || !userEmail) return;
 
   try {
@@ -177,7 +193,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
     let instanceUid = null;
     for (const inst of instances) {
       const fieldUid = inst.customField && (inst.customField.uid || "");
-      if (fieldUid === CF_PROJECT_CREATOR_UID_) {
+      if (fieldUid === cfProjectCreatorUid_()) {
         instanceUid = inst.uid;
         console.log("\u2022 Project Creator Instanz gefunden: " + instanceUid + " (Wert: '" + inst.value + "')");
         break;
@@ -196,7 +212,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
         updateInstances: [
           {
             customFieldInstance: { uid: instanceUid },
-            customField:         { uid: CF_PROJECT_CREATOR_UID_ },
+            customField:         { uid: cfProjectCreatorUid_() },
             value:               creatorValue
           }
         ]
@@ -206,7 +222,7 @@ function phraseSetProjectCreator_(projectUid, userEmail) {
       putPayload = {
         addInstances: [
           {
-            customField: { uid: CF_PROJECT_CREATOR_UID_ },
+            customField: { uid: cfProjectCreatorUid_() },
             value:       creatorValue
           }
         ]
@@ -377,7 +393,7 @@ function phraseSetProjectCustomFieldByName_(projectUid, fieldName, value) {
  * Options-Endpoint mit voller Pagination abgefragt.
  */
 function phraseGetCustomFieldOptionsMap_(fieldUid, forceRefresh) {
-  var cache = CacheService.getScriptCache();
+  var cache = phraseScriptCache_();
   var cacheKey = "phrase_cf_opts_" + fieldUid;
   if (!forceRefresh) {
     var cached = cache.get(cacheKey);
@@ -566,7 +582,7 @@ function phraseGetProjectTemplateDetails_(templateUid, forceRefresh) {
   var uid = String(templateUid || "").trim();
   if (!uid) return null;
 
-  var cache = CacheService.getScriptCache();
+  var cache = phraseScriptCache_();
   var cacheKey = "phrase_tmpl_details_" + uid;
   if (!forceRefresh) {
     var cached = cache.get(cacheKey);

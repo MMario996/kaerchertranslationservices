@@ -376,10 +376,14 @@ function createProjectAndUploadAs_(payload, userEmail, opts) {
 
     const sh = getQueueSheet_();
     const createdByCol = opts.createdBy ? queueEnsureHeaderCol_(sh, "Created By") : 0;
+    // Pivot: gewaehlte Sprachen des Uebersetzungsschritts merken - der Download des
+    // Child-Projekts filtert darauf (DownloadZip.gs dlAllowedLangs_).
+    const pivotLangsCol = (isPivot && pivotTargetLangs.length) ? queueEnsureHeaderCol_(sh, "Pivot Langs") : 0;
     queueRowsToAppend.forEach(row => {
       row[19] = threadId;
       sh.appendRow(row);
       if (createdByCol) sh.getRange(sh.getLastRow(), createdByCol).setValue(opts.createdBy);
+      if (pivotLangsCol) sh.getRange(sh.getLastRow(), pivotLangsCol).setValue(pivotTargetLangs.join(", "));
       if (isPivot) {
         try { pivotTagNewParentRow_(sh, sh.getLastRow()); } catch (e) {
           console.warn("pivotTagNewParentRow_ failed:", e.message);
@@ -709,6 +713,7 @@ function requireChatBotService_() {
 }
 
 function sendPrivateMessage_(userEmail, messageText) {
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) messageText = "[SANDBOX] " + String(messageText || "");
   try {
     const result = sendPrivateMessageRaw_(userEmail, messageText);
     logChatMessage_(normalizeEmail_(userEmail), true, messageText);
@@ -802,6 +807,7 @@ function sendThreadReply_(userEmail, threadMessageName, replyText) {
 
   const code = res.getResponseCode();
   const body = res.getContentText();
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) replyText = "[SANDBOX] " + String(replyText || "");
   if (userEmail) deputyForwardChat_(userEmail, replyText);
   if (code >= 400) {
     console.warn("Thread reply failed (" + code + "):", body);

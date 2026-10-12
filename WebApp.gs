@@ -473,7 +473,11 @@ function apiTriggerManualSync(type, mode) {
   mode = (mode === 'add_only') ? 'add_only' : 'full';
   try {
     if (type === "templates")     { return syncTemplatesSmart_(mode); }
-    if (type === "users")         { return syncUsersSmart_(mode); }
+    if (type === "users") {
+      // Sandbox: Nutzer-Sync wuerde die produktive Nutzerliste ueberschreiben.
+      if (sandboxActive_()) return { success: false, error: "Sandbox mode: user sync is disabled (it would overwrite the production user list)." };
+      return syncUsersSmart_(mode);
+    }
     if (type === "notifications") { return syncNotificationsFromUsers_(); }
     if (type === "chatmappings")  { return apiResolveChatMappings(); }
     return { success: false, error: "Unknown sync type: " + type };
@@ -1122,6 +1126,8 @@ function readQueueRows_() {
     const pivotLink  = pick(row, ["pivot link"], null);
     // Wer das Projekt angelegt hat, wenn nicht der Eigentuemer (Consultant, MarketingConsulting.gs).
     const createdBy  = pick(row, ["created by", "createdby"], null);
+    // Bei der Einreichung gewaehlte Pivot-Sprachen (Parent-Zeile, Upload.gs).
+    const pivotLangsRaw = pick(row, ["pivot langs", "pivot languages"], null);
     // Spalte V: letzter Download (recordDownloadTimestamp_), fuer das Archiv.
     const downloadedAtRaw = pick(row, ["downloaded at","downloadedat","last download","download date"], 21);
     const downloadedAt = (() => {
@@ -1183,6 +1189,7 @@ function readQueueRows_() {
       pivotRole:    String(pivotRole || "").trim(),
       pivotLink:    String(pivotLink || "").trim(),
       createdBy:    String(createdBy || "").toLowerCase().trim(),
+      pivotLangs:   String(pivotLangsRaw || "").split(/[,;]+/).map(s => s.trim()).filter(Boolean),
       downloadedAt: downloadedAt,
       totalWords:   Number(totalWords) || 0,
       netWords:     Number(netWords) || 0
@@ -1193,6 +1200,8 @@ function readQueueRows_() {
 }
 
 function openOpsSpreadsheet_() {
+  // Admin-Sandbox: eigenes OPS-Spreadsheet (Queue, Consulting, Kalkulation), Sandbox.gs.
+  if (sandboxActive_() && sandboxOpsSheetId_()) return SpreadsheetApp.openById(sandboxOpsSheetId_());
   const id = String(PropertiesService.getScriptProperties().getProperty("OPS_SHEET_ID") || "").trim();
   if (!id) throw new Error("OPS_SHEET_ID fehlt in Script Properties.");
   return SpreadsheetApp.openById(id);

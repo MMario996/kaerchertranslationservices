@@ -127,3 +127,24 @@ test('Meine Projekte: "Projekt **geteilt** von" fett und escaped', () => {
   assert.equal(b.projByLabel_('pl_shared_by', '', 'a<b@x.de'), 'Projekt <b>geteilt</b> von a&lt;b@x.de');
   assert.equal(b.projByLabel_('pl_created_by', 'Project **created** by {name}', 'x@y.de'), 'Project <b>created</b> by x@y.de');
 });
+
+test('Download: nur eingereichte Sprachen, keine abgebrochenen Jobs, nie leer', () => {
+  const dl = load(['DownloadZip.gs', 'PivotProjects.gs']);
+  const jobs = [
+    { uid: '1', targetLang: 'de_DE', status: 'COMPLETED' },
+    { uid: '2', targetLang: 'fr_fr', status: 'COMPLETED' },
+    { uid: '3', targetLang: 'it-IT', status: 'COMPLETED' },
+    { uid: '4', targetLang: 'de_de', status: 'CANCELLED' }
+  ];
+  assert.deepEqual(plain(dl.dlFilterJobs_(jobs, ['de_de', 'it_it'])).map((j) => j.uid), ['1', '3']);
+  assert.deepEqual(plain(dl.dlFilterJobs_(jobs, ['de'])).map((j) => j.uid), ['1'], '"de" passt zu "de_DE"');
+  assert.deepEqual(plain(dl.dlFilterJobs_(jobs, [])).map((j) => j.uid), ['1', '2', '3'], 'ohne Sprachen: alle aktiven');
+  assert.deepEqual(plain(dl.dlFilterJobs_(jobs, ['ja_jp'])).map((j) => j.uid), ['1', '2', '3'], 'kein Treffer: nicht leer');
+  assert.deepEqual(plain(dl.pivotLangsForOptionValues_(['DE', 'fr'], [{ langCode: 'de_de', optionValue: 'DE' }, { langCode: 'fr_fr', optionValue: 'FR' }, { langCode: 'it_it', optionValue: 'IT' }])), ['de_de', 'fr_fr']);
+});
+
+test('Sandbox: Cache-Schluessel getrennt je Umgebung', () => {
+  const s = load(['Sandbox.gs']);
+  assert.equal(s.sandboxCacheKey_('phrase_cf_defs_map', false), 'phrase_cf_defs_map');
+  assert.equal(s.sandboxCacheKey_('phrase_cf_defs_map', true), 'sbx_phrase_cf_defs_map');
+});

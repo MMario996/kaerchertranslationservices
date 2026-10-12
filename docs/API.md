@@ -332,6 +332,7 @@ gehört.
 | `apiMaxTplOptions(baseTemplateUid)` | Marketing, Consultant | Kataloge (Workflow-Schritte, Client/BU/Domain/Subdomain/Cost Center, MT), Standardwerte der Basis-Vorlage, Prompt-Hub |
 | `apiMaxTplSearch(kind, query)` | Marketing, Consultant | `users`, `vendors`, `tms`, `tbs` nach Namen |
 | `apiGetDeputySettings()` / `apiSaveDeputySettings({email, from, to, active})` | eigene | Urlaubsvertretung |
+| `apiGetSandboxStatus()` / `apiSetSandboxMode(enabled)` | Admin | Admin-Sandbox an/aus (nur für den Aufrufer) |
 
 **Maximaltemplate im Upload-Payload:** `payload.maxSettings` = `{ baseTemplateUid, workflowSteps[], stepDue{step: date},
 providers{step: {lang: [{type: "USER"|"VENDOR", id}]}}, client, businessUnit, domain, subDomain, costCenter,

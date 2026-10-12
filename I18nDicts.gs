@@ -8,6 +8,24 @@
  */
 var I18N_DICTS_ = {
   de: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "SANDBOX-MODUS",
+    "sbx_banner_desc": "Phrase-Sandbox, eigene Vorlagen und eigene Projektliste. Die Produktion bleibt unberührt.",
+    "sbx_exit": "Sandbox beenden",
+    "sbx_enter": "In die Sandbox wechseln",
+    "sbx_nav": "Sandbox (Admin)",
+    "sbx_desc": "Nur für dich: Das Portal spricht mit der Phrase-Sandbox (eigener Token und URL), nutzt ein eigenes Vorlagen-Sheet und eine eigene Projektliste. Chat-Nachrichten sind mit [SANDBOX] markiert. Andere Nutzer merken nichts davon.",
+    "sbx_state": "Status",
+    "sbx_on": "Sandbox aktiv",
+    "sbx_off": "Produktion",
+    "sbx_configured": "Sandbox-Token",
+    "sbx_missing": "fehlt (Script Property PHRASE_SANDBOX_API_TOKEN)",
+    "sbx_templates": "Vorlagen-Sheet",
+    "sbx_creator": "Feld „Project Creator“",
+    "sbx_creator_missing": "nicht gesetzt (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID) – wird übersprungen",
+    "sbx_ops": "Sandbox-Projektliste (Sheet)",
+    "sbx_now_on": "Sandbox-Modus ist an. Die Seite wird neu geladen.",
+    "sbx_now_off": "Zurück in der Produktion. Die Seite wird neu geladen.",
     "mk_submit_done": "Projekt für {name} angelegt.",
     "hs_f_bu": "Meine Business Unit (nur lesen)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
@@ -1230,6 +1248,24 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "SANDBOX MODE",
+    "sbx_banner_desc": "Phrase sandbox, own templates and own project list. Production stays untouched.",
+    "sbx_exit": "Exit sandbox",
+    "sbx_enter": "Switch to sandbox",
+    "sbx_nav": "Sandbox (Admin)",
+    "sbx_desc": "Only for you: the portal talks to the Phrase sandbox (own token and URL), uses its own template sheet and its own project list. Chat messages are marked [SANDBOX]. Other users are not affected.",
+    "sbx_state": "Status",
+    "sbx_on": "Sandbox active",
+    "sbx_off": "Production",
+    "sbx_configured": "Sandbox token",
+    "sbx_missing": "missing (Script Property PHRASE_SANDBOX_API_TOKEN)",
+    "sbx_templates": "Template sheet",
+    "sbx_creator": "Field \"Project Creator\"",
+    "sbx_creator_missing": "not set (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID) – skipped",
+    "sbx_ops": "Sandbox project list (Sheet)",
+    "sbx_now_on": "Sandbox mode is on. The page is reloaded.",
+    "sbx_now_off": "Back in production. The page is reloaded.",
     "mk_submit_done": "Project created for {name}.",
     "hs_f_bu": "My business unit (read only)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
@@ -2452,6 +2488,24 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "MODE SANDBOX",
+    "sbx_banner_desc": "Sandbox Phrase, modèles et liste de projets propres. La production n'est pas touchée.",
+    "sbx_exit": "Quitter la sandbox",
+    "sbx_enter": "Passer en sandbox",
+    "sbx_nav": "Sandbox (Admin)",
+    "sbx_desc": "Uniquement pour vous : le portail utilise la sandbox Phrase (jeton et URL propres), sa propre feuille de modèles et sa propre liste de projets. Les messages chat sont marqués [SANDBOX]. Les autres utilisateurs ne sont pas concernés.",
+    "sbx_state": "Statut",
+    "sbx_on": "Sandbox active",
+    "sbx_off": "Production",
+    "sbx_configured": "Jeton sandbox",
+    "sbx_missing": "manquant (Script Property PHRASE_SANDBOX_API_TOKEN)",
+    "sbx_templates": "Feuille de modèles",
+    "sbx_creator": "Champ « Project Creator »",
+    "sbx_creator_missing": "non défini (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID) – ignoré",
+    "sbx_ops": "Liste de projets sandbox (feuille)",
+    "sbx_now_on": "Le mode sandbox est activé. La page est rechargée.",
+    "sbx_now_off": "Retour en production. La page est rechargée.",
     "mk_submit_done": "Projet créé pour {name}.",
     "hs_f_bu": "Mon unité (lecture seule)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
@@ -3615,6 +3669,24 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "MODO SANDBOX",
+    "sbx_banner_desc": "Sandbox de Phrase, plantillas y lista de proyectos propias. La producción no se toca.",
+    "sbx_exit": "Salir de la sandbox",
+    "sbx_enter": "Cambiar a la sandbox",
+    "sbx_nav": "Sandbox (Admin)",
+    "sbx_desc": "Solo para ti: el portal usa la sandbox de Phrase (token y URL propios), su propia hoja de plantillas y su propia lista de proyectos. Los mensajes de chat se marcan con [SANDBOX]. No afecta a otros usuarios.",
+    "sbx_state": "Estado",
+    "sbx_on": "Sandbox activa",
+    "sbx_off": "Producción",
+    "sbx_configured": "Token de sandbox",
+    "sbx_missing": "falta (Script Property PHRASE_SANDBOX_API_TOKEN)",
+    "sbx_templates": "Hoja de plantillas",
+    "sbx_creator": "Campo «Project Creator»",
+    "sbx_creator_missing": "no definido (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID): se omite",
+    "sbx_ops": "Lista de proyectos sandbox (hoja)",
+    "sbx_now_on": "El modo sandbox está activado. La página se recarga.",
+    "sbx_now_off": "De vuelta en producción. La página se recarga.",
     "mk_submit_done": "Proyecto creado para {name}.",
     "hs_f_bu": "Mi unidad de negocio (solo lectura)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
@@ -4778,6 +4850,24 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "MODO SANDBOX",
+    "sbx_banner_desc": "Sandbox do Phrase, modelos e lista de projetos próprios. A produção não é afetada.",
+    "sbx_exit": "Sair da sandbox",
+    "sbx_enter": "Mudar para a sandbox",
+    "sbx_nav": "Sandbox (Admin)",
+    "sbx_desc": "Só para si: o portal usa a sandbox do Phrase (token e URL próprios), a sua própria folha de modelos e a sua própria lista de projetos. As mensagens de chat são marcadas com [SANDBOX]. Os outros utilizadores não são afetados.",
+    "sbx_state": "Estado",
+    "sbx_on": "Sandbox ativa",
+    "sbx_off": "Produção",
+    "sbx_configured": "Token da sandbox",
+    "sbx_missing": "em falta (Script Property PHRASE_SANDBOX_API_TOKEN)",
+    "sbx_templates": "Folha de modelos",
+    "sbx_creator": "Campo «Project Creator»",
+    "sbx_creator_missing": "não definido (PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID) – ignorado",
+    "sbx_ops": "Lista de projetos sandbox (folha)",
+    "sbx_now_on": "O modo sandbox está ativo. A página é recarregada.",
+    "sbx_now_off": "De volta à produção. A página é recarregada.",
     "mk_submit_done": "Projeto criado para {name}.",
     "hs_f_bu": "Minha unidade de negócio (somente leitura)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
@@ -5941,6 +6031,24 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    // --- Admin-Sandbox (Sandbox.gs) ---
+    "sbx_banner": "沙盒模式",
+    "sbx_banner_desc": "Phrase 沙盒，独立的模板和项目列表。生产环境不受影响。",
+    "sbx_exit": "退出沙盒",
+    "sbx_enter": "切换到沙盒",
+    "sbx_nav": "沙盒（管理员）",
+    "sbx_desc": "仅对你生效：门户连接 Phrase 沙盒（独立令牌和 URL），使用独立的模板表和项目列表。聊天消息标记为 [SANDBOX]。不影响其他用户。",
+    "sbx_state": "状态",
+    "sbx_on": "沙盒已启用",
+    "sbx_off": "生产环境",
+    "sbx_configured": "沙盒令牌",
+    "sbx_missing": "缺失（Script Property PHRASE_SANDBOX_API_TOKEN）",
+    "sbx_templates": "模板表",
+    "sbx_creator": "字段“Project Creator”",
+    "sbx_creator_missing": "未设置（PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID）——跳过",
+    "sbx_ops": "沙盒项目列表（表格）",
+    "sbx_now_on": "沙盒模式已开启，页面将重新加载。",
+    "sbx_now_off": "已返回生产环境，页面将重新加载。",
     "mk_submit_done": "已为 {name} 创建项目。",
     "hs_f_bu": "我的业务部门（只读）",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
