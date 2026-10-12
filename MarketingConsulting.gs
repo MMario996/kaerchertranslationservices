@@ -141,6 +141,14 @@ function consultMissingFields_(payload) {
   return missing;
 }
 
+/** Historie fuer die Sheet-Zelle (max. 50.000 Zeichen): aelteste Eintraege fallen zuerst weg, der erste bleibt. */
+function consultHistoryJson_(history) {
+  var h = (history || []).slice();
+  var json = JSON.stringify(h);
+  while (json.length > 45000 && h.length > 2) { h.splice(1, 1); json = JSON.stringify(h); }
+  return json;
+}
+
 function consultHistoryEntry_(by, action, text) {
   return { at: new Date().toISOString(), by: String(by || ""), action: action, text: String(text || "").slice(0, 5000) };
 }
@@ -228,7 +236,7 @@ function consultWrite_(req) {
   var p = req.payload || {};
   var row = [req.id, req.createdAt ? new Date(req.createdAt) : new Date(), req.requester, req.status, req.assignee,
     p.projectName || "", p.templateName || p.templateGroup || "", (p.targetLangs || []).join(", "),
-    JSON.stringify(p), req.comment || "", JSON.stringify(req.history || []), (req.projectUids || []).join(","),
+    JSON.stringify(p), req.comment || "", consultHistoryJson_(req.history), (req.projectUids || []).join(","),
     new Date(), req.folderId || ""];
   if (req.rowNum > 0) sh.getRange(req.rowNum, 1, 1, row.length).setValues([row]);
   else { sh.appendRow(row); req.rowNum = sh.getLastRow(); }

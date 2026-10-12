@@ -8,6 +8,8 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "mk_submit_done": "Projekt für {name} angelegt.",
+    "hs_f_bu": "Meine Business Unit (nur lesen)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "Projekt anlegen",
     "mk_sub_precalc": "Vorab-Kalkulation",
@@ -1228,6 +1230,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "mk_submit_done": "Project created for {name}.",
+    "hs_f_bu": "My business unit (read only)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "Create project",
     "mk_sub_precalc": "Pre-calculation",
@@ -2448,6 +2452,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "mk_submit_done": "Projet créé pour {name}.",
+    "hs_f_bu": "Mon unité (lecture seule)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "Créer un projet",
     "mk_sub_precalc": "Pré-calcul",
@@ -3609,6 +3615,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "mk_submit_done": "Proyecto creado para {name}.",
+    "hs_f_bu": "Mi unidad de negocio (solo lectura)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "Crear proyecto",
     "mk_sub_precalc": "Cálculo previo",
@@ -4770,6 +4778,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "mk_submit_done": "Projeto criado para {name}.",
+    "hs_f_bu": "Minha unidade de negócio (somente leitura)",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "Criar projeto",
     "mk_sub_precalc": "Pré-cálculo",
@@ -5931,6 +5941,8 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "mk_submit_done": "已为 {name} 创建项目。",
+    "hs_f_bu": "我的业务部门（只读）",
     // --- Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung ---
     "mk_sub_create": "创建项目",
     "mk_sub_precalc": "预先核算",

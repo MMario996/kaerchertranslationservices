@@ -583,7 +583,7 @@
     // --- DRIVE LINK UPLOAD --------------------------------------------------------
 
   function handleDriveLinkClick(type, suffix) {
-  if (!checkPreconditions(suffix)) return;
+  if (!filePickAllowed_(suffix)) return;
   showCustomPrompt(
     tr_('jx_b572fda', 'Google Drive Link einfügen:\n\n⚠ Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.'),
     "",

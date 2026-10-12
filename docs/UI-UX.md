@@ -193,7 +193,7 @@ Aufbau als Karten:
 ### Meine Projekte
 
 - **Toolbar:** Aktualisieren · Status synchronisieren · CSV-Export · Kalender · Archiv zeigen
-  (erledigte Projekte älter als 30 Tage) · Filter (alle / meine / mit mir geteilt / Team) ·
+  (erledigte Projekte älter als 30 Tage) · Filter (alle / meine / mit mir geteilt / Team / meine Business Unit) ·
   Suche · Umschalter Tabelle ↔ Kalender.
 - **Status-Chips** filtern nach Status.
 - **Tabelle:** Projektname, Phrase-ID, Upload-Datum, Quelle, Zielsprachen, Status, Frist,

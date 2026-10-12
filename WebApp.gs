@@ -211,7 +211,14 @@ function apiGetMyProjects() {
 function myProjectsBuRows_(email, rows, already) {
   const prefs = userPrefsGet_(email);
   if (prefs.showBuProjects === false) return [];
-  const colleagues = teamEmailsForBusinessUnit_(email).emails.filter(e => e !== email);
+  const cache = CacheService.getScriptCache();
+  const key = "bu_colleagues_" + email;
+  let colleagues = null;
+  try { colleagues = JSON.parse(cache.get(key) || "null"); } catch (e) { colleagues = null; }
+  if (!Array.isArray(colleagues)) {
+    colleagues = teamEmailsForBusinessUnit_(email).emails.filter(e => e !== email);
+    try { cache.put(key, JSON.stringify(colleagues), 600); } catch (e) {}
+  }
   if (!colleagues.length) return [];
   const set = {};
   colleagues.forEach(e => { set[e] = true; });

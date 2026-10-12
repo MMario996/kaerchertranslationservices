@@ -59,6 +59,16 @@ test('Consulting: Formular ablegen ohne Dateiinhalt, Patch, Upload-Payload', () 
   assert.deepEqual(plain(ctx.consultMissingFields_(ctx.consultNormalizePayload_({}, []))), ['template', 'projectName', 'sourceLang', 'targetLangs', 'mainFiles']);
 });
 
+test('Consulting: Historie passt in eine Sheet-Zelle, erster Eintrag bleibt', () => {
+  const h = [{ action: 'CREATED', text: 'start' }];
+  for (let i = 0; i < 40; i++) h.push({ action: 'COMMENT', text: 'x'.repeat(2000) });
+  const json = ctx.consultHistoryJson_(h);
+  assert.ok(json.length <= 45000);
+  const out = JSON.parse(json);
+  assert.equal(out[0].text, 'start');
+  assert.ok(out.length < h.length);
+});
+
 test('Vorab-Kalkulation: Gruppen, Async-Status, Woerter, Summe', () => {
   assert.deepEqual(plain(ctx.precalcGroupLangs_('T1', { fr_fr: 'T2' }, ['de_de', 'fr_fr', 'it_it'])), { T1: ['de_de', 'it_it'], T2: ['fr_fr'] });
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: null }), 'running');

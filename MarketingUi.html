@@ -343,7 +343,14 @@ function mktConsultingAction_(act) {
       startStatusAnimation();
       google.script.run.withSuccessHandler(res => {
         if (res && res.success) {
-          onSuccess(res);
+          // Projekt gehoert dem Einreicher - kein "Zu meinen Projekten" wie bei onSuccess().
+          stopStatusAnimation('');
+          document.getElementById('overlay').style.display = 'none';
+          const req = mkt_.detail && mkt_.detail.request;
+          showCustomAlert(mktEsc_(fmt_(tr_('mk_submit_done', 'Project created for {name}.'), { name: req ? req.requester : '' })) +
+            '<br><br><b>' + mktEsc_((res.allProjectUids || [res.projectUid]).join(', ')) + '</b>' +
+            (res.errors && res.errors.length ? '<br><br>' + mktEsc_(tr_('jx_c9c8347', 'Warnings:')) + '<br>' + res.errors.map(mktEsc_).join('<br>') : ''),
+            tr_('mk_btn_submit', 'Submit project'));
           mkt_.list = null;
           mktConsultingRender_(true);
         } else {

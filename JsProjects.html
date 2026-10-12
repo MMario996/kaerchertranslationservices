@@ -230,6 +230,8 @@ function globalSearch() {
       if (!filtered) return;
   } else if (filterVal === 'own') {
       filtered = filtered.filter(p => p.owner === currentUser);
+  } else if (filterVal === 'bu') {
+      filtered = filtered.filter(p => p.buCreated);
   } else if (filterVal === 'shared') {
       filtered = filtered.filter(p => p.owner !== currentUser && ((p.sharedWith || '').toLowerCase().includes(currentUser) || p.groupShared));
   }

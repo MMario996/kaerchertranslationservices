@@ -609,6 +609,10 @@ test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von"
   assert.match(html, /<b>(created|erstellt)<\/b>[^<]*consultant@kaercher\.com/);
   assert.match(html, /<b>(shared|geteilt)<\/b>[^<]*colleague@kaercher\.com/);
   assert.match(html, /<b>(created|erstellt)<\/b>[^<]*bu@kaercher\.com/);
+  await page.selectOption('#ownershipFilter', 'bu');
+  const buOnly = await page.locator('#projectsTable tbody').innerText();
+  assert.match(buOnly, /BU PROJECT/);
+  assert.doesNotMatch(buOnly, /BY CONSULTANT|SHARED/);
 
   await page.evaluate(() => openPreferences());
   await page.waitForSelector('#preferencesModal');
