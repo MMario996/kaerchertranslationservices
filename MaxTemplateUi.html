@@ -82,7 +82,7 @@ function maxTplBaseChoices_() {
       const v = g.variants[src];
       if (!v.uid || seen[v.uid]) return;
       seen[v.uid] = true;
-      out.push({ uid: v.uid, label: gName.replace(/^\[([^\]]+)\]\s*/, '') + ' (' + src + ')', source: src, targets: v.targets || [] });
+      out.push({ uid: v.uid, label: tplDisplayLabel_(gName) + ' (' + langShort_(src) + ')', source: src, targets: v.targets || [] });
     });
   });
   return out;

@@ -654,8 +654,8 @@ function renderTemplateOptions(suffix) {
     const div = document.createElement('div');
     div.className = 'tmpl-option' + (gName === currentVal ? ' selected' : '') + (gName === maxName ? ' tmpl-option-max' : '');
     div.dataset.value = gName;
-    div.textContent = label;
-    div.onclick = () => selectTemplateOption_(suffix, gName, label);
+    div.textContent = tplDisplayLabel_(gName === maxName ? label : gName);
+    div.onclick = () => selectTemplateOption_(suffix, gName, div.textContent);
     optionsList.appendChild(div);
   });
 }
@@ -912,13 +912,14 @@ function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
     .apiGetPivotChildLanguageOptions(tData.uid);
 }
 
+/** Ueberall gleich: "🇪🇸 ES · Spanish (Spain)" (Flagge + Kuerzel + Name), siehe langShort_ in JsCore. */
 function getPrettyLangName(code) {
   if (!code) return tr_('jx_88183b9', 'Unknown');
   const key = code.toLowerCase().replace(/-/g, "_");
-  if (PRETTY_LANG_MAP[key]) return PRETTY_LANG_MAP[key];
   const base = key.split("_")[0];
-  if (PRETTY_LANG_MAP[base]) return PRETTY_LANG_MAP[base];
-  return (configData.languages && configData.languages[key]) || code;
+  const full = PRETTY_LANG_MAP[key] || PRETTY_LANG_MAP[base] || '';
+  const name = full.replace(/^\S+\s*/, '');
+  return langShort_(code) + (name ? ' · ' + name : '');
 }
 
 function initMultiSelect(suffix, targetCodes, prefix) {

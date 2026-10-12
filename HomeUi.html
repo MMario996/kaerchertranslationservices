@@ -336,7 +336,7 @@ function homeTime_(d) {
 }
 
 function homeSub_(p) {
-  const langs = p.targetLangs && p.targetLangs.length ? p.targetLangs.join(', ') : (p.targetLang || '');
+  const langs = langsShort_(p.targetLangs && p.targetLangs.length ? p.targetLangs : (p.targetLang || ''));
   const owner = p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '';
   return [langs, owner].filter(Boolean).join(' · ') || p.status || '';
 }

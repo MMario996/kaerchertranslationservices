@@ -773,7 +773,7 @@ function teamRowHtml_(p) {
   return `<td><span class="team-name">${escapeHtml(p.projectName || p.projectUid)}</span>${p.templateName ? `<div class="team-sub">${escapeHtml(p.templateName)}</div>` : ''}</td>
     <td style="font-size:11px;">${escapeHtml(p.projectUid)}</td>
     <td style="font-size:11px;">${escapeHtml(p.uploadDate || '-')}</td><td>${escapeHtml(p.sourceLang || '')}</td>
-    <td><span style="font-size:11px;">${escapeHtml(p.targetLang || '-')}</span></td>
+    <td><span style="font-size:11px;">${escapeHtml(langsShort_(p.targetLang) || '-')}</span></td>
     <td><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status)}</span></td>
     <td>${due}</td>
     <td>${p.buCreated ? `<span class="proj-by proj-by-bu">${projByLabel_('pl_created_by', 'Project **created** by {name}', p.owner)}</span>` : `<span class="team-badge"><span class="material-icons-outlined">groups</span>${escapeHtml(p.owner)}</span>`}</td>

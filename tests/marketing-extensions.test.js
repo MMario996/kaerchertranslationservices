@@ -150,3 +150,17 @@ test('Sandbox: Cache-Schluessel getrennt je Umgebung', () => {
   assert.equal(s.sandboxCacheKey_('phrase_cf_defs_map', false), 'phrase_cf_defs_map');
   assert.equal(s.sandboxCacheKey_('phrase_cf_defs_map', true), 'sbx_phrase_cf_defs_map');
 });
+
+test('Sprachen: Flagge + Kuerzel einheitlich, Vorlagennamen mit Flaggen', () => {
+  const b = load(['JsCore.html', 'JsMisc.html', 'JsForms.html'], browserStubs());
+  assert.equal(b.langShortCode_('es_es'), 'ES');
+  assert.equal(b.langShortCode_('en_gb'), 'EN-GB');
+  assert.equal(b.langShortCode_('zh_hans_cn'), 'ZH-CN');
+  assert.equal(b.langShort_('es_ES'), '🇪🇸 ES');
+  assert.equal(b.langShort_('es_mx'), '🇲🇽 ES-MX', 'Flagge aus dem Land, auch ohne Eintrag in der Liste');
+  assert.equal(b.langsShort_('de_de, en_gb'), '🇩🇪 DE, 🇬🇧 EN-GB');
+  assert.equal(b.getPrettyLangName('es_es'), '🇪🇸 ES · Spanish (Spain)');
+  assert.equal(b.tplDisplayLabel_('[ES] Flyer'), '🇪🇸 ES · Flyer');
+  assert.equal(b.tplDisplayLabel_('[MKT] Flyer DE>FR'), 'Flyer 🇩🇪 DE>🇫🇷 FR');
+  assert.equal(b.tplDisplayLabel_('Marketing Express'), 'Marketing Express', 'normale Woerter bleiben');
+});
