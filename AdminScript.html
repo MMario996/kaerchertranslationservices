@@ -1126,6 +1126,7 @@ function toggleAdminHelp(id) {
         if (document.getElementById('adminLightSubtabPivot').checked) subtabs.push('pivot');
         if (document.getElementById('adminLightSubtabTests').checked) subtabs.push('tests');
         if (document.getElementById('adminLightSubtabDashboard').checked) subtabs.push('dashboard');
+        if (document.getElementById('adminLightSubtabConsulting').checked) subtabs.push('consulting');
         if (!subtabs.length) { showCustomAlert(tr_('ax_4e01f54', 'Bitte mindestens einen Subtab auswählen.'), tr_('ax_9874513', 'Hinweis')); return; }
         google.script.run
           .withSuccessHandler(r => {
@@ -1136,6 +1137,7 @@ function toggleAdminHelp(id) {
             document.getElementById('adminLightSubtabPivot').checked = false;
             document.getElementById('adminLightSubtabTests').checked = false;
             document.getElementById('adminLightSubtabDashboard').checked = false;
+            document.getElementById('adminLightSubtabConsulting').checked = false;
             loadAdminLightUsers();
           })
           .withFailureHandler(e => showCustomAlert(tr_('ax_0aa2532', 'Fehler:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))

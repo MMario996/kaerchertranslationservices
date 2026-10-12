@@ -38,7 +38,7 @@ function include(name) {
  * nachgeladen werden (ensureScript_ in JsNavigation.html) - haelt die Seite
  * unter der Apps-Script-Groessengrenze. Nur diese Namen sind erlaubt.
  */
-var LAZY_SCRIPTS_ = ["JsCampus", "AdminManagersUi", "KecSettingsUi"];
+var LAZY_SCRIPTS_ = ["JsCampus", "AdminManagersUi", "KecSettingsUi", "MarketingUi", "MaxTemplateUi"];
 
 function apiGetLazyScript(name) {
   if (LAZY_SCRIPTS_.indexOf(name) < 0) throw new Error("Unknown script: " + name);
@@ -161,20 +161,39 @@ function apiGetMyProjects() {
   // Eigentuemer in der WOMA-Whitelist reicht daher als Kriterium.
   const isWomaCaller = isWomaUser_(ctx.userEmail);
 
+  // Urlaubsvertretung (Deputies.gs): Projekte (eigene und mit ihnen geteilte)
+  // der vertretenen Personen erscheinen wie eigene.
+  const principals = ctx.isAdmin ? [] : deputyPrincipalsOf_(ctx.userEmail);
+  const sharedWithAny = (r, emails) => {
+    if (!r.sharedWith || typeof r.sharedWith !== "string") return false;
+    const parts = r.sharedWith.split(/[;,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    return emails.some(e => parts.includes(e));
+  };
+
   const filtered = rows.filter(r => {
     if (ctx.isAdmin) return true;
     if (r.userEmail && r.userEmail.toLowerCase() === ctx.userEmail) return true;
-    if (r.sharedWith && typeof r.sharedWith === "string") {
-      const parts = r.sharedWith.split(/[;,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-      if (parts.includes(ctx.userEmail)) return true;
-    }
+    if (sharedWithAny(r, [ctx.userEmail])) return true;
+    if (principals.length && (principals.includes(r.owner) || sharedWithAny(r, principals))) return true;
     if (isWomaCaller && isWomaUser_(r.owner)) return true;
     return false;
   });
 
   filtered.forEach(r => {
     r.groupShared = isWomaCaller && r.owner !== ctx.userEmail && isWomaUser_(r.owner);
+    if (principals.includes(r.owner)) r.deputyFor = r.owner;
   });
+
+  // Projekte von Kollegen derselben Business Unit (nur lesen, "Projekt erstellt von").
+  // Abschaltbar in den Einstellungen (showBuProjects), Admins sehen ohnehin alles.
+  if (!ctx.isAdmin) {
+    try {
+      const buRows = myProjectsBuRows_(ctx.userEmail, rows, filtered);
+      Array.prototype.push.apply(filtered, buRows);
+    } catch (e) {
+      console.warn("BU-Projekte: " + e.message);
+    }
+  }
 
   filtered.sort((a, b) => {
     const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -183,6 +202,29 @@ function apiGetMyProjects() {
   });
 
   return { projects: filtered, email: ctx.userEmail };
+}
+
+/**
+ * Projekte der Business-Unit-Kollegen fuer "Meine Projekte" (nur lesen):
+ * schlanke Felder wie die Team-Ansicht, markiert mit buCreated.
+ */
+function myProjectsBuRows_(email, rows, already) {
+  const prefs = userPrefsGet_(email);
+  if (prefs.showBuProjects === false) return [];
+  const colleagues = teamEmailsForBusinessUnit_(email).emails.filter(e => e !== email);
+  if (!colleagues.length) return [];
+  const set = {};
+  colleagues.forEach(e => { set[e] = true; });
+  const seen = {};
+  already.forEach(r => { seen[r.projectUid] = true; });
+  return rows.filter(r => set[r.owner] && !seen[r.projectUid]).map(r => ({
+    projectUid: r.projectUid, projectName: r.projectName, owner: r.owner, userEmail: r.userEmail,
+    createdBy: r.createdBy, timestamp: r.timestamp, uploadDate: r.uploadDate, templateName: r.templateName,
+    sourceLang: r.sourceLang, targetLang: r.targetLang, targetLangs: r.targetLangs,
+    status: r.status, dueDate: r.dueDate instanceof Date ? r.dueDate.toISOString() : r.dueDate,
+    pivotRole: r.pivotRole, pivotLink: r.pivotLink, phraseUrl: r.phraseUrl, downloadedAt: r.downloadedAt,
+    sharedWith: "", isShared: false, teamView: true, buCreated: true
+  }));
 }
 
 /**
@@ -196,7 +238,7 @@ function apiGetMyProjects() {
 function apiGetDashboardData() {
   const ctx = getUserContext_();
   const canSeeAll = ctx.isAdmin || isAdminLightWithAccess_(ctx.userEmail, "dashboard");
-  const projects = canSeeAll ? readQueueRows_() : apiGetMyProjects().projects;
+  const projects = canSeeAll ? readQueueRows_() : apiGetMyProjects().projects.filter(p => !p.buCreated);
 
   const toIso = v => {
     if (!v) return "";
@@ -304,7 +346,7 @@ function apiShareProject(projectUid, shareWithEmail) {
       if (String(data[i][2]).trim() !== projectUid) continue;
 
       var owner = String(data[i][1]).toLowerCase().trim();
-      if (!isAdmin_(caller) && owner !== caller) return { success: false, error: "Not authorized." };
+      if (!isAdmin_(caller) && owner !== caller && !deputyActsFor_(caller, owner)) return { success: false, error: "Not authorized." };
 
       var current = String(data[i][17] || "").trim();
       var parts   = current ? current.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
@@ -380,7 +422,7 @@ function apiCancelProject(projectUid, callerOverride) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][2]).trim() !== projectUid) continue;
       const owner      = String(data[i][1]).toLowerCase().trim();
-      if (!isAdm && owner !== caller) return { success: false, error: "Not authorized." };
+      if (!isAdm && owner !== caller && !deputyActsFor_(caller, owner)) return { success: false, error: "Not authorized." };
 
       sh.getRange(i + 1, 8).setValue("CANCELLED");
 
@@ -440,6 +482,7 @@ function apiTriggerManualSync(type, mode) {
 function apiSyncProjectStatuses() {
   const caller = getUserEmail_().toLowerCase();
   const isAdm  = isAdmin_(caller);
+  const principals = isAdm ? [] : deputyPrincipalsOf_(caller); // Urlaubsvertretung
   const terminalStatuses   = ["COMPLETED","DELIVERED","CANCELLED","CANCELED","REJECTED"];
   const completionStatuses = ["COMPLETED","DELIVERED","NOTIFIED"];
 
@@ -465,7 +508,7 @@ function apiSyncProjectStatuses() {
 
       if (!projectUid)                              continue;
       if (terminalStatuses.includes(currentStatus)) continue;
-      if (!isAdm && rowUser !== caller)             continue;
+      if (!isAdm && rowUser !== caller && principals.indexOf(rowUser) < 0) continue;
 
       try {
         const url    = phraseApiUrlV1_(`/projects/${encodeURIComponent(projectUid)}`);
@@ -862,7 +905,7 @@ function apiUpdateDueDate(projectUid, newDateIso, callerOverride) {
 
     if (rowIdx === -1) return { success: false, error: "Project not found." };
 
-    const isOwner  = owner === caller;
+    const isOwner  = owner === caller || deputyActsFor_(caller, owner);
     const isShared = sharedWith.split(/[,;]+/).map(s => s.trim()).includes(caller);
     if (!isAdmin_(caller) && !isOwner && !isShared) {
       return { success: false, error: "Not authorized." };
@@ -952,7 +995,7 @@ function apiUpdateProjectName(projectUid, newName, callerOverride) {
 
     if (rowIdx === -1) return { success: false, error: "Project not found." };
 
-    const isOwner  = owner === caller;
+    const isOwner  = owner === caller || deputyActsFor_(caller, owner);
     const isShared = sharedWith.split(/[,;]+/).map(s => s.trim()).includes(caller);
     if (!isAdmin_(caller) && !isOwner && !isShared) {
       return { success: false, error: "Not authorized." };
@@ -1070,6 +1113,8 @@ function readQueueRows_() {
     const netWords   = pick(row, ["net words","networds"], 16);
     const pivotRole  = pick(row, ["pivot role"], null);
     const pivotLink  = pick(row, ["pivot link"], null);
+    // Wer das Projekt angelegt hat, wenn nicht der Eigentuemer (Consultant, MarketingConsulting.gs).
+    const createdBy  = pick(row, ["created by", "createdby"], null);
     // Spalte V: letzter Download (recordDownloadTimestamp_), fuer das Archiv.
     const downloadedAtRaw = pick(row, ["downloaded at","downloadedat","last download","download date"], 21);
     const downloadedAt = (() => {
@@ -1130,6 +1175,7 @@ function readQueueRows_() {
       jobMapping:   jobMapping,
       pivotRole:    String(pivotRole || "").trim(),
       pivotLink:    String(pivotLink || "").trim(),
+      createdBy:    String(createdBy || "").toLowerCase().trim(),
       downloadedAt: downloadedAt,
       totalWords:   Number(totalWords) || 0,
       netWords:     Number(netWords) || 0
@@ -1175,6 +1221,21 @@ function _notifySharedUsers_(sharedWithStr, sharedThreads, message, skipEmail) {
       console.warn("Notify shared user failed for " + email + ": " + e.message);
     }
   });
+}
+
+/**
+ * Spalte mit Kopfzeile name im Queue-Sheet (1-basiert); legt sie hinten an,
+ * falls sie fehlt. Fuer Zusatzspalten, die nur per Kopfzeile gelesen werden.
+ */
+function queueEnsureHeaderCol_(sh, name) {
+  const lastCol = Math.max(sh.getLastColumn(), 1);
+  const header = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || "").trim().toLowerCase());
+  const i = header.indexOf(String(name).toLowerCase());
+  if (i >= 0) return i + 1;
+  // Nie in die festen Spalten A..V schreiben (werden per Index gefuellt).
+  const col = Math.max(lastCol + 1, 23);
+  sh.getRange(1, col).setValue(name);
+  return col;
 }
 
 function getQueueSheet_() {

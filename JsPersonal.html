@@ -186,6 +186,7 @@ function personalPrefsOpen_() {
       ? '(' + res.businessUnits.join(', ') + ' · ' + fmt_(tr_('pf_team_bu_count', '{n} colleagues'), { n: res.buColleagues }) + ')'
       : '(' + tr_('pf_team_bu_none', 'no business unit stored for you') + ')';
   }).apiGetTeamSettings();
+  deputyPrefsLoad_();
   const cs = document.getElementById('prefCalStatus');
   cs.textContent = tr_('jx_8524de9', 'Loading...');
   google.script.run.withSuccessHandler(st => { cs.textContent = calStatusLine_(st); })
@@ -212,6 +213,7 @@ function fillPrefsForm_() {
   set('prefTeamEnabled', 'checked', !!team.enabled);
   document.querySelectorAll('input[name="prefTeamMode"]').forEach(r => { r.checked = r.value === (team.mode || 'bu'); });
   set('prefTeamEmails', 'value', (team.emails || []).join(', '));
+  set('prefShowBu', 'checked', d.showBuProjects !== false);
   updateTeamPrefsUi_();
   updateStartPrefsUi_();
 }
@@ -281,13 +283,15 @@ function savePreferences_() {
     notifTypes: NOTIF_TYPES_.filter(t => val('prefNt_' + t).checked),
     notifToast: val('prefToast').checked,
     shortcuts: val('prefKeys').checked,
+    showBuProjects: val('prefShowBu').checked,
     team: {
       enabled: val('prefTeamEnabled').checked,
       mode: mode,
       emails: val('prefTeamEmails').value.split(/[\s,;]+/).filter(Boolean)
     }
   };
-  const teamChanged = JSON.stringify(patch.team) !== JSON.stringify(userPrefs_.team || {});
+  const teamChanged = JSON.stringify(patch.team) !== JSON.stringify(userPrefs_.team || {})
+    || patch.showBuProjects !== (userPrefs_.showBuProjects !== false);
   const newLang = val('prefLang').value;
   userPrefs_ = Object.assign({}, userPrefs_, patch);
   prefsSaved_ = true;
@@ -298,7 +302,8 @@ function savePreferences_() {
   setNotifBadge_(notifUnreadCount_());
   if (userPrefs_.startPage !== false) loadHomeUi_();
 
-  let pending = 2;
+  const deputyPatch = deputyPrefsDirty_();
+  let pending = deputyPatch ? 3 : 2;
   const done = () => {
     if (--pending > 0) return;
     document.getElementById('prefsSaveMsg').style.display = 'block';
@@ -311,9 +316,58 @@ function savePreferences_() {
     if (res && res.success && res.prefs) userPrefs_ = Object.assign({}, userPrefs_, res.prefs);
     done();
   }).withFailureHandler(fail).apiSaveUserPrefs(patch);
+  if (deputyPatch) {
+    google.script.run.withSuccessHandler(res => {
+      if (res && res.success) { deputyPrefs_ = res; done(); }
+      else showCustomAlert(escapeHtml(deputyErrorText_(res && res.error)), tr_('jx_902b0d5', 'Error'));
+    }).withFailureHandler(fail).apiSaveDeputySettings(deputyPatch);
+  }
   const chat = document.getElementById('chatPrefToggle');
   if (chat.disabled) done();
   else google.script.run.withSuccessHandler(done).withFailureHandler(fail).apiSetChatPreference(chat.checked);
+}
+
+// --- Urlaubsvertretung (Deputies.gs) -----------------------------------------
+let deputyPrefs_ = null;
+
+function deputyPrefsLoad_() {
+  const st = document.getElementById('prefDeputyState');
+  if (st) st.textContent = tr_('jx_8524de9', 'Loading...');
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { if (st) st.textContent = ''; return; }
+    deputyPrefs_ = res;
+    const d = res.deputy || {};
+    document.getElementById('prefDeputyEmail').value = d.email || '';
+    document.getElementById('prefDeputyFrom').value = d.from || '';
+    document.getElementById('prefDeputyTo').value = d.to || '';
+    document.getElementById('prefDeputyActive').checked = !!d.active;
+    if (st) st.textContent = d.email ? (res.activeNow ? tr_('dp_state_on', 'Active right now') : tr_('dp_state_off', 'Not active right now')) : '';
+    const pr = document.getElementById('prefDeputyPrincipals');
+    pr.innerHTML = (res.principals || []).length
+      ? '<b>' + escapeHtml(tr_('dp_you_are', 'You are the deputy for:')) + '</b> ' + res.principals.map(p =>
+          escapeHtml(p.email) + (p.from || p.to ? ' (' + escapeHtml((p.from || '…') + ' – ' + (p.to || '…')) + ')' : '')).join(', ')
+      : '';
+  }).withFailureHandler(() => { if (st) st.textContent = ''; }).apiGetDeputySettings();
+}
+
+/** Geaenderte Vertretung oder null (dann kein Serveraufruf). */
+function deputyPrefsDirty_() {
+  if (!deputyPrefs_ || !document.getElementById('prefDeputyEmail')) return null;
+  const cur = {
+    email: document.getElementById('prefDeputyEmail').value.trim().toLowerCase(),
+    from: document.getElementById('prefDeputyFrom').value,
+    to: document.getElementById('prefDeputyTo').value,
+    active: document.getElementById('prefDeputyActive').checked
+  };
+  const old = deputyPrefs_.deputy || {};
+  const same = cur.email === (old.email || '') && cur.from === (old.from || '') && cur.to === (old.to || '') && cur.active === !!old.active;
+  return same ? null : cur;
+}
+
+function deputyErrorText_(code) {
+  return ({ invalid_email: tr_('dp_err_email', 'Please enter a valid e-mail address.'),
+            self: tr_('dp_err_self', 'You cannot be your own deputy.'),
+            range: tr_('dp_err_range', 'The end date is before the start date.') })[code] || String(code || 'Error');
 }
 
 // --- Angeheftete Projekte ---------------------------------------------------
@@ -684,7 +738,7 @@ function teamRowHtml_(p) {
     <td><span style="font-size:11px;">${escapeHtml(p.targetLang || '-')}</span></td>
     <td><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status)}</span></td>
     <td>${due}</td>
-    <td><span class="team-badge"><span class="material-icons-outlined">groups</span>${escapeHtml(p.owner)}</span></td>
+    <td>${p.buCreated ? `<span class="proj-by proj-by-bu">${projByLabel_('pl_created_by', 'Project **created** by {name}', p.owner)}</span>` : `<span class="team-badge"><span class="material-icons-outlined">groups</span>${escapeHtml(p.owner)}</span>`}</td>
     <td style="text-align:center;">-</td>
     <td style="text-align:center;">${ro}</td>`;
 }
@@ -859,7 +913,7 @@ function buildIcs_(projects, includeDone, nowMs) {
 function downloadIcs_() {
   const includeDone = document.getElementById('calIcsDone').checked;
   const go = () => {
-    const ics = buildIcs_(globalProjects, includeDone);
+    const ics = buildIcs_(globalProjects.filter(p => !p.buCreated), includeDone);
     const n = (ics.match(/BEGIN:VEVENT/g) || []).length;
     if (!n) { showCustomAlert(tr_('cal_ics_none', 'There are no projects with a due date to export.'), tr_('cal_title', 'Calendar')); return; }
     const a = document.createElement('a');

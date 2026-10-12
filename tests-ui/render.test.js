@@ -480,3 +480,150 @@ test('Knowledge Base in Apps Script: Links bleiben in der Seite (kein Sprung ins
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+// --- Marketing-Erweiterungen ---------------------------------------------------
+const MKT_CONFIG = {
+  precalcEnabled: true, maxTemplatePortals: ['marketing'], maxTemplateName: 'Maximaltemplate',
+  templates: { 'Flyer [en]': { uid: 'T1', source: 'en', targets: ['de_de', 'fr_fr'], targetUidMap: { de_de: 'T1', fr_fr: 'T1' } } },
+  languages: { en: 'en', de_de: 'de_de', fr_fr: 'fr_fr', it_it: 'it_it' }
+};
+
+test('Marketing: Ask for Consulting schickt Formular + Kommentar, Consultant sieht Historie und reicht ein', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiConsultingCreate: (p, c) => ({ success: true, id: 'C-1' }),
+    apiConsultingList: { success: true, isConsultant: true, requests: [
+      { id: 'C-1', createdAt: '2026-10-12T08:00:00Z', requester: 'req@kaercher.com', status: 'OPEN', assignee: '', projectName: 'Flyer Q4', templateName: 'Flyer', targetLangs: ['de_de'], files: 1, projectUids: [] }] },
+    apiConsultingGet: { success: true, isConsultant: true, canEdit: true, canWithdraw: false,
+      templates: { 'Flyer [en]': { uid: 'T1', source: 'en', targets: ['de_de', 'fr_fr'], targetUidMap: { de_de: 'T1', fr_fr: 'T1' } } },
+      request: { id: 'C-1', createdAt: '2026-10-12T08:00:00Z', requester: 'req@kaercher.com', status: 'OPEN', assignee: '', missing: [], projectUids: [],
+        payload: { templateGroup: 'Flyer', templateUid: 'T1', templateName: 'Flyer', sourceLang: 'en', targetLangs: ['de_de'], targetUidMap: { de_de: 'T1' }, projectName: 'Flyer Q4', note: '',
+          files: [{ fileId: 'F1', name: 'flyer.docx', kind: 'main' }] },
+        history: [{ at: '2026-10-12T08:00:00Z', by: 'req@kaercher.com', action: 'CREATED', text: 'Budget unklar' }] } },
+    apiConsultingSubmit: (id, patch) => ({ success: true, projectUid: 'P1', allProjectUids: ['P1'], createdProjects: 1, errors: [] })
+  }`, { configPatch: MKT_CONFIG });
+  await page.evaluate(() => { switchTab('marketing'); });
+  assert.ok(await page.locator('#mktSubNav').isVisible(), 'Unterreiter sichtbar');
+  assert.ok(await page.locator('#mktsubBtn-precalc').isVisible(), 'Vorab-Kalkulation sichtbar');
+  await page.fill('#projectName_marketing', 'Flyer Q4');
+  await page.click('#consultBtn_marketing');
+  await page.waitForSelector('#mktConsultComment');
+  await page.fill('#mktConsultComment', 'Budget unklar');
+  await page.click('.mkt-box [data-act=send]');
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiConsultingCreate'));
+  const call = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiConsultingCreate').args);
+  assert.equal(call[0].projectName, 'Flyer Q4');
+  assert.equal(call[1], 'Budget unklar');
+  await page.waitForFunction(() => document.getElementById('customDialogOverlay').style.display === 'flex');
+  await page.click('#customDialogConfirmBtn');
+
+  await page.evaluate(() => switchMktSubtab('consulting'));
+  await page.waitForSelector('#mktConsList .mkt-item');
+  await page.click('#mktConsList .mkt-item');
+  await page.waitForSelector('#mktCdName');
+  assert.match(await page.locator('#mktConsDetail').innerText(), /Budget unklar/);
+  await page.locator('#mktCdTargets input[value=fr_fr]').check();
+  await page.getByRole('button', { name: /Submit project|Projekt einreichen/ }).click();
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiConsultingSubmit'));
+  const sub = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiConsultingSubmit').args);
+  assert.equal(sub[0], 'C-1');
+  assert.deepEqual(sub[1].targetLangs, ['de_de', 'fr_fr']);
+  assert.deepEqual(sub[1].targetUidMap, { de_de: 'T1', fr_fr: 'T1' });
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Marketing: Vorab-Kalkulation zeigt den Betrag aus der Phrase-Quote', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiPrecalcHistory: { success: true, all: false, rows: [] },
+    apiPrecalcStart: (p) => ({ success: true, id: 'P-1', phase: 'IMPORT' }),
+    apiPrecalcPoll: (id) => ({ success: true, phase: 'DONE', amount: 1234.5, currency: 'EUR', words: 2500, perTemplate: [], files: ['flyer.docx'] })
+  }`, { configPatch: MKT_CONFIG });
+  await page.evaluate(() => { switchTab('marketing'); switchMktSubtab('precalc'); });
+  await page.waitForSelector('#mktPrecalcHead .card');
+  assert.ok(await page.locator('#projectForm_precalc').isVisible(), 'Formular der Kalkulation');
+  assert.ok(await page.locator('#settingsCard_precalc').isHidden(), 'ohne Frist/Notiz');
+  await page.evaluate(() => mktPrecalcStart_('_precalc'));
+  await page.waitForFunction(() => /1[.,]234[.,]50/.test((document.getElementById('mktPcBody') || {}).innerText || ''), null, { timeout: 15000 });
+  assert.match(await page.locator('#mktPcBody').innerText(), /2[.,]?500/);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Maximaltemplate: XXL-Dialog setzt Basis, Sprachen, Prompt und liefert maxSettings', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiMaxTplOptions: (uid) => ({ success: true,
+      catalog: { workflowSteps: [{ id: 's1', name: 'Translation', order: 1 }, { id: 's2', name: 'Revision', order: 2 }], clients: [], businessUnits: [{ id: 'b1', name: 'Marketing' }], domains: [], subDomains: [], costCenters: [], mtSettings: [] },
+      defaults: uid ? { uid: uid, sourceLang: 'en', targetLangs: ['de_de'], workflowSteps: ['s1'], businessUnit: 'b1', tms: [], tbs: [] } : null,
+      prompts: [{ name: 'Marketing DE', prompt: 'Du bist Texter.', templateUids: ['T1'], link: '' }],
+      templatePrompt: uid ? { name: 'Marketing DE', prompt: 'Du bist Texter.', templateUids: ['T1'], link: '' } : null,
+      promptHubUrl: 'https://example.com/hub', promptField: 'AI Prompt' })
+  }`, { configPatch: MKT_CONFIG });
+  await page.evaluate(() => switchTab('marketing'));
+  const opt = page.locator('#tmplOptionsList_marketing .tmpl-option-max');
+  assert.equal(await opt.count(), 1, 'Maximaltemplate im Dropdown');
+  await page.click('#tmplTrigger_marketing');
+  await opt.click();
+  await page.waitForSelector('#maxTplOverlay .mx-body select');
+  await page.locator('#maxTplOverlay .mx-body select').first().selectOption('T1');
+  await page.waitForFunction(() => maxTplDlg_ && maxTplDlg_.s.workflowSteps.length === 1 && document.querySelector('#mxLangs'));
+  await page.locator('#mxLangs input[value=fr_fr]').check();
+  await page.evaluate(() => maxTplShowSec_('workflow'));
+  await page.locator('.mx-step input[type=checkbox]').nth(1).check();
+  await page.evaluate(() => maxTplShowSec_('ai'));
+  assert.equal(await page.locator('.mx-prompt').inputValue(), 'Du bist Texter.', 'Prompt der Vorlage vorbelegt');
+  await page.getByRole('button', { name: /Apply settings|Einstellungen übernehmen/ }).click();
+  await page.waitForFunction(() => !document.getElementById('maxTplOverlay'));
+  assert.match(await page.locator('#tmplTriggerText_marketing').innerText(), /Maximaltemplate/);
+  assert.ok(await page.locator('#maxTplEdit_marketing').isVisible(), 'Bearbeiten-Knopf');
+  const payload = await page.evaluate(async () => { await new Promise((r) => setTimeout(r, 0)); const p = await collectFormPayload_('_marketing'); return p; });
+  assert.deepEqual(payload.targetLangs.sort(), ['de_de', 'fr_fr']);
+  assert.equal(payload.templateUid, 'T1');
+  assert.deepEqual(payload.maxSettings.workflowSteps, ['s1', 's2']);
+  assert.equal(payload.maxSettings.businessUnit, 'b1');
+  assert.equal(payload.maxSettings.prompt, 'Du bist Texter.');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von" / "geteilt von" fett', async () => {
+  const projects = JSON.stringify([
+    { projectUid: 'c1', projectName: 'BY CONSULTANT', owner: ME, createdBy: 'consultant@kaercher.com', status: 'ASSIGNED', targetLangs: ['de'] },
+    { projectUid: 's1', projectName: 'SHARED', owner: 'colleague@kaercher.com', sharedWith: ME, isShared: true, status: 'ASSIGNED', targetLangs: ['de'] },
+    { projectUid: 'b1', projectName: 'BU PROJECT', owner: 'bu@kaercher.com', teamView: true, buCreated: true, status: 'ASSIGNED', targetLangs: ['de'] }
+  ]);
+  const { page, errors } = await openApp(null, `{
+    apiGetMyProjects: { projects: ${projects}, email: '${ME}' },
+    apiGetPrefsUi: ${JSON.stringify(parts.prefs.replace(/^\s*<!--[\s\S]*?-->\s*/, ''))},
+    apiGetChatPreference: { enabled: true },
+    apiGetTeamSettings: { success: true, team: {}, businessUnits: [], buColleagues: 0 },
+    apiGetCalendarSyncStatus: { configured: false },
+    apiGetDeputySettings: { success: true, deputy: { email: '', from: '', to: '', active: false }, activeNow: false, principals: [{ email: 'boss@kaercher.com', from: '', to: '', activeNow: true }] },
+    apiSaveDeputySettings: (d) => ({ success: true, deputy: d, activeNow: true, principals: [] }),
+    apiSaveUserPrefs: (p) => ({ success: true, prefs: p }),
+    apiSetChatPreference: { success: true }
+  }`);
+  await page.evaluate(() => { switchTab('history'); });
+  await page.waitForFunction(() => /BU PROJECT/.test(document.querySelector('#projectsTable').innerText));
+  const html = await page.locator('#projectsTable').innerHTML();
+  assert.match(html, /<b>(created|erstellt)<\/b>[^<]*consultant@kaercher\.com/);
+  assert.match(html, /<b>(shared|geteilt)<\/b>[^<]*colleague@kaercher\.com/);
+  assert.match(html, /<b>(created|erstellt)<\/b>[^<]*bu@kaercher\.com/);
+
+  await page.evaluate(() => openPreferences());
+  await page.waitForSelector('#preferencesModal');
+  await page.evaluate(() => prefsShowSec_('deputy'));
+  await page.waitForFunction(() => /boss@kaercher\.com/.test(document.getElementById('prefDeputyPrincipals').innerText));
+  await page.fill('#prefDeputyEmail', 'vertretung@kaercher.com');
+  await page.fill('#prefDeputyFrom', '2026-10-20');
+  await page.fill('#prefDeputyTo', '2026-10-31');
+  await page.check('#prefDeputyActive');
+  await page.locator('#preferencesModal .prefs-foot .btn-primary').click();
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiSaveDeputySettings'));
+  const dep = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSaveDeputySettings').args[0]);
+  assert.deepEqual(dep, { email: 'vertretung@kaercher.com', from: '2026-10-20', to: '2026-10-31', active: true });
+  const saved = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSaveUserPrefs').args[0]);
+  assert.equal(saved.showBuProjects, true);
+  assert.deepEqual(errors, []);
+  await page.close();
+});

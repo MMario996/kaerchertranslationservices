@@ -431,6 +431,88 @@ var DEFAULT_TEMPLATES_ = {
       "\u2022 *Phrase project:* {{PHRASE_URL}}",
       "\u2022 *Translation Services Portal:* {{PORTAL_URL}}"
     ].join("\n")
+  },
+  // --- Urlaubsvertretung (Deputies.gs) ---
+  MSG_DEPUTY_COPY: {
+    de: "\u2022 _Kopie als Vertretung für {{USER}}:_",
+    en: "\u2022 _Copy as deputy for {{USER}}:_"
+  },
+  MSG_DEPUTY_ASSIGNED: {
+    de: [
+      "\u2022 *Du bist jetzt Vertretung für {{USER}}*",
+      "",
+      "Zeitraum: {{FROM}} – {{TO}}",
+      "Du bekommst eine Kopie der Portal-Nachrichten und kannst die Projekte in „Meine Projekte“ bearbeiten.",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "\u2022 *You are now the deputy for {{USER}}*",
+      "",
+      "Period: {{FROM}} – {{TO}}",
+      "You receive a copy of the portal messages and can work on the projects in \"My Projects\".",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n")
+  },
+  // --- Marketing Consulting (MarketingConsulting.gs) ---
+  MSG_CONSULTING_REQUEST: {
+    de: [
+      "\u2022 *Neue Consulting-Anfrage (Marketing Projects)*",
+      "",
+      "\u2022 *Von:* {{REQUESTER}}",
+      "\u2022 *Projekt:* {{PROJECT_NAME}}",
+      "\u2022 *Vorlage:* {{TEMPLATE_NAME}} · {{TARGET_LANGS}}",
+      "\u2022 *Kommentar:* {{NOTE}}",
+      "",
+      "Bitte Kontakt mit dem Einreicher aufnehmen. Bearbeiten und einreichen: Marketing Projects → Consulting.",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "\u2022 *New consulting request (Marketing Projects)*",
+      "",
+      "\u2022 *From:* {{REQUESTER}}",
+      "\u2022 *Project:* {{PROJECT_NAME}}",
+      "\u2022 *Template:* {{TEMPLATE_NAME}} · {{TARGET_LANGS}}",
+      "\u2022 *Comment:* {{NOTE}}",
+      "",
+      "Please get in touch with the requester. Edit and submit: Marketing Projects → Consulting.",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n")
+  },
+  MSG_CONSULTING_RECEIVED: {
+    de: [
+      "\u2022 *Deine Consulting-Anfrage ist eingegangen*",
+      "",
+      "\u2022 *Projekt:* {{PROJECT_NAME}}",
+      "Ein Consultant meldet sich bei dir, klärt die offenen Punkte und reicht das Projekt für dich ein.",
+      "Verlauf: Marketing Projects → Consulting.",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "\u2022 *Your consulting request was received*",
+      "",
+      "\u2022 *Project:* {{PROJECT_NAME}}",
+      "A consultant will contact you, clarify the open points and submit the project for you.",
+      "History: Marketing Projects → Consulting.",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n")
+  },
+  MSG_CONSULTING_UPDATE: {
+    de: [
+      "\u2022 *Consulting-Anfrage: {{STATUS}}*",
+      "",
+      "\u2022 *Projekt:* {{PROJECT_NAME}}",
+      "\u2022 *Von:* {{UPDATED_BY}}",
+      "{{NOTE}}",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n"),
+    en: [
+      "\u2022 *Consulting request: {{STATUS}}*",
+      "",
+      "\u2022 *Project:* {{PROJECT_NAME}}",
+      "\u2022 *By:* {{UPDATED_BY}}",
+      "{{NOTE}}",
+      "\u2022 {{PORTAL_URL}}"
+    ].join("\n")
   }
 };
 // --- Get message template (sheet first, fallback to default) ------------------

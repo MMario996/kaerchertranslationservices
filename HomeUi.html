@@ -389,7 +389,7 @@ function homeOwnProjects_(projects, user) {
   return list.filter(p => p && (String(p.owner || '').toLowerCase() === me
     || String(p.userEmail || '').toLowerCase() === me
     || String(p.sharedWith || '').toLowerCase().split(/[;,]+/).map(x => x.trim()).indexOf(me) >= 0
-    || p.groupShared));
+    || p.groupShared || p.deputyFor));
 }
 
 /** In der Nutzer-Simulation der simulierte Nutzer, sonst der angemeldete. */

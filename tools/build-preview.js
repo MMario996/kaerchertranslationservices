@@ -65,7 +65,9 @@ function lazyParts() {
     lazy: {
       JsCampus: (read('JsCampus.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
       AdminManagersUi: (read('AdminManagersUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
-      KecSettingsUi: (read('KecSettingsUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1]
+      KecSettingsUi: (read('KecSettingsUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
+      MarketingUi: (read('MarketingUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1],
+      MaxTemplateUi: (read('MaxTemplateUi.html').match(/<script>([\s\S]*)<\/script>/) || ['', ''])[1]
     },
     admin: { html: read('AdminConsole.html'), js: read('AdminScript.html').replace(/^\s*<script>|<\/script>\s*$/g, '') },
     home: read('HomeUi.html'),

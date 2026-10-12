@@ -176,7 +176,19 @@ Aufbau als Karten:
   Ziffern), Frist, Notiz, **Drive-Ordner mit Sprach-Unterordnern** (Suche; Warnung bei schon
   importierten Ordnern; Validierung pro Sprache), Referenzdateien (PDF, XLSX, JPG).
 - **KeC:** Dateien zu einem bestehenden Phrase-Projekt hinzufügen.
-- **Marketing:** Seitenleiste mit eingebetteter Google-Slides-Anleitung (einklappbar).
+- **Marketing:** Seitenleiste mit eingebetteter Google-Slides-Anleitung (einklappbar). Unterreiter
+  **Projekt anlegen** · **Vorab-Kalkulation** · **Consulting** (nachgeladen, `MarketingUi.html`).
+  Neben „Projekt anlegen“ der Knopf **Ask for Consulting** (Dialog mit Kommentar für den Consultant).
+  Consulting: links Liste mit Filter (offen / mir zugewiesen / alle), rechts Details – für Consultants
+  bearbeitbar (Name, Vorlage, Sprachen, Frist, Notiz, Dateien), Historie als Zeitleiste, Kommentare,
+  Übernehmen / Speichern / Einreichen / Schließen; Einreicher sehen ihre Anfragen und können
+  kommentieren oder zurückziehen. Vorab-Kalkulation: Formular wie oben (ohne Frist/Notiz/Referenzen),
+  Fortschritt in vier Schritten, Ergebnis als Betrag + Wörter, Liste der letzten Kalkulationen.
+- **Maximaltemplate** (Vorlagen-Dropdown, oben mit Stern): XXL-Dialog (`MaxTemplateUi.html`) mit
+  Navigation links – Basis & Sprachen, Workflow & Provider (Tabelle Schritt × Sprache, Suche nach
+  User/Vendor, „alle Sprachen“), Projekt-Einstellungen, TMs & Termbases (übersteuern, lesen/schreiben/
+  Penalty/QA), MT & Prompt (Prompt der Vorlage einblenden, aus dem Prompt-Hub wählen, frei bearbeiten,
+  Link zum Hub). Danach ist das Formular vorbelegt; „Maximaltemplate bearbeiten“ öffnet den Dialog erneut.
 
 ### Meine Projekte
 
@@ -185,7 +197,8 @@ Aufbau als Karten:
   Suche · Umschalter Tabelle ↔ Kalender.
 - **Status-Chips** filtern nach Status.
 - **Tabelle:** Projektname, Phrase-ID, Upload-Datum, Quelle, Zielsprachen, Status, Frist,
-  Geteilt?, Download, Aktionen. Sortier- und Filterfelder im Spaltenkopf.
+  Geteilt?, Download, Aktionen. Spalte „Geteilt“: „Projekt **geteilt** von …“, „Projekt **erstellt** von …“
+  (Consultant bzw. Business-Unit-Kollege, nur lesen) und „Vertretung für …“. Sortier- und Filterfelder im Spaltenkopf.
 - **Aktionen je Zeile:** Details, Frist ändern, Umbenennen, Notizen, Teilen, Abbrechen,
   Anheften. Team-Projekte sind nur lesbar.
 - **Detailansicht (Drawer):** Schritt-Anzeige NEW → UPLOADED → ASSIGNED → ACCEPTED → COMPLETED →
@@ -231,13 +244,14 @@ Jobs eines Projekts. Rechts „Gespeicherte Kurse“ mit Suche und Vollbild-Tabe
 
 Linke Navigation, rechts Gruppen: Darstellung (Theme, Schriftgröße, Dichte, Bewegung),
 Startseite (an/aus, Widgets, Standard-Reiter, Anrede), Startbereich, Team-Ansicht (Business
-Unit oder eigene E-Mail-Liste), Benachrichtigungen (Chat an/aus, Arten in der Glocke, Toast),
+Unit oder eigene E-Mail-Liste, Projekte der Business Unit in Meine Projekte), **Vertretung**
+(E-Mail, Von/Bis, an/aus; zeigt, wen man selbst gerade vertritt), Benachrichtigungen (Chat an/aus, Arten in der Glocke, Toast),
 Kalender-Sync (verbinden, erledigte einbeziehen, jetzt synchronisieren, trennen),
 Tastenkürzel an/aus. Gespeichert pro Nutzer im Sheet `UserPrefs`.
 
 Gespeicherte Schlüssel: `theme`, `fontScale`, `startPage`, `team {enabled, mode, emails}`,
 `displayName`, `density`, `reduceMotion`, `startTab`, `home {widgets, tab}`, `pinned`,
-`notifTypes`, `notifToast`, `shortcuts`.
+`notifTypes`, `notifToast`, `shortcuts`, `showBuProjects`. Die Vertretung liegt separat im Sheet `Deputies`.
 
 ### Glocke (Benachrichtigungen)
 
@@ -327,6 +341,7 @@ Ankündigungen, reduzierte Bewegung. **Lücken:** viele Inline-Styles und Icon-B
 | `JsMisc.html` | Presets, Admin-Hilfen, Tour, Selbsttest-Anzeige |
 | `JsPersonal.html` | Einstellungen, Glocke, Tastenkürzel, Team, Startseiten-Lader |
 | `JsCampus.html` | Campus/Articulate – **nachgeladen** (`apiGetLazyScript`) |
+| `MarketingUi.html`, `MaxTemplateUi.html` | Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate – **nachgeladen** (`apiGetLazyScript`) |
 | `HomeUi.html`, `PrefsUi.html`, `GuideContent.html`, `AdminConsole.html` + `AdminScript.html`, `PivotAdminConsole.html` + `PivotAdminScript.html`, `TranslateUi.html`, `DarkTheme.html` | nachgeladen |
 | `Knowledgebase.html` | eigenständige Seite `?page=kb` |
 

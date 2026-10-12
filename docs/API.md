@@ -61,7 +61,8 @@ Neue Endpunkte: bitte `{ success, error }` verwenden.
 | Rolle | Quelle | Wirkung |
 |---|---|---|
 | **Admin** | Script Property `ADMIN_EMAILS` | alles; sieht alle Projekte; darf Nutzer simulieren |
-| **Admin-Light** | Sheet `Whitelist_AdminLight`, Spalte Subtabs | nur die freigegebenen Bereiche: `users`, `templates`, `pivot`, `tests`, `dashboard` (Dashboard über alle Projekte) |
+| **Admin-Light** | Sheet `Whitelist_AdminLight`, Spalte Subtabs | nur die freigegebenen Bereiche: `users`, `templates`, `pivot`, `tests`, `dashboard` (Dashboard über alle Projekte), `consulting` (Consultant Marketing Projects) |
+| **Urlaubsvertretung** | Sheet `Deputies` (aktiv, im Zeitraum) | Rechte der vertretenen Person: Zugang (`apiCheckAccess` → `reason: "deputy"`), Bereiche und Vorlagen in der Config, Projekte wie Eigentümer; Kopie jeder Chat-Nachricht |
 | **General** | Sheet `Whitelist` | Reiter „General Projects“ |
 | **Exklusive Bereiche** | `Whitelist_Marketing`, `_KeC`, `_Documentation`, `_Woma`, `_CC`, `_Articulate` | nur der jeweilige Spezialreiter (`isExclusive`), kein „General Projects“ |
 | **Kein Eintrag** | – | kann die Seite öffnen, sieht aber keine Projektbereiche; Upload wird abgelehnt |
@@ -82,7 +83,9 @@ Vorlage den Grund und schlägt die Zuordnung vor, die die meisten Vorlagen freis
 ### Sichtbarkeit von Projekten
 
 `apiGetMyProjects`: Admin sieht alle Zeilen der Queue; sonst eigene (Spalte B), mit dem Nutzer
-geteilte (Spalte R) und – für WOMA-Nutzer – alle Projekte anderer WOMA-Nutzer.
+geteilte (Spalte R), – für WOMA-Nutzer – alle Projekte anderer WOMA-Nutzer, die Projekte der
+vertretenen Personen (`deputyFor`) und – nur lesend, `buCreated` – die der Business-Unit-Kollegen
+(abschaltbar: Einstellung `showBuProjects`).
 Ändern (Frist, Name, Notiz, Abbrechen, Teilen) darf: Admin oder Eigentümer; Notizen und Frist
 auch Geteilte (`noteCallerMayEdit_`).
 
@@ -223,7 +226,7 @@ Projekt-Objekt (`apiGetMyProjects`): `timestamp`, `uploadDate`, `userEmail`, `ow
 `isShared`, `phraseUrl`, `projectUid`, `jobUid`, `jobUids[]`, `targetLangs[]`, `projectName`,
 `templateName`, `fileName`, `mimeType`, `sourceLang`, `targetLang`, `status`, `dueDate`,
 `sharedWith`, `jobMapping[]` (`{jobUid, fileName, targetLang}`), `pivotRole`, `pivotLink`,
-`downloadedAt`, `totalWords`, `netWords`, `groupShared`.
+`downloadedAt`, `totalWords`, `netWords`, `groupShared`, `createdBy`, `deputyFor`, `buCreated`/`teamView` (nur lesen).
 
 ### 3.4 Download und Export
 
@@ -312,6 +315,31 @@ gehört.
 | Protokoll | `apiGetUnifiedLog({limit})` (AuditLog inkl. Chat-Nachrichten + letzte Queue-Zeilen, mit `category` und `level`), `apiGetAuditLog(limit)`, `apiPurgeOldAuditEntries(days)` | Admin |
 | Diagnose | `apiHealthCheck()` / `apiRunHealthCheck()`, `apiRunSelfTests()` (Light:tests) | Admin |
 | Translate UI | `apiPsGetConfig()`, `apiPsSaveConfig(project, region, token)`, `apiPsCheck()`, `apiPsPush({dicts, langs, overwrite})`, `apiPsPull({dicts, langs})`, `apiPsCoverage()`, `apiPsClearOverrides()`, `apiPsSetNightly(enabled)` | Admin |
+
+### 3.9 Marketing: Consulting, Vorab-Kalkulation, Maximaltemplate, Vertretung
+
+| Funktion | Recht | Zweck |
+|---|---|---|
+| `apiConsultingCreate(payload, comment)` | Zugang | Anfrage statt Projekt: Dateien in Drive, Zeile in `Consulting_Requests`, Chat an Consultants + Einreicher → `{ success, id }` |
+| `apiConsultingList()` | angemeldet | Consultants: alle; sonst eigene (und der Vertretenen) |
+| `apiConsultingGet(id)` | Consultant / Einreicher | Details + Historie; für Consultants zusätzlich `templates` des Einreichers, `canEdit` |
+| `apiConsultingAssign(id)` / `apiConsultingUpdate(id, patch)` | Consultant | übernehmen / Formular ändern (`patch.removeFileIds` entfernt Dateien) |
+| `apiConsultingComment(id, text)` | Consultant / Einreicher | Kommentar in die Historie, Chat an die andere Seite |
+| `apiConsultingSubmit(id, patch)` | Consultant | Projekt im Namen des Einreichers anlegen (`createProjectAndUploadAs_`, Queue „Created By“) |
+| `apiConsultingClose(id, reason)` | Consultant / Einreicher | schließen bzw. zurückziehen |
+| `apiPrecalcStart(payload)` / `apiPrecalcPoll(id)` / `apiPrecalcCancel(id)` | Marketing, Consultant, Vertretung | Vorab-Kalkulation in Schritten (Import → Analyse → Quote → Löschen) → `{ phase, amount, currency, words }` |
+| `apiPrecalcHistory()` | angemeldet | letzte Kalkulationen (eigene; Consultants alle) |
+| `apiMaxTplOptions(baseTemplateUid)` | Marketing, Consultant | Kataloge (Workflow-Schritte, Client/BU/Domain/Subdomain/Cost Center, MT), Standardwerte der Basis-Vorlage, Prompt-Hub |
+| `apiMaxTplSearch(kind, query)` | Marketing, Consultant | `users`, `vendors`, `tms`, `tbs` nach Namen |
+| `apiGetDeputySettings()` / `apiSaveDeputySettings({email, from, to, active})` | eigene | Urlaubsvertretung |
+
+**Maximaltemplate im Upload-Payload:** `payload.maxSettings` = `{ baseTemplateUid, workflowSteps[], stepDue{step: date},
+providers{step: {lang: [{type: "USER"|"VENDOR", id}]}}, client, businessUnit, domain, subDomain, costCenter,
+tmsOverride, tms[{uid, read, write, penalty}], tbsOverride, tbs[{id, read, write, qa}], mtSettingsUid, prompt, promptName }`.
+`apiCreateProjectAndUpload` prüft Rolle und dass die Basis-Vorlage für den Nutzer sichtbar ist. Angewendet über
+`applyTemplate` (Schritte, Client …), `workflowSettings` im Memsource-Header des Job-Uploads (Provider, Fristen)
+und danach `PUT v3/projects/{uid}/transMemories`, `PUT v1/projects/{uid}/termBases`, `PUT v1/projects/{uid}/mtSettings`
+sowie das Custom Field für den Prompt. Fehler dieser Schritte blockieren nicht, sie stehen in `errors`.
 
 ---
 

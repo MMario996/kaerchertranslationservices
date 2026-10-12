@@ -669,9 +669,12 @@ function phraseSetJobCustomFieldByName_(projectUid, jobUid, fieldName, value) {
  * Create project from template (v2)
  * POST /api2/v2/projects/applyTemplate/{templateUid}
  */
-function phraseCreateProjectFromTemplate_(templateUid, options) {
+function phraseCreateProjectFromTemplate_(templateUid, options, maxSettings) {
   const payload = { name: String((options && options.name) || "").trim() };
   if (!payload.name) throw new Error("phraseCreateProjectFromTemplate_: options.name missing");
+  // Maximaltemplate (MaxTemplate.gs): Workflow-Schritte und Projekt-Einstellungen,
+  // die applyTemplate direkt mitnimmt (uebersteuern die Vorlage).
+  if (maxSettings && typeof maxTplApplyTemplateFields_ === "function") maxTplApplyTemplateFields_(payload, maxSettings);
 
   if (options && options.note) payload.note = String(options.note);
   if (options && options.sourceLang) payload.sourceLang = String(options.sourceLang);
@@ -716,6 +719,10 @@ function phraseUploadJob_(projectUid, blob, fileName, targetLangs, dueIsoOptiona
   if (dueIsoOptional) mem.due = dueIsoOptional;
   // Gespeicherte Import-Settings (z.B. KeC-Spalten fuer multilinguale Excel-Dateien,
   // KecSettings.gs) - laut Phrase mutually exclusive mit useProjectFileImportSettings.
+  // Maximaltemplate: Provider je Workflow-Schritt und Zielsprache (MaxTemplate.gs).
+  if (opts && Array.isArray(opts.workflowSettings) && opts.workflowSettings.length) {
+    mem.workflowSettings = opts.workflowSettings;
+  }
   if (opts && opts.importSettingsUid) {
     delete mem.useProjectFileImportSettings;
     mem.importSettings = { uid: opts.importSettingsUid };

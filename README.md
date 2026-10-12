@@ -27,6 +27,8 @@ Nachgeladen (nicht im Startdokument, das an der Apps-Script-Größengrenze liegt
 | `HomeUi.html` | Startseite: Styles + Skript (Suche/Befehle, Schnellstart, Kennzahlen, Meine Arbeit, nächste Frist, 7 Tage, Aktivitäten, Tipps) | `apiGetHomeUi()` |
 | `PrefsUi.html` | Markup des Einstellungsdialogs | `apiGetPrefsUi()` |
 | `KecSettingsUi.html` | KeC Projects → Unterreiter „Einstellungen“ (Namenszusatz, Spalten für multilinguale Excel-Dateien, Upload-Puffer für verlinkte Projekte; pro Nutzer, Server: `KecSettings.gs`) | `apiGetLazyScript('KecSettingsUi')` |
+| `MarketingUi.html` | Marketing Projects: „Ask for Consulting“, Unterreiter „Consulting“ (Anfragen mit Historie) und „Vorab-Kalkulation“ (Server: `MarketingConsulting.gs`, `MarketingPrecalc.gs`) | `apiGetLazyScript('MarketingUi')` |
+| `MaxTemplateUi.html` | „Maximaltemplate“: XXL-Dialog (Workflow, Provider je Schritt/Sprache, Projekt-Einstellungen, TMs/TBs, MT, Prompt-Hub; Server: `MaxTemplate.gs`) | `apiGetLazyScript('MaxTemplateUi')` |
 | `GuideContent.html`, `AdminConsole.html`/`AdminScript.html`, `DarkTheme.html` | Anleitung, Admin, dunkler Modus | siehe `WebApp.gs`/`UserPrefs.gs` |
 
 **Design:** „Kaercher Glass“ (Ende von `Styles.html`) überträgt die Prinzipien von
@@ -91,3 +93,26 @@ Token aus **Phrase Platform → Profil → Access tokens** (Dienst „Strings“
 IDM-Endpunkt (`https://eu.phrase.com/idm/oauth/token`, bzw. `us.` für die US-Region) gegen ein
 JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische Strings-Token
 (64 Hex-Zeichen) werden weiterhin direkt verwendet. „Verbindung prüfen“ zeigt die erkannte Art an.
+
+## Marketing Projects: Consulting, Vorab-Kalkulation, Maximaltemplate
+
+- **Ask for Consulting** (neben „Projekt anlegen“): legt kein Projekt an, sondern eine Anfrage
+  (Sheet `Consulting_Requests` im OPS-Sheet, Dateien im Drive-Ordner `CONSULTING_FOLDER_ID`).
+  Alle Consultants – Admin-Light-Bereich **„Consultant Marketing Projects“** (`consulting`) – bekommen
+  eine Chat-Nachricht. Im Unterreiter **Consulting** sehen Consultants alle Anfragen (bearbeiten,
+  kommentieren, übernehmen, einreichen, schließen), Einreicher ihre eigenen; jede Aktion steht in
+  der Historie. Eingereicht wird im Namen des Einreichers (Eigentümer), die Queue-Spalte
+  „Created By“ nennt den Consultant („Projekt **erstellt** von …“ in Meine Projekte).
+- **Vorab-Kalkulation**: temporäres Phrase-Projekt → Analyse → Quote → Projekt mit `purge=true`
+  löschen; übrig bleibt nur der Betrag (Sheet `Precalc_Log`). Preisliste: Script Property
+  `PRECALC_PRICE_LIST_UID` (sonst die des Projekts), abschaltbar mit `PRECALC_ENABLED=false`.
+- **Maximaltemplate** im Vorlagen-Dropdown (Bereiche: `MAXTPL_PORTALS`, Standard `marketing`):
+  Basis-Vorlage + alles einstellbar. Prompts aus dem Sheet `Prompt_Hub`
+  (Name | Prompt | Template UIDs | Link | Active), Link zum Hub: `PROMPT_HUB_URL`, Ziel-Feld in
+  Phrase: `MAXTPL_PROMPT_FIELD` (Standard „AI Prompt“, sonst Projektnotiz).
+
+## Urlaubsvertretung
+
+Einstellungen → **Vertretung**: E-Mail, optional Von/Bis, an/aus (Sheet `Deputies`). Solange aktiv,
+bekommt die Vertretung eine Kopie jeder Chat-Nachricht und hat die Rechte der vertretenen Person
+(Projekte in Meine Projekte, bearbeiten wie Eigentümer, Bereiche und Vorlagen).

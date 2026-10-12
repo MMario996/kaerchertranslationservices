@@ -6,9 +6,11 @@
  * Sheet: "Whitelist_AdminLight" in ACCESS_SHEET_ID
  * Spalten: Email | Subtabs (z.B. "users,templates,dashboard")
  * "dashboard" schaltet den Analytics-Reiter "Dashboard" frei (kein Admin-Subtab).
+ * "consulting" = Consultant Marketing Projects: bekommt Consulting-Anfragen aus
+ * Marketing Projects und darf sie bearbeiten/einreichen (MarketingConsulting.gs).
  */
 var ADMIN_LIGHT_SHEET_NAME_ = "Whitelist_AdminLight";
-var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "pivot", "tests", "dashboard"];
+var ADMIN_LIGHT_VALID_SUBTABS_ = ["users", "templates", "pivot", "tests", "dashboard", "consulting"];
 
 function getAdminLightSubtabs_(email) {
   if (!email) return [];
@@ -64,7 +66,7 @@ function apiAddAdminLightUser(email, subtabs) {
   const cleanSubtabs = (Array.isArray(subtabs) ? subtabs : [])
     .map(s => String(s).trim().toLowerCase())
     .filter(s => ADMIN_LIGHT_VALID_SUBTABS_.includes(s));
-  if (!cleanSubtabs.length) return { success: false, error: "Mindestens einen Bereich (users/templates/pivot/tests/dashboard) angeben." };
+  if (!cleanSubtabs.length) return { success: false, error: "Mindestens einen Bereich (users/templates/pivot/tests/dashboard/consulting) angeben." };
   try {
     const ss = openAccessSS_();
     let sh = ss.getSheetByName(ADMIN_LIGHT_SHEET_NAME_);
