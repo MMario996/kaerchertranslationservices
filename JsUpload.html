@@ -512,8 +512,6 @@ function attachSubmitHandler(formId, suffix) {
         e.preventDefault();
         if(mainFilesMap[suffix].length === 0) { showCustomAlert(tr_('jx_de7a362', 'Please select a Main File.')); return; }
         if(!checkPreconditions(suffix)) return;
-        // Vorab-Kalkulation: gleiches Formular, aber kein Projekt (MarketingUi.html).
-        if (suffix === '_precalc') { ensureScript_('MarketingUi', () => mktPrecalcStart_(suffix)); return; }
         submitStandard(suffix);
     });
 }

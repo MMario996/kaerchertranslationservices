@@ -1,30 +1,40 @@
 /**
  * MarketingPrecalc.gs
- * Marketing Projects -> Unterreiter "Vorab-Kalkulation": einmalige Kosten-
- * schaetzung ueber Phrase, ohne dass ein echtes Projekt entsteht.
+ * Marketing Projects -> Unterreiter "Vorab-Kalkulation": Kostenschaetzung ueber
+ * Phrase mit den Translation Memories eines festen Kalkulationsprojekts.
  *
- * Ablauf (der Browser fragt alle paar Sekunden apiPrecalcPoll ab, damit kein
- * Aufruf die 6-Minuten-Grenze von Apps Script erreicht):
- *   1. START    temporaeres Projekt je Vorlage ("[PRECALC] ...") + Jobs hochladen
+ * Es wird KEIN Projekt angelegt. Der Admin hinterlegt feste Phrase-Projekte
+ * (z. B. eins fuer Home & Garden, eins fuer Professional), deren TMs, Termbases
+ * und Preisliste die Kalkulation bestimmen. Ablauf (der Browser fragt alle paar
+ * Sekunden apiPrecalcPoll ab, damit kein Aufruf die 6-Minuten-Grenze erreicht):
+ *   1. START    Dateien als Jobs in das gewaehlte Kalkulationsprojekt hochladen
+ *               (Dateiname mit Praefix "PRECALC-<ID>-", damit Reste erkennbar sind)
  *   2. IMPORT   warten, bis Phrase alle Dateien importiert hat
- *   3. ANALYSE  Analyse (PreAnalyse) ueber alle Jobs anlegen und abwarten
- *   4. QUOTE    Quote aus Analyse + Preisliste anlegen -> Betrag
- *   5. CLEANUP  temporaere Projekte mit purge=true loeschen (Dateien weg)
+ *   3. ANALYSE  Analyse (PreAnalyse, mit TM) ueber diese Jobs anlegen und abwarten
+ *   4. QUOTE    Quote aus Analyse + Preisliste -> Betrag
+ *   5. CLEANUP  nur DIESE Jobs mit purge=true loeschen; das Projekt bleibt
  * Nichts davon landet in der Queue, im Chat oder in "Meine Projekte". Uebrig
- * bleibt nur eine Protokollzeile (Betrag, Woerter, Sprachen) im Sheet
- * "Precalc_Log" (OPS-Sheet). Haengengebliebene Projekte (Abbruch, Fehler,
- * geschlossener Browser) raeumt precalcCleanupStale_ beim naechsten Start auf.
+ * bleibt eine Protokollzeile (Betrag, Woerter, Sprachen) im Sheet "Precalc_Log".
+ * Haengengebliebene Jobs (Abbruch, Fehler, Browser zu) raeumt
+ * precalcCleanupStale_ beim naechsten Start auf.
+ *
+ * Wichtig fuer die Kalkulationsprojekte in Phrase: keine automatische
+ * Provider-Zuweisung/Benachrichtigung, sonst bekommen Uebersetzer Mails zu
+ * den Kalkulations-Jobs.
  *
  * Script Properties:
- *   PRECALC_PRICE_LIST_UID  Preisliste fuer die Quote (sonst die des Projekts/der Vorlage)
- *   PRECALC_ENABLED         "false" blendet den Unterreiter aus
+ *   PRECALC_PROJECTS          Kalkulationsprojekte, eins pro Zeile oder durch ";" getrennt:
+ *                             "Bezeichnung|Projekt-UID" oder "Bezeichnung|Projekt-UID|Preislisten-UID"
+ *                             z. B. "Home & Garden|aBc123; Professional|xYz789"
+ *   PRECALC_PROJECTS_SANDBOX  dasselbe fuer die Admin-Sandbox (Sandbox.gs)
+ *   PRECALC_PRICE_LIST_UID    Preisliste, wenn weder Eintrag noch Projekt eine liefern
+ *   PRECALC_ENABLED           "false" blendet den Unterreiter aus
  */
 var PRECALC_SHEET_NAME_ = "Precalc_Log";
 var PRECALC_HEADERS_ = ["ID", "Created At", "User", "Template", "Source", "Target Langs", "Files",
   "Status", "Words", "Amount", "Currency", "State JSON", "Finished At"];
 var PRECALC_STALE_MS_ = 2 * 60 * 60 * 1000;
 var PRECALC_TIMEOUT_MS_ = 45 * 60 * 1000;
-var PRECALC_NAME_PREFIX_ = "[PRECALC] ";
 
 function precalcEnabled_() {
   return String(PropertiesService.getScriptProperties().getProperty("PRECALC_ENABLED") || "").toLowerCase() !== "false";
@@ -37,15 +47,21 @@ function precalcAllowed_(email) {
 
 // --- Reine Helfer (getestet) ---------------------------------------------------------
 
-/** Sprachen nach Vorlage gruppieren (wie Upload.gs). */
-function precalcGroupLangs_(templateUid, targetUidMap, targetLangs) {
-  var groups = {};
-  (targetLangs || []).forEach(function (l) {
-    var uid = (targetUidMap || {})[l] || templateUid;
-    if (!uid) return;
-    (groups[uid] = groups[uid] || []).push(l);
+/** "H&G|uid1|pl1; Professional|uid2" -> [{label, projectUid, priceListUid}] */
+function precalcParseProjects_(raw) {
+  var out = [];
+  String(raw || "").split(/[\n;]+/).forEach(function (line) {
+    var parts = line.split("|").map(function (x) { return x.trim(); });
+    if (parts.length < 2 || !parts[0] || !/^[A-Za-z0-9_\-]+$/.test(parts[1])) return;
+    if (out.some(function (p) { return p.projectUid === parts[1]; })) return;
+    out.push({ label: parts[0].slice(0, 80), projectUid: parts[1], priceListUid: /^[A-Za-z0-9_\-]+$/.test(parts[2] || "") ? parts[2] : "" });
   });
-  return groups;
+  return out;
+}
+
+/** Dateiname fuer den Kalkulations-Job (Praefix macht Reste im Projekt erkennbar). */
+function precalcJobFileName_(id, name) {
+  return "PRECALC-" + id + "-" + String(name || "file").replace(/[\\/:*?"<>|]+/g, "_");
 }
 
 /** Ist ein Async-Request von Phrase fertig? -> "running" | "ok" | "error: ..." */
@@ -117,6 +133,31 @@ function precalcSave_(rec, patch) {
   sh.getRange(rec.rowNum, 12).setValue(JSON.stringify(rec.state));
 }
 
+// --- Kalkulationsprojekte ------------------------------------------------------------------
+
+function precalcProjects_() {
+  var props = PropertiesService.getScriptProperties();
+  var sbx = typeof sandboxActive_ === "function" && sandboxActive_();
+  return precalcParseProjects_(props.getProperty(sbx ? "PRECALC_PROJECTS_SANDBOX" : "PRECALC_PROJECTS"));
+}
+
+/** Quell-/Zielsprachen und Name eines Kalkulationsprojekts (1 h gecacht). */
+function precalcProjectInfo_(projectUid) {
+  var cache = phraseScriptCache_();
+  var key = "precalc_proj_" + projectUid;
+  var hit = cache.get(key);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var p = precalcPhrase_("get", phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)));
+  var info = {
+    name: String(p.name || ""),
+    sourceLang: String(p.sourceLang || ""),
+    targetLangs: Array.isArray(p.targetLangs) ? p.targetLangs : [],
+    priceListUid: String((p.priceList && (p.priceList.uid || p.priceList.id)) || (p.financialSettings && p.financialSettings.priceList && (p.financialSettings.priceList.uid || p.financialSettings.priceList.id)) || "")
+  };
+  try { cache.put(key, JSON.stringify(info), 3600); } catch (e) {}
+  return info;
+}
+
 // --- Phrase-Aufrufe ------------------------------------------------------------------------
 
 function precalcPhrase_(method, url, body) {
@@ -135,15 +176,33 @@ function precalcDeleteProject_(uid) {
   }
 }
 
-function precalcPriceListUid_(projectUid) {
-  var prop = String(PropertiesService.getScriptProperties().getProperty("PRECALC_PRICE_LIST_UID") || "").trim();
-  if (prop) return prop;
+/** Preisliste: aus PRECALC_PROJECTS, sonst die des Projekts, sonst PRECALC_PRICE_LIST_UID. */
+function precalcPriceListUid_(projectUid, configured) {
+  if (configured) return configured;
   try {
-    var p = precalcPhrase_("get", phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)));
-    var pl = (p && (p.priceList || (p.financialSettings && p.financialSettings.priceList))) || null;
-    if (pl && (pl.uid || pl.id)) return String(pl.uid || pl.id);
+    var own = precalcProjectInfo_(projectUid).priceListUid;
+    if (own) return own;
   } catch (e) { console.warn("Precalc: Preisliste des Projekts: " + e.message); }
-  return "";
+  return String(PropertiesService.getScriptProperties().getProperty("PRECALC_PRICE_LIST_UID") || "").trim();
+}
+
+/** Nur die Kalkulations-Jobs loeschen (DELETE v1/projects/{uid}/jobs/batch?purge=true). */
+function precalcDeleteJobs_(projectUid, jobUids) {
+  if (!jobUids || !jobUids.length) return true;
+  try {
+    precalcPhrase_("delete", phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/jobs/batch?purge=true"),
+      { jobs: jobUids.map(function (u) { return { uid: u }; }) });
+    return true;
+  } catch (e) {
+    console.warn("Precalc: Jobs in " + projectUid + " nicht geloescht: " + e.message);
+    return false;
+  }
+}
+
+/** Aufraeumen einer Gruppe: feste Projekte -> Jobs loeschen; alte temporaere Projekte -> Projekt loeschen. */
+function precalcCleanupGroup_(g) {
+  if (g.deleted || !g.projectUid) return true;
+  return g.fixedProject ? precalcDeleteJobs_(g.projectUid, g.jobUids) : precalcDeleteProject_(g.projectUid);
 }
 
 /** Projekte ohne Abschluss (Abbruch, Fehler, Browser zu) nach PRECALC_STALE_MS_ loeschen. */
@@ -159,7 +218,7 @@ function precalcCleanupStale_() {
       if (!created || now - created < PRECALC_STALE_MS_) continue;
       var state = {};
       try { state = JSON.parse(String(data[i][11] || "{}")) || {}; } catch (e) {}
-      var allGone = (state.groups || []).every(function (g) { return g.deleted || !g.projectUid || precalcDeleteProject_(g.projectUid); });
+      var allGone = (state.groups || []).every(function (g) { return precalcCleanupGroup_(g); });
       if (allGone) {
         sh.getRange(i + 1, 8).setValue(status.indexOf("ERROR") === 0 ? status : "CLEANED");
         sh.getRange(i + 1, 13).setValue(new Date());
@@ -172,51 +231,62 @@ function precalcCleanupStale_() {
 
 // --- Endpunkte ---------------------------------------------------------------------------------
 
-/** Schritt 1: temporaere Projekte anlegen und Dateien hochladen. */
+/** Kalkulationsprojekte fuer die Auswahl im Formular. */
+function apiPrecalcOptions() {
+  var access = apiCheckAccess();
+  var caller = getUserEmail_();
+  if (!access.allowed || !precalcAllowed_(caller)) return { success: false, error: "Not authorized." };
+  var list = precalcProjects_().map(function (p) {
+    try {
+      var info = precalcProjectInfo_(p.projectUid);
+      return { label: p.label, projectUid: p.projectUid, sourceLang: info.sourceLang, targetLangs: info.targetLangs };
+    } catch (e) {
+      return { label: p.label, projectUid: p.projectUid, error: e.message, sourceLang: "", targetLangs: [] };
+    }
+  });
+  return { success: true, enabled: precalcEnabled_(), projects: list };
+}
+
+/** Schritt 1: Dateien als Jobs in das Kalkulationsprojekt hochladen. */
 function apiPrecalcStart(payload) {
   var access = apiCheckAccess();
   var caller = getUserEmail_();
   if (!access.allowed || !precalcAllowed_(caller)) return { success: false, error: "Not authorized." };
   if (!precalcEnabled_()) return { success: false, error: "Pre-calculation is switched off." };
   payload = payload || {};
-  var templateUid = String(payload.templateUid || "").trim();
-  var sourceLang = String(payload.sourceLang || "").trim();
-  var targetLangs = Array.isArray(payload.targetLangs) ? payload.targetLangs : [];
+  var cfg = precalcProjects_().filter(function (p) { return p.projectUid === String(payload.calcProjectUid || ""); })[0];
+  if (!cfg) return { success: false, error: "Unknown calculation project." };
   var mainFiles = payload.mainFiles || payload.allMainFiles || [];
-  if (!templateUid && !payload.targetUidMap) return { success: false, error: "Template missing." };
-  if (!sourceLang) return { success: false, error: "Source language missing." };
-  if (!targetLangs.length) return { success: false, error: "Target language missing." };
   if (!mainFiles.length) return { success: false, error: "Main file missing." };
+  var info;
+  try { info = precalcProjectInfo_(cfg.projectUid); } catch (e) { return { success: false, error: e.message }; }
+  var allowed = info.targetLangs.map(function (l) { return String(l).toLowerCase(); });
+  var targetLangs = (Array.isArray(payload.targetLangs) ? payload.targetLangs : [])
+    .filter(function (l) { return allowed.indexOf(String(l).toLowerCase()) >= 0; });
+  if (!targetLangs.length) return { success: false, error: "Target language missing." };
 
   precalcCleanupStale_();
 
   var id = "P-" + Utilities.formatDate(new Date(), "Europe/Berlin", "yyMMdd-HHmmss") + "-" + Math.floor(Math.random() * 900 + 100);
-  var groupsMap = precalcGroupLangs_(templateUid, payload.targetUidMap, targetLangs);
-  var state = { phase: "IMPORT", startedAt: Date.now(), groups: [], files: [] };
+  var state = { phase: "IMPORT", startedAt: Date.now(), groups: [], files: [], label: cfg.label };
   var sh = precalcSheet_();
-  sh.appendRow([id, new Date(), caller, String(payload.templateName || ""), sourceLang, targetLangs.join(", "), "",
+  sh.appendRow([id, new Date(), caller, cfg.label, info.sourceLang, targetLangs.join(", "), "",
     "RUNNING", "", "", "", JSON.stringify(state), ""]);
   var rec = { rowNum: sh.getLastRow(), state: state };
+  var group = { fixedProject: true, projectUid: cfg.projectUid, priceListUid: cfg.priceListUid, langs: targetLangs, jobUids: [], asyncIds: [] };
+  state.groups.push(group);
 
   try {
-    var blobs = mainFiles.map(function (f) { return resolveFileToBlob_(f); });
-    state.files = blobs.map(function (b) { return b.getName(); });
-    sh.getRange(rec.rowNum, 7).setValue(state.files.join(", "));
-    Object.keys(groupsMap).forEach(function (uid) {
-      var langs = groupsMap[uid];
-      var name = PRECALC_NAME_PREFIX_ + (String(payload.projectName || "").trim() || state.files[0] || id) + " (" + id + ")";
-      var projectUid = phraseCreateProjectFromTemplate_(uid, { name: name, sourceLang: sourceLang, targetLangs: langs });
-      var group = { templateUid: uid, langs: langs, projectUid: projectUid, jobUids: [], asyncIds: [] };
-      state.groups.push(group);
-      precalcSave_(rec, {}); // Projekt-UID sofort sichern (fuer das Aufraeumen)
-      blobs.forEach(function (blob) {
-        var up = phraseUploadJob_(projectUid, blob, blob.getName(), langs);
-        (up.jobs || []).forEach(function (j) { if (j.uid) group.jobUids.push(j.uid); });
-        if (up.asyncRequest && up.asyncRequest.id) group.asyncIds.push(String(up.asyncRequest.id));
-      });
+    mainFiles.forEach(function (f) {
+      var blob = resolveFileToBlob_(f);
+      state.files.push(blob.getName());
+      var up = phraseUploadJob_(cfg.projectUid, blob, precalcJobFileName_(id, blob.getName()), targetLangs);
+      (up.jobs || []).forEach(function (j) { if (j.uid) group.jobUids.push(j.uid); });
+      if (up.asyncRequest && up.asyncRequest.id) group.asyncIds.push(String(up.asyncRequest.id));
+      precalcSave_(rec, {}); // Job-UIDs sofort sichern (fuer das Aufraeumen)
     });
-    precalcSave_(rec, {});
-    logAuditEvent_(caller, "PRECALC_START", id + " " + state.files.join(", ") + " -> " + targetLangs.join(", "));
+    sh.getRange(rec.rowNum, 7).setValue(state.files.join(", "));
+    logAuditEvent_(caller, "PRECALC_START", id + " [" + cfg.label + "] " + state.files.join(", ") + " -> " + targetLangs.join(", "));
     return { success: true, id: id, phase: state.phase };
   } catch (e) {
     precalcFail_(rec, e.message);
@@ -225,7 +295,7 @@ function apiPrecalcStart(payload) {
 }
 
 function precalcFail_(rec, msg) {
-  (rec.state.groups || []).forEach(function (g) { if (g.projectUid && !g.deleted) g.deleted = precalcDeleteProject_(g.projectUid); });
+  (rec.state.groups || []).forEach(function (g) { if (!g.deleted) g.deleted = precalcCleanupGroup_(g); });
   rec.state.phase = "ERROR";
   rec.state.error = String(msg || "");
   precalcSave_(rec, { status: "ERROR: " + String(msg || "").slice(0, 200), finishedAt: new Date() });
@@ -285,8 +355,8 @@ function apiPrecalcPoll(id) {
       var quotes = [];
       var words = 0;
       st.groups.forEach(function (g) {
-        var priceList = precalcPriceListUid_(g.projectUid);
-        if (!priceList) throw new Error("No price list: set Script Property PRECALC_PRICE_LIST_UID.");
+        var priceList = precalcPriceListUid_(g.projectUid, g.priceListUid);
+        if (!priceList) throw new Error("No price list: add it to PRECALC_PROJECTS (Label|ProjectUID|PriceListUID) or set PRECALC_PRICE_LIST_UID.");
         var q = precalcPhrase_("post", phraseApiUrlV2_("/quotes"), {
           analyse: { id: g.analyseId }, priceList: { uid: priceList }, name: "Precalc " + id
         });
@@ -302,7 +372,7 @@ function apiPrecalcPoll(id) {
       st.phase = "CLEANUP";
       precalcSave_(rec, { words: words, amount: sum.amount, currency: sum.currency });
     } else if (st.phase === "CLEANUP") {
-      st.groups.forEach(function (g) { if (!g.deleted) g.deleted = precalcDeleteProject_(g.projectUid); });
+      st.groups.forEach(function (g) { if (!g.deleted) g.deleted = precalcCleanupGroup_(g); });
       if (st.groups.every(function (g) { return g.deleted; })) {
         st.phase = "DONE";
         precalcSave_(rec, { status: "DONE", finishedAt: new Date() });

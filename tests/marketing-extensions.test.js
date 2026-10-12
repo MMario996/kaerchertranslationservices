@@ -70,7 +70,9 @@ test('Consulting: Historie passt in eine Sheet-Zelle, erster Eintrag bleibt', ()
 });
 
 test('Vorab-Kalkulation: Gruppen, Async-Status, Woerter, Summe', () => {
-  assert.deepEqual(plain(ctx.precalcGroupLangs_('T1', { fr_fr: 'T2' }, ['de_de', 'fr_fr', 'it_it'])), { T1: ['de_de', 'it_it'], T2: ['fr_fr'] });
+  assert.deepEqual(plain(ctx.precalcParseProjects_('Home & Garden|aB1\n Professional | xY2 | pl9 ; kaputt ; Doppelt|aB1; Leer|')),
+    [{ label: 'Home & Garden', projectUid: 'aB1', priceListUid: '' }, { label: 'Professional', projectUid: 'xY2', priceListUid: 'pl9' }]);
+  assert.equal(ctx.precalcJobFileName_('P-1', 'a/b:c.docx'), 'PRECALC-P-1-a_b_c.docx');
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: null }), 'running');
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: { dateCreated: 'x' } }), 'ok');
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: { errorCode: 'X', errorDesc: 'kaputt' } }), 'error: kaputt');

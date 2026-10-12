@@ -533,19 +533,28 @@ test('Marketing: Ask for Consulting schickt Formular + Kommentar, Consultant sie
   await page.close();
 });
 
-test('Marketing: Vorab-Kalkulation zeigt den Betrag aus der Phrase-Quote', async () => {
+test('Marketing: Vorab-Kalkulation im festen Kalkulationsprojekt zeigt den Betrag aus der Phrase-Quote', async () => {
   const { page, errors } = await openApp(null, `{
     apiPrecalcHistory: { success: true, all: false, rows: [] },
+    apiPrecalcOptions: { success: true, enabled: true, projects: [
+      { label: 'Home & Garden', projectUid: 'HG1', sourceLang: 'de', targetLangs: ['en_gb', 'fr_fr'] },
+      { label: 'Professional', projectUid: 'PRO1', sourceLang: 'de', targetLangs: ['en_us', 'it_it', 'es_es'] }] },
     apiPrecalcStart: (p) => ({ success: true, id: 'P-1', phase: 'IMPORT' }),
-    apiPrecalcPoll: (id) => ({ success: true, phase: 'DONE', amount: 1234.5, currency: 'EUR', words: 2500, perTemplate: [], files: ['flyer.docx'] })
+    apiPrecalcPoll: (id) => ({ success: true, phase: 'DONE', amount: 1234.5, currency: 'EUR', words: 2500, perTemplate: [], files: ['flyer.txt'] })
   }`, { configPatch: MKT_CONFIG });
   await page.evaluate(() => { switchTab('marketing'); switchMktSubtab('precalc'); });
-  await page.waitForSelector('#mktPrecalcHead .card');
-  assert.ok(await page.locator('#projectForm_precalc').isVisible(), 'Formular der Kalkulation');
-  assert.ok(await page.locator('#settingsCard_precalc').isHidden(), 'ohne Frist/Notiz');
-  await page.evaluate(() => mktPrecalcStart_('_precalc'));
+  await page.waitForSelector('#mktPcArea');
+  await page.selectOption('#mktPcArea', '1');
+  assert.equal(await page.locator('#mktPcLangs input').count(), 3, 'Sprachen des gewaehlten Projekts');
+  await page.locator('#mktPcLangs input[value=it_it]').check();
+  await page.setInputFiles('#mktPcFile', { name: 'flyer.txt', mimeType: 'text/plain', buffer: Buffer.from('Hallo Welt') });
+  assert.match(await page.locator('#mktPcFileList').innerText(), /flyer\.txt/);
+  await page.getByRole('button', { name: /Calculate costs|Kosten berechnen/ }).click();
   await page.waitForFunction(() => /1[.,]234[.,]50/.test((document.getElementById('mktPcBody') || {}).innerText || ''), null, { timeout: 15000 });
-  assert.match(await page.locator('#mktPcBody').innerText(), /2[.,]?500/);
+  const start = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiPrecalcStart').args[0]);
+  assert.equal(start.calcProjectUid, 'PRO1');
+  assert.deepEqual(start.targetLangs, ['it_it']);
+  assert.equal(start.mainFiles[0].name, 'flyer.txt');
   assert.deepEqual(errors, []);
   await page.close();
 });

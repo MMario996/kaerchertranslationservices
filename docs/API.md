@@ -327,7 +327,8 @@ gehört.
 | `apiConsultingComment(id, text)` | Consultant / Einreicher | Kommentar in die Historie, Chat an die andere Seite |
 | `apiConsultingSubmit(id, patch)` | Consultant | Projekt im Namen des Einreichers anlegen (`createProjectAndUploadAs_`, Queue „Created By“) |
 | `apiConsultingClose(id, reason)` | Consultant / Einreicher | schließen bzw. zurückziehen |
-| `apiPrecalcStart(payload)` / `apiPrecalcPoll(id)` / `apiPrecalcCancel(id)` | Marketing, Consultant, Vertretung | Vorab-Kalkulation in Schritten (Import → Analyse → Quote → Löschen) → `{ phase, amount, currency, words }` |
+| `apiPrecalcOptions()` | Marketing, Consultant, Vertretung | Kalkulationsprojekte aus `PRECALC_PROJECTS` mit Quell-/Zielsprachen |
+| `apiPrecalcStart({calcProjectUid, targetLangs, mainFiles})` / `apiPrecalcPoll(id)` / `apiPrecalcCancel(id)` | Marketing, Consultant, Vertretung | Vorab-Kalkulation im festen Projekt (Jobs hochladen → Analyse → Quote → nur diese Jobs löschen) → `{ phase, amount, currency, words }` |
 | `apiPrecalcHistory()` | angemeldet | letzte Kalkulationen (eigene; Consultants alle) |
 | `apiMaxTplOptions(baseTemplateUid)` | Marketing, Consultant | Kataloge (Workflow-Schritte, Client/BU/Domain/Subdomain/Cost Center, MT), Standardwerte der Basis-Vorlage, Prompt-Hub |
 | `apiMaxTplSearch(kind, query)` | Marketing, Consultant | `users`, `vendors`, `tms`, `tbs` nach Namen |

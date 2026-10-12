@@ -8,6 +8,13 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "mk_pc_hint2": "Phrase analysiert deine Dateien gegen die Translation Memories des gewählten Bereichs und erstellt eine Quote. Es wird kein Projekt angelegt: Die Dateien werden direkt nach der Kalkulation wieder aus Phrase entfernt. Es wird keine Übersetzung beauftragt.",
+    "mk_pc_not_configured": "Noch keine Kalkulationsprojekte hinterlegt (Admin: Script Property PRECALC_PROJECTS).",
+    "mk_pc_area": "Bereich (Translation Memories)",
+    "mk_pc_all": "alle",
+    "mk_pc_blocked": "PDF und .doc können nicht analysiert werden – bitte das bearbeitbare Format verwenden.",
+    "mk_pc_p_cleanup2": "Dateien werden aus Phrase entfernt",
+    "mk_pc_deleted2": "Die Dateien wurden wieder aus Phrase entfernt.",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "SANDBOX-MODUS",
     "sbx_banner_desc": "Phrase-Sandbox, eigene Vorlagen und eigene Projektliste. Die Produktion bleibt unberührt.",
@@ -1248,6 +1255,13 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "mk_pc_hint2": "Phrase analyses your files against the translation memories of the chosen area and creates a quote. No project is created: the files are removed from Phrase again right after the calculation. No translation is ordered.",
+    "mk_pc_not_configured": "No calculation projects are set up yet (admin: Script Property PRECALC_PROJECTS).",
+    "mk_pc_area": "Area (translation memories)",
+    "mk_pc_all": "all",
+    "mk_pc_blocked": "PDF and .doc cannot be analysed – please use the editable format.",
+    "mk_pc_p_cleanup2": "Removing the files from Phrase",
+    "mk_pc_deleted2": "The files have been removed from Phrase again.",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "SANDBOX MODE",
     "sbx_banner_desc": "Phrase sandbox, own templates and own project list. Production stays untouched.",
@@ -2488,6 +2502,13 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "mk_pc_hint2": "Phrase analyse vos fichiers avec les mémoires de traduction du domaine choisi et crée un devis. Aucun projet n'est créé : les fichiers sont retirés de Phrase juste après le calcul. Aucune traduction n'est commandée.",
+    "mk_pc_not_configured": "Aucun projet de calcul configuré (admin : Script Property PRECALC_PROJECTS).",
+    "mk_pc_area": "Domaine (mémoires de traduction)",
+    "mk_pc_all": "toutes",
+    "mk_pc_blocked": "Les PDF et .doc ne peuvent pas être analysés – utilisez le format modifiable.",
+    "mk_pc_p_cleanup2": "Suppression des fichiers dans Phrase",
+    "mk_pc_deleted2": "Les fichiers ont été retirés de Phrase.",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "MODE SANDBOX",
     "sbx_banner_desc": "Sandbox Phrase, modèles et liste de projets propres. La production n'est pas touchée.",
@@ -3669,6 +3690,13 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "mk_pc_hint2": "Phrase analiza tus archivos con las memorias de traducción del área elegida y crea un presupuesto. No se crea ningún proyecto: los archivos se eliminan de Phrase justo después del cálculo. No se encarga ninguna traducción.",
+    "mk_pc_not_configured": "Aún no hay proyectos de cálculo configurados (admin: Script Property PRECALC_PROJECTS).",
+    "mk_pc_area": "Área (memorias de traducción)",
+    "mk_pc_all": "todos",
+    "mk_pc_blocked": "Los PDF y .doc no se pueden analizar: usa el formato editable.",
+    "mk_pc_p_cleanup2": "Eliminando los archivos de Phrase",
+    "mk_pc_deleted2": "Los archivos se han eliminado de Phrase.",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "MODO SANDBOX",
     "sbx_banner_desc": "Sandbox de Phrase, plantillas y lista de proyectos propias. La producción no se toca.",
@@ -4850,6 +4878,13 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "mk_pc_hint2": "O Phrase analisa os seus ficheiros com as memórias de tradução da área escolhida e cria um orçamento. Não é criado nenhum projeto: os ficheiros são removidos do Phrase logo após o cálculo. Não é encomendada nenhuma tradução.",
+    "mk_pc_not_configured": "Ainda não há projetos de cálculo configurados (admin: Script Property PRECALC_PROJECTS).",
+    "mk_pc_area": "Área (memórias de tradução)",
+    "mk_pc_all": "todos",
+    "mk_pc_blocked": "PDF e .doc não podem ser analisados – use o formato editável.",
+    "mk_pc_p_cleanup2": "A remover os ficheiros do Phrase",
+    "mk_pc_deleted2": "Os ficheiros foram removidos do Phrase.",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "MODO SANDBOX",
     "sbx_banner_desc": "Sandbox do Phrase, modelos e lista de projetos próprios. A produção não é afetada.",
@@ -6031,6 +6066,13 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "mk_pc_hint2": "Phrase 会用所选领域的翻译记忆库分析你的文件并生成报价。不会创建项目：核算后文件会立即从 Phrase 中移除。不会下达翻译订单。",
+    "mk_pc_not_configured": "尚未设置核算项目（管理员：Script Property PRECALC_PROJECTS）。",
+    "mk_pc_area": "领域（翻译记忆库）",
+    "mk_pc_all": "全部",
+    "mk_pc_blocked": "PDF 和 .doc 无法分析——请使用可编辑格式。",
+    "mk_pc_p_cleanup2": "正在从 Phrase 移除文件",
+    "mk_pc_deleted2": "文件已从 Phrase 中移除。",
     // --- Admin-Sandbox (Sandbox.gs) ---
     "sbx_banner": "沙盒模式",
     "sbx_banner_desc": "Phrase 沙盒，独立的模板和项目列表。生产环境不受影响。",

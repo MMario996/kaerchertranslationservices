@@ -155,7 +155,7 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 - OPS-Sheet `Consulting_Requests`: ID, Created At, Requester, Status (`OPEN`/`IN_PROGRESS`/`SUBMITTED`/`CLOSED`),
   Assignee, Project Name, Template, Target Langs, Payload JSON (Formular ohne Dateiinhalt), Comment,
   History JSON (`{at, by, action, text}`), Project UIDs, Updated At, Folder ID.
-- OPS-Sheet `Precalc_Log`: ID, Created At, User, Template, Source, Target Langs, Files, Status, Words,
+- OPS-Sheet `Precalc_Log` (Spalte „Template“ = Bereich des Kalkulationsprojekts): ID, Created At, User, Template, Source, Target Langs, Files, Status, Words,
   Amount, Currency, State JSON (Phrase-Projekt/Analyse/Async-IDs), Finished At.
 
 - Dokumentations-Queue, `Board`, `Archive` (eigene Sheet-IDs in `DocQueue.gs`, `DocBoard.gs`).
@@ -184,7 +184,8 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 | `TERMBASE_UID` | Termbase für `/termsearch` |
 | `PHRASE_SANDBOX_API_TOKEN`, `PHRASE_SANDBOX_BASE_URL`, `SANDBOX_TEMPLATE_SHEET`, `SANDBOX_OPS_SHEET_ID`, `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID`, dynamisch `SANDBOX_ON__<email>` | Admin-Sandbox (`Sandbox.gs`) |
 | `CONSULTING_FOLDER_ID` | Drive-Ordner für Consulting-Anfragen (wird beim ersten Mal angelegt) |
-| `PRECALC_PRICE_LIST_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Preisliste der Quote, `false` = aus |
+| `PRECALC_PROJECTS`, `PRECALC_PROJECTS_SANDBOX` | Vorab-Kalkulation: feste Kalkulationsprojekte `Bezeichnung\|Projekt-UID[\|Preislisten-UID]`, getrennt durch `;` oder Zeilenumbruch |
+| `PRECALC_PRICE_LIST_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Rückfall-Preisliste der Quote, `false` = aus |
 | `PROMPT_HUB_URL`, `MAXTPL_PROMPT_FIELD`, `MAXTPL_PORTALS` | Maximaltemplate: Link zum Prompt-Hub, Custom Field für den Prompt (Standard `AI Prompt`), Bereiche (Standard `marketing`) |
 | dynamisch: `CHAT_USER_MAP__<email>`, `CHAT_NOTIFIED__<uid>`, `CHAT_PREF_ON__<email>`, `oauth2.*`, `Cal_*` | Laufzeitdaten |
 

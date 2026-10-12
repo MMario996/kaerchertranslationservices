@@ -372,9 +372,77 @@ function mktPrecalcRender_() {
     head.dataset.ready = '1';
     head.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:-4px;">calculate</span> ' +
       mktEsc_(tr_('mk_pc_title', 'Pre-calculation')) + '</div><p class="mkt-hint" style="margin:0;">' +
-      mktEsc_(tr_('mk_pc_hint', 'Phrase analyses your files and creates a quote with the price list of the template. Only the amount is kept: the temporary project and all files are deleted afterwards. No translation is ordered.')) + '</p></div>';
+      mktEsc_(tr_('mk_pc_hint2', 'Phrase analyses your files against the translation memories of the chosen area and creates a quote. No project is created: the files are removed from Phrase again right after the calculation. No translation is ordered.')) + '</p></div>';
   }
+  mktPrecalcForm_();
   mktPrecalcHistory_();
+}
+
+/** Formular: Bereich (Kalkulationsprojekt mit TMs), Zielsprachen dieses Projekts, Dateien. */
+function mktPrecalcForm_() {
+  const host = document.getElementById('mktPrecalcForm');
+  if (!host || host.dataset.ready) return;
+  host.dataset.ready = '1';
+  mkt_.pcFiles = [];
+  host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { host.dataset.ready = ''; host.innerHTML = '<div class="card"><div class="mkt-empty">' + mktEsc_((res && res.error) || 'Error') + '</div></div>'; return; }
+    mkt_.pcOptions = res.projects || [];
+    if (!mkt_.pcOptions.length) {
+      host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-missing" style="margin:0;">' + mktEsc_(tr_('mk_pc_not_configured', 'No calculation projects are set up yet (admin: Script Property PRECALC_PROJECTS).')) + '</div></div>';
+      return;
+    }
+    host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-grid2">' +
+      '<div class="mkt-field"><label for="mktPcArea">' + mktEsc_(tr_('mk_pc_area', 'Area (translation memories)')) + '</label><select id="mktPcArea" onchange="mktPrecalcAreaChanged_()">' +
+        mkt_.pcOptions.map((o, i) => '<option value="' + i + '">' + mktEsc_(o.label) + '</option>').join('') + '</select></div>' +
+      '<div class="mkt-field"><label>' + mktEsc_(mktLbl_('lbl_source', 'Source language')) + '</label><div id="mktPcSource" class="mkt-item-sub" style="padding:10px 0;"></div></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(mktLbl_('lbl_target', 'Target languages')) + ' <button type="button" class="mx-mini mkt-chip" style="margin-left:8px;" onclick="mktPrecalcAllLangs_()">' + mktEsc_(tr_('mk_pc_all', 'all')) + '</button></label><div class="mkt-langs" id="mktPcLangs"></div></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(tr_('mk_files', 'Files')) + '</label>' +
+        '<div class="dropzone" id="mktPcDrop" onclick="document.getElementById(\'mktPcFile\').click()"><span class="material-icons-outlined">upload_file</span><span>' + mktEsc_(tr_('dz_hint', 'Drag files here or click to select')) + '</span></div>' +
+        '<input type="file" id="mktPcFile" multiple style="display:none;" onchange="mktPrecalcAddFiles_(this.files); this.value=\'\'">' +
+        '<div id="mktPcFileList" class="mkt-files" style="margin-top:8px;"></div></div>' +
+      '</div><div class="mkt-actions"><button type="button" class="btn btn-primary" onclick="mktPrecalcStart_()"><span class="material-icons-outlined" style="margin-right:10px;">calculate</span>' + mktEsc_(tr_('mk_pc_run', 'Calculate costs')) + '</button></div></div>';
+    const drop = document.getElementById('mktPcDrop');
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); if (e.dataTransfer && e.dataTransfer.files) mktPrecalcAddFiles_(e.dataTransfer.files); });
+    mktPrecalcAreaChanged_();
+  }).withFailureHandler(err => { host.dataset.ready = ''; mktErr_(err); }).apiPrecalcOptions();
+}
+
+function mktPrecalcArea_() {
+  const sel = document.getElementById('mktPcArea');
+  return sel ? mkt_.pcOptions[Number(sel.value)] : null;
+}
+
+function mktPrecalcAreaChanged_() {
+  const o = mktPrecalcArea_();
+  if (!o) return;
+  document.getElementById('mktPcSource').textContent = o.error ? o.error : (o.sourceLang ? getPrettyLangName(o.sourceLang) : '-');
+  document.getElementById('mktPcLangs').innerHTML = (o.targetLangs || []).map(l =>
+    '<label><input type="checkbox" value="' + mktEsc_(l) + '"> ' + mktEsc_(getPrettyLangName(l)) + '</label>').join('') || '<span class="mkt-item-sub">-</span>';
+}
+
+function mktPrecalcAllLangs_() {
+  const boxes = Array.from(document.querySelectorAll('#mktPcLangs input'));
+  const all = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !all; });
+}
+
+function mktPrecalcAddFiles_(files) {
+  Array.from(files || []).forEach(f => {
+    if (/\.(pdf|doc)$/i.test(f.name)) { showCustomAlert(mktEsc_(f.name + ': ' + tr_('mk_pc_blocked', 'PDF and .doc cannot be analysed – please use the editable format.'))); return; }
+    if (!mkt_.pcFiles.some(x => x.name === f.name && x.size === f.size)) mkt_.pcFiles.push(f);
+  });
+  mktPrecalcPaintFiles_();
+}
+
+function mktPrecalcRemoveFile_(i) { mkt_.pcFiles.splice(i, 1); mktPrecalcPaintFiles_(); }
+
+function mktPrecalcPaintFiles_() {
+  document.getElementById('mktPcFileList').innerHTML = mkt_.pcFiles.map((f, i) =>
+    '<div><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">description</span> ' + mktEsc_(f.name) +
+    ' <button type="button" class="mx-mini" style="border:none;background:none;cursor:pointer;" onclick="mktPrecalcRemoveFile_(' + i + ')" title="' + mktEsc_(tr_('btn_cancel', 'Remove')) + '"><span class="material-icons-outlined" style="font-size:15px;">close</span></button></div>').join('');
 }
 
 function mktPrecalcHistory_() {
@@ -401,22 +469,29 @@ function mktMoney_(amount, currency) {
 
 const MKT_PC_PHASES_ = ['IMPORT', 'ANALYSE', 'QUOTE', 'CLEANUP'];
 
-function mktPrecalcStart_(suffix) {
-  const ov = mktOverlay_('<h3><span class="material-icons-outlined">calculate</span>' + mktEsc_(tr_('mk_pc_title', 'Pre-calculation')) + '</h3><div id="mktPcBody"><div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div>' +
+function mktPrecalcStart_() {
+  const area = mktPrecalcArea_();
+  const langs = Array.from(document.querySelectorAll('#mktPcLangs input:checked')).map(b => b.value);
+  if (!area) return;
+  if (!langs.length) { showCustomAlert(mktEsc_(tr_('jx_1e33de8', 'Please select Target Language.'))); return; }
+  if (!mkt_.pcFiles.length) { showCustomAlert(mktEsc_(tr_('jx_de7a362', 'Please select a Main File.'))); return; }
+  const ov = mktOverlay_('<h3><span class="material-icons-outlined">calculate</span>' + mktEsc_(tr_('mk_pc_title', 'Pre-calculation')) + ' – ' + mktEsc_(area.label) + '</h3><div id="mktPcBody"><div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div>' +
     mktEsc_(tr_('mk_pc_upload', 'Uploading files to Phrase ...')) + '</div></div><div class="mkt-actions" id="mktPcActions"><button type="button" class="btn btn-secondary" data-act="cancel">' + mktEsc_(tr_('btn_cancel', 'Cancel')) + '</button></div>');
   const pc = mkt_.pc = { id: '', ov: ov, stopped: false };
   ov.querySelector('[data-act=cancel]').onclick = () => mktPrecalcStop_(true);
   (async () => {
     try {
-      const payload = await collectFormPayload_(suffix);
+      const mainFiles = [];
+      for (const f of mkt_.pcFiles) { const d = await readFile(f); mainFiles.push({ source: 'pc', name: f.name, data: d.data, mime: d.mime }); }
       google.script.run.withSuccessHandler(res => {
-        // Abgebrochen, waehrend noch hochgeladen wurde: angelegtes Projekt sofort wieder loeschen.
+        // Abgebrochen, waehrend noch hochgeladen wurde: Jobs sofort wieder loeschen.
         if (pc.stopped) { if (res && res.id) google.script.run.apiPrecalcCancel(res.id); return; }
         if (!res || !res.success) { mktPrecalcStop_(false); mktErr_(res); return; }
         pc.id = res.id;
         mktPrecalcPaint_(res.phase);
         mktPrecalcPoll_();
-      }).withFailureHandler(err => { if (!pc.stopped) { mktPrecalcStop_(false); mktErr_(err); } }).apiPrecalcStart(payload);
+      }).withFailureHandler(err => { if (!pc.stopped) { mktPrecalcStop_(false); mktErr_(err); } })
+        .apiPrecalcStart({ calcProjectUid: area.projectUid, targetLangs: langs, mainFiles: mainFiles });
     } catch (e) { if (!pc.stopped) { mktPrecalcStop_(false); mktErr_(e); } }
   })();
 }
@@ -425,7 +500,7 @@ function mktPrecalcPaint_(phase) {
   const body = document.getElementById('mktPcBody');
   if (!body) return;
   const names = { IMPORT: tr_('mk_pc_p_import', 'Phrase imports the files'), ANALYSE: tr_('mk_pc_p_analyse', 'Analysis'),
-    QUOTE: tr_('mk_pc_p_quote', 'Quote with price list'), CLEANUP: tr_('mk_pc_p_cleanup', 'Deleting the temporary project and files') };
+    QUOTE: tr_('mk_pc_p_quote', 'Quote with price list'), CLEANUP: tr_('mk_pc_p_cleanup2', 'Removing the files from Phrase') };
   const idx = MKT_PC_PHASES_.indexOf(phase);
   body.innerHTML = '<div class="mkt-pc-steps">' + MKT_PC_PHASES_.map((p, i) =>
     '<div class="mkt-pc-step' + (i < idx ? ' done' : (i === idx ? ' now' : '')) + '"><span class="material-icons-outlined">' + (i < idx ? 'check_circle' : (i === idx ? 'autorenew' : 'radio_button_unchecked')) + '</span>' + mktEsc_(names[p]) + '</div>').join('') +
@@ -457,7 +532,7 @@ function mktPrecalcResult_(res) {
     '<div class="mkt-pc-amount">' + mktEsc_(mktMoney_(res.amount, res.currency)) + '</div>' +
     (res.words ? '<div class="mkt-item-sub">' + mktEsc_(Number(res.words).toLocaleString()) + ' ' + mktEsc_(tr_('mk_pc_words', 'Words')) + ' · ' + mktEsc_((res.files || []).join(', ')) + '</div>' : '') +
     (res.mixedCurrency ? '<div class="mkt-missing" style="margin-top:10px;">' + mktEsc_(tr_('mk_pc_mixed', 'Different currencies – see the breakdown.')) + '</div>' : '') + per +
-    '<p class="mkt-hint" style="margin-top:14px;">' + mktEsc_(tr_('mk_pc_deleted', 'The temporary project and the files have been deleted in Phrase.')) + '</p></div>';
+    '<p class="mkt-hint" style="margin-top:14px;">' + mktEsc_(tr_('mk_pc_deleted2', 'The files have been removed from Phrase again.')) + '</p></div>';
   document.getElementById('mktPcActions').innerHTML = '<button type="button" class="btn btn-primary" onclick="mktPrecalcStop_(false)">OK</button>';
   mkt_.pc.stopped = true;
   mktPrecalcHistory_();

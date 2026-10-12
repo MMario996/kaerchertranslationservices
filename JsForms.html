@@ -214,20 +214,6 @@ function initMarketingExtras_(config) {
     b.onclick = () => ensureScript_('MarketingUi', () => mktAskConsulting_('_marketing'));
     submit.parentNode.insertBefore(b, submit);
   }
-  // Vorab-Kalkulation: gleiches Formular (Vorlage, Sprachen, Dateien), eigener Absende-Weg.
-  const pcHost = document.getElementById('mktPrecalcForm');
-  if (config.precalcEnabled && pcHost && !document.getElementById('projectForm_precalc')) {
-    renderFormFromTemplate('precalc', 'Pre-calculation', pcHost);
-    const pcName = document.getElementById('projectName_precalc');
-    if (pcName) pcName.required = false;
-    ['presetRow_precalc', 'settingsCard_precalc', 'refFilesCard_precalc'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-    const btn = document.getElementById('submitBtn_precalc');
-    if (btn) {
-      btn.removeAttribute('data-i18n');
-      btn.innerHTML = '<span class="material-icons-outlined" style="margin-right:10px;">calculate</span><span data-i18n="mk_pc_run">' + escapeHtml(tr_('mk_pc_run', 'Calculate costs')) + '</span>';
-    }
-    activePortals.push('_precalc');
-  }
 }
 
 function switchMktSubtab(name) {

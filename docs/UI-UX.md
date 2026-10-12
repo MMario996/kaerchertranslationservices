@@ -182,8 +182,8 @@ Aufbau als Karten:
   Consulting: links Liste mit Filter (offen / mir zugewiesen / alle), rechts Details – für Consultants
   bearbeitbar (Name, Vorlage, Sprachen, Frist, Notiz, Dateien), Historie als Zeitleiste, Kommentare,
   Übernehmen / Speichern / Einreichen / Schließen; Einreicher sehen ihre Anfragen und können
-  kommentieren oder zurückziehen. Vorab-Kalkulation: Formular wie oben (ohne Frist/Notiz/Referenzen),
-  Fortschritt in vier Schritten, Ergebnis als Betrag + Wörter, Liste der letzten Kalkulationen.
+  kommentieren oder zurückziehen. Vorab-Kalkulation: Bereich (Kalkulationsprojekt, z. B. Home & Garden / Professional),
+  Zielsprachen dieses Projekts, Dateien; Fortschritt in vier Schritten, Ergebnis als Betrag + Wörter, Liste der letzten Kalkulationen.
 - **Maximaltemplate** (Vorlagen-Dropdown, oben mit Stern): XXL-Dialog (`MaxTemplateUi.html`) mit
   Navigation links – Basis & Sprachen, Workflow & Provider (Tabelle Schritt × Sprache, Suche nach
   User/Vendor, „alle Sprachen“), Projekt-Einstellungen, TMs & Termbases (übersteuern, lesen/schreiben/
