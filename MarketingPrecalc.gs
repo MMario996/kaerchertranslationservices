@@ -427,3 +427,38 @@ function apiPrecalcHistory() {
     return { success: false, error: e.message };
   }
 }
+
+// --- Admin: Kalkulationsprojekte im Portal pflegen (statt Script Property von Hand) ---
+
+/** Reine Funktion (getestet): Zeilen aus dem Editor -> Property-Text. */
+function precalcProjectsToProperty_(rows) {
+  var clean = precalcParseProjects_((rows || []).map(function (r) {
+    return [String(r.label || "").replace(/[|;\n]/g, " ").trim(), String(r.projectUid || "").trim(), String(r.priceListUid || "").trim()].join("|");
+  }).join("\n"));
+  return clean.map(function (p) { return [p.label, p.projectUid, p.priceListUid].filter(Boolean).join("|"); }).join("\n");
+}
+
+function apiGetPrecalcProjectsConfig() {
+  var caller = getUserEmail_();
+  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  return { success: true, projects: precalcProjects_(), sandbox: typeof sandboxActive_ === "function" && sandboxActive_() };
+}
+
+/** Speichert die Projekte nach Pruefung in Phrase (jede UID muss ein lesbares Projekt sein). */
+function apiSavePrecalcProjects(rows) {
+  var caller = getUserEmail_();
+  if (!isAdmin_(caller)) return { success: false, error: "Not authorized. Admin only." };
+  var value = precalcProjectsToProperty_(rows);
+  var list = precalcParseProjects_(value);
+  var errors = [];
+  var cache = phraseScriptCache_();
+  list.forEach(function (p) {
+    cache.remove("precalc_proj_" + p.projectUid);
+    try { precalcProjectInfo_(p.projectUid); } catch (e) { errors.push(p.label + " (" + p.projectUid + "): " + e.message); }
+  });
+  if (errors.length) return { success: false, error: errors.join("\n") };
+  var key = (typeof sandboxActive_ === "function" && sandboxActive_()) ? "PRECALC_PROJECTS_SANDBOX" : "PRECALC_PROJECTS";
+  PropertiesService.getScriptProperties().setProperty(key, value);
+  logAuditEvent_(caller, "PRECALC_PROJECTS", key + " = " + value.replace(/\n/g, "; "));
+  return apiPrecalcOptions();
+}

@@ -529,6 +529,7 @@ test('Marketing: Ask for Consulting schickt Formular + Kommentar, Consultant sie
   assert.equal(sub[0], 'C-1');
   assert.deepEqual(sub[1].targetLangs, ['de_de', 'fr_fr']);
   assert.deepEqual(sub[1].targetUidMap, { de_de: 'T1', fr_fr: 'T1' });
+  await page.waitForFunction(() => /chat/i.test(document.getElementById('mktConsDetail').innerText), null, { timeout: 5000 });
   assert.deepEqual(errors, []);
   await page.close();
 });
@@ -540,6 +541,8 @@ test('Marketing: Vorab-Kalkulation im festen Kalkulationsprojekt zeigt den Betra
       { label: 'Home & Garden', projectUid: 'HG1', sourceLang: 'de', targetLangs: ['en_gb', 'fr_fr'] },
       { label: 'Professional', projectUid: 'PRO1', sourceLang: 'de', targetLangs: ['en_us', 'it_it', 'es_es'] }] },
     apiPrecalcStart: (p) => ({ success: true, id: 'P-1', phase: 'IMPORT' }),
+    apiGetPrecalcProjectsConfig: { success: true, projects: [{ label: 'Home & Garden', projectUid: 'HG1', priceListUid: '' }, { label: 'Professional', projectUid: 'PRO1', priceListUid: '' }] },
+    apiSavePrecalcProjects: (rows) => ({ success: true, enabled: true, projects: rows }),
     apiPrecalcPoll: (id) => ({ success: true, phase: 'DONE', amount: 1234.5, currency: 'EUR', words: 2500, perTemplate: [], files: ['flyer.txt'] })
   }`, { configPatch: MKT_CONFIG });
   await page.evaluate(() => { switchTab('marketing'); switchMktSubtab('precalc'); });
@@ -552,6 +555,16 @@ test('Marketing: Vorab-Kalkulation im festen Kalkulationsprojekt zeigt den Betra
   await page.getByRole('button', { name: /Calculate costs|Kosten berechnen/ }).click();
   await page.waitForFunction(() => /1[.,]234[.,]50/.test((document.getElementById('mktPcBody') || {}).innerText || ''), null, { timeout: 15000 });
   const start = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiPrecalcStart').args[0]);
+  await page.evaluate(() => mktPrecalcStop_(false));
+  // Admin pflegt die Kalkulationsprojekte im Portal
+  await page.getByRole('button', { name: /Manage calculation projects|Kalkulationsprojekte verwalten/ }).click();
+  await page.waitForSelector('#mktPcCfgRows input');
+  await page.locator('#mktPcCfgRows input').first().fill('Home & Garden NEU');
+  await page.locator('.mkt-box [data-act=save]').click();
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiSavePrecalcProjects'));
+  const saved = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSavePrecalcProjects').args[0]);
+  assert.equal(saved[0].label, 'Home & Garden NEU');
+  assert.equal(saved[1].projectUid, 'PRO1');
   assert.equal(start.calcProjectUid, 'PRO1');
   assert.deepEqual(start.targetLangs, ['it_it']);
   assert.equal(start.mainFiles[0].name, 'flyer.txt');

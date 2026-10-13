@@ -213,6 +213,7 @@ function initMarketingExtras_(config) {
     b.innerHTML = '<span class="material-icons-outlined" style="margin-right:8px;">support_agent</span><span data-i18n="mk_ask_consulting">' + escapeHtml(tr_('mk_ask_consulting', 'Ask for Consulting')) + '</span>';
     b.onclick = () => ensureScript_('MarketingUi', () => mktAskConsulting_('_marketing'));
     submit.parentNode.insertBefore(b, submit);
+    submit.parentNode.classList.add('form-submit-row');
   }
 }
 
