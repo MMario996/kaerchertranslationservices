@@ -97,8 +97,9 @@ Stellen aber **per festem Index** geschrieben – Spalten nie umsortieren.
 |---|---|---|
 | `Whitelist` | Zugang „General Projects“ | Email |
 | `Whitelist_Marketing`, `Whitelist_KeC`, `Whitelist_Documentation`, `Whitelist_Woma`, `Whitelist_CC`, `Whitelist_Articulate` | Exklusive Spezialbereiche | Email |
-| `Whitelist_AdminLight` | Teil-Admin-Rechte | Email \| Subtabs (`users,templates,pivot,tests,dashboard,consulting`) |
+| `Whitelist_AdminLight` | Teil-Admin-Rechte | Email \| Subtabs (`users,templates,pivot,tests,dashboard,consulting,groups`) |
 | `Deputies` | Urlaubsvertretung | Email \| Deputy \| From \| To \| Active \| Updated At |
+| `Deputy_Groups` | Vertretungsgruppen (Mitglieder vertreten sich dauerhaft) | Group \| Members \| Updated At |
 | `Prompt_Hub` | Prompts fürs Maximaltemplate | Name \| Prompt \| Template UIDs \| Link \| Active |
 | `FetchTemplate-Prod` | Phrase-Projektvorlagen (per Sync aus Phrase) | Display Name, Template UID, Source, Targets, Active (yes/no), Client, Domain, Subdomain, Business Unit |
 | `FetchTMS_USERS-Prod` | Nutzer-Zuordnung (per Sync aus Phrase) | Email, Client, Domain, Subdomain, Business Unit (mehrere Werte durch `,` `;` oder Zeilenumbruch) |

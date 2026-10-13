@@ -61,7 +61,7 @@ Neue Endpunkte: bitte `{ success, error }` verwenden.
 | Rolle | Quelle | Wirkung |
 |---|---|---|
 | **Admin** | Script Property `ADMIN_EMAILS` | alles; sieht alle Projekte; darf Nutzer simulieren |
-| **Admin-Light** | Sheet `Whitelist_AdminLight`, Spalte Subtabs | nur die freigegebenen Bereiche: `users`, `templates`, `pivot`, `tests`, `dashboard` (Dashboard über alle Projekte), `consulting` (Consultant Marketing Projects) |
+| **Admin-Light** | Sheet `Whitelist_AdminLight`, Spalte Subtabs | nur die freigegebenen Bereiche: `users`, `templates`, `pivot`, `tests`, `dashboard` (Dashboard über alle Projekte), `consulting` (Consultant Marketing Projects), `groups` (Vertretungsgruppen) |
 | **Urlaubsvertretung** | Sheet `Deputies` (aktiv, im Zeitraum) | Rechte der vertretenen Person: Zugang (`apiCheckAccess` → `reason: "deputy"`), Bereiche und Vorlagen in der Config, Projekte wie Eigentümer; Kopie jeder Chat-Nachricht |
 | **General** | Sheet `Whitelist` | Reiter „General Projects“ |
 | **Exklusive Bereiche** | `Whitelist_Marketing`, `_KeC`, `_Documentation`, `_Woma`, `_CC`, `_Articulate` | nur der jeweilige Spezialreiter (`isExclusive`), kein „General Projects“ |
@@ -333,7 +333,8 @@ gehört.
 | `apiPrecalcHistory()` | angemeldet | letzte Kalkulationen (eigene; Consultants alle) |
 | `apiMaxTplOptions(baseTemplateUid)` | Marketing, Consultant | Kataloge (Workflow-Schritte, Client/BU/Domain/Subdomain/Cost Center, MT), Standardwerte der Basis-Vorlage, Prompt-Hub |
 | `apiMaxTplSearch(kind, query)` | Marketing, Consultant | `users`, `vendors`, `tms`, `tbs` nach Namen |
-| `apiGetDeputySettings()` / `apiSaveDeputySettings({email, from, to, active})` | eigene | Urlaubsvertretung |
+| `apiGetDeputySettings()` / `apiSaveDeputySettings({email, from, to, active})` | eigene | Urlaubsvertretung (liefert auch die eigenen Gruppen) |
+| `apiGetDeputyGroups()` / `apiSaveDeputyGroups([{name, members}])` | Admin, Light:groups | Vertretungsgruppen pflegen |
 | `apiGetSandboxStatus()` / `apiSetSandboxMode(enabled)` | Admin | Admin-Sandbox an/aus (nur für den Aufrufer) |
 
 **Maximaltemplate im Upload-Payload:** `payload.maxSettings` = `{ baseTemplateUid, workflowSteps[], stepDue{step: date},

@@ -176,6 +176,10 @@
               <span><b data-i18n="dp_active">Deputy switched on</b><small id="prefDeputyState"></small></span>
             </label>
             <div id="prefDeputyPrincipals" class="prefs-muted" style="margin-top:12px;"></div>
+            <div class="prefs-section-title" style="margin-top:18px;"><span class="material-icons-outlined">groups</span><span data-i18n="dp_groups_title">Deputy groups</span></div>
+            <div class="prefs-muted" data-i18n="dp_groups_desc">Members of a group stand in for each other permanently: they see each other's projects in "My Projects" and can work on them.</div>
+            <div id="prefDeputyGroups" style="margin-top:8px;font-size:13px;"></div>
+            <button type="button" class="btn btn-secondary prefs-btn" id="prefGroupsBtn" onclick="deputyGroupsManage_()" hidden><span class="material-icons-outlined">edit</span> <span data-i18n="dp_groups_manage">Manage groups</span></button>
           </div>
 
           <div class="prefs-sec" data-sec="cal" hidden>

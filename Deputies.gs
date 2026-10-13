@@ -11,6 +11,13 @@
  *
  * Sheet: "Deputies" in ACCESS_SHEET_ID
  * Spalten: Email | Deputy | From | To | Active | Updated At
+ *
+ * Vertretungsgruppen (z. B. MAT-D OUTDOOR, MAT-D INDOOR, MAT-D INDUSTRIAL):
+ * Mitglieder einer Gruppe vertreten sich dauerhaft gegenseitig - sie sehen
+ * die Projekte der anderen in "Meine Projekte" und duerfen sie wie der
+ * Eigentuemer bearbeiten. Gepflegt von Admins und Admin-Light-Bereich
+ * "groups" (Einstellungen -> Vertretung -> Gruppen verwalten).
+ * Sheet: "Deputy_Groups" in ACCESS_SHEET_ID, Spalten: Group | Members | Updated At
  */
 var DEPUTY_SHEET_NAME_ = "Deputies";
 var DEPUTY_HEADERS_ = ["Email", "Deputy", "From", "To", "Active", "Updated At"];
@@ -110,11 +117,114 @@ function deputyPrincipalsOf_(email) {
     .map(function (d) { return d.email; });
 }
 
-/** Darf caller als Vertretung fuer owner handeln? */
+/** Darf caller als Vertretung fuer owner handeln? (Urlaubsvertretung oder gleiche Gruppe) */
 function deputyActsFor_(caller, owner) {
   var o = String(owner || "").trim().toLowerCase();
   if (!o) return false;
-  try { return deputyPrincipalsOf_(caller).indexOf(o) >= 0; } catch (e) { return false; }
+  try {
+    if (deputyPrincipalsOf_(caller).indexOf(o) >= 0) return true;
+    return deputyGroupPeers_(caller).indexOf(o) >= 0;
+  } catch (e) { return false; }
+}
+
+// --- Vertretungsgruppen ------------------------------------------------------------
+
+var DEPUTY_GROUPS_SHEET_ = "Deputy_Groups";
+var DEPUTY_GROUPS_CACHE_KEY_ = "deputy_groups_v1";
+
+/** Reine Funktion (getestet): Gruppen bereinigen - Name Pflicht, E-Mails gueltig, ohne Doppelte. */
+function deputyGroupsSanitize_(groups) {
+  var out = [];
+  (Array.isArray(groups) ? groups : []).forEach(function (g) {
+    var name = String((g && g.name) || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 80);
+    var raw = Array.isArray(g && g.members) ? g.members : String((g && g.members) || "").split(/[\s,;]+/);
+    var members = [];
+    raw.forEach(function (m) {
+      var e = String(m || "").trim().toLowerCase();
+      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && members.indexOf(e) < 0) members.push(e);
+    });
+    if (!name || !members.length) return;
+    if (out.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) return;
+    out.push({ name: name, members: members.slice(0, 50) });
+  });
+  return out.slice(0, 50);
+}
+
+function deputyGroupsAll_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(DEPUTY_GROUPS_CACHE_KEY_);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var list = [];
+  try {
+    var sh = openAccessSS_().getSheetByName(DEPUTY_GROUPS_SHEET_);
+    if (sh) {
+      var data = sh.getDataRange().getValues();
+      list = deputyGroupsSanitize_(data.slice(1).map(function (r) { return { name: r[0], members: r[1] }; }));
+    }
+  } catch (e) { console.warn("deputyGroupsAll_: " + e.message); }
+  try { cache.put(DEPUTY_GROUPS_CACHE_KEY_, JSON.stringify(list), 120); } catch (e) {}
+  return list;
+}
+
+/** Gruppen, in denen email Mitglied ist. */
+function deputyGroupsOf_(email) {
+  var e = String(email || "").trim().toLowerCase();
+  if (!e) return [];
+  return deputyGroupsAll_().filter(function (g) { return g.members.indexOf(e) >= 0; });
+}
+
+/** Alle anderen Mitglieder aus den Gruppen von email. */
+function deputyGroupPeers_(email) {
+  var e = String(email || "").trim().toLowerCase();
+  var out = [];
+  deputyGroupsOf_(e).forEach(function (g) {
+    g.members.forEach(function (m) { if (m !== e && out.indexOf(m) < 0) out.push(m); });
+  });
+  return out;
+}
+
+/** Name der (ersten) gemeinsamen Gruppe von a und b, sonst "". */
+function deputyGroupNameShared_(a, b) {
+  var bb = String(b || "").trim().toLowerCase();
+  var g = deputyGroupsOf_(a).filter(function (x) { return x.members.indexOf(bb) >= 0; })[0];
+  return g ? g.name : "";
+}
+
+function deputyCanManageGroups_(email) {
+  return isAdmin_(email) || isAdminLightWithAccess_(email, "groups");
+}
+
+function apiGetDeputyGroups() {
+  var caller = getUserEmail_();
+  if (!deputyCanManageGroups_(caller)) return { success: false, error: "Not authorized." };
+  return { success: true, groups: deputyGroupsAll_() };
+}
+
+function apiSaveDeputyGroups(groups) {
+  var caller = getUserEmail_();
+  if (!deputyCanManageGroups_(caller)) return { success: false, error: "Not authorized." };
+  var clean = deputyGroupsSanitize_(groups);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = openAccessSS_();
+    var sh = ss.getSheetByName(DEPUTY_GROUPS_SHEET_);
+    if (!sh) {
+      sh = ss.insertSheet(DEPUTY_GROUPS_SHEET_);
+      sh.getRange(1, 1, 1, 3).setValues([["Group", "Members", "Updated At"]]).setFontWeight("bold").setBackground("#FFED00");
+      sh.setFrozenRows(1);
+    }
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 3).clearContent();
+    if (clean.length) {
+      var now = new Date();
+      sh.getRange(2, 1, clean.length, 3).setValues(clean.map(function (g) { return [g.name, g.members.join(", "), now]; }));
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  CacheService.getScriptCache().remove(DEPUTY_GROUPS_CACHE_KEY_);
+  logAuditEvent_(caller, "DEPUTY_GROUPS", clean.map(function (g) { return g.name + ": " + g.members.join(", "); }).join(" | "));
+  return { success: true, groups: clean };
 }
 
 /**
@@ -152,7 +262,8 @@ function apiGetDeputySettings() {
     activeNow: deputyIsActive_(mine, today),
     principals: all.filter(function (d) { return d.deputy === email && d.active; }).map(function (d) {
       return { email: d.email, from: d.from, to: d.to, activeNow: deputyIsActive_(d, today) };
-    })
+    }),
+    groups: deputyGroupsOf_(email)
   };
 }
 

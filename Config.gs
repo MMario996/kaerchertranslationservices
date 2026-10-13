@@ -84,6 +84,8 @@ function getConfig_(impersonateEmail) {
     maintenance: maintenance,
     adminLightSubtabs: adminLightSubtabs,
     deputyFor: deputyFor,
+    deputyGroups: (function () { try { return deputyGroupsOf_(effectiveUser).map(function (g) { return g.name; }); } catch (e) { return []; } })(),
+    canManageGroups: !isImpersonating && (function () { try { return deputyCanManageGroups_(currentUser); } catch (e) { return false; } })(),
     sandbox: (function () { try { return sandboxActive_(); } catch (e) { return false; } })(),
     isConsultant: !isImpersonating && typeof isMarketingConsultant_ === "function" && isMarketingConsultant_(currentUser),
     precalcEnabled: typeof precalcEnabled_ === "function" && precalcEnabled_(),

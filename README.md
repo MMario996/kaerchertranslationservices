@@ -126,6 +126,15 @@ Einstellungen → **Vertretung**: E-Mail, optional Von/Bis, an/aus (Sheet `Deput
 bekommt die Vertretung eine Kopie jeder Chat-Nachricht und hat die Rechte der vertretenen Person
 (Projekte in Meine Projekte, bearbeiten wie Eigentümer, Bereiche und Vorlagen).
 
+### Vertretungsgruppen
+
+Einstellungen → Vertretung → **Gruppen verwalten** (Admins und Admin-Light-Bereich
+„Vertretungsgruppen“ / `groups`). Mitglieder einer Gruppe (z. B. MAT-D OUTDOOR, MAT-D INDOOR,
+MAT-D INDUSTRIAL) vertreten sich dauerhaft gegenseitig: Sie sehen die Projekte der anderen in
+„Meine Projekte“ (Hinweis „Gruppe **…**“, Filter „Meine Vertretungsgruppe“) und dürfen sie wie
+der Eigentümer bearbeiten. Chat-Kopien gibt es nur über die persönliche Urlaubsvertretung.
+Sheet `Deputy_Groups` (Group | Members | Updated At).
+
 ## Admin-Sandbox
 
 Einstellungen → **Sandbox (Admin)**: schaltet das Portal nur für den angemeldeten Admin auf die

@@ -343,12 +343,63 @@ function deputyPrefsLoad_() {
     document.getElementById('prefDeputyTo').value = d.to || '';
     document.getElementById('prefDeputyActive').checked = !!d.active;
     if (st) st.textContent = d.email ? (res.activeNow ? tr_('dp_state_on', 'Active right now') : tr_('dp_state_off', 'Not active right now')) : '';
+    deputyGroupsPaint_(res.groups || []);
+    document.getElementById('prefGroupsBtn').hidden = !(configData && configData.canManageGroups);
     const pr = document.getElementById('prefDeputyPrincipals');
     pr.innerHTML = (res.principals || []).length
       ? '<b>' + escapeHtml(tr_('dp_you_are', 'You are the deputy for:')) + '</b> ' + res.principals.map(p =>
           escapeHtml(p.email) + (p.from || p.to ? ' (' + escapeHtml((p.from || '…') + ' – ' + (p.to || '…')) + ')' : '')).join(', ')
       : '';
   }).withFailureHandler(() => { if (st) st.textContent = ''; }).apiGetDeputySettings();
+}
+
+/** Mitglieder als Liste (Server liefert Arrays, Eingaben kommen als Text). */
+function deputyGroupMembers_(g) {
+  return (Array.isArray(g && g.members) ? g.members : String((g && g.members) || '').split(/[\s,;]+/))
+    .map(s => String(s).trim().toLowerCase()).filter(Boolean);
+}
+
+function deputyGroupsPaint_(groups) {
+  const gEl = document.getElementById('prefDeputyGroups');
+  if (!gEl) return;
+  gEl.innerHTML = groups.length
+    ? groups.map(g => '<div><b>' + escapeHtml(g.name) + ':</b> ' + escapeHtml(deputyGroupMembers_(g).join(', ')) + '</div>').join('')
+    : '<span class="prefs-muted">' + escapeHtml(tr_('dp_groups_none', 'You are not in a deputy group.')) + '</span>';
+}
+
+/** Vertretungsgruppen pflegen (Admin / Admin-Light "groups"). Je Gruppe: Name + E-Mails. */
+function deputyGroupsManage_() {
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+    const ov = document.createElement('div');
+    ov.className = 'modal-backdrop';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:6200;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<div class="prefs-box" style="max-width:720px;width:100%;max-height:90vh;overflow:auto;padding:22px;border-top:6px solid var(--primary-yellow);">' +
+      '<h3 style="margin:0 0 6px;text-transform:uppercase;font-size:16px;">' + escapeHtml(tr_('dp_groups_title', 'Deputy groups')) + '</h3>' +
+      '<div class="prefs-muted" style="margin-bottom:12px;">' + escapeHtml(tr_('dp_groups_hint', 'One group per row: name and e-mail addresses (separated by comma or line break). Empty groups are removed.')) + '</div>' +
+      '<div id="dgRows"></div><button type="button" class="btn btn-secondary prefs-btn" id="dgAdd">+ ' + escapeHtml(tr_('dp_groups_add', 'Add group')) + '</button>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;"><button type="button" class="btn btn-secondary" id="dgCancel" style="width:auto;height:40px;">' + escapeHtml(tr_('btn_cancel', 'Cancel')) + '</button>' +
+      '<button type="button" class="btn btn-primary" id="dgSave" style="width:auto;height:40px;padding:0 24px;">' + escapeHtml(tr_('btn_save', 'Save')) + '</button></div></div>';
+    document.body.appendChild(ov);
+    const rowHtml = g => '<div class="dg-row" style="display:grid;grid-template-columns:200px 1fr;gap:8px;margin-bottom:8px;">' +
+      '<input type="text" class="dg-name" placeholder="MAT-D OUTDOOR" value="' + escapeHtml(g.name || '') + '">' +
+      '<textarea class="dg-members" rows="2" placeholder="name@kaercher.com, ...">' + escapeHtml(deputyGroupMembers_(g).join(', ')) + '</textarea></div>';
+    const rows = ov.querySelector('#dgRows');
+    rows.innerHTML = (res.groups.length ? res.groups : [{}]).map(rowHtml).join('');
+    ov.querySelector('#dgAdd').onclick = () => rows.insertAdjacentHTML('beforeend', rowHtml({}));
+    ov.querySelector('#dgCancel').onclick = () => ov.remove();
+    ov.querySelector('#dgSave').onclick = () => {
+      const groups = Array.from(rows.querySelectorAll('.dg-row')).map(r => ({ name: r.querySelector('.dg-name').value, members: r.querySelector('.dg-members').value }));
+      google.script.run.withSuccessHandler(r => {
+        if (!r || !r.success) { showCustomAlert(escapeHtml((r && r.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+        ov.remove();
+        showToast_(tr_('dp_groups_saved', 'Deputy groups saved.'), 'ok');
+        // Nur die eigene Gruppenanzeige auffrischen - nicht ungespeicherte Eingaben im Formular ueberschreiben.
+        const me = String((configData && configData.currentUser) || '').toLowerCase();
+        deputyGroupsPaint_((r.groups || []).filter(g => deputyGroupMembers_(g).indexOf(me) >= 0));
+      }).withFailureHandler(e => showCustomAlert(escapeHtml(e.message), tr_('jx_902b0d5', 'Error'))).apiSaveDeputyGroups(groups);
+    };
+  }).withFailureHandler(e => showCustomAlert(escapeHtml(e.message), tr_('jx_902b0d5', 'Error'))).apiGetDeputyGroups();
 }
 
 /** Geaenderte Vertretung oder null (dann kein Serveraufruf). */

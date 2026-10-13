@@ -173,3 +173,14 @@ test('Kalkulationsprojekte: Editor-Zeilen werden sauber gespeichert', () => {
     { label: 'Doppelt', projectUid: 'aB1' }
   ]), 'Home & Garden|aB1\nPro fessional  X|xY2|pl9');
 });
+
+test('Vertretungsgruppen: bereinigen (Name Pflicht, gueltige E-Mails, keine Doppelten)', () => {
+  const g = plain(ctx.deputyGroupsSanitize_([
+    { name: ' MAT-D OUTDOOR ', members: 'A@k.com, b@k.com\nkaputt; a@k.com' },
+    { name: 'MAT-D INDOOR', members: ['c@k.com'] },
+    { name: 'mat-d outdoor', members: 'd@k.com' },
+    { name: '', members: 'e@k.com' },
+    { name: 'Leer', members: '' }
+  ]));
+  assert.deepEqual(g, [{ name: 'MAT-D OUTDOOR', members: ['a@k.com', 'b@k.com'] }, { name: 'MAT-D INDOOR', members: ['c@k.com'] }]);
+});

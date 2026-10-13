@@ -47,6 +47,7 @@ function fillTable(projects) {
       :"-");
     // Angelegt von jemand anderem (Consultant) bzw. Urlaubsvertretung.
     if (p.createdBy && p.createdBy !== p.owner) shText = `<span class="proj-by">${projByLabel_('pl_created_by', 'Project **created** by {name}', p.createdBy)}</span>` + (shText === '-' ? '' : '<br>' + shText);
+    if (p.groupName) shText = `<span class="proj-by proj-by-group">${projByLabel_('pl_group', 'Group **{name}**', p.groupName)}<br>${escapeHtml(p.owner)}</span>` + (shText === '-' ? '' : '<br>' + shText);
     if (p.deputyFor) shText = `<span class="proj-by proj-by-deputy">${projByLabel_('pl_deputy_for', 'Deputy for {name}', p.deputyFor)}</span>` + (shText === '-' ? '' : '<br>' + shText);
 
     const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
@@ -230,6 +231,8 @@ function globalSearch() {
       if (!filtered) return;
   } else if (filterVal === 'own') {
       filtered = filtered.filter(p => p.owner === currentUser);
+  } else if (filterVal === 'group') {
+      filtered = filtered.filter(p => p.groupName);
   } else if (filterVal === 'bu') {
       filtered = filtered.filter(p => p.buCreated);
   } else if (filterVal === 'shared') {
