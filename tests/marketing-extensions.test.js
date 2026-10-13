@@ -164,3 +164,12 @@ test('Sprachen: Flagge + Kuerzel einheitlich, Vorlagennamen mit Flaggen', () => 
   assert.equal(b.tplDisplayLabel_('[MKT] Flyer DE>FR'), 'Flyer 🇩🇪 DE>🇫🇷 FR');
   assert.equal(b.tplDisplayLabel_('Marketing Express'), 'Marketing Express', 'normale Woerter bleiben');
 });
+
+test('Kalkulationsprojekte: Editor-Zeilen werden sauber gespeichert', () => {
+  assert.equal(ctx.precalcProjectsToProperty_([
+    { label: 'Home & Garden', projectUid: 'aB1', priceListUid: '' },
+    { label: 'Pro|fessional; X', projectUid: 'xY2', priceListUid: 'pl9' },
+    { label: '', projectUid: 'leer' },
+    { label: 'Doppelt', projectUid: 'aB1' }
+  ]), 'Home & Garden|aB1\nPro fessional  X|xY2|pl9');
+});

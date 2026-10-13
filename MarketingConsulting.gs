@@ -18,12 +18,18 @@
  *
  * Status: OPEN -> IN_PROGRESS (uebernommen) -> SUBMITTED | CLOSED.
  * Historie: jede Aktion als { at, by, action, text } in der Spalte "History".
+ *
+ * Chat: pro Anfrage und Empfaenger EIN Thread (Spalte "Chat Threads", JSON
+ * {email: messageName}) - Eingang, Uebernahme, Kommentare und Abschluss laufen
+ * alle dort hinein. Ist die Anfrage eingereicht oder geschlossen, kommt die
+ * letzte Meldung in den Thread, danach werden Zeile und Ablageordner geloescht
+ * (der Verlauf bleibt im Chat; eine Zusammenfassung steht im Protokoll).
  */
 var CONSULT_SHEET_NAME_ = "Consulting_Requests";
 var CONSULT_HEADERS_ = ["ID", "Created At", "Requester", "Status", "Assignee", "Project Name",
-  "Template", "Target Langs", "Payload JSON", "Comment", "History JSON", "Project UIDs", "Updated At", "Folder ID"];
+  "Template", "Target Langs", "Payload JSON", "Comment", "History JSON", "Project UIDs", "Updated At", "Folder ID", "Chat Threads"];
 var CONSULT_COL_ = { id: 0, created: 1, requester: 2, status: 3, assignee: 4, name: 5, template: 6,
-  targets: 7, payload: 8, comment: 9, history: 10, projects: 11, updated: 12, folder: 13 };
+  targets: 7, payload: 8, comment: 9, history: 10, projects: 11, updated: 12, folder: 13, threads: 14 };
 var CONSULT_STATUSES_ = ["OPEN", "IN_PROGRESS", "SUBMITTED", "CLOSED"];
 
 // --- Rollen ---------------------------------------------------------------------
@@ -164,6 +170,9 @@ function consultSheet_() {
     sh.getRange(1, 1, 1, CONSULT_HEADERS_.length).setFontWeight("bold").setBackground("#FFED00");
     sh.setFrozenRows(1);
   }
+  else if (String(sh.getRange(1, CONSULT_HEADERS_.length).getValue() || "") !== CONSULT_HEADERS_[CONSULT_HEADERS_.length - 1]) {
+    sh.getRange(1, CONSULT_HEADERS_.length).setValue(CONSULT_HEADERS_[CONSULT_HEADERS_.length - 1]).setFontWeight("bold").setBackground("#FFED00");
+  }
   return sh;
 }
 
@@ -221,7 +230,8 @@ function consultRowToObj_(r, rowNum) {
     history: parse(r[CONSULT_COL_.history], []),
     projectUids: String(r[CONSULT_COL_.projects] || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean),
     updatedAt: iso(r[CONSULT_COL_.updated]),
-    folderId: String(r[CONSULT_COL_.folder] || "")
+    folderId: String(r[CONSULT_COL_.folder] || ""),
+    threads: parse(r[CONSULT_COL_.threads], {})
   };
 }
 
@@ -237,7 +247,7 @@ function consultWrite_(req) {
   var row = [req.id, req.createdAt ? new Date(req.createdAt) : new Date(), req.requester, req.status, req.assignee,
     p.projectName || "", p.templateName || p.templateGroup || "", (p.targetLangs || []).join(", "),
     JSON.stringify(p), req.comment || "", consultHistoryJson_(req.history), (req.projectUids || []).join(","),
-    new Date(), req.folderId || ""];
+    new Date(), req.folderId || "", JSON.stringify(req.threads || {})];
   if (req.rowNum > 0) sh.getRange(req.rowNum, 1, 1, row.length).setValues([row]);
   else { sh.appendRow(row); req.rowNum = sh.getLastRow(); }
 }
@@ -247,12 +257,55 @@ function consultIsRequesterSide_(req, caller) {
   return req.requester === caller || deputyActsFor_(caller, req.requester);
 }
 
-function consultNotify_(email, key, vars) {
+/**
+ * Chat an email im Thread dieser Anfrage (erste Nachricht eroeffnet ihn).
+ * req.threads wird ergaenzt - der Aufrufer speichert danach mit consultWrite_.
+ */
+function consultNotify_(req, email, key, vars) {
+  email = String(email || "").trim().toLowerCase();
   if (!email) return;
   try {
     if (!getUserChatPreference_(email)) return;
-    sendPrivateMessage_(email, fillTemplate_(getMessageTemplate_(key, "en"), vars));
+    var text = fillTemplate_(getMessageTemplate_(key, "en"), Object.assign({ REQUEST_ID: req.id }, vars));
+    req.threads = req.threads || {};
+    var thread = req.threads[email];
+    if (thread && sendThreadReply_(email, thread, text)) return;
+    var res = sendPrivateMessage_(email, text);
+    if (res && res.name) req.threads[email] = res.name;
   } catch (e) { console.warn("Consulting chat to " + email + " failed: " + e.message); }
+}
+
+/**
+ * Anfrage ist fertig (eingereicht/geschlossen): Zusammenfassung ins Protokoll,
+ * Ablageordner in den Papierkorb, Zeile loeschen.
+ */
+function consultFinish_(req, caller) {
+  try {
+    logAuditEvent_(caller, "CONSULTING_" + req.status, req.id + " '" + (req.payload.projectName || "") + "' " +
+      (req.projectUids || []).join(",") + " | " + (req.history || []).map(function (h) {
+        return h.at.slice(0, 16) + " " + h.by + " " + h.action + (h.text ? ": " + String(h.text).slice(0, 200) : "");
+      }).join(" | ").slice(0, 4000));
+  } catch (e) {}
+  if (req.folderId) {
+    try { DriveApp.getFolderById(req.folderId).setTrashed(true); } catch (e) { console.warn("Consulting folder: " + e.message); }
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sh = consultSheet_();
+    var ids = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
+    for (var i = ids.length - 1; i >= 1; i--) {
+      if (String(ids[i][0]) === req.id) { sh.deleteRow(i + 1); break; }
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Aeltere, schon abgeschlossene Zeilen (vor dieser Regel) entfernen. */
+function consultPurgeFinished_() {
+  consultReadAll_().filter(function (r) { return r.status === "SUBMITTED" || r.status === "CLOSED"; })
+    .forEach(function (r) { consultFinish_(r, "system"); });
 }
 
 /** Vorlagen, die der Einreicher sehen darf (gleiche Regel wie getConfig_). */
@@ -297,8 +350,9 @@ function apiConsultingCreate(payload, comment) {
       TEMPLATE_NAME: req.payload.templateName || req.payload.templateGroup || "-",
       TARGET_LANGS: (req.payload.targetLangs || []).join(", ") || "-", NOTE: comment || "-"
     };
-    marketingConsultants_().forEach(function (c) { consultNotify_(c, "MSG_CONSULTING_REQUEST", vars); });
-    consultNotify_(caller, "MSG_CONSULTING_RECEIVED", vars);
+    marketingConsultants_().forEach(function (c) { consultNotify_(req, c, "MSG_CONSULTING_REQUEST", vars); });
+    consultNotify_(req, caller, "MSG_CONSULTING_RECEIVED", vars);
+    consultWrite_(req);
     return { success: true, id: id };
   } catch (e) {
     console.error("apiConsultingCreate: " + e.message);
@@ -311,6 +365,7 @@ function apiConsultingList() {
   var caller = getUserEmail_();
   var consultant = isMarketingConsultant_(caller);
   try {
+    try { consultPurgeFinished_(); } catch (e) { console.warn("consultPurgeFinished_: " + e.message); }
     var rows = consultReadAll_().filter(function (r) { return consultant || consultIsRequesterSide_(r, caller); });
     rows.sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
     return {
@@ -367,10 +422,10 @@ function apiConsultingAssign(id) {
   req.assignee = caller;
   req.status = "IN_PROGRESS";
   req.history.push(consultHistoryEntry_(caller, "ASSIGNED", ""));
-  consultWrite_(req);
-  consultNotify_(req.requester, "MSG_CONSULTING_UPDATE", {
+  consultNotify_(req, req.requester, "MSG_CONSULTING_UPDATE", {
     STATUS: "IN PROGRESS", PROJECT_NAME: req.payload.projectName || req.id, UPDATED_BY: caller, NOTE: ""
   });
+  consultWrite_(req);
   return apiConsultingGet(id);
 }
 
@@ -401,13 +456,13 @@ function apiConsultingComment(id, text) {
   text = String(text || "").trim();
   if (!text) return { success: false, error: "Empty comment." };
   req.history.push(consultHistoryEntry_(caller, "COMMENT", text));
-  consultWrite_(req);
   var vars = { STATUS: "COMMENT", PROJECT_NAME: req.payload.projectName || req.id, UPDATED_BY: caller, NOTE: text };
   if (consultIsRequesterSide_(req, caller)) {
-    (req.assignee ? [req.assignee] : marketingConsultants_()).forEach(function (c) { if (c !== caller) consultNotify_(c, "MSG_CONSULTING_UPDATE", vars); });
+    (req.assignee ? [req.assignee] : marketingConsultants_()).forEach(function (c) { if (c !== caller) consultNotify_(req, c, "MSG_CONSULTING_UPDATE", vars); });
   } else {
-    consultNotify_(req.requester, "MSG_CONSULTING_UPDATE", vars);
+    consultNotify_(req, req.requester, "MSG_CONSULTING_UPDATE", vars);
   }
+  consultWrite_(req);
   return apiConsultingGet(id);
 }
 
@@ -450,11 +505,12 @@ function apiConsultingSubmit(id, patch) {
     req.status = "SUBMITTED";
     req.projectUids = result.allProjectUids || [result.projectUid];
     req.history.push(consultHistoryEntry_(caller, "SUBMITTED", req.projectUids.join(", ")));
-    consultWrite_(req);
-    consultNotify_(req.requester, "MSG_CONSULTING_UPDATE", {
-      STATUS: "SUBMITTED", PROJECT_NAME: req.payload.projectName, UPDATED_BY: caller,
-      NOTE: "Phrase: " + req.projectUids.join(", ")
-    });
+    var doneVars = { STATUS: "SUBMITTED", PROJECT_NAME: req.payload.projectName, UPDATED_BY: caller,
+      NOTE: "Phrase: " + req.projectUids.join(", ") };
+    // Abschluss in jeden Thread dieser Anfrage, danach Anfrage entfernen.
+    Object.keys(req.threads || {}).concat([req.requester]).filter(function (e, i, a) { return a.indexOf(e) === i; })
+      .forEach(function (e) { consultNotify_(req, e, "MSG_CONSULTING_UPDATE", doneVars); });
+    consultFinish_(req, caller);
   } else {
     var err = (result && (result.error || (result.errors || []).join("; "))) || "Unknown error";
     req.history.push(consultHistoryEntry_(caller, "SUBMIT_FAILED", err));
@@ -473,9 +529,10 @@ function apiConsultingClose(id, reason) {
   if (req.status === "SUBMITTED" || req.status === "CLOSED") return { success: false, error: "Request is already finished." };
   req.status = "CLOSED";
   req.history.push(consultHistoryEntry_(caller, consultant ? "CLOSED" : "WITHDRAWN", String(reason || "").trim()));
-  consultWrite_(req);
-  var vars = { STATUS: "CLOSED", PROJECT_NAME: req.payload.projectName || req.id, UPDATED_BY: caller, NOTE: String(reason || "") };
-  if (consultant) consultNotify_(req.requester, "MSG_CONSULTING_UPDATE", vars);
-  else if (req.assignee) consultNotify_(req.assignee, "MSG_CONSULTING_UPDATE", vars);
-  return apiConsultingGet(id);
+  var vars = { STATUS: consultant ? "CLOSED" : "WITHDRAWN", PROJECT_NAME: req.payload.projectName || req.id, UPDATED_BY: caller, NOTE: String(reason || "") };
+  // Abschluss in jeden Thread dieser Anfrage (ausser an den, der schliesst), danach entfernen.
+  Object.keys(req.threads || {}).concat([consultant ? req.requester : req.assignee]).filter(function (e, i, a) { return e && a.indexOf(e) === i && e !== caller; })
+    .forEach(function (e) { consultNotify_(req, e, "MSG_CONSULTING_UPDATE", vars); });
+  consultFinish_(req, caller);
+  return { success: true, finished: true, id: id };
 }

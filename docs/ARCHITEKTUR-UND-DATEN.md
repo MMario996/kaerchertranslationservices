@@ -154,7 +154,8 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 
 - OPS-Sheet `Consulting_Requests`: ID, Created At, Requester, Status (`OPEN`/`IN_PROGRESS`/`SUBMITTED`/`CLOSED`),
   Assignee, Project Name, Template, Target Langs, Payload JSON (Formular ohne Dateiinhalt), Comment,
-  History JSON (`{at, by, action, text}`), Project UIDs, Updated At, Folder ID.
+  History JSON (`{at, by, action, text}`), Project UIDs, Updated At, Folder ID, Chat Threads (`{email: messageName}`).
+  Nur offene Anfragen: eingereichte/geschlossene werden gelöscht (Zusammenfassung im AuditLog).
 - OPS-Sheet `Precalc_Log` (Spalte „Template“ = Bereich des Kalkulationsprojekts): ID, Created At, User, Template, Source, Target Langs, Files, Status, Words,
   Amount, Currency, State JSON (Phrase-Projekt/Analyse/Async-IDs), Finished At.
 

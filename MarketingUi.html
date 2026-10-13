@@ -313,10 +313,20 @@ function mktConsultingPatch_() {
   return patch;
 }
 
+/** Eingereicht/geschlossen: Anfrage ist entfernt, Verlauf steht im Chat-Thread. */
+function mktConsultingFinished_() {
+  mkt_.current = null;
+  mkt_.detail = null;
+  const box = document.getElementById('mktConsDetail');
+  if (box) box.innerHTML = '<div class="mkt-empty"><span class="material-icons-outlined" style="font-size:32px;display:block;margin-bottom:6px;">task_alt</span>' +
+    mktEsc_(tr_('mk_finished', 'The request is finished and has been removed. The complete history is in the chat thread.')) + '</div>';
+}
+
 function mktConsultingAction_(act) {
   const id = mkt_.current;
   const done = res => {
     if (!res || res.success === false) { mktErr_(res); return; }
+    if (res.finished) mktConsultingFinished_();
     mkt_.list = null;
     mktConsultingRender_(true);
   };
@@ -351,6 +361,7 @@ function mktConsultingAction_(act) {
             '<br><br><b>' + mktEsc_((res.allProjectUids || [res.projectUid]).join(', ')) + '</b>' +
             (res.errors && res.errors.length ? '<br><br>' + mktEsc_(tr_('jx_c9c8347', 'Warnings:')) + '<br>' + res.errors.map(mktEsc_).join('<br>') : ''),
             tr_('mk_btn_submit', 'Submit project'));
+          mktConsultingFinished_();
           mkt_.list = null;
           mktConsultingRender_(true);
         } else {
@@ -389,7 +400,8 @@ function mktPrecalcForm_() {
     if (!res || !res.success) { host.dataset.ready = ''; host.innerHTML = '<div class="card"><div class="mkt-empty">' + mktEsc_((res && res.error) || 'Error') + '</div></div>'; return; }
     mkt_.pcOptions = res.projects || [];
     if (!mkt_.pcOptions.length) {
-      host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-missing" style="margin:0;">' + mktEsc_(tr_('mk_pc_not_configured', 'No calculation projects are set up yet (admin: Script Property PRECALC_PROJECTS).')) + '</div></div>';
+      host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-missing" style="margin:0;">' + mktEsc_(tr_('mk_pc_not_configured2', 'No calculation projects are set up yet.')) + '</div>' +
+        (configData && configData.isAdmin ? '<div class="mkt-actions"><button type="button" class="btn btn-primary" onclick="mktPrecalcConfig_()"><span class="material-icons-outlined" style="margin-right:8px;">settings</span>' + mktEsc_(tr_('mk_pc_config', 'Manage calculation projects')) + '</button></div>' : '') + '</div>';
       return;
     }
     host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-grid2">' +
@@ -401,7 +413,9 @@ function mktPrecalcForm_() {
         '<div class="dropzone" id="mktPcDrop" onclick="document.getElementById(\'mktPcFile\').click()"><span class="material-icons-outlined">upload_file</span><span>' + mktEsc_(tr_('dz_hint', 'Drag files here or click to select')) + '</span></div>' +
         '<input type="file" id="mktPcFile" multiple style="display:none;" onchange="mktPrecalcAddFiles_(this.files); this.value=\'\'">' +
         '<div id="mktPcFileList" class="mkt-files" style="margin-top:8px;"></div></div>' +
-      '</div><div class="mkt-actions"><button type="button" class="btn btn-primary" onclick="mktPrecalcStart_()"><span class="material-icons-outlined" style="margin-right:10px;">calculate</span>' + mktEsc_(tr_('mk_pc_run', 'Calculate costs')) + '</button></div></div>';
+      '</div><div class="mkt-actions">' +
+        (configData && configData.isAdmin ? '<button type="button" class="btn btn-secondary" onclick="mktPrecalcConfig_()"><span class="material-icons-outlined" style="margin-right:8px;">settings</span>' + mktEsc_(tr_('mk_pc_config', 'Manage calculation projects')) + '</button>' : '') +
+        '<button type="button" class="btn btn-primary" onclick="mktPrecalcStart_()"><span class="material-icons-outlined" style="margin-right:10px;">calculate</span>' + mktEsc_(tr_('mk_pc_run', 'Calculate costs')) + '</button></div></div>';
     const drop = document.getElementById('mktPcDrop');
     drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
@@ -409,6 +423,47 @@ function mktPrecalcForm_() {
     mktPrecalcAreaChanged_();
   }).withFailureHandler(err => { host.dataset.ready = ''; mktErr_(err); }).apiPrecalcOptions();
 }
+
+// --- Admin: Kalkulationsprojekte pflegen ------------------------------------------
+function mktPrecalcConfig_() {
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { mktErr_(res); return; }
+    const rows = (res.projects || []).length ? res.projects : [{ label: '', projectUid: '', priceListUid: '' }];
+    const ov = mktOverlay_('<h3><span class="material-icons-outlined">settings</span>' + mktEsc_(tr_('mk_pc_config', 'Manage calculation projects')) + (res.sandbox ? ' (Sandbox)' : '') + '</h3>' +
+      '<p class="mkt-hint">' + mktEsc_(tr_('mk_pc_config_hint', 'One fixed Phrase project per area (e.g. Home & Garden, Professional). Its translation memories and price list are used. Price list optional – otherwise the one of the project.')) + '</p>' +
+      '<div id="mktPcCfgRows" style="display:grid;gap:8px;"></div>' +
+      '<button type="button" class="mkt-chip" style="margin-top:10px;" onclick="mktPrecalcCfgAdd_()">+ ' + mktEsc_(tr_('mx_add', 'Add')) + '</button>' +
+      '<div class="mkt-actions"><button type="button" class="btn btn-secondary" data-act="cancel">' + mktEsc_(tr_('btn_cancel', 'Cancel')) + '</button>' +
+      '<button type="button" class="btn btn-primary" data-act="save">' + mktEsc_(tr_('btn_save', 'Save')) + '</button></div>');
+    ov.querySelector('.mkt-box').style.width = '760px';
+    mkt_.pcCfgRows = rows.map(r => Object.assign({}, r));
+    mktPrecalcCfgPaint_();
+    ov.querySelector('[data-act=cancel]').onclick = () => ov.remove();
+    ov.querySelector('[data-act=save]').onclick = () => {
+      const btn = ov.querySelector('[data-act=save]');
+      btn.disabled = true;
+      google.script.run.withSuccessHandler(r => {
+        btn.disabled = false;
+        if (!r || !r.success) { mktErr_(r); return; }
+        ov.remove();
+        const host = document.getElementById('mktPrecalcForm');
+        if (host) host.dataset.ready = '';
+        mktPrecalcForm_();
+        showToast_(tr_('mk_pc_config_saved', 'Calculation projects saved.'), 'ok');
+      }).withFailureHandler(e => { btn.disabled = false; mktErr_(e); }).apiSavePrecalcProjects(mkt_.pcCfgRows);
+    };
+  }).withFailureHandler(mktErr_).apiGetPrecalcProjectsConfig();
+}
+
+function mktPrecalcCfgPaint_() {
+  const ph = [tr_('mk_pc_cfg_label', 'Area, e.g. Home & Garden'), tr_('mk_pc_cfg_uid', 'Phrase project UID'), tr_('mk_pc_cfg_pl', 'Price list UID (optional)')];
+  document.getElementById('mktPcCfgRows').innerHTML = mkt_.pcCfgRows.map((r, i) =>
+    '<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 34px;gap:8px;align-items:center;">' +
+    ['label', 'projectUid', 'priceListUid'].map((k, j) => '<input type="text" value="' + mktEsc_(r[k] || '') + '" placeholder="' + mktEsc_(ph[j]) + '" oninput="mkt_.pcCfgRows[' + i + '].' + k + '=this.value">').join('') +
+    '<button type="button" class="mkt-chip" title="' + mktEsc_(tr_('btn_cancel', 'Remove')) + '" onclick="mkt_.pcCfgRows.splice(' + i + ',1);mktPrecalcCfgPaint_()">×</button></div>').join('');
+}
+
+function mktPrecalcCfgAdd_() { mkt_.pcCfgRows.push({ label: '', projectUid: '', priceListUid: '' }); mktPrecalcCfgPaint_(); }
 
 function mktPrecalcArea_() {
   const sel = document.getElementById('mktPcArea');

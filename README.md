@@ -103,10 +103,14 @@ JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische S
   kommentieren, übernehmen, einreichen, schließen), Einreicher ihre eigenen; jede Aktion steht in
   der Historie. Eingereicht wird im Namen des Einreichers (Eigentümer), die Queue-Spalte
   „Created By“ nennt den Consultant („Projekt **erstellt** von …“ in Meine Projekte).
+  Chat: pro Anfrage und Empfänger ein Thread, alle Meldungen und Kommentare laufen dort hinein.
+  Ist die Anfrage eingereicht oder geschlossen, kommt die letzte Meldung in den Thread; danach werden
+  Sheet-Zeile und Ablageordner gelöscht (Zusammenfassung im Protokoll, Verlauf im Chat).
 - **Vorab-Kalkulation**: kein neues Projekt. Die Dateien werden als Jobs in ein festes
   Kalkulationsprojekt geladen (dessen TMs zählen), analysiert, als Quote berechnet und danach
   wieder gelöscht (`purge=true`, nur diese Jobs). Übrig bleibt nur der Betrag (Sheet `Precalc_Log`).
-  Projekte hinterlegen: Script Property `PRECALC_PROJECTS`, z. B.
+  Projekte hinterlegen: als Admin im Reiter selbst („Kalkulationsprojekte verwalten“, prüft jede UID
+  in Phrase) oder per Script Property `PRECALC_PROJECTS`, z. B.
   `Home & Garden|<Projekt-UID>; Professional|<Projekt-UID>|<Preislisten-UID>` (Sandbox:
   `PRECALC_PROJECTS_SANDBOX`). Preisliste: aus dem Eintrag, sonst die des Projekts, sonst
   `PRECALC_PRICE_LIST_UID`. Abschaltbar mit `PRECALC_ENABLED=false`. In den Kalkulationsprojekten

@@ -327,6 +327,7 @@ gehört.
 | `apiConsultingComment(id, text)` | Consultant / Einreicher | Kommentar in die Historie, Chat an die andere Seite |
 | `apiConsultingSubmit(id, patch)` | Consultant | Projekt im Namen des Einreichers anlegen (`createProjectAndUploadAs_`, Queue „Created By“) |
 | `apiConsultingClose(id, reason)` | Consultant / Einreicher | schließen bzw. zurückziehen |
+| `apiGetPrecalcProjectsConfig()` / `apiSavePrecalcProjects(rows)` | Admin | Kalkulationsprojekte pflegen (prüft jede UID in Phrase, schreibt `PRECALC_PROJECTS` bzw. in der Sandbox `PRECALC_PROJECTS_SANDBOX`) |
 | `apiPrecalcOptions()` | Marketing, Consultant, Vertretung | Kalkulationsprojekte aus `PRECALC_PROJECTS` mit Quell-/Zielsprachen |
 | `apiPrecalcStart({calcProjectUid, targetLangs, mainFiles})` / `apiPrecalcPoll(id)` / `apiPrecalcCancel(id)` | Marketing, Consultant, Vertretung | Vorab-Kalkulation im festen Projekt (Jobs hochladen → Analyse → Quote → nur diese Jobs löschen) → `{ phase, amount, currency, words }` |
 | `apiPrecalcHistory()` | angemeldet | letzte Kalkulationen (eigene; Consultants alle) |

@@ -8,6 +8,14 @@
  */
 var I18N_DICTS_ = {
   de: {
+    "mk_finished": "Die Anfrage ist abgeschlossen und wurde entfernt. Der komplette Verlauf steht im Chat-Thread.",
+    "mk_pc_not_configured2": "Noch keine Kalkulationsprojekte hinterlegt.",
+    "mk_pc_config": "Kalkulationsprojekte verwalten",
+    "mk_pc_config_hint": "Ein festes Phrase-Projekt pro Bereich (z. B. Home & Garden, Professional). Dessen Translation Memories und Preisliste werden verwendet. Preisliste optional – sonst die des Projekts.",
+    "mk_pc_config_saved": "Kalkulationsprojekte gespeichert.",
+    "mk_pc_cfg_label": "Bereich, z. B. Home & Garden",
+    "mk_pc_cfg_uid": "Phrase-Projekt-UID",
+    "mk_pc_cfg_pl": "Preislisten-UID (optional)",
     "mk_pc_hint2": "Phrase analysiert deine Dateien gegen die Translation Memories des gewählten Bereichs und erstellt eine Quote. Es wird kein Projekt angelegt: Die Dateien werden direkt nach der Kalkulation wieder aus Phrase entfernt. Es wird keine Übersetzung beauftragt.",
     "mk_pc_not_configured": "Noch keine Kalkulationsprojekte hinterlegt (Admin: Script Property PRECALC_PROJECTS).",
     "mk_pc_area": "Bereich (Translation Memories)",
@@ -1255,6 +1263,14 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    "mk_finished": "The request is finished and has been removed. The complete history is in the chat thread.",
+    "mk_pc_not_configured2": "No calculation projects are set up yet.",
+    "mk_pc_config": "Manage calculation projects",
+    "mk_pc_config_hint": "One fixed Phrase project per area (e.g. Home & Garden, Professional). Its translation memories and price list are used. Price list optional – otherwise the one of the project.",
+    "mk_pc_config_saved": "Calculation projects saved.",
+    "mk_pc_cfg_label": "Area, e.g. Home & Garden",
+    "mk_pc_cfg_uid": "Phrase project UID",
+    "mk_pc_cfg_pl": "Price list UID (optional)",
     "mk_pc_hint2": "Phrase analyses your files against the translation memories of the chosen area and creates a quote. No project is created: the files are removed from Phrase again right after the calculation. No translation is ordered.",
     "mk_pc_not_configured": "No calculation projects are set up yet (admin: Script Property PRECALC_PROJECTS).",
     "mk_pc_area": "Area (translation memories)",
@@ -2502,6 +2518,14 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    "mk_finished": "La demande est terminée et a été supprimée. L'historique complet se trouve dans le fil de chat.",
+    "mk_pc_not_configured2": "Aucun projet de calcul configuré.",
+    "mk_pc_config": "Gérer les projets de calcul",
+    "mk_pc_config_hint": "Un projet Phrase fixe par domaine (p. ex. Home & Garden, Professional). Ses mémoires de traduction et sa liste de prix sont utilisées. Liste de prix facultative – sinon celle du projet.",
+    "mk_pc_config_saved": "Projets de calcul enregistrés.",
+    "mk_pc_cfg_label": "Domaine, p. ex. Home & Garden",
+    "mk_pc_cfg_uid": "UID du projet Phrase",
+    "mk_pc_cfg_pl": "UID de la liste de prix (facultatif)",
     "mk_pc_hint2": "Phrase analyse vos fichiers avec les mémoires de traduction du domaine choisi et crée un devis. Aucun projet n'est créé : les fichiers sont retirés de Phrase juste après le calcul. Aucune traduction n'est commandée.",
     "mk_pc_not_configured": "Aucun projet de calcul configuré (admin : Script Property PRECALC_PROJECTS).",
     "mk_pc_area": "Domaine (mémoires de traduction)",
@@ -3690,6 +3714,14 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    "mk_finished": "La solicitud ha finalizado y se ha eliminado. El historial completo está en el hilo del chat.",
+    "mk_pc_not_configured2": "Aún no hay proyectos de cálculo configurados.",
+    "mk_pc_config": "Gestionar proyectos de cálculo",
+    "mk_pc_config_hint": "Un proyecto fijo de Phrase por área (p. ej. Home & Garden, Professional). Se usan sus memorias de traducción y su lista de precios. Lista de precios opcional; si no, la del proyecto.",
+    "mk_pc_config_saved": "Proyectos de cálculo guardados.",
+    "mk_pc_cfg_label": "Área, p. ej. Home & Garden",
+    "mk_pc_cfg_uid": "UID del proyecto de Phrase",
+    "mk_pc_cfg_pl": "UID de lista de precios (opcional)",
     "mk_pc_hint2": "Phrase analiza tus archivos con las memorias de traducción del área elegida y crea un presupuesto. No se crea ningún proyecto: los archivos se eliminan de Phrase justo después del cálculo. No se encarga ninguna traducción.",
     "mk_pc_not_configured": "Aún no hay proyectos de cálculo configurados (admin: Script Property PRECALC_PROJECTS).",
     "mk_pc_area": "Área (memorias de traducción)",
@@ -4878,6 +4910,14 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    "mk_finished": "O pedido foi concluído e removido. O histórico completo está no tópico do chat.",
+    "mk_pc_not_configured2": "Ainda não há projetos de cálculo configurados.",
+    "mk_pc_config": "Gerir projetos de cálculo",
+    "mk_pc_config_hint": "Um projeto Phrase fixo por área (ex. Home & Garden, Professional). São usadas as suas memórias de tradução e tabela de preços. Tabela opcional – caso contrário, a do projeto.",
+    "mk_pc_config_saved": "Projetos de cálculo guardados.",
+    "mk_pc_cfg_label": "Área, ex. Home & Garden",
+    "mk_pc_cfg_uid": "UID do projeto Phrase",
+    "mk_pc_cfg_pl": "UID da tabela de preços (opcional)",
     "mk_pc_hint2": "O Phrase analisa os seus ficheiros com as memórias de tradução da área escolhida e cria um orçamento. Não é criado nenhum projeto: os ficheiros são removidos do Phrase logo após o cálculo. Não é encomendada nenhuma tradução.",
     "mk_pc_not_configured": "Ainda não há projetos de cálculo configurados (admin: Script Property PRECALC_PROJECTS).",
     "mk_pc_area": "Área (memórias de tradução)",
@@ -6066,6 +6106,14 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    "mk_finished": "申请已完成并已移除。完整记录在聊天线程中。",
+    "mk_pc_not_configured2": "尚未设置核算项目。",
+    "mk_pc_config": "管理核算项目",
+    "mk_pc_config_hint": "每个领域一个固定的 Phrase 项目（如 Home & Garden、Professional）。使用其翻译记忆库和价目表。价目表可选——否则使用项目自带的。",
+    "mk_pc_config_saved": "核算项目已保存。",
+    "mk_pc_cfg_label": "领域，如 Home & Garden",
+    "mk_pc_cfg_uid": "Phrase 项目 UID",
+    "mk_pc_cfg_pl": "价目表 UID（可选）",
     "mk_pc_hint2": "Phrase 会用所选领域的翻译记忆库分析你的文件并生成报价。不会创建项目：核算后文件会立即从 Phrase 中移除。不会下达翻译订单。",
     "mk_pc_not_configured": "尚未设置核算项目（管理员：Script Property PRECALC_PROJECTS）。",
     "mk_pc_area": "领域（翻译记忆库）",
