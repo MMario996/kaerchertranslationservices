@@ -8,6 +8,16 @@
  */
 var I18N_DICTS_ = {
   de: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "Gruppe **{name}**",
+    "hs_f_group": "Meine Vertretungsgruppe",
+    "dp_groups_title": "Vertretungsgruppen",
+    "dp_groups_desc": "Mitglieder einer Gruppe vertreten sich dauerhaft gegenseitig: Sie sehen die Projekte der anderen in „Meine Projekte“ und können sie bearbeiten.",
+    "dp_groups_none": "Du bist in keiner Vertretungsgruppe.",
+    "dp_groups_manage": "Gruppen verwalten",
+    "dp_groups_hint": "Eine Gruppe pro Zeile: Name und E-Mail-Adressen (durch Komma oder Zeilenumbruch getrennt). Leere Gruppen werden entfernt.",
+    "dp_groups_add": "Gruppe hinzufügen",
+    "dp_groups_saved": "Vertretungsgruppen gespeichert.",
     "mk_finished": "Die Anfrage ist abgeschlossen und wurde entfernt. Der komplette Verlauf steht im Chat-Thread.",
     "mk_pc_not_configured2": "Noch keine Kalkulationsprojekte hinterlegt.",
     "mk_pc_config": "Kalkulationsprojekte verwalten",
@@ -1263,6 +1273,16 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Gespeichert!"
   },
   en: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "Group **{name}**",
+    "hs_f_group": "My deputy group",
+    "dp_groups_title": "Deputy groups",
+    "dp_groups_desc": "Members of a group stand in for each other permanently: they see each other's projects in \"My Projects\" and can work on them.",
+    "dp_groups_none": "You are not in a deputy group.",
+    "dp_groups_manage": "Manage groups",
+    "dp_groups_hint": "One group per row: name and e-mail addresses (separated by comma or line break). Empty groups are removed.",
+    "dp_groups_add": "Add group",
+    "dp_groups_saved": "Deputy groups saved.",
     "mk_finished": "The request is finished and has been removed. The complete history is in the chat thread.",
     "mk_pc_not_configured2": "No calculation projects are set up yet.",
     "mk_pc_config": "Manage calculation projects",
@@ -2518,6 +2538,16 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Saved!"
   },
   fr: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "Groupe **{name}**",
+    "hs_f_group": "Mon groupe de suppléance",
+    "dp_groups_title": "Groupes de suppléance",
+    "dp_groups_desc": "Les membres d'un groupe se remplacent en permanence : ils voient les projets des autres dans « Mes projets » et peuvent les traiter.",
+    "dp_groups_none": "Vous ne faites partie d'aucun groupe de suppléance.",
+    "dp_groups_manage": "Gérer les groupes",
+    "dp_groups_hint": "Un groupe par ligne : nom et adresses e-mail (séparées par une virgule ou un retour à la ligne). Les groupes vides sont supprimés.",
+    "dp_groups_add": "Ajouter un groupe",
+    "dp_groups_saved": "Groupes de suppléance enregistrés.",
     "mk_finished": "La demande est terminée et a été supprimée. L'historique complet se trouve dans le fil de chat.",
     "mk_pc_not_configured2": "Aucun projet de calcul configuré.",
     "mk_pc_config": "Gérer les projets de calcul",
@@ -3714,6 +3744,16 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Enregistré !"
   },
   es: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "Grupo **{name}**",
+    "hs_f_group": "Mi grupo de suplencia",
+    "dp_groups_title": "Grupos de suplencia",
+    "dp_groups_desc": "Los miembros de un grupo se sustituyen siempre entre sí: ven los proyectos de los demás en «Mis proyectos» y pueden trabajar en ellos.",
+    "dp_groups_none": "No perteneces a ningún grupo de suplencia.",
+    "dp_groups_manage": "Gestionar grupos",
+    "dp_groups_hint": "Un grupo por fila: nombre y direcciones de correo (separadas por coma o salto de línea). Los grupos vacíos se eliminan.",
+    "dp_groups_add": "Añadir grupo",
+    "dp_groups_saved": "Grupos de suplencia guardados.",
     "mk_finished": "La solicitud ha finalizado y se ha eliminado. El historial completo está en el hilo del chat.",
     "mk_pc_not_configured2": "Aún no hay proyectos de cálculo configurados.",
     "mk_pc_config": "Gestionar proyectos de cálculo",
@@ -4910,6 +4950,16 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; ¡Guardado!"
   },
   pt: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "Grupo **{name}**",
+    "hs_f_group": "O meu grupo de substituição",
+    "dp_groups_title": "Grupos de substituição",
+    "dp_groups_desc": "Os membros de um grupo substituem-se permanentemente: veem os projetos dos outros em «Meus projetos» e podem trabalhar neles.",
+    "dp_groups_none": "Não pertence a nenhum grupo de substituição.",
+    "dp_groups_manage": "Gerir grupos",
+    "dp_groups_hint": "Um grupo por linha: nome e endereços de e-mail (separados por vírgula ou quebra de linha). Grupos vazios são removidos.",
+    "dp_groups_add": "Adicionar grupo",
+    "dp_groups_saved": "Grupos de substituição guardados.",
     "mk_finished": "O pedido foi concluído e removido. O histórico completo está no tópico do chat.",
     "mk_pc_not_configured2": "Ainda não há projetos de cálculo configurados.",
     "mk_pc_config": "Gerir projetos de cálculo",
@@ -6106,6 +6156,16 @@ var I18N_DICTS_ = {
     "prefs_saved_msg":    "&#10003; Salvo!"
   },
   zh: {
+    // --- Vertretungsgruppen (Deputies.gs) ---
+    "pl_group": "小组 **{name}**",
+    "hs_f_group": "我的代理小组",
+    "dp_groups_title": "代理小组",
+    "dp_groups_desc": "小组成员长期互为代理：可在“我的项目”中查看并处理彼此的项目。",
+    "dp_groups_none": "你不在任何代理小组中。",
+    "dp_groups_manage": "管理小组",
+    "dp_groups_hint": "每行一个小组：名称和邮箱地址（用逗号或换行分隔）。空小组会被删除。",
+    "dp_groups_add": "添加小组",
+    "dp_groups_saved": "代理小组已保存。",
     "mk_finished": "申请已完成并已移除。完整记录在聊天线程中。",
     "mk_pc_not_configured2": "尚未设置核算项目。",
     "mk_pc_config": "管理核算项目",

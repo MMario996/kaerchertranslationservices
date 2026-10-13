@@ -17,7 +17,7 @@ function initForm(config) {
   _adminLightSubtabs_ = config.adminLightSubtabs || [];
   // "dashboard" ist kein Admin-Subtab, sondern schaltet nur den Dashboard-Reiter frei.
   // "dashboard" und "consulting" (Marketing Projects -> Consulting) sind keine Admin-Subtabs.
-  const lightAdminSubtabs = _adminLightSubtabs_.filter(s => s !== 'dashboard' && s !== 'consulting');
+  const lightAdminSubtabs = _adminLightSubtabs_.filter(s => s !== 'dashboard' && s !== 'consulting' && s !== 'groups');
   if (config.isAdmin || _adminLightSubtabs_.includes('dashboard')) {
     document.getElementById('btn-dashboard').style.display = 'block';
   }

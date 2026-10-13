@@ -612,7 +612,8 @@ test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von"
   const projects = JSON.stringify([
     { projectUid: 'c1', projectName: 'BY CONSULTANT', owner: ME, createdBy: 'consultant@kaercher.com', status: 'ASSIGNED', targetLangs: ['de'] },
     { projectUid: 's1', projectName: 'SHARED', owner: 'colleague@kaercher.com', sharedWith: ME, isShared: true, status: 'ASSIGNED', targetLangs: ['de'] },
-    { projectUid: 'b1', projectName: 'BU PROJECT', owner: 'bu@kaercher.com', teamView: true, buCreated: true, status: 'ASSIGNED', targetLangs: ['de'] }
+    { projectUid: 'b1', projectName: 'BU PROJECT', owner: 'bu@kaercher.com', teamView: true, buCreated: true, status: 'ASSIGNED', targetLangs: ['de'] },
+    { projectUid: 'g1', projectName: 'GROUP PROJECT', owner: 'peer@kaercher.com', groupName: 'MAT-D OUTDOOR', status: 'ASSIGNED', targetLangs: ['de'] }
   ]);
   const { page, errors } = await openApp(null, `{
     apiGetMyProjects: { projects: ${projects}, email: '${ME}' },
@@ -620,17 +621,24 @@ test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von"
     apiGetChatPreference: { enabled: true },
     apiGetTeamSettings: { success: true, team: {}, businessUnits: [], buColleagues: 0 },
     apiGetCalendarSyncStatus: { configured: false },
-    apiGetDeputySettings: { success: true, deputy: { email: '', from: '', to: '', active: false }, activeNow: false, principals: [{ email: 'boss@kaercher.com', from: '', to: '', activeNow: true }] },
+    apiGetDeputySettings: { success: true, deputy: { email: '', from: '', to: '', active: false }, activeNow: false, principals: [{ email: 'boss@kaercher.com', from: '', to: '', activeNow: true }],
+      groups: [{ name: 'MAT-D OUTDOOR', members: ['${ME}', 'peer@kaercher.com'] }] },
+    apiGetDeputyGroups: { success: true, groups: [{ name: 'MAT-D OUTDOOR', members: ['${ME}', 'peer@kaercher.com'] }] },
+    apiSaveDeputyGroups: (g) => ({ success: true, groups: g }),
     apiSaveDeputySettings: (d) => ({ success: true, deputy: d, activeNow: true, principals: [] }),
     apiSaveUserPrefs: (p) => ({ success: true, prefs: p }),
     apiSetChatPreference: { success: true }
-  }`);
+  }`, { configPatch: { canManageGroups: true } });
   await page.evaluate(() => { switchTab('history'); });
   await page.waitForFunction(() => /BU PROJECT/.test(document.querySelector('#projectsTable').innerText));
   const html = await page.locator('#projectsTable').innerHTML();
   assert.match(html, /<b>(created|erstellt)<\/b>[^<]*consultant@kaercher\.com/);
   assert.match(html, /<b>(shared|geteilt)<\/b>[^<]*colleague@kaercher\.com/);
   assert.match(html, /<b>(created|erstellt)<\/b>[^<]*bu@kaercher\.com/);
+  assert.match(html, /(Group|Gruppe) <b>MAT-D OUTDOOR<\/b><br>peer@kaercher\.com/);
+  await page.selectOption('#ownershipFilter', 'group');
+  assert.match(await page.locator('#projectsTable tbody').innerText(), /GROUP PROJECT/);
+  assert.doesNotMatch(await page.locator('#projectsTable tbody').innerText(), /BU PROJECT/);
   await page.selectOption('#ownershipFilter', 'bu');
   const buOnly = await page.locator('#projectsTable tbody').innerText();
   assert.match(buOnly, /BU PROJECT/);
@@ -640,6 +648,16 @@ test('Einstellungen: Urlaubsvertretung speichern; Meine Projekte: "erstellt von"
   await page.waitForSelector('#preferencesModal');
   await page.evaluate(() => prefsShowSec_('deputy'));
   await page.waitForFunction(() => /boss@kaercher\.com/.test(document.getElementById('prefDeputyPrincipals').innerText));
+  assert.match(await page.locator('#prefDeputyGroups').innerText(), /MAT-D OUTDOOR/);
+  await page.click('#prefGroupsBtn');
+  await page.waitForSelector('#dgRows .dg-row');
+  await page.click('#dgAdd');
+  await page.locator('.dg-name').nth(1).fill('MAT-D INDOOR');
+  await page.locator('.dg-members').nth(1).fill('x@kaercher.com, y@kaercher.com');
+  await page.click('#dgSave');
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiSaveDeputyGroups'));
+  const groups = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiSaveDeputyGroups').args[0]);
+  assert.deepEqual(groups.map((g) => g.name), ['MAT-D OUTDOOR', 'MAT-D INDOOR']);
   await page.fill('#prefDeputyEmail', 'vertretung@kaercher.com');
   await page.fill('#prefDeputyFrom', '2026-10-20');
   await page.fill('#prefDeputyTo', '2026-10-31');

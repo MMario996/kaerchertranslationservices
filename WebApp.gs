@@ -164,6 +164,8 @@ function apiGetMyProjects() {
   // Urlaubsvertretung (Deputies.gs): Projekte (eigene und mit ihnen geteilte)
   // der vertretenen Personen erscheinen wie eigene.
   const principals = ctx.isAdmin ? [] : deputyPrincipalsOf_(ctx.userEmail);
+  // Vertretungsgruppen (Deputies.gs): Projekte der Gruppenmitglieder dauerhaft sichtbar.
+  const peers = ctx.isAdmin ? [] : deputyGroupPeers_(ctx.userEmail);
   const sharedWithAny = (r, emails) => {
     if (!r.sharedWith || typeof r.sharedWith !== "string") return false;
     const parts = r.sharedWith.split(/[;,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -175,6 +177,7 @@ function apiGetMyProjects() {
     if (r.userEmail && r.userEmail.toLowerCase() === ctx.userEmail) return true;
     if (sharedWithAny(r, [ctx.userEmail])) return true;
     if (principals.length && (principals.includes(r.owner) || sharedWithAny(r, principals))) return true;
+    if (peers.length && peers.includes(r.owner)) return true;
     if (isWomaCaller && isWomaUser_(r.owner)) return true;
     return false;
   });
@@ -182,6 +185,7 @@ function apiGetMyProjects() {
   filtered.forEach(r => {
     r.groupShared = isWomaCaller && r.owner !== ctx.userEmail && isWomaUser_(r.owner);
     if (principals.includes(r.owner)) r.deputyFor = r.owner;
+    else if (peers.includes(r.owner)) r.groupName = deputyGroupNameShared_(ctx.userEmail, r.owner);
   });
 
   // Projekte von Kollegen derselben Business Unit (nur lesen, "Projekt erstellt von").
@@ -493,7 +497,7 @@ function apiTriggerManualSync(type, mode) {
 function apiSyncProjectStatuses() {
   const caller = getUserEmail_().toLowerCase();
   const isAdm  = isAdmin_(caller);
-  const principals = isAdm ? [] : deputyPrincipalsOf_(caller); // Urlaubsvertretung
+  const principals = isAdm ? [] : deputyPrincipalsOf_(caller).concat(deputyGroupPeers_(caller)); // Vertretung + Gruppe
   const terminalStatuses   = ["COMPLETED","DELIVERED","CANCELLED","CANCELED","REJECTED"];
   const completionStatuses = ["COMPLETED","DELIVERED","NOTIFIED"];
 
