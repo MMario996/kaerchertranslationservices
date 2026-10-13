@@ -3,6 +3,8 @@ Kärcher Translation Services – Google-Apps-Script-Web-App (Portal für Übers
 
 ## Aufbau der Oberfläche
 
+> 🧪 **API-Tests mit Postman:** Collection, Environment und Anleitung in [`postman/`](postman/README.md) – jede Server-Funktion, die Web-App, Phrase, Gemini und die Datenbank-Sheets, sortiert nach Bereichen, mit Sicherheitsschaltern für schreibende Aufrufe.
+
 `Index.html` ist nur noch das Gerüst. Styles und Skripte liegen in eigenen Dateien und werden
 serverseitig über `include()` (`WebApp.gs`) eingebunden:
 
