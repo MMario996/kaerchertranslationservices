@@ -47,3 +47,12 @@ jetzt in `AdminManagers.gs`.
 | F4 | 🟡 | `apiCreateProjectAndUpload` antwortet mal `{ ok:false }`, mal `{ success }`. | Aufrufer müssen beides prüfen. | Einheitlich `{ success, error }`. |
 | F5 | 🟡 | `readQueueRows_` liest `jobMapping` per Kopfzeile „JobMapping“, sonst **Spalte U** – dort stehen die Chat-Threads der Geteilten (JSON-Objekt). | Ohne Kopfzeile wird ein Objekt als Mapping geparst. | Eigene Spalte, Fallback-Index entfernen. |
 | F6 | 🟡 | Dateiname `Articualtepreview.gs` (Tippfehler), gemischte Sprachen (DE/EN) in Meldungen, Fragezeichen statt Sonderzeichen in einigen Kommentaren/Logs (Kodierung). | Lesbarkeit. | Bei Gelegenheit bereinigen. |
+
+## Ergänzt bei der Doku-Aktualisierung (Commit `27ad1b9`)
+
+| # | | Fund | Wirkung | Vorschlag |
+|---|---|---|---|---|
+| S10 | 🟡 | `FindUserID.gs` enthält eine persönliche E-Mail-Adresse fest im Code. | Personenbezogene Daten im Repository und im Apps-Script-Projekt. | Parameter statt fester Adresse; Datei nach `tools/` oder löschen. |
+| F7 | 🟡 | `Index additions.html` (Integrationsanleitung, Leerzeichen im Namen) wird durch `.claspignore` (`*.html`) mit ins Projekt geladen. | Unnötige Datei im Apps-Script-Projekt; kann beim Einspielen stören. | In `docs/` verschieben oder in `.claspignore` ausschließen. |
+| F8 | 🟠 | Chat-Bot nutzt `gemini-2.0-flash` (`Chatbot.gs`); laut AutoFix ist über den Kärcher-Proxy sicher nur `gemini-3.6-flash` freigeschaltet. | Chat-Bot antwortet ggf. mit Fehler. (prüfen) | Modell auf `gemini-3.6-flash` oder als Script Property. |
+| F9 | 🟡 | Zwei Dinge heißen „Prompt Hub“: Tab `Prompt_Hub` im Access-Sheet (Maximaltemplate) und das eigene Repository `Prompt-hub` (Post-Editing-Prompts für AutoFix). | Verwechslungsgefahr bei Support und Doku. | Tab umbenennen (z. B. `MaxTemplate_Prompts`) oder beide verbinden. |

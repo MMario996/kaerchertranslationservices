@@ -80,6 +80,10 @@ Google Apps Script (V8), Web-App "Execute as: USER_DEPLOYING", Zugriff: DOMAIN
 | Knowledge Base | `KnowledgebaseApi.gs` (`apiKbChunk`), `Knowledgebase.html`, `KbData*.html` (erzeugt), Quelle `kb-src/*.md`, Build `tools/build-kb.js` |
 | Admin-Manager | `AdminManagers.gs` (Kennzahlen, Mehrfachbearbeitung, Details), `AdminManagersUi.html` (nachgeladen) |
 | Betrieb | `Auditlog.gs` (inkl. gemeinsames Protokoll `apiGetUnifiedLog`), `Adminadvanced.gs` (Script Properties), `SelfTests.gs`, `Triggers.gs`, `SheetSetup.gs`, `HeaderRepair.gs`, `Debug.gs`, `Test.gs`, `Testregistry.gs`, `Kecdebugscan.gs` |
+| KeC-Einstellungen je Nutzer | `KecSettings.gs` (Namenszusatz, Excel-Spalten, Upload-Puffer; Oberfläche `KecSettingsUi.html`) |
+| Admin-Sandbox | `Sandbox.gs` (Phrase-Sandbox je Admin an/aus) |
+| Hilfsdateien | `Sheets.gs` (`apiGetTemplates`, Sheet-Zugriffe), `Storage.gs` (Dashboard-Statistik), `Orchestration.gs` (Rise-Patch + Firebase-Deploy ohne ZIP), `Help-ListDomainClientBusinessunit.gs` (`apiFindCourseMetadataIds`), `FindUserID.gs` (Editor-Hilfe: Chat-User-ID zu einer E-Mail) |
+| Nicht Teil der App | `Index additions.html` (Integrationsanleitung für alte Patches; wird wegen `*.html` in `.claspignore` trotzdem hochgeladen) |
 
 ### Oberfläche (`.html`)
 

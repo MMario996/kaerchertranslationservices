@@ -164,6 +164,7 @@ Einträge mit ⚠️ sind in `AUFFAELLIGKEITEN.md` erklärt.
 | `apiGetEligibleKeCProjects()` | angemeldet | KeC-Projekte (Status NEW, passende Client/Domain/BU-IDs) |
 | `apiDebugSingleKeCProject(projectUid)` | angemeldet | Diagnose, warum ein Projekt (nicht) als KeC gilt |
 | `apiGetKecEligibilitySettings()` / `apiSaveKecEligibilitySettings(clientId, domainId, businessUnitId)` | Admin | KeC-Kriterien |
+| `apiGetKecUserSettings()` / `apiSaveKecUserSettings(settings)` | angemeldet (eigene) | KeC Projects → Einstellungen: Namenszusätze, Spalten für multilinguale Excel-Dateien, Upload-Puffer (UserPrefs-Schlüssel `kec`) |
 | `apiGetPivotChildLanguageOptions(parentTemplateUid)` | angemeldet | Zielsprachen für Pivot-Übersetzungsschritt |
 | `apiSavePreset(presetData)` / `apiLoadPresets()` / `apiDeletePreset(presetId)` | angemeldet (eigene) | Formular-Vorlagen |
 | `apiSavePresetSheet`, `apiGetUserPresets` | – | Aliase (Apialiases.gs) |

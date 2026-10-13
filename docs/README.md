@@ -1,10 +1,12 @@
 # Dokumentation – Kärcher Translation Services
 
+![Schaubild](SCHAUBILD.png)
+
 Diese Dokumente beschreiben das Portal so, dass ein Mensch **oder ein KI-Modell** ohne den
 kompletten Quellcode damit arbeiten kann: Oberfläche nachbauen oder erweitern, Endpunkte
 aufrufen, Berechtigungen verstehen und typische Fehler vermeiden.
 
-Stand: aus dem Code auf `main` abgeleitet (Commit `9459502`). Bei Widersprüchen gilt der Code.
+Stand: aus dem Code auf `main` abgeleitet (Commit `27ad1b9`). Bei Widersprüchen gilt der Code.
 
 | Datei | Inhalt | Wann lesen |
 |---|---|---|
@@ -12,6 +14,10 @@ Stand: aus dem Code auf `main` abgeleitet (Commit `9459502`). Bei Widersprüchen
 | [`API.md`](API.md) | Aufrufmodell (`google.script.run`), Authentifizierung & Rollen, alle `api*`-Endpunkte, HTTP-Einstiege, externe APIs (Phrase TMS, Phrase Strings, Google Chat, Drive, Kalender, Firebase, Gemini) | Wenn Server-Funktionen aufgerufen, geändert oder neu gebaut werden |
 | [`UI-UX.md`](UI-UX.md) | Designsystem „Kaercher Glass“, Layout, Navigation, Bildschirme, Abläufe, Zustände, Sprachen, Barrierefreiheit, UI-Regeln | Wenn an der Oberfläche gearbeitet wird |
 | [`AUFFAELLIGKEITEN.md`](AUFFAELLIGKEITEN.md) | Beim Analysieren gefundene Fehler, Namenskonflikte und Sicherheitslücken | Vor Änderungen an Berechtigungen, Downloads oder doppelt definierten Funktionen |
+| [`STYLEGUIDE.md`](STYLEGUIDE.md) | Verbindliche Regeln für Doku, Code, Oberfläche („Kaercher Glass“) und CI/CD **aller** Kärcher-Translation-Repos | Bei jeder Änderung, bei neuen Projekten |
+| [`SCHAUBILD.png`](SCHAUBILD.png) / [`.svg`](SCHAUBILD.svg) | Architekturbild des Portals | Zum Einstieg |
+| [`gesamt/GESAMTUEBERSICHT.md`](gesamt/GESAMTUEBERSICHT.md) | Alle neun Repositories im Zusammenhang: Systemlandkarte, alle Datenbanken, Phrase-Objekte, Gemini, Trigger, Abläufe, Rollen, Glossar, FAQ | Für projektübergreifende Fragen |
+| [`gesamt/SYSTEMLANDKARTE.png`](gesamt/SYSTEMLANDKARTE.png) / [`.svg`](gesamt/SYSTEMLANDKARTE.svg) | Grafik aller Systeme, Datenablagen und Verbindungen | Zum Einstieg |
 
 ## Einem Modell übergeben
 
