@@ -31,7 +31,11 @@ function checkPreconditions(suffix) {
   const exUid = document.getElementById('existingProjectUid' + suffix);
   if (exUid && exUid.value) return true;
 
-  if(!finalSelectedUid) { showCustomAlert(tr_('jx_89352fd', 'Please select a Template and Source Language.')); return false; }
+  // finalSelectedUid ist global - Quellsprache und Vorlage muessen in DIESEM Formular gewaehlt sein,
+  // sonst wurde z. B. die Vorlage aus "General" mit dem Marketing-Formular eingereicht.
+  const srcSel = document.getElementById('sourceLang' + suffix);
+  const tplSel = document.getElementById('templateUid' + suffix);
+  if(!finalSelectedUid || (srcSel && !srcSel.value) || (tplSel && !tplSel.value)) { showCustomAlert(tr_('jx_89352fd', 'Please select a Template and Source Language.')); return false; }
   
   if (suffix !== '_docimport') {
     const tList = document.getElementById(`targetLangList${suffix}`);
@@ -47,6 +51,15 @@ function checkPreconditions(suffix) {
   return true;
 }
 
+/**
+ * Dateien waehlen erst nach Vorlage + Quellsprache - ausser im Marketing-Formular:
+ * dort kann "Ask for Consulting" gerade dann noetig sein, wenn die Vorlage noch unklar ist.
+ * Beim Einreichen prueft checkPreconditions trotzdem alles.
+ */
+function filePickAllowed_(suffix) {
+  return suffix === '_marketing' || checkPreconditions(suffix);
+}
+
 function handleXmlUploadClick(type, suffix) {
   if(checkPreconditions(suffix)) {
     if(type === 'main') {
@@ -57,13 +70,13 @@ function handleXmlUploadClick(type, suffix) {
 }
 
 function handlePcUploadClick(type, suffix) {
-  if(checkPreconditions(suffix)) {
+  if(filePickAllowed_(suffix)) {
     if(type==='main') document.getElementById('mainFilePC'+suffix).click();
     else document.getElementById('refFilePC'+suffix).click();
   }
 }
 function handleDriveClick(type, suffix) {
-  if(checkPreconditions(suffix)) openDriveModal(type, suffix);
+  if(filePickAllowed_(suffix)) openDriveModal(type, suffix);
 }
 
 function removeFile(type, index, suffix) {
@@ -428,7 +441,7 @@ function setupDropzone_(type, suffix) {
     depth = 0;
     zone.classList.remove('dragover');
     if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
-    if (!checkPreconditions(suffix)) return;
+    if (!filePickAllowed_(suffix)) return;
     try {
       input.files = e.dataTransfer.files;
       input.dispatchEvent(new Event('change'));
@@ -503,6 +516,60 @@ function attachSubmitHandler(formId, suffix) {
     });
 }
 
+/**
+ * Formularinhalt als Upload-Payload (auch fuer "Ask for Consulting" und die
+ * Vorab-Kalkulation - dort darf noch etwas fehlen, z. B. die Vorlage).
+ */
+async function collectFormPayload_(suffix) {
+    const readyMain=[];
+    for(const f of (mainFilesMap[suffix] || [])) {
+      if(f.source==='pc'){const d=await readFile(f.fileObj);readyMain.push({source:'pc',name:f.name,data:d.data,mime:d.mime});}
+      else readyMain.push({source:'drive',id:f.id,name:f.name});
+    }
+    const readyRef=[]; const refIds=[];
+    for(const ref of (refFilesMap[suffix] || [])) {
+      if(ref.type==='drive') refIds.push(ref.id);
+      else readyRef.push(await readFile(ref.fileObj));
+    }
+
+    const sel=document.getElementById('templateUid'+suffix);
+    const targets=Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb=>cb.value);
+    const pivotTargets=Array.from(document.querySelectorAll(`#pivotTargetLangList${suffix} input:checked`)).map(cb=>cb.value);
+    const dateEl=document.getElementById('dateDue'+suffix);
+    let rDate=dateEl ? dateEl.value : '';
+    let fDate=rDate?new Date(rDate+"T12:00:00").toISOString():null;
+
+    const srcEl = document.getElementById('sourceLang'+suffix);
+    const srcLang = srcEl ? srcEl.value : '';
+    const group = sel && sel.value ? templateGroups[sel.value] : null;
+    const variantData = group && group.variants[srcLang];
+    const selectedUidsMap = {};
+    targets.forEach(t => {
+        selectedUidsMap[t] = (variantData && variantData.targetUidMap && variantData.targetUidMap[t]) || (variantData && variantData.uid) || '';
+    });
+    const noteEl = document.getElementById('note'+suffix);
+
+    const payload={
+      templateUid:(variantData && variantData.uid) || '',
+      targetUidMap: selectedUidsMap,
+      templateGroup: sel ? sel.value : '',
+      templateName:(sel && sel.selectedIndex >= 0 && sel.value) ? sel.options[sel.selectedIndex].text : '',
+      projectName:document.getElementById('projectName'+suffix).value,
+      sourceLang:srcLang,
+      targetLangs:targets,
+      pivotTargetLangs:pivotTargets,
+      dateDue:fDate, note:noteEl ? noteEl.value : '',
+      allMainFiles:readyMain, refFiles:readyRef, refDriveIds:refIds,
+      portalType: suffix.replace(/^_/, '')
+    };
+    // Maximaltemplate: Einstellungen aus dem XXL-Dialog (MaxTemplateUi.html).
+    if (group && group.isMax && typeof maxTplSettingsFor_ === 'function') {
+      payload.maxSettings = maxTplSettingsFor_(suffix);
+      payload.templateName = group.displayName || payload.templateName;
+    }
+    return payload;
+}
+
 function submitStandard(suffix) {
     document.getElementById('overlay').style.display='flex';
     document.getElementById('loadingSpinner').style.display='block';
@@ -513,42 +580,7 @@ function submitStandard(suffix) {
 
     (async function() {
         try {
-            const readyMain=[];
-            for(const f of mainFilesMap[suffix]) {
-              if(f.source==='pc'){const d=await readFile(f.fileObj);readyMain.push({source:'pc',name:f.name,data:d.data,mime:d.mime});}
-              else readyMain.push({source:'drive',id:f.id,name:f.name});
-            }
-            const readyRef=[]; const refIds=[];
-            for(const ref of refFilesMap[suffix]) {
-              if(ref.type==='drive') refIds.push(ref.id);
-              else readyRef.push(await readFile(ref.fileObj));
-            }
-
-            const sel=document.getElementById('templateUid'+suffix);
-            const targets=Array.from(document.querySelectorAll(`#targetLangList${suffix} input:checked`)).map(cb=>cb.value);
-            const pivotTargets=Array.from(document.querySelectorAll(`#pivotTargetLangList${suffix} input:checked`)).map(cb=>cb.value);
-            let rDate=document.getElementById('dateDue'+suffix).value;
-            let fDate=rDate?new Date(rDate+"T12:00:00").toISOString():null;
-
-            const srcLang = document.getElementById('sourceLang'+suffix).value;
-            const variantData = selectedGroup.variants[srcLang];
-            const selectedUidsMap = {};
-            targets.forEach(t => {
-                selectedUidsMap[t] = variantData.targetUidMap[t] || finalSelectedUid;
-            });
-
-            const payload={
-              templateUid:finalSelectedUid,
-              targetUidMap: selectedUidsMap,
-              templateName:sel.options[sel.selectedIndex].text,
-              projectName:document.getElementById('projectName'+suffix).value,
-              sourceLang:srcLang,
-              targetLangs:targets,
-              pivotTargetLangs:pivotTargets,
-              dateDue:fDate, note:document.getElementById('note'+suffix).value,
-              allMainFiles:readyMain, refFiles:readyRef, refDriveIds:refIds,
-              portalType: suffix.replace(/^_/, '')
-            };
+            const payload = await collectFormPayload_(suffix);
 
             if (suffix === '_articulate') {
               const reviewEl = document.getElementById('artReviewType');

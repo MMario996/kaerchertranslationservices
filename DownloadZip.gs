@@ -113,6 +113,65 @@ function phraseGetJobsForMaxLevel_(projectUid, jobUids) {
   }
 }
 
+// --- Sprach-Filter fuer Downloads --------------------------------------------
+// phraseGetJobsForMaxLevel_ liefert ALLE Jobs der hoechsten Stufe im Projekt.
+// Beim Pivot-Child sind das alle Sprachen, die der Orchestrator angelegt hat -
+// nicht nur die bei der Einreichung gewaehlten Pivot-Sprachen. Deshalb wird
+// auf die Sprachen der Queue-Zeile (bzw. die Pivot-Sprachen des Parents)
+// gefiltert.
+
+/** "de-DE" / "DE_de" -> "de_de". */
+function dlNormLang_(l) {
+  return String(l || "").trim().toLowerCase().replace(/-/g, "_");
+}
+
+/** Gehoert die Job-Sprache zu den erlaubten? "de" passt zu "de_de" und umgekehrt. */
+function dlLangAllowed_(jobLang, allowed) {
+  var j = dlNormLang_(jobLang);
+  if (!j) return true; // unbekannt -> nicht wegfiltern
+  return allowed.some(function (a) {
+    return a === j || a.split("_")[0] === j || j.split("_")[0] === a;
+  });
+}
+
+/**
+ * Reine Funktion (getestet): Jobs auf erlaubte Sprachen und nicht abgebrochene
+ * Jobs beschraenken. Bleibt nichts uebrig, kommt die ungefilterte Liste zurueck
+ * (lieber zu viel als gar nichts herunterladen).
+ */
+function dlFilterJobs_(jobs, allowedLangs) {
+  var allowed = (allowedLangs || []).map(dlNormLang_).filter(Boolean);
+  var active = jobs.filter(function (j) { return ["CANCELLED", "CANCELED", "REJECTED"].indexOf(String(j.status || "").toUpperCase()) < 0; });
+  if (!active.length) active = jobs;
+  if (!allowed.length) return active;
+  var byLang = active.filter(function (j) { return dlLangAllowed_(j.targetLang, allowed); });
+  if (!byLang.length) {
+    console.warn("Download: kein Job passt zu " + allowed.join(", ") + " - ungefiltert.");
+    return active;
+  }
+  return byLang;
+}
+
+/** Sprachen, die zu diesem Projekt eingereicht wurden ([] = unbekannt, nicht filtern). */
+function dlAllowedLangs_(projectUid) {
+  try {
+    var uid = String(projectUid || "").trim();
+    var rows = readQueueRows_();
+    var row = rows.filter(function (r) { return r.projectUid === uid; })[0];
+    if (!row) return [];
+    if (row.pivotRole === "CHILD") {
+      var parent = rows.filter(function (r) { return r.projectUid === row.pivotLink; })[0];
+      if (parent && parent.pivotLangs && parent.pivotLangs.length) return parent.pivotLangs;
+      var fromPhrase = pivotParentLangsFromPhrase_(row.pivotLink);
+      if (fromPhrase.length) return fromPhrase;
+    }
+    return row.targetLangs || [];
+  } catch (e) {
+    console.warn("dlAllowedLangs_: " + e.message);
+    return [];
+  }
+}
+
 // --- Helpers ------------------------------------------------------------------
 
 function _normalizeToBlob_(maybeBlob) {
@@ -250,7 +309,9 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
   }
 
   console.log("\u2022 Ermittle höchstes Workflow-Level für Projekt: " + projectUid);
-  const { maxLevel, jobsForDownload } = phraseGetJobsForMaxLevel_(projectUid, jobUids);
+  const maxRes = phraseGetJobsForMaxLevel_(projectUid, jobUids);
+  const maxLevel = maxRes.maxLevel;
+  const jobsForDownload = dlFilterJobs_(maxRes.jobsForDownload, dlAllowedLangs_(projectUid));
 
   const filteredJobUids = jobsForDownload.map(j => j.uid).filter(Boolean);
   if (filteredJobUids.length === 0) {
@@ -282,7 +343,10 @@ function apiSmartDownload(projectUid, jobUids, projectName, targetLangs, fileNam
                       || (!_isGenericFileName_(apiFileName)     ? apiFileName     : null)
                       || projectName || "translation";
 
-    const bestLang = mappingLang || apiLang ||
+    // Sprache: was Phrase zum Job sagt, gewinnt. Das Mapping passt nur ueber die
+    // Position, wenn die Job-UIDs der hoeheren Stufe nicht gespeichert sind -
+    // nach dem Sprach-Filter verschiebt sich die Position.
+    const bestLang = apiLang || mappingLang ||
       (Array.isArray(targetLangs) ? targetLangs[index] : "") || targetLang || "";
 
     return { jobUid: uid, fileName: bestFileName, targetLang: bestLang };
@@ -460,7 +524,9 @@ function apiGetFilesForDriveExport(projectUid, jobUids, projectName, targetLangs
     try { jobMapping = JSON.parse(jobMapping); } catch (e) { jobMapping = null; }
   }
 
-  const { maxLevel, jobsForDownload } = phraseGetJobsForMaxLevel_(projectUid, jobUids);
+  const maxRes = phraseGetJobsForMaxLevel_(projectUid, jobUids);
+  const maxLevel = maxRes.maxLevel;
+  const jobsForDownload = dlFilterJobs_(maxRes.jobsForDownload, dlAllowedLangs_(projectUid));
   const filteredJobUids = jobsForDownload.map(j => j.uid).filter(Boolean);
   if (filteredJobUids.length === 0) {
     return { success: false, error: "Keine downloadbaren Jobs gefunden (Level " + maxLevel + ")." };
@@ -488,7 +554,7 @@ function apiGetFilesForDriveExport(projectUid, jobUids, projectName, targetLangs
     const jobFileName = (!_isGenericFileName_(mappingFileName) ? mappingFileName : null)
                       || (!_isGenericFileName_(apiFileName)     ? apiFileName     : null)
                       || projectName || "translation";
-    const jobLang = mappingLang || apiLang || (Array.isArray(targetLangs) ? targetLangs[i] : "") || "";
+    const jobLang = apiLang || mappingLang || (Array.isArray(targetLangs) ? targetLangs[i] : "") || "";
 
     try {
       const raw  = phraseDownloadTargetFile_(String(projectUid).trim(), jobUid);

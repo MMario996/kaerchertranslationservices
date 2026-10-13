@@ -152,6 +152,11 @@
        </button>
     </div>
 
+    <div id="sandboxBanner" hidden>
+       <div><span class="material-icons-outlined">science</span> <strong data-i18n="sbx_banner">SANDBOX MODE</strong> <span data-i18n="sbx_banner_desc">Phrase sandbox, own templates and own project list. Production stays untouched.</span></div>
+       <button type="button" onclick="sandboxToggle_(false)" data-i18n="sbx_exit">Exit sandbox</button>
+    </div>
+
     <div id="simulationBanner">
        <div>
           <span class="material-icons-outlined" style="vertical-align:middle; margin-right:5px; font-size:16px;">visibility</span>
@@ -485,7 +490,15 @@
       <div id="tab-woma" class="tab-content" style="display:none"></div>
       <div id="tab-cc" class="tab-content" style="display:none"></div>
       <div id="tab-marketing" class="tab-content" style="display:none">
-        <div class="split-wrapper">
+        <!-- Unterreiter: Inhalte von Vorab-Kalkulation/Consulting kommen nachgeladen (MarketingUi.html). -->
+        <div class="docsub-nav" id="mktSubNav" style="display:none">
+          <button type="button" class="docsub-btn active" id="mktsubBtn-create" onclick="switchMktSubtab('create')"><span class="material-icons-outlined">add_circle_outline</span> <span data-i18n="mk_sub_create">Create project</span></button>
+          <button type="button" class="docsub-btn" id="mktsubBtn-precalc" onclick="switchMktSubtab('precalc')" style="display:none"><span class="material-icons-outlined">calculate</span> <span data-i18n="mk_sub_precalc">Pre-calculation</span></button>
+          <button type="button" class="docsub-btn" id="mktsubBtn-consulting" onclick="switchMktSubtab('consulting')"><span class="material-icons-outlined">support_agent</span> <span data-i18n="mk_sub_consulting">Consulting</span></button>
+        </div>
+        <div id="mktsub-precalc" style="display:none"><div id="mktPrecalcHead"></div><div id="mktPrecalcForm"></div><div id="mktPrecalcHistory"></div></div>
+        <div id="mktsub-consulting" style="display:none"></div>
+        <div class="split-wrapper" id="mktsub-create">
             <div class="split-main" id="marketing-form-container">
                 <button id="marketingShowInfoBtn" class="btn-open-sidebar" onclick="toggleMarketingSidebar()">
                   <span class="material-icons-outlined">info</span> <span data-i18n="ix_cab257d">Show Help &amp; Options</span>
@@ -660,6 +673,7 @@
                 <option value="own" data-i18n="hs_f_own">My Projects</option>
                 <option value="shared" data-i18n="hs_f_shared">Shared with me</option>
                 <option value="team" id="ownershipTeamOpt" data-i18n="hs_f_team" hidden>Team (read only)</option>
+                <option value="bu" data-i18n="hs_f_bu">My business unit (read only)</option>
              </select>
 
              <input type="search" id="globalSearchInput" placeholder="🔍 Search..." data-i18n-placeholder="hs_search" 

@@ -74,7 +74,8 @@ Google Apps Script (V8), Web-App "Execute as: USER_DEPLOYING", Zugriff: DOMAIN
 | Pivot-Workflow | `PivotProjects.gs`, `PivotAdmin.gs`, `PivotTemplateLinks.gs`, `PivotLanguageMap.gs` |
 | Campus/Articulate | `Articulateapi.gs`, `Articulateregistry.gs`, `Articualtepreview.gs`, `ArticulateChat.gs`, `RisePatcher.gs`, `ScormPatcher.gs`, `CampusBatch.gs`, `FirebaseAuth.gs`, `FirebaseHostingDeploy.gs` |
 | Google Chat | `Upload.gs` (Senden, doPost), `ChatToken.gs` (Nutzer-Mapping), `ChatCommands.gs` (Slash-Commands), `Chatbot.gs` (Gemini), `Messagetemplates.gs` |
-| Persönlich | `UserPrefs.gs`, `Presets.gs`, `CalendarSync.gs`, `Announcements.gs`, `GermanHolidays.gs` |
+| Persönlich | `UserPrefs.gs`, `Presets.gs`, `CalendarSync.gs`, `Announcements.gs`, `GermanHolidays.gs`, `Deputies.gs` (Urlaubsvertretung) |
+| Marketing | `MarketingConsulting.gs` (Ask for Consulting, Consultant-Workflow), `MarketingPrecalc.gs` (Vorab-Kalkulation), `MaxTemplate.gs` (Maximaltemplate, Prompt-Hub) |
 | Übersetzung der UI | `I18nDicts.gs` (App: de/en/fr/es/pt/zh), `AdminI18n.gs`, `PhraseStrings.gs`, `PhraseStringsSync.gs` |
 | Knowledge Base | `KnowledgebaseApi.gs` (`apiKbChunk`), `Knowledgebase.html`, `KbData*.html` (erzeugt), Quelle `kb-src/*.md`, Build `tools/build-kb.js` |
 | Admin-Manager | `AdminManagers.gs` (Kennzahlen, Mehrfachbearbeitung, Details), `AdminManagersUi.html` (nachgeladen) |
@@ -96,7 +97,9 @@ Stellen aber **per festem Index** geschrieben – Spalten nie umsortieren.
 |---|---|---|
 | `Whitelist` | Zugang „General Projects“ | Email |
 | `Whitelist_Marketing`, `Whitelist_KeC`, `Whitelist_Documentation`, `Whitelist_Woma`, `Whitelist_CC`, `Whitelist_Articulate` | Exklusive Spezialbereiche | Email |
-| `Whitelist_AdminLight` | Teil-Admin-Rechte | Email \| Subtabs (`users,templates,pivot,tests,dashboard`) |
+| `Whitelist_AdminLight` | Teil-Admin-Rechte | Email \| Subtabs (`users,templates,pivot,tests,dashboard,consulting`) |
+| `Deputies` | Urlaubsvertretung | Email \| Deputy \| From \| To \| Active \| Updated At |
+| `Prompt_Hub` | Prompts fürs Maximaltemplate | Name \| Prompt \| Template UIDs \| Link \| Active |
 | `FetchTemplate-Prod` | Phrase-Projektvorlagen (per Sync aus Phrase) | Display Name, Template UID, Source, Targets, Active (yes/no), Client, Domain, Subdomain, Business Unit |
 | `FetchTMS_USERS-Prod` | Nutzer-Zuordnung (per Sync aus Phrase) | Email, Client, Domain, Subdomain, Business Unit (mehrere Werte durch `,` `;` oder Zeilenumbruch) |
 | `Maintenance` | Wartungsfenster (Alternative zu Script Properties) | ID, StartTime, EndTime, Message, Active |
@@ -140,7 +143,7 @@ Eine Zeile pro angelegtem Phrase-Projekt (bei mehreren Template-UIDs mehrere Zei
 | T | Chat-Thread (Message-Name) | für Antworten im selben Chat-Thread |
 | U | Chat-Threads der Geteilten (JSON `{email: thread}`) | wird beim Abschluss geleert |
 | V | Downloaded At | letzter Download, für das Archiv |
-| (Kopfzeile) | `JobMapping`, `Pivot Role`, `Pivot Link` | nur per Kopfzeilen-Name |
+| (Kopfzeile) | `JobMapping`, `Pivot Role`, `Pivot Link`, `Created By`, `Pivot Langs` | nur per Kopfzeilen-Name; `Created By` = Consultant, der für den Eigentümer eingereicht hat |
 
 **Status-Werte:** `NEW`, `QUEUED_UPLOAD`, `UPLOADED`, `ASSIGNED`, `ACCEPTED`, `COMPLETED`,
 `NOTIFIED`, `DELIVERED`, `CANCELLED`/`CANCELED`, `REJECTED`, Pivot: `WAITING_CHILD`.
@@ -148,6 +151,12 @@ Terminal: `COMPLETED`, `DELIVERED`, `CANCELLED`, `CANCELED`, `REJECTED`.
 Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 
 ### Weitere Sheets
+
+- OPS-Sheet `Consulting_Requests`: ID, Created At, Requester, Status (`OPEN`/`IN_PROGRESS`/`SUBMITTED`/`CLOSED`),
+  Assignee, Project Name, Template, Target Langs, Payload JSON (Formular ohne Dateiinhalt), Comment,
+  History JSON (`{at, by, action, text}`), Project UIDs, Updated At, Folder ID.
+- OPS-Sheet `Precalc_Log` (Spalte „Template“ = Bereich des Kalkulationsprojekts): ID, Created At, User, Template, Source, Target Langs, Files, Status, Words,
+  Amount, Currency, State JSON (Phrase-Projekt/Analyse/Async-IDs), Finished At.
 
 - Dokumentations-Queue, `Board`, `Archive` (eigene Sheet-IDs in `DocQueue.gs`, `DocBoard.gs`).
 - Articulate-Registry `Projects` (`Articulateregistry.gs`).
@@ -173,6 +182,11 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 | `AUTO_SYNC_ENABLED`, `AUTO_SYNC_LAST_RUN` … | Status-Autosync |
 | `CAMPUS_BATCH_ENABLED`, `CAMPUS_BATCH_TEMPLATE_NAMES` | Campus-Batch-Nachbearbeitung |
 | `TERMBASE_UID` | Termbase für `/termsearch` |
+| `PHRASE_SANDBOX_API_TOKEN`, `PHRASE_SANDBOX_BASE_URL`, `SANDBOX_TEMPLATE_SHEET`, `SANDBOX_OPS_SHEET_ID`, `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID`, dynamisch `SANDBOX_ON__<email>` | Admin-Sandbox (`Sandbox.gs`) |
+| `CONSULTING_FOLDER_ID` | Drive-Ordner für Consulting-Anfragen (wird beim ersten Mal angelegt) |
+| `PRECALC_PROJECTS`, `PRECALC_PROJECTS_SANDBOX` | Vorab-Kalkulation: feste Kalkulationsprojekte `Bezeichnung\|Projekt-UID[\|Preislisten-UID]`, getrennt durch `;` oder Zeilenumbruch |
+| `PRECALC_PRICE_LIST_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Rückfall-Preisliste der Quote, `false` = aus |
+| `PROMPT_HUB_URL`, `MAXTPL_PROMPT_FIELD`, `MAXTPL_PORTALS` | Maximaltemplate: Link zum Prompt-Hub, Custom Field für den Prompt (Standard `AI Prompt`), Bereiche (Standard `marketing`) |
 | dynamisch: `CHAT_USER_MAP__<email>`, `CHAT_NOTIFIED__<uid>`, `CHAT_PREF_ON__<email>`, `oauth2.*`, `Cal_*` | Laufzeitdaten |
 
 Admin → Console → System zeigt Properties an; Werte mit `token`, `key`, `secret`, `password`,

@@ -27,6 +27,8 @@ Nachgeladen (nicht im Startdokument, das an der Apps-Script-Größengrenze liegt
 | `HomeUi.html` | Startseite: Styles + Skript (Suche/Befehle, Schnellstart, Kennzahlen, Meine Arbeit, nächste Frist, 7 Tage, Aktivitäten, Tipps) | `apiGetHomeUi()` |
 | `PrefsUi.html` | Markup des Einstellungsdialogs | `apiGetPrefsUi()` |
 | `KecSettingsUi.html` | KeC Projects → Unterreiter „Einstellungen“ (Namenszusatz, Spalten für multilinguale Excel-Dateien, Upload-Puffer für verlinkte Projekte; pro Nutzer, Server: `KecSettings.gs`) | `apiGetLazyScript('KecSettingsUi')` |
+| `MarketingUi.html` | Marketing Projects: „Ask for Consulting“, Unterreiter „Consulting“ (Anfragen mit Historie) und „Vorab-Kalkulation“ (Server: `MarketingConsulting.gs`, `MarketingPrecalc.gs`) | `apiGetLazyScript('MarketingUi')` |
+| `MaxTemplateUi.html` | „Maximaltemplate“: XXL-Dialog (Workflow, Provider je Schritt/Sprache, Projekt-Einstellungen, TMs/TBs, MT, Prompt-Hub; Server: `MaxTemplate.gs`) | `apiGetLazyScript('MaxTemplateUi')` |
 | `GuideContent.html`, `AdminConsole.html`/`AdminScript.html`, `DarkTheme.html` | Anleitung, Admin, dunkler Modus | siehe `WebApp.gs`/`UserPrefs.gs` |
 
 **Design:** „Kaercher Glass“ (Ende von `Styles.html`) überträgt die Prinzipien von
@@ -91,3 +93,53 @@ Token aus **Phrase Platform → Profil → Access tokens** (Dienst „Strings“
 IDM-Endpunkt (`https://eu.phrase.com/idm/oauth/token`, bzw. `us.` für die US-Region) gegen ein
 JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische Strings-Token
 (64 Hex-Zeichen) werden weiterhin direkt verwendet. „Verbindung prüfen“ zeigt die erkannte Art an.
+
+## Marketing Projects: Consulting, Vorab-Kalkulation, Maximaltemplate
+
+- **Ask for Consulting** (neben „Projekt anlegen“): legt kein Projekt an, sondern eine Anfrage
+  (Sheet `Consulting_Requests` im OPS-Sheet, Dateien im Drive-Ordner `CONSULTING_FOLDER_ID`).
+  Alle Consultants – Admin-Light-Bereich **„Consultant Marketing Projects“** (`consulting`) – bekommen
+  eine Chat-Nachricht. Im Unterreiter **Consulting** sehen Consultants alle Anfragen (bearbeiten,
+  kommentieren, übernehmen, einreichen, schließen), Einreicher ihre eigenen; jede Aktion steht in
+  der Historie. Eingereicht wird im Namen des Einreichers (Eigentümer), die Queue-Spalte
+  „Created By“ nennt den Consultant („Projekt **erstellt** von …“ in Meine Projekte).
+- **Vorab-Kalkulation**: kein neues Projekt. Die Dateien werden als Jobs in ein festes
+  Kalkulationsprojekt geladen (dessen TMs zählen), analysiert, als Quote berechnet und danach
+  wieder gelöscht (`purge=true`, nur diese Jobs). Übrig bleibt nur der Betrag (Sheet `Precalc_Log`).
+  Projekte hinterlegen: Script Property `PRECALC_PROJECTS`, z. B.
+  `Home & Garden|<Projekt-UID>; Professional|<Projekt-UID>|<Preislisten-UID>` (Sandbox:
+  `PRECALC_PROJECTS_SANDBOX`). Preisliste: aus dem Eintrag, sonst die des Projekts, sonst
+  `PRECALC_PRICE_LIST_UID`. Abschaltbar mit `PRECALC_ENABLED=false`. In den Kalkulationsprojekten
+  keine automatische Provider-Zuweisung einstellen.
+- **Maximaltemplate** im Vorlagen-Dropdown (Bereiche: `MAXTPL_PORTALS`, Standard `marketing`):
+  Basis-Vorlage + alles einstellbar. Prompts aus dem Sheet `Prompt_Hub`
+  (Name | Prompt | Template UIDs | Link | Active), Link zum Hub: `PROMPT_HUB_URL`, Ziel-Feld in
+  Phrase: `MAXTPL_PROMPT_FIELD` (Standard „AI Prompt“, sonst Projektnotiz).
+
+## Urlaubsvertretung
+
+Einstellungen → **Vertretung**: E-Mail, optional Von/Bis, an/aus (Sheet `Deputies`). Solange aktiv,
+bekommt die Vertretung eine Kopie jeder Chat-Nachricht und hat die Rechte der vertretenen Person
+(Projekte in Meine Projekte, bearbeiten wie Eigentümer, Bereiche und Vorlagen).
+
+## Admin-Sandbox
+
+Einstellungen → **Sandbox (Admin)**: schaltet das Portal nur für den angemeldeten Admin auf die
+Phrase-Sandbox um (oranger Banner, Chat-Nachrichten mit „[SANDBOX]“). Umgeschaltet werden
+Phrase-Token und URL, das Vorlagen-Sheet, das OPS-Spreadsheet (eigene Queue, Consulting,
+Kalkulation) und die Phrase-Caches. Nutzer-Sheet, Whitelists und Einstellungen bleiben gleich;
+der Nutzer-Sync ist in der Sandbox gesperrt. Trigger (Auto-Sync) laufen immer gegen Produktion.
+
+| Script Property | Zweck |
+|---|---|
+| `PHRASE_SANDBOX_API_TOKEN` | Token der Sandbox (Pflicht) |
+| `PHRASE_SANDBOX_BASE_URL` | Basis-URL der Sandbox (Standard wie `PHRASE_API_BASE_URL`) |
+| `SANDBOX_TEMPLATE_SHEET` | Vorlagen-Sheet (Standard `FetchTemplate-Test`; „Templates synchronisieren“ füllt es aus der Sandbox) |
+| `SANDBOX_OPS_SHEET_ID` | OPS-Spreadsheet der Sandbox (wird beim ersten Einschalten angelegt) |
+| `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID` | Custom Field „Project Creator“ in der Sandbox (ohne: wird übersprungen) |
+
+## Downloads
+
+Heruntergeladen werden nur die Sprachen, die zum Projekt eingereicht wurden; beim Pivot-Child
+nur die gewählten Pivot-Sprachen (Queue-Spalte „Pivot Langs“, für ältere Projekte aus dem
+Custom Field „Pivot languages“ über das Sprachen-Mapping). Abgebrochene Jobs fallen weg.

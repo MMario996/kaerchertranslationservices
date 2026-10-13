@@ -18,7 +18,9 @@
             <button type="button" data-sec="home" onclick="prefsShowSec_('home')"><span class="material-icons-outlined">space_dashboard</span><span data-i18n="pf_nav_home">Start page</span></button>
             <button type="button" data-sec="notif" onclick="prefsShowSec_('notif')"><span class="material-icons-outlined">notifications</span><span data-i18n="pf_nav_notif">Notifications</span></button>
             <button type="button" data-sec="team" onclick="prefsShowSec_('team')"><span class="material-icons-outlined">groups</span><span data-i18n="pf_team">Team view</span></button>
+            <button type="button" data-sec="deputy" onclick="prefsShowSec_('deputy')"><span class="material-icons-outlined">beach_access</span><span data-i18n="dp_nav">Deputy</span></button>
             <button type="button" data-sec="cal" onclick="prefsShowSec_('cal')"><span class="material-icons-outlined">event</span><span data-i18n="cal_title">Calendar</span></button>
+            <button type="button" data-sec="sandbox" id="prefsNavSandbox" onclick="prefsShowSec_('sandbox')" hidden><span class="material-icons-outlined">science</span><span data-i18n="sbx_nav">Sandbox (Admin)</span></button>
             <button type="button" data-sec="keys" onclick="prefsShowSec_('keys')"><span class="material-icons-outlined">keyboard</span><span data-i18n="pf_nav_keys">Keyboard</span></button>
           </nav>
 
@@ -151,6 +153,29 @@
               <label class="prefs-radio"><input type="radio" name="prefTeamMode" value="custom" onchange="updateTeamPrefsUi_()"> <span data-i18n="pf_team_custom">Only these colleagues</span></label>
               <textarea id="prefTeamEmails" rows="3" placeholder="name@kaercher.com, ..." data-i18n-placeholder="pf_team_emails_ph"></textarea>
             </div>
+            <label class="prefs-check" style="margin-top:14px;">
+              <input type="checkbox" id="prefShowBu">
+              <span><b data-i18n="pf_show_bu">Show projects of my business unit in "My Projects"</b><small data-i18n="pf_show_bu_desc">Marked with "Project created by …", read only.</small></span>
+            </label>
+          </div>
+
+          <div class="prefs-sec" data-sec="deputy" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">beach_access</span><span data-i18n="dp_title">Holiday deputy</span></div>
+            <div class="prefs-muted" style="margin-bottom:12px;" data-i18n="dp_desc">While you are away, this person receives a copy of your chat messages and has the same access to your projects.</div>
+            <div class="prefs-field">
+              <label for="prefDeputyEmail" class="prefs-label" data-i18n="dp_email">Deputy (e-mail)</label>
+              <input type="email" id="prefDeputyEmail" autocomplete="off" placeholder="name@kaercher.com" data-i18n-placeholder="pf_team_emails_ph">
+            </div>
+            <div class="prefs-row" style="gap:12px;flex-wrap:wrap;">
+              <div class="prefs-field" style="flex:1;min-width:140px;"><label for="prefDeputyFrom" class="prefs-label" data-i18n="dp_from">From</label><input type="date" id="prefDeputyFrom"></div>
+              <div class="prefs-field" style="flex:1;min-width:140px;"><label for="prefDeputyTo" class="prefs-label" data-i18n="dp_to">Until</label><input type="date" id="prefDeputyTo"></div>
+            </div>
+            <small class="prefs-muted" data-i18n="dp_range_hint">Without dates the deputy applies as long as it is switched on.</small>
+            <label class="prefs-check" style="margin-top:10px;">
+              <input type="checkbox" id="prefDeputyActive">
+              <span><b data-i18n="dp_active">Deputy switched on</b><small id="prefDeputyState"></small></span>
+            </label>
+            <div id="prefDeputyPrincipals" class="prefs-muted" style="margin-top:12px;"></div>
           </div>
 
           <div class="prefs-sec" data-sec="cal" hidden>
@@ -159,6 +184,13 @@
               <div><div class="prefs-label" data-i18n="cal_prefs_line">Deadlines in your Google Calendar</div><small id="prefCalStatus" class="prefs-muted"></small></div>
               <button type="button" class="btn btn-secondary prefs-btn" onclick="closePreferences(); openCalendarSync_();"><span class="material-icons-outlined">settings</span> <span data-i18n="cal_setup">Set up</span></button>
             </div>
+          </div>
+
+          <div class="prefs-sec" data-sec="sandbox" hidden>
+            <div class="prefs-section-title"><span class="material-icons-outlined">science</span><span data-i18n="sbx_nav">Sandbox (Admin)</span></div>
+            <div class="prefs-muted" style="margin-bottom:12px;" data-i18n="sbx_desc">Only for you: the portal talks to the Phrase sandbox (own token and URL), uses its own template sheet and its own project list. Chat messages are marked [SANDBOX]. Other users are not affected.</div>
+            <div id="prefSandboxInfo" class="prefs-muted" style="margin-bottom:12px;"></div>
+            <button type="button" class="btn btn-secondary prefs-btn" id="prefSandboxBtn" onclick="sandboxToggle_(!(sandboxStatus_ && sandboxStatus_.active))"><span class="material-icons-outlined">science</span> <span id="prefSandboxBtnText" data-i18n="sbx_enter">Switch to sandbox</span></button>
           </div>
 
           <div class="prefs-sec" data-sec="keys" hidden>

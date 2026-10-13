@@ -22,12 +22,13 @@
  *   notifTypes   [typ, ..]  (in der Glocke angezeigte Arten; fehlt = alle)
  *   notifToast   true/false  (Hinweis unten rechts bei neuer Benachrichtigung)
  *   shortcuts    true/false  (Tastenkuerzel)
+ *   showBuProjects true/false (Projekte der Business-Unit-Kollegen in "Meine Projekte", Standard an)
  *   notifSeenAt  ISO-Zeitpunkt, bis zu dem die Glocke als gelesen gilt
  */
 var USER_PREFS_SHEET_NAME_ = "UserPrefs";
 var USER_PREFS_HEADERS_ = ["Email", "Prefs JSON", "Updated At"];
 var USER_PREFS_CLIENT_KEYS_ = ["theme", "fontScale", "startPage", "team", "displayName", "density", "reduceMotion",
-  "startTab", "home", "pinned", "notifTypes", "notifToast", "shortcuts"];
+  "startTab", "home", "pinned", "notifTypes", "notifToast", "shortcuts", "showBuProjects"];
 var USER_PREFS_HOME_WIDGETS_ = ["quick", "kpis", "focus", "week", "activity", "tips"];
 var USER_PREFS_HOME_TABS_ = ["auto", "overdue", "week", "open", "done", "pinned"];
 var USER_PREFS_NOTIF_TYPES_ = ["completed", "shared", "due_changed", "due_soon", "renamed", "cancelled", "pivot_step", "submitted"];
@@ -126,6 +127,7 @@ function sanitizeClientPrefs_(p) {
   }
   if (p.hasOwnProperty("notifToast")) out.notifToast = p.notifToast !== false;
   if (p.hasOwnProperty("shortcuts")) out.shortcuts = p.shortcuts !== false;
+  if (p.hasOwnProperty("showBuProjects")) out.showBuProjects = p.showBuProjects !== false;
   return out;
 }
 

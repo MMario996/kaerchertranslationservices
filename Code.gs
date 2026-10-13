@@ -98,6 +98,20 @@ function apiCheckAccess() {
   if (admin) return { allowed: true, reason: "admin" };
   const maint = getMaintenanceStatus_();
   if (maint.active) return { allowed: false, reason: "maintenance", maintenance: maint };
+  const own = checkWhitelistAccess_(user);
+  if (own.allowed) return own;
+  // Urlaubsvertretung (Deputies.gs): Zugang der vertretenen Person gilt mit.
+  try {
+    const principals = deputyPrincipalsOf_(user);
+    for (let i = 0; i < principals.length; i++) {
+      if (isAdmin_(principals[i]) || checkWhitelistAccess_(principals[i]).allowed) return { allowed: true, reason: "deputy", deputyFor: principals[i] };
+    }
+  } catch (e) {}
+  return own;
+}
+
+/** Whitelist-Pruefung fuer eine E-Mail (ohne Admin/Wartung). */
+function checkWhitelistAccess_(user) {
   const wl = apiGetWhitelist().emails;
   if (wl.includes(user)) return { allowed: true, reason: "whitelisted" };
   try {

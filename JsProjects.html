@@ -40,11 +40,14 @@ function fillTable(projects) {
     if (p.teamView) { tr.classList.add('row-team'); tr.innerHTML = teamRowHtml_(p); applyMobileLabels_(tr); t.appendChild(tr); return; }
     let due=p.dueDate?`<span class="${dueClass_(p)}">${new Date(p.dueDate).toLocaleDateString()}</span>`:"-";
     let shText=p.isShared?(p.owner===configData.currentUser
-      ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">${tr_('jx_b1a6757', 'Shared with')}<br>${p.sharedWith}</span>`
-      :`<span style="font-size:10px;background:#e3f2fd;color:#0d47a1;padding:2px 4px;">${tr_('jx_17414ca', 'Shared by')}<br>${p.owner}</span>`
+      ?`<span style="font-size:10px;background:#f0f0f0;padding:2px 4px;">${tr_('jx_b1a6757', 'Shared with')}<br>${escapeHtml(p.sharedWith)}</span>`
+      :`<span class="proj-by proj-by-shared">${projByLabel_('pl_shared_by', 'Project **shared** by {name}', p.owner)}</span>`
     ):(p.groupShared
-      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">${tr_('jx_2af27f5', 'WOMA Team')}<br>${p.owner}</span>`
+      ?`<span style="font-size:10px;background:#fff8e1;color:#8a6d00;padding:2px 4px;">${tr_('jx_2af27f5', 'WOMA Team')}<br>${escapeHtml(p.owner)}</span>`
       :"-");
+    // Angelegt von jemand anderem (Consultant) bzw. Urlaubsvertretung.
+    if (p.createdBy && p.createdBy !== p.owner) shText = `<span class="proj-by">${projByLabel_('pl_created_by', 'Project **created** by {name}', p.createdBy)}</span>` + (shText === '-' ? '' : '<br>' + shText);
+    if (p.deputyFor) shText = `<span class="proj-by proj-by-deputy">${projByLabel_('pl_deputy_for', 'Deputy for {name}', p.deputyFor)}</span>` + (shText === '-' ? '' : '<br>' + shText);
 
     const cnlBtn=['CANCELLED','COMPLETED','NOTIFIED','DELIVERED'].includes(p.status)
       ?`<div style="width:36px;display:inline-block;"></div>`
@@ -70,7 +73,7 @@ function fillTable(projects) {
     tr.innerHTML=`<td>${nameCell}</td>
       <td><a href="${p.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS">${p.projectUid} <span class="material-icons-outlined" style="font-size:12px">open_in_new</span></a></td>
       <td style="font-size:11px;">${p.uploadDate||"-"}</td><td>${p.sourceLang}</td>
-      <td>${p.docProject ? docJobBadges_(p) : `<span style="font-size:11px;">${p.targetLang||"-"}</span>`}</td>
+      <td>${p.docProject ? docJobBadges_(p) : `<span style="font-size:11px;">${escapeHtml(langsShort_(p.targetLang)||"-")}</span>`}</td>
       <td><span class="status-badge status-${p.status}">${p.status}</span></td>
       <td>${due}</td><td>${shText}</td>
       <td style="text-align:center;">${dlBtn}</td>
@@ -201,6 +204,11 @@ function buildPivotDetailRow_(groupId, parent, child) {
   return tr;
 }
 
+/** "Projekt **geteilt** von {name}": Text escapen, **...** fett, {name} einsetzen. */
+function projByLabel_(key, fallback, name) {
+  return escapeHtml(tr_(key, fallback)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace('{name}', escapeHtml(name || ''));
+}
+
 function togglePivotGroup(groupId) {
   const row = document.getElementById(groupId);
   if (!row) return;
@@ -222,6 +230,8 @@ function globalSearch() {
       if (!filtered) return;
   } else if (filterVal === 'own') {
       filtered = filtered.filter(p => p.owner === currentUser);
+  } else if (filterVal === 'bu') {
+      filtered = filtered.filter(p => p.buCreated);
   } else if (filterVal === 'shared') {
       filtered = filtered.filter(p => p.owner !== currentUser && ((p.sharedWith || '').toLowerCase().includes(currentUser) || p.groupShared));
   }
@@ -319,7 +329,7 @@ function calChipHtml_(p, detailed) {
   return `<button type="button" class="cal-card ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">
       <span class="cal-card-name">${escapeHtml(p.projectName)}</span>
       <span class="cal-card-meta"><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status || '-')}</span>
-      ${p.targetLang ? `<span class="cal-card-langs">${escapeHtml(p.targetLang)}</span>` : ''}</span>
+      ${p.targetLang ? `<span class="cal-card-langs">${escapeHtml(langsShort_(p.targetLang))}</span>` : ''}</span>
     </button>`;
 }
 
@@ -536,7 +546,7 @@ function openProjectDetail_(uid) {
   document.getElementById('drawerActions').innerHTML = a.join('');
 
   const due = p.dueDate ? `<span class="${dueClass_(p)}">${escapeHtml(new Date(p.dueDate).toLocaleString())}</span>` : '';
-  const langs = p.docProject ? docJobBadges_(p) : escapeHtml(p.targetLang || '');
+  const langs = p.docProject ? docJobBadges_(p) : escapeHtml(langsShort_(p.targetLang));
   let html = '<section class="pd-section">' + pdStepsHtml_(p.status) + '</section>';
   html += '<section class="pd-section"><h4>' + escapeHtml(tr_('pd_facts', 'Project')) + '</h4>' +
     pdRow_(tr_('jx_b3acfd2', 'Phrase ID'), p.projectUid ? `<a href="${p.phraseUrl}" target="_blank">${escapeHtml(p.projectUid)}</a>` : '') +

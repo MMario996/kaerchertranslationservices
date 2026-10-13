@@ -1,0 +1,469 @@
+<!-- MaxTemplateUi.html - "Maximaltemplate": XXL-Dialog, in dem alles einstellbar ist
+     (Basis-Vorlage, Sprachen, Workflow-Schritte, Provider je Schritt und Sprache,
+     Projekt-Einstellungen, TMs, TBs, MT, Prompt aus dem Prompt-Hub).
+     Nachgeladen per ensureScript_('MaxTemplateUi') (apiGetLazyScript, WebApp.gs).
+     Server: MaxTemplate.gs. Aufgerufen aus onTemplateGroupChange (JsForms.html). -->
+<script>
+const maxTpl_ = {};      // je Formular (suffix): { settings, base, sourceLang, targetLangs, baseLabel }
+let maxTplDlg_ = null;   // offener Dialog: { suffix, opts, s (Entwurf), sec }
+
+(function maxTplCss_() {
+  if (document.getElementById('maxTplCss')) return;
+  const st = document.createElement('style');
+  st.id = 'maxTplCss';
+  st.textContent = [
+    '.mx-ov { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:6100; display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; }',
+    '.mx-box { background:var(--k-surface,#fff); width:min(1400px, 100%); height:min(92vh, 1000px); display:flex; flex-direction:column; border-top:6px solid var(--primary-yellow); border-radius:var(--kg-r-lg,18px); box-shadow:var(--kg-elev-hi,0 10px 30px rgba(0,0,0,.25)); overflow:hidden; }',
+    '.mx-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:16px 22px; border-bottom:1px solid var(--k-line,#e8e8e4); }',
+    '.mx-head h3 { margin:0; font-size:17px; font-weight:800; text-transform:uppercase; display:flex; gap:8px; align-items:center; }',
+    '.mx-x { background:none; border:none; cursor:pointer; padding:6px; }',
+    '.mx-layout { flex:1; display:grid; grid-template-columns:230px minmax(0, 1fr); min-height:0; }',
+    '.mx-nav { display:flex; flex-direction:column; gap:4px; padding:14px; border-right:1px solid var(--k-line,#e8e8e4); background:var(--k-surface-2,#f7f7f5); }',
+    '.mx-nav button { display:flex; align-items:center; gap:8px; text-align:left; border:none; background:none; padding:10px 12px; border-radius:10px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; color:inherit; }',
+    '.mx-nav button.active { background:var(--kg-ink,#222); color:var(--primary-yellow); }',
+    '.mx-body { overflow:auto; padding:20px 24px; }',
+    '.mx-sec h4 { margin:0 0 6px; font-size:14px; text-transform:uppercase; font-weight:800; }',
+    '.mx-hint { font-size:12.5px; color:var(--k-ink-2,#666); margin:0 0 14px; line-height:1.5; }',
+    '.mx-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px 16px; margin-bottom:18px; }',
+    '.mx-f label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:var(--k-ink-2,#666); margin-bottom:4px; }',
+    '.mx-f input, .mx-f select, .mx-f textarea { width:100%; box-sizing:border-box; }',
+    '.mx-langs { display:flex; flex-wrap:wrap; gap:6px; max-height:220px; overflow:auto; padding:8px; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; }',
+    '.mx-langs input, .mx-check input[type=checkbox], .mx-step input[type=checkbox] { width:auto; height:auto; margin:0; }',
+    '.mx-langs label, .mx-check { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; padding:4px 9px; background:rgba(0,0,0,.04); border-radius:7px; cursor:pointer; text-transform:none; color:inherit; margin:0; }',
+    '.mx-steps { display:grid; gap:6px; margin-bottom:18px; }',
+    '.mx-step { display:grid; grid-template-columns:28px minmax(0, 1fr) 170px; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; }',
+    '.mx-step.off { opacity:.55; }',
+    '.mx-table-wrap { overflow:auto; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; }',
+    '.mx-table { border-collapse:collapse; font-size:12.5px; min-width:100%; }',
+    '.mx-table th, .mx-table td { border-bottom:1px solid var(--k-line,#eee); padding:7px 8px; text-align:left; vertical-align:top; }',
+    '.mx-table th { position:sticky; top:0; background:var(--k-surface-2,#f7f7f5); font-size:11px; text-transform:uppercase; }',
+    '.mx-chip { display:inline-flex; align-items:center; gap:3px; background:#e3f2fd; color:#0d47a1; border-radius:6px; padding:2px 6px; margin:0 4px 4px 0; font-size:11.5px; }',
+    '.mx-chip.v { background:#f3e5f5; color:#6a1b9a; }',
+    '.mx-chip button, .mx-mini { background:none; border:none; cursor:pointer; padding:0; display:inline-flex; color:inherit; }',
+    '.mx-chip .material-icons-outlined, .mx-mini .material-icons-outlined { font-size:14px; }',
+    '.mx-mini { border:1px dashed rgba(0,0,0,.25); border-radius:6px; padding:1px 6px; font-size:11.5px; gap:2px; align-items:center; }',
+    '.mx-search { position:relative; }',
+    '.mx-results { position:absolute; z-index:5; left:0; right:0; top:100%; background:var(--k-surface,#fff); border:1px solid var(--k-line,#ddd); border-radius:10px; box-shadow:var(--kg-elev,0 4px 14px rgba(0,0,0,.12)); max-height:240px; overflow:auto; }',
+    '.mx-results button { display:block; width:100%; text-align:left; border:none; background:none; padding:8px 12px; cursor:pointer; font:inherit; font-size:13px; color:inherit; }',
+    '.mx-results button:hover { background:rgba(255,237,0,.25); }',
+    '.mx-res-sub { font-size:11px; color:var(--k-ink-2,#888); }',
+    '.mx-list { display:grid; gap:6px; margin-bottom:12px; }',
+    '.mx-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; font-size:13px; }',
+    '.mx-row .name { flex:1; min-width:160px; font-weight:700; }',
+    '.mx-row input[type=number] { width:70px; }',
+    '.mx-prompt { min-height:220px; font-family:monospace; font-size:12.5px; }',
+    '.mx-box-ok { background:#f1f8e9; color:#33691e; padding:8px 12px; border-radius:8px; font-size:12.5px; margin-bottom:12px; }',
+    '.mx-foot { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:14px 22px; border-top:1px solid var(--k-line,#e8e8e4); flex-wrap:wrap; }',
+    '.mx-foot .btn { width:auto; padding:0 24px; height:42px; flex:0 0 auto; }',
+    '.mx-sum { font-size:12px; color:var(--k-ink-2,#666); }',
+    '@media (max-width: 800px) { .mx-layout { grid-template-columns:minmax(0, 1fr); grid-template-rows:auto minmax(0, 1fr); } .mx-nav { flex-direction:row; overflow-x:auto; border-right:none; border-bottom:1px solid var(--k-line,#e8e8e4); padding:8px; } .mx-body { padding:16px; } .mx-foot { padding:12px 16px; } }',
+    '.tmpl-option-max { font-weight:800; border-bottom:1px solid var(--k-line,#eee); }',
+    '.tmpl-option-max::before { content:"\\2605 "; color:#e6c200; }'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+function mxEsc_(v) { return escapeHtml(String(v == null ? '' : v)); }
+function mxLbl_(key, fallback) { return tr_(key, fallback).replace(/<[^>]*>[^<]*<\/[^>]*>/g, '').replace(/<[^>]*>/g, '').replace(/\*/g, '').trim(); }
+
+/** Einstellungen fuer collectFormPayload_ (JsUpload.html). */
+function maxTplSettingsFor_(suffix) {
+  return maxTpl_[suffix] ? JSON.parse(JSON.stringify(maxTpl_[suffix].settings)) : null;
+}
+
+/** Alle Vorlagen-Varianten, die die Person sehen darf: [{uid, label, source, targets}]. */
+function maxTplBaseChoices_() {
+  const out = [];
+  const seen = {};
+  Object.keys(templateGroups || {}).sort((a, b) => a.localeCompare(b)).forEach(gName => {
+    const g = templateGroups[gName];
+    if (!g || g.isMax) return;
+    Object.keys(g.variants).forEach(src => {
+      const v = g.variants[src];
+      if (!v.uid || seen[v.uid]) return;
+      seen[v.uid] = true;
+      out.push({ uid: v.uid, label: tplDisplayLabel_(gName) + ' (' + langShort_(src) + ')', source: src, targets: v.targets || [] });
+    });
+  });
+  return out;
+}
+
+function maxTplAllLangs_() {
+  const set = {};
+  Object.keys((configData && configData.languages) || {}).forEach(l => { set[l] = true; });
+  return Object.keys(set).filter(Boolean).sort((a, b) => getPrettyLangName(a).localeCompare(getPrettyLangName(b)));
+}
+
+function maxTplEmpty_() {
+  return { baseTemplateUid: '', workflowSteps: [], stepDue: {}, providers: {}, client: '', businessUnit: '', domain: '', subDomain: '', costCenter: '',
+    tmsOverride: false, tms: [], tbsOverride: false, tbs: [], mtSettingsUid: '', prompt: '', promptName: '' };
+}
+
+// --- Oeffnen / Schliessen ----------------------------------------------------------
+function maxTplOpen_(suffix) {
+  const prev = maxTpl_[suffix];
+  maxTplDlg_ = {
+    suffix: suffix, opts: null, sec: 'base',
+    s: prev ? JSON.parse(JSON.stringify(prev.settings)) : maxTplEmpty_(),
+    sourceLang: prev ? prev.sourceLang : '', targetLangs: prev ? prev.targetLangs.slice() : [],
+    isNew: !prev
+  };
+  const ov = document.createElement('div');
+  ov.className = 'mx-ov';
+  ov.id = 'maxTplOverlay';
+  ov.innerHTML = '<div class="mx-box" role="dialog" aria-modal="true" aria-labelledby="mxTitle">' +
+    '<div class="mx-head"><h3 id="mxTitle"><span class="material-icons-outlined">tune</span>' + mxEsc_((configData && configData.maxTemplateName) || 'Maximaltemplate') + '</h3>' +
+    '<button type="button" class="mx-x" onclick="maxTplClose_(false)" title="' + mxEsc_(tr_('btn_close', 'Close')) + '"><span class="material-icons-outlined">close</span></button></div>' +
+    '<div class="mx-layout"><nav class="mx-nav" id="mxNav"></nav><div class="mx-body" id="mxBody"></div></div>' +
+    '<div class="mx-foot"><div class="mx-sum" id="mxSum"></div><div style="display:flex;gap:10px;">' +
+    '<button type="button" class="btn btn-secondary" onclick="maxTplClose_(false)">' + mxEsc_(tr_('btn_cancel', 'Cancel')) + '</button>' +
+    '<button type="button" class="btn btn-primary" onclick="maxTplApply_()"><span class="material-icons-outlined" style="margin-right:8px;">check</span>' + mxEsc_(tr_('mx_apply', 'Apply settings')) + '</button></div></div></div>';
+  document.body.appendChild(ov);
+  if (maxTplDlg_.s.baseTemplateUid) maxTplLoadOptions_(maxTplDlg_.s.baseTemplateUid, false);
+  else maxTplLoadOptions_('', false);
+}
+
+function maxTplClose_(applied) {
+  const ov = document.getElementById('maxTplOverlay');
+  if (ov) ov.remove();
+  const d = maxTplDlg_;
+  maxTplDlg_ = null;
+  // Erstes Oeffnen abgebrochen: Auswahl im Dropdown zuruecknehmen.
+  if (!applied && d && d.isNew) {
+    const sel = document.getElementById('templateUid' + d.suffix);
+    if (sel) sel.value = '';
+    const txt = document.getElementById('tmplTriggerText' + d.suffix);
+    if (txt) { txt.textContent = tr_('opt_select_template', 'Select Template Type'); txt.style.color = '#999'; }
+    const list = document.getElementById('tmplOptionsList' + d.suffix);
+    if (list) list.querySelectorAll('.tmpl-option').forEach(o => o.classList.remove('selected'));
+    const edit = document.getElementById('maxTplEdit' + d.suffix);
+    if (edit) edit.style.display = 'none';
+  }
+}
+
+/** Kataloge + Standardwerte der Basis-Vorlage laden; applyDefaults: Entwurf damit vorbelegen. */
+function maxTplLoadOptions_(uid, applyDefaults) {
+  const body = document.getElementById('mxBody');
+  if (body) body.innerHTML = '<div style="text-align:center;padding:60px;"><div class="loader" style="margin:0 auto 10px;"></div>' + mxEsc_(tr_('mx_loading', 'Loading Phrase settings ...')) + '</div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!maxTplDlg_) return;
+    if (!res || !res.success) { showCustomAlert(mxEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); maxTplPaint_(); return; }
+    maxTplDlg_.opts = res;
+    if (applyDefaults && res.defaults) maxTplApplyDefaults_(res);
+    maxTplPaint_();
+  }).withFailureHandler(err => {
+    showCustomAlert(mxEsc_(err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error'));
+    maxTplPaint_();
+  }).apiMaxTplOptions(uid || '');
+}
+
+function maxTplApplyDefaults_(res) {
+  const d = res.defaults, s = maxTplDlg_.s;
+  s.workflowSteps = (d.workflowSteps || []).slice();
+  s.stepDue = {};
+  s.providers = {};
+  ['client', 'businessUnit', 'domain', 'subDomain', 'costCenter', 'mtSettingsUid'].forEach(k => { s[k] = d[k] || ''; });
+  s.tms = (d.tms || []).map(t => Object.assign({}, t));
+  s.tbs = (d.tbs || []).map(t => Object.assign({}, t));
+  s.tmsOverride = false;
+  s.tbsOverride = false;
+  s.prompt = res.templatePrompt ? res.templatePrompt.prompt : '';
+  s.promptName = res.templatePrompt ? res.templatePrompt.name : '';
+  if (d.sourceLang) maxTplDlg_.sourceLang = String(d.sourceLang).toLowerCase();
+  if (!maxTplDlg_.targetLangs.length) maxTplDlg_.targetLangs = (d.targetLangs || []).map(l => String(l).toLowerCase());
+}
+
+// --- Darstellung --------------------------------------------------------------------
+const MX_SECS_ = () => [
+  ['base', 'layers', tr_('mx_sec_base', 'Base & languages')],
+  ['workflow', 'account_tree', tr_('mx_sec_workflow', 'Workflow & providers')],
+  ['project', 'settings', tr_('mx_sec_project', 'Project settings')],
+  ['tm', 'storage', tr_('mx_sec_tm', 'TMs & termbases')],
+  ['ai', 'auto_awesome', tr_('mx_sec_ai', 'MT & prompt')]
+];
+
+function maxTplShowSec_(sec) { maxTplDlg_.sec = sec; maxTplPaint_(); }
+
+function maxTplPaint_() {
+  const d = maxTplDlg_;
+  if (!d) return;
+  document.getElementById('mxNav').innerHTML = MX_SECS_().map(x =>
+    '<button type="button" class="' + (d.sec === x[0] ? 'active' : '') + '" onclick="maxTplShowSec_(\'' + x[0] + '\')"><span class="material-icons-outlined">' + x[1] + '</span>' + mxEsc_(x[2]) + '</button>').join('');
+  const body = document.getElementById('mxBody');
+  body.innerHTML = '<div class="mx-sec">' + ({ base: maxTplSecBase_, workflow: maxTplSecWorkflow_, project: maxTplSecProject_, tm: maxTplSecTm_, ai: maxTplSecAi_ }[d.sec])() + '</div>';
+  maxTplSummary_();
+}
+
+function maxTplSummary_() {
+  const d = maxTplDlg_, s = d.s;
+  const base = maxTplBaseChoices_().filter(b => b.uid === s.baseTemplateUid)[0];
+  const nProv = Object.keys(s.providers).reduce((n, st) => n + Object.keys(s.providers[st]).length, 0);
+  document.getElementById('mxSum').textContent = [
+    base ? base.label : tr_('mx_no_base', 'No base template'),
+    (d.sourceLang || '?') + ' → ' + (d.targetLangs.length ? d.targetLangs.length + ' ' + tr_('mx_langs', 'languages') : '?'),
+    s.workflowSteps.length + ' ' + tr_('mx_steps', 'steps'),
+    nProv + ' ' + tr_('mx_assignments', 'assignments'),
+    s.prompt ? tr_('mx_prompt_set', 'prompt set') : ''
+  ].filter(Boolean).join(' · ');
+}
+
+function maxTplSecBase_() {
+  const d = maxTplDlg_, s = d.s;
+  const bases = maxTplBaseChoices_();
+  const langs = maxTplAllLangs_();
+  return '<h4>' + mxEsc_(tr_('mx_sec_base', 'Base & languages')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_base_hint', 'The base template provides the defaults (workflow, TMs, termbases, MT, prompt). Everything can be changed in the other sections.')) + '</p>' +
+    '<div class="mx-grid"><div class="mx-f" style="grid-column:1 / -1;"><label>' + mxEsc_(tr_('mx_base', 'Base template')) + ' *</label><select onchange="maxTplSetBase_(this.value)"><option value="">' + mxEsc_(tr_('opt_select_template', 'Select Template Type')) + '</option>' +
+    bases.map(b => '<option value="' + mxEsc_(b.uid) + '"' + (b.uid === s.baseTemplateUid ? ' selected' : '') + '>' + mxEsc_(b.label) + '</option>').join('') + '</select></div>' +
+    '<div class="mx-f"><label>' + mxEsc_(mxLbl_('lbl_source', 'Source language')) + ' *</label><select onchange="maxTplDlg_.sourceLang=this.value;maxTplSummary_()"><option value=""></option>' +
+    langs.map(l => '<option value="' + mxEsc_(l) + '"' + (l === d.sourceLang ? ' selected' : '') + '>' + mxEsc_(getPrettyLangName(l)) + '</option>').join('') + '</select></div></div>' +
+    '<div class="mx-f"><label>' + mxEsc_(mxLbl_('lbl_target', 'Target languages')) + ' * <input type="search" placeholder="' + mxEsc_(tr_('ph_search_language', 'Search language...')) + '" oninput="maxTplFilterLangs_(this.value)" style="width:200px;margin-left:10px;text-transform:none;"></label>' +
+    '<div class="mx-langs" id="mxLangs">' + langs.filter(l => l !== d.sourceLang).map(l => '<label data-l="' + mxEsc_(getPrettyLangName(l).toLowerCase() + ' ' + l) + '"><input type="checkbox" value="' + mxEsc_(l) + '"' + (d.targetLangs.indexOf(l) >= 0 ? ' checked' : '') +
+      ' onchange="maxTplToggleLang_(this.value, this.checked)"> ' + mxEsc_(getPrettyLangName(l)) + '</label>').join('') + '</div></div>';
+}
+
+function maxTplFilterLangs_(q) {
+  q = String(q || '').toLowerCase();
+  document.querySelectorAll('#mxLangs label').forEach(l => { l.style.display = l.getAttribute('data-l').indexOf(q) >= 0 ? '' : 'none'; });
+}
+function maxTplToggleLang_(l, on) {
+  const t = maxTplDlg_.targetLangs;
+  const i = t.indexOf(l);
+  if (on && i < 0) t.push(l);
+  if (!on && i >= 0) t.splice(i, 1);
+  maxTplSummary_();
+}
+function maxTplSetBase_(uid) {
+  maxTplDlg_.s.baseTemplateUid = uid;
+  maxTplLoadOptions_(uid, true);
+}
+
+function maxTplStepName_(id) {
+  const steps = (maxTplDlg_.opts && maxTplDlg_.opts.catalog && maxTplDlg_.opts.catalog.workflowSteps) || [];
+  const s = steps.filter(x => x.id === id)[0];
+  return s ? s.name : id;
+}
+
+function maxTplSecWorkflow_() {
+  const d = maxTplDlg_, s = d.s;
+  const steps = (d.opts && d.opts.catalog && d.opts.catalog.workflowSteps) || [];
+  let html = '<h4>' + mxEsc_(tr_('mx_wf_title', 'Workflow steps')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_wf_hint', 'Switch steps on or off and set an optional due date per step.')) + '</p><div class="mx-steps">' +
+    (steps.length ? steps.map(st => {
+      const on = s.workflowSteps.indexOf(st.id) >= 0;
+      return '<div class="mx-step' + (on ? '' : ' off') + '"><input type="checkbox"' + (on ? ' checked' : '') + ' onchange="maxTplToggleStep_(\'' + escapeJs(st.id) + '\', this.checked)">' +
+        '<div><b>' + mxEsc_(st.name) + '</b>' + (st.abbr ? ' <small>(' + mxEsc_(st.abbr) + ')</small>' : '') + '</div>' +
+        '<input type="date" value="' + mxEsc_(s.stepDue[st.id] || '') + '"' + (on ? '' : ' disabled') + ' onchange="maxTplSetStepDue_(\'' + escapeJs(st.id) + '\', this.value)" title="' + mxEsc_(tr_('mx_step_due', 'Due date of the step')) + '"></div>';
+    }).join('') : '<div class="mx-hint">' + mxEsc_(tr_('mx_no_steps', 'No workflow steps found in Phrase.')) + '</div>') + '</div>';
+
+  html += '<h4>' + mxEsc_(tr_('mx_prov_title', 'Providers per step and language')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_prov_hint', 'Empty = as in the template (automation or manual assignment in Phrase). Users and vendors can be searched by name.')) + '</p>';
+  if (!s.workflowSteps.length || !d.targetLangs.length) return html + '<div class="mx-hint">' + mxEsc_(tr_('mx_prov_need', 'Select target languages and at least one step first.')) + '</div>';
+  html += '<div class="mx-table-wrap"><table class="mx-table"><thead><tr><th>' + mxEsc_(tr_('mx_step', 'Step')) + '</th>' + d.targetLangs.map(l => '<th>' + mxEsc_(getPrettyLangName(l)) + '</th>').join('') + '</tr></thead><tbody>' +
+    s.workflowSteps.map(st => '<tr><td><b>' + mxEsc_(maxTplStepName_(st)) + '</b><br><button type="button" class="mx-mini" onclick="maxTplCopyRow_(\'' + escapeJs(st) + '\')" title="' + mxEsc_(tr_('mx_copy_row_t', 'Use the first language for all languages')) + '"><span class="material-icons-outlined">content_copy</span>' + mxEsc_(tr_('mx_copy_row', 'all languages')) + '</button></td>' +
+      d.targetLangs.map(l => {
+        const list = ((s.providers[st] || {})[l]) || [];
+        return '<td>' + list.map((p, i) => '<span class="mx-chip' + (p.type === 'VENDOR' ? ' v' : '') + '">' + mxEsc_(p.name || p.id) +
+          '<button type="button" onclick="maxTplRemoveProv_(\'' + escapeJs(st) + '\',\'' + escapeJs(l) + '\',' + i + ')"><span class="material-icons-outlined">close</span></button></span>').join('') +
+          '<div class="mx-search"><button type="button" class="mx-mini" onclick="maxTplProvSearch_(this, \'' + escapeJs(st) + '\',\'' + escapeJs(l) + '\')"><span class="material-icons-outlined">add</span>' + mxEsc_(tr_('mx_add', 'Add')) + '</button></div></td>';
+      }).join('') + '</tr>').join('') + '</tbody></table></div>';
+  return html;
+}
+
+function maxTplToggleStep_(id, on) {
+  const s = maxTplDlg_.s;
+  const steps = ((maxTplDlg_.opts && maxTplDlg_.opts.catalog.workflowSteps) || []).map(x => x.id);
+  const set = s.workflowSteps.filter(x => x !== id);
+  if (on) set.push(id);
+  s.workflowSteps = steps.filter(x => set.indexOf(x) >= 0);
+  if (!on) { delete s.stepDue[id]; delete s.providers[id]; }
+  maxTplPaint_();
+}
+function maxTplSetStepDue_(id, v) { if (v) maxTplDlg_.s.stepDue[id] = v; else delete maxTplDlg_.s.stepDue[id]; }
+function maxTplRemoveProv_(st, l, i) { const list = maxTplDlg_.s.providers[st][l]; list.splice(i, 1); if (!list.length) delete maxTplDlg_.s.providers[st][l]; maxTplPaint_(); }
+function maxTplCopyRow_(st) {
+  const d = maxTplDlg_;
+  const row = d.s.providers[st] || {};
+  const first = d.targetLangs.map(l => row[l]).filter(x => x && x.length)[0];
+  if (!first) return;
+  d.s.providers[st] = {};
+  d.targetLangs.forEach(l => { d.s.providers[st][l] = first.map(p => Object.assign({}, p)); });
+  maxTplPaint_();
+}
+
+/** Suchfeld (Phrase-User/Vendor) unter dem Plus-Knopf. */
+function maxTplProvSearch_(btn, st, l) {
+  const host = btn.parentNode;
+  host.innerHTML = '<select style="width:auto;height:30px;font-size:12px;"><option value="users">' + mxEsc_(tr_('mx_users', 'User')) + '</option><option value="vendors">' + mxEsc_(tr_('mx_vendors', 'Vendor')) + '</option></select> ' +
+    '<input type="search" style="height:30px;font-size:12px;width:150px;" placeholder="' + mxEsc_(tr_('mx_search_name', 'Search name ...')) + '"><div class="mx-results" hidden></div>';
+  const kindSel = host.querySelector('select'), inp = host.querySelector('input'), out = host.querySelector('.mx-results');
+  inp.focus();
+  maxTplWireSearch_(inp, () => kindSel.value, out, item => {
+    const s = maxTplDlg_.s;
+    s.providers[st] = s.providers[st] || {};
+    const list = s.providers[st][l] = s.providers[st][l] || [];
+    if (!list.some(p => p.id === item.id)) list.push({ type: item.type, id: item.id, name: item.name });
+    maxTplPaint_();
+  });
+}
+
+/** Gemeinsame Suche (Provider, TMs, TBs) mit kurzer Verzoegerung. */
+function maxTplWireSearch_(inp, kindFn, out, onPick) {
+  let t = null;
+  const run = () => {
+    const q = inp.value.trim();
+    out.hidden = false;
+    out.innerHTML = '<div style="padding:10px;"><div class="loader" style="width:18px;height:18px;border-width:3px;margin:0;"></div></div>';
+    google.script.run.withSuccessHandler(res => {
+      const items = (res && res.items) || [];
+      out.innerHTML = items.length ? '' : '<div style="padding:10px;font-size:12px;">' + mxEsc_(tr_('mx_no_hits', 'No hits.')) + '</div>';
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.innerHTML = mxEsc_(it.name) + (it.langs || it.role ? '<div class="mx-res-sub">' + mxEsc_(it.langs || it.role) + '</div>' : '');
+        b.onclick = () => onPick(it);
+        out.appendChild(b);
+      });
+    }).apiMaxTplSearch(kindFn(), q);
+  };
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 350); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(t); run(); } });
+  run();
+}
+
+function maxTplSecProject_() {
+  const d = maxTplDlg_, s = d.s;
+  const cat = (d.opts && d.opts.catalog) || {};
+  const sel = (key, list, label) => '<div class="mx-f"><label>' + mxEsc_(label) + '</label><select onchange="maxTplDlg_.s.' + key + '=this.value">' +
+    '<option value="">' + mxEsc_(tr_('mx_from_template', '(as in template)')) + '</option>' +
+    (list || []).map(x => '<option value="' + mxEsc_(x.id) + '"' + (String(x.id) === String(s[key]) ? ' selected' : '') + '>' + mxEsc_(x.name) + '</option>').join('') + '</select></div>';
+  return '<h4>' + mxEsc_(tr_('mx_sec_project', 'Project settings')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_proj_hint', 'Pre-filled from the base template. Due date and note are set in the form as usual.')) + '</p><div class="mx-grid">' +
+    sel('client', cat.clients, tr_('mx_client', 'Client')) + sel('businessUnit', cat.businessUnits, tr_('mx_bu', 'Business unit')) +
+    sel('domain', cat.domains, tr_('mx_domain', 'Domain')) + sel('subDomain', cat.subDomains, tr_('mx_subdomain', 'Subdomain')) +
+    sel('costCenter', cat.costCenters, tr_('mx_costcenter', 'Cost center')) + '</div>';
+}
+
+function maxTplSecTm_() {
+  const s = maxTplDlg_.s;
+  const tmRows = s.tms.map((t, i) => '<div class="mx-row"><span class="name">' + mxEsc_(t.name || t.uid) + '</span>' +
+    '<label class="mx-check"><input type="checkbox"' + (t.read ? ' checked' : '') + ' onchange="maxTplDlg_.s.tms[' + i + '].read=this.checked"> ' + mxEsc_(tr_('mx_read', 'Read')) + '</label>' +
+    '<label class="mx-check"><input type="checkbox"' + (t.write ? ' checked' : '') + ' onchange="maxTplSetWrite_(\'tms\',' + i + ',this.checked)"> ' + mxEsc_(tr_('mx_write', 'Write')) + '</label>' +
+    '<label class="mx-check">' + mxEsc_(tr_('mx_penalty', 'Penalty %')) + ' <input type="number" min="0" max="100" value="' + mxEsc_(t.penalty) + '" onchange="maxTplDlg_.s.tms[' + i + '].penalty=Number(this.value)||0"></label>' +
+    '<button type="button" class="mx-mini" onclick="maxTplDlg_.s.tms.splice(' + i + ',1);maxTplPaint_()"><span class="material-icons-outlined">delete</span></button></div>').join('');
+  const tbRows = s.tbs.map((t, i) => '<div class="mx-row"><span class="name">' + mxEsc_(t.name || t.id) + '</span>' +
+    '<label class="mx-check"><input type="checkbox"' + (t.read ? ' checked' : '') + ' onchange="maxTplDlg_.s.tbs[' + i + '].read=this.checked"> ' + mxEsc_(tr_('mx_read', 'Read')) + '</label>' +
+    '<label class="mx-check"><input type="checkbox"' + (t.write ? ' checked' : '') + ' onchange="maxTplSetWrite_(\'tbs\',' + i + ',this.checked)"> ' + mxEsc_(tr_('mx_write', 'Write')) + '</label>' +
+    '<label class="mx-check"><input type="checkbox"' + (t.qa ? ' checked' : '') + ' onchange="maxTplDlg_.s.tbs[' + i + '].qa=this.checked"> QA</label>' +
+    '<button type="button" class="mx-mini" onclick="maxTplDlg_.s.tbs.splice(' + i + ',1);maxTplPaint_()"><span class="material-icons-outlined">delete</span></button></div>').join('');
+  const block = (key, title, hint, rows, kind) =>
+    '<h4>' + mxEsc_(title) + '</h4><label class="mx-check" style="margin-bottom:10px;"><input type="checkbox"' + (s[key + 'Override'] ? ' checked' : '') + ' onchange="maxTplDlg_.s.' + key + 'Override=this.checked;maxTplPaint_()"> ' +
+    mxEsc_(tr_('mx_override', 'Override the template setting')) + '</label><p class="mx-hint">' + mxEsc_(hint) + '</p>' +
+    '<div style="' + (s[key + 'Override'] ? '' : 'opacity:.55;pointer-events:none;') + '"><div class="mx-list">' + (rows || '<div class="mx-hint">-</div>') + '</div>' +
+    '<div class="mx-search" style="max-width:420px;margin-bottom:24px;"><input type="search" placeholder="' + mxEsc_(tr_('mx_search_add', 'Search and add ...')) + '" onfocus="maxTplWireOnce_(this, \'' + kind + '\')"><div class="mx-results" hidden></div></div></div>';
+  return block('tms', tr_('mx_tms', 'Translation memories'), tr_('mx_tm_hint', 'Order = priority. Only one TM can be written to.'), tmRows, 'tms') +
+    block('tbs', tr_('mx_tbs', 'Termbases'), tr_('mx_tb_hint', 'Read, write (only one) and QA per termbase.'), tbRows, 'tbs');
+}
+
+function maxTplSetWrite_(key, i, on) {
+  maxTplDlg_.s[key].forEach((t, j) => { t.write = on && j === i; });
+  maxTplPaint_();
+}
+
+function maxTplWireOnce_(inp, kind) {
+  if (inp.dataset.wired) return;
+  inp.dataset.wired = '1';
+  maxTplWireSearch_(inp, () => kind, inp.nextElementSibling, it => {
+    const s = maxTplDlg_.s;
+    if (kind === 'tms' && !s.tms.some(t => t.uid === it.uid)) s.tms.push({ uid: it.uid, name: it.name, read: true, write: false, penalty: 0 });
+    if (kind === 'tbs' && !s.tbs.some(t => t.id === it.id)) s.tbs.push({ id: it.id, name: it.name, read: true, write: false, qa: true });
+    maxTplPaint_();
+  });
+}
+
+function maxTplSecAi_() {
+  const d = maxTplDlg_, s = d.s, o = d.opts || {};
+  const mts = (o.catalog && o.catalog.mtSettings) || [];
+  const prompts = o.prompts || [];
+  const tp = o.templatePrompt;
+  return '<h4>' + mxEsc_(tr_('mx_mt', 'Machine translation')) + '</h4><div class="mx-grid"><div class="mx-f"><label>' + mxEsc_(tr_('mx_mt_engine', 'MT setting')) + '</label><select onchange="maxTplDlg_.s.mtSettingsUid=this.value">' +
+    '<option value="">' + mxEsc_(tr_('mx_from_template', '(as in template)')) + '</option>' +
+    mts.map(m => '<option value="' + mxEsc_(m.uid) + '"' + (m.uid === s.mtSettingsUid ? ' selected' : '') + '>' + mxEsc_(m.name) + (m.type ? ' (' + mxEsc_(m.type) + ')' : '') + '</option>').join('') + '</select></div></div>' +
+    '<h4>' + mxEsc_(tr_('mx_prompt', 'Prompt')) + '</h4>' +
+    (tp ? '<div class="mx-box-ok"><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">bookmark</span> ' + mxEsc_(tr_('mx_tpl_prompt', 'Prompt stored for the base template:')) + ' <b>' + mxEsc_(tp.name) + '</b> ' +
+      '<button type="button" class="mx-mini" onclick="maxTplUsePrompt_(-1)"><span class="material-icons-outlined">visibility</span>' + mxEsc_(tr_('mx_show_prompt', 'Show / use')) + '</button></div>' : '<p class="mx-hint">' + mxEsc_(tr_('mx_no_tpl_prompt', 'No prompt is stored for the base template in the Prompt Hub.')) + '</p>') +
+    '<div class="mx-grid"><div class="mx-f"><label>' + mxEsc_(tr_('mx_prompt_hub', 'From the Prompt Hub')) + '</label><select onchange="if(this.value!==\'\')maxTplUsePrompt_(Number(this.value))"><option value="">-</option>' +
+    prompts.map((p, i) => '<option value="' + i + '"' + (p.name === s.promptName ? ' selected' : '') + '>' + mxEsc_(p.name) + '</option>').join('') + '</select></div>' +
+    '<div class="mx-f" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">' +
+    (o.promptHubUrl ? '<a class="btn btn-secondary" style="width:auto;height:40px;padding:0 16px;display:inline-flex;align-items:center;gap:6px;" href="' + mxEsc_(o.promptHubUrl) + '" target="_blank"><span class="material-icons-outlined">open_in_new</span>' + mxEsc_(tr_('mx_open_hub', 'Open Prompt Hub')) + '</a>' : '') +
+    (maxTplPromptLink_() ? '<a href="' + mxEsc_(maxTplPromptLink_()) + '" target="_blank" style="font-size:12.5px;">' + mxEsc_(tr_('mx_prompt_source', 'Source of this prompt')) + '</a>' : '') + '</div></div>' +
+    '<div class="mx-f"><label>' + mxEsc_(tr_('mx_prompt_text', 'Prompt text (editable)')) + (s.promptName ? ' – ' + mxEsc_(s.promptName) : '') + '</label>' +
+    '<textarea class="mx-prompt" oninput="maxTplDlg_.s.prompt=this.value;maxTplSummary_()" placeholder="' + mxEsc_(tr_('mx_prompt_ph', 'Empty = no prompt')) + '">' + mxEsc_(s.prompt) + '</textarea></div>' +
+    '<p class="mx-hint" style="margin-top:8px;">' + mxEsc_(fmt_(tr_('mx_prompt_where', 'Stored in the Phrase custom field "{f}" (or appended to the project note if the field does not exist).'), { f: o.promptField || 'AI Prompt' })) + '</p>';
+}
+
+function maxTplPromptLink_() {
+  const o = maxTplDlg_.opts || {};
+  const p = (o.prompts || []).filter(x => x.name === maxTplDlg_.s.promptName)[0];
+  return p && /^https:/i.test(p.link) ? p.link : '';
+}
+
+function maxTplUsePrompt_(i) {
+  const o = maxTplDlg_.opts || {};
+  const p = i < 0 ? o.templatePrompt : (o.prompts || [])[i];
+  if (!p) return;
+  maxTplDlg_.s.prompt = p.prompt;
+  maxTplDlg_.s.promptName = p.name;
+  maxTplPaint_();
+}
+
+// --- Uebernehmen --------------------------------------------------------------------------------
+function maxTplApply_() {
+  const d = maxTplDlg_, s = d.s;
+  const missing = [];
+  if (!s.baseTemplateUid) missing.push(tr_('mx_base', 'Base template'));
+  if (!d.sourceLang) missing.push(mxLbl_('lbl_source', 'Source language'));
+  if (!d.targetLangs.length) missing.push(mxLbl_('lbl_target', 'Target languages'));
+  if (missing.length) { showCustomAlert(mxEsc_(tr_('mx_missing', 'Please fill in:') + ' ' + missing.join(', '))); d.sec = 'base'; maxTplPaint_(); return; }
+  // Provider nur fuer gewaehlte Sprachen/Schritte behalten.
+  Object.keys(s.providers).forEach(st => {
+    if (s.workflowSteps.indexOf(st) < 0) { delete s.providers[st]; return; }
+    Object.keys(s.providers[st]).forEach(l => { if (d.targetLangs.indexOf(l) < 0) delete s.providers[st][l]; });
+  });
+  const base = maxTplBaseChoices_().filter(b => b.uid === s.baseTemplateUid)[0];
+  const suffix = d.suffix;
+  const name = (configData && configData.maxTemplateName) || 'Maximaltemplate';
+  maxTpl_[suffix] = { settings: JSON.parse(JSON.stringify(s)), sourceLang: d.sourceLang, targetLangs: d.targetLangs.slice(), baseLabel: base ? base.label : '' };
+  const variants = {};
+  variants[d.sourceLang] = { uid: s.baseTemplateUid, source: d.sourceLang, targets: d.targetLangs.slice(), targetUidMap: {} };
+  templateGroups[name] = { name: name, isMax: true, forSuffix: suffix, displayName: name + (base ? ' (' + base.label + ')' : ''), variants: variants };
+  maxTplClose_(true);
+
+  // Formular wie bei einer normalen Vorlage aufbauen, Zielsprachen vorbelegen.
+  const sel = document.getElementById('templateUid' + suffix);
+  if (sel) {
+    if (!Array.from(sel.options).some(o => o.value === name)) { const o = document.createElement('option'); o.value = name; o.text = name; sel.appendChild(o); }
+    sel.value = name;
+  }
+  const txt = document.getElementById('tmplTriggerText' + suffix);
+  if (txt) { txt.textContent = templateGroups[name].displayName; txt.style.color = '#333'; }
+  onTemplateGroupChange(suffix);
+  d.targetLangs.forEach(l => { const cb = document.getElementById('cbtargetLang' + suffix + '_' + l); if (cb) cb.checked = true; });
+  updateTriggerText(suffix);
+  maxTplEnsureEditButton_(suffix);
+}
+
+/** Knopf "Maximaltemplate bearbeiten" unter dem Vorlagen-Dropdown. */
+function maxTplEnsureEditButton_(suffix) {
+  let b = document.getElementById('maxTplEdit' + suffix);
+  if (!b) {
+    const wrap = document.getElementById('tmplWrapper' + suffix);
+    if (!wrap) return;
+    b = document.createElement('button');
+    b.type = 'button';
+    b.id = 'maxTplEdit' + suffix;
+    b.className = 'btn btn-secondary';
+    b.style.cssText = 'width:auto;height:34px;padding:0 14px;margin-top:8px;font-size:12px;';
+    b.innerHTML = '<span class="material-icons-outlined" style="font-size:16px;margin-right:6px;">tune</span>' + mxEsc_(tr_('mx_edit', 'Edit Maximaltemplate'));
+    b.onclick = () => maxTplOpen_(suffix);
+    wrap.parentNode.appendChild(b);
+  }
+  b.style.display = '';
+}
+</script>

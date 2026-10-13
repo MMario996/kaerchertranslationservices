@@ -25,28 +25,34 @@ function getConfig_(impersonateEmail) {
     isImpersonating = true;
   }
 
+  // Urlaubsvertretung (Deputies.gs): Bereiche und Vorlagen der vertretenen Personen dazu.
+  let deputyFor = [];
+  try { deputyFor = deputyPrincipalsOf_(effectiveUser); } catch (e) { deputyFor = []; }
+  const anyOf = fn => fn(effectiveUser) || deputyFor.some(p => { try { return fn(p); } catch (e) { return false; } });
+
   // ?? Whitelists ??
-  const isMarketing = isMarketingUser_(effectiveUser);
-  const isKeC = isKeCUser_(effectiveUser);
-  const isDoc = isDocUser_(effectiveUser);
-  const isArticulate = isArticulateUser_(effectiveUser);
-  const isWoma = isWomaUser_(effectiveUser);
-  const isCc = isCcUser_(effectiveUser);
+  const isMarketing = anyOf(isMarketingUser_);
+  const isKeC = anyOf(isKeCUser_);
+  const isDoc = anyOf(isDocUser_);
+  const isArticulate = anyOf(isArticulateUser_);
+  const isWoma = anyOf(isWomaUser_);
+  const isCc = anyOf(isCcUser_);
 
   const effectiveIsAdmin = isAdmin_(effectiveUser);
   const adminLightSubtabs = effectiveIsAdmin ? [] : getAdminLightSubtabs_(effectiveUser);
-  const isGeneral = isGeneralUser_(effectiveUser);
+  const isGeneral = anyOf(isGeneralUser_);
   // isExclusive: User sieht NUR den jeweiligen Spezial-Tab (kein "General Projects")
   const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isArticulate);
 
   // ?? FETCH TEMPLATES AND FILTER ??
   const allTemplates = readTemplates_();
   const userData = getUserData_(effectiveUser);
+  const deputyData = deputyFor.map(p => getUserData_(p));
   const allowedTemplates = {};
 
   for (let key in allTemplates) {
     const t = allTemplates[key];
-    const hasAccess = effectiveIsAdmin || templateMatchesUser_(t, userData);
+    const hasAccess = effectiveIsAdmin || templateMatchesUser_(t, userData) || deputyData.some(d => templateMatchesUser_(t, d));
 
     if (hasAccess) {
       allowedTemplates[key] = t;
@@ -77,6 +83,12 @@ function getConfig_(impersonateEmail) {
     isExclusive: isExclusive,
     maintenance: maintenance,
     adminLightSubtabs: adminLightSubtabs,
+    deputyFor: deputyFor,
+    sandbox: (function () { try { return sandboxActive_(); } catch (e) { return false; } })(),
+    isConsultant: !isImpersonating && typeof isMarketingConsultant_ === "function" && isMarketingConsultant_(currentUser),
+    precalcEnabled: typeof precalcEnabled_ === "function" && precalcEnabled_(),
+    maxTemplatePortals: (function () { try { return maxTplAllowed_(effectiveUser) ? maxTplPortals_() : []; } catch (e) { return []; } })(),
+    maxTemplateName: typeof MAXTPL_NAME_ === "string" ? MAXTPL_NAME_ : "Maximaltemplate",
     userPrefs: (function () { try { return apiGetUserPrefs().prefs; } catch (e) { return {}; } })(),
     announcements: announcementsForUser_({
       isGeneral: isGeneral, isMarketing: isMarketing, isWoma: isWoma, isCc: isCc, isKeC: isKeC,
@@ -195,6 +207,7 @@ function getAccessSheetId_() {
 }
 
 function getOpsSheetId_() {
+  if (sandboxActive_() && sandboxOpsSheetId_()) return sandboxOpsSheetId_();
   return PropertiesService.getScriptProperties().getProperty("OPS_SHEET_ID") || DEFAULT_OPS_SHEET_ID;
 }
 
@@ -272,8 +285,8 @@ function templateMatchesUser_(template, userData) {
 
 function readTemplates_() {
   const ss = SpreadsheetApp.openById(getAccessSheetId_());
-  const sh = ss.getSheetByName(TEMPLATE_SHEET_NAME);
-  if (!sh) throw new Error("Template sheet not found: " + TEMPLATE_SHEET_NAME);
+  const sh = ss.getSheetByName(templateSheetName_());
+  if (!sh) throw new Error("Template sheet not found: " + templateSheetName_());
 
   const values = sh.getDataRange().getValues();
   if (!values || values.length < 2) return {};

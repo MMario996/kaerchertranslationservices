@@ -17,7 +17,7 @@ const jsFiles = includes.filter((n) => n.startsWith('Js')).map((n) => n + '.html
 // Nachgeladene Teile der Nutzeroberflaeche (nicht im Startdokument, siehe UserPrefs.gs).
 const lazyUserFiles = ['HomeUi.html', 'PrefsUi.html'];
 // Nachgeladene Skripte (apiGetLazyScript, WebApp.gs).
-const lazyScripts = ['JsCampus.html', 'KecSettingsUi.html'];
+const lazyScripts = ['JsCampus.html', 'KecSettingsUi.html', 'MarketingUi.html', 'MaxTemplateUi.html'];
 // Nachgeladene Admin-Skripte (ebenfalls apiGetLazyScript, Texte aus ADMIN_I18N_).
 const lazyAdminScripts = ['AdminManagersUi.html'];
 const uiFiles = ['Index.html', ...jsFiles, ...lazyScripts, ...lazyAdminScripts, ...lazyUserFiles, 'AdminConsole.html', 'AdminScript.html', 'PivotAdminConsole.html', 'PivotAdminScript.html', 'TranslateUi.html'];
@@ -176,6 +176,9 @@ test('Nachgeladene Skripte: nicht im Startdokument, vom Server erlaubt, in SelfT
     assert.ok(!includes.includes(n), n + ' steckt noch im Startdokument');
     assert.ok(allowed.includes('"' + n + '"'), n + ' fehlt in LAZY_SCRIPTS_');
     assert.ok(read('SelfTests.gs').includes('"' + n + '"'), n + ' fehlt in SELF_TEST_INCLUDE_FILES_');
+    // Apps Script entfernt "//"-Kommentare zeilenweise - auch in Strings/Regex.
+    const stripped = scriptsOf(f).split('\n').map((l) => l.replace(/(^|[^:])\/\/.*$/, '$1')).join('\n');
+    assert.doesNotThrow(() => new vm.Script(stripped), f + ' nach Kommentar-Entfernung');
   });
 });
 

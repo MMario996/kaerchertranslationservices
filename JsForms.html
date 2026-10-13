@@ -16,7 +16,8 @@ function initForm(config) {
 
   _adminLightSubtabs_ = config.adminLightSubtabs || [];
   // "dashboard" ist kein Admin-Subtab, sondern schaltet nur den Dashboard-Reiter frei.
-  const lightAdminSubtabs = _adminLightSubtabs_.filter(s => s !== 'dashboard');
+  // "dashboard" und "consulting" (Marketing Projects -> Consulting) sind keine Admin-Subtabs.
+  const lightAdminSubtabs = _adminLightSubtabs_.filter(s => s !== 'dashboard' && s !== 'consulting');
   if (config.isAdmin || _adminLightSubtabs_.includes('dashboard')) {
     document.getElementById('btn-dashboard').style.display = 'block';
   }
@@ -44,7 +45,8 @@ function initForm(config) {
     if (btnRequest) btnRequest.style.display = 'none';
   }
 
-  const showMarketing = config.isMarketing || (config.isAdmin && !config.isImpersonating);
+  // Consultants (Admin-Light "consulting") brauchen den Reiter fuer den Unterreiter Consulting.
+  const showMarketing = config.isMarketing || config.isConsultant || (config.isAdmin && !config.isImpersonating);
   if (showMarketing) {
     if (btnMarketing) btnMarketing.style.display = 'block';
   } else {
@@ -122,6 +124,8 @@ function initForm(config) {
     if (btnDoc) btnDoc.style.display = 'none';
   }
 
+  const sbx = document.getElementById('sandboxBanner');
+  if (sbx) sbx.hidden = !config.sandbox;
   if (config.isImpersonating) {
     document.getElementById('simulationBanner').style.display = 'flex';
     document.getElementById('simulatedUserDisplay').innerText = config.effectiveUser;
@@ -146,6 +150,7 @@ function initForm(config) {
     const mktNote = document.getElementById('note_marketing');
     if (mktNote) mktNote.placeholder = 'Angebot bitte an vorname.nachname@karcher.com schicken.';
     activePortals.push('_marketing');
+    initMarketingExtras_(config);
   }
   const btnWoma = document.getElementById('btn-nav-woma');
   const showWoma = config.isWoma || (config.isAdmin && !config.isImpersonating);
@@ -182,6 +187,44 @@ function initForm(config) {
   const nav = document.getElementById('mainTabNav');
   if (nav) nav.classList.add('app-ready');
   updatePortalNav_();
+}
+
+// --- Marketing: "Ask for Consulting", Vorab-Kalkulation, Consulting -----------
+// Die Inhalte liegen in MarketingUi.html (nachgeladen, Startdokument-Grenze).
+function initMarketingExtras_(config) {
+  const nav = document.getElementById('mktSubNav');
+  if (nav) nav.style.display = '';
+  const pcBtn = document.getElementById('mktsubBtn-precalc');
+  if (pcBtn) pcBtn.style.display = config.precalcEnabled ? '' : 'none';
+  // Nur Consultant (ohne Marketing-Freischaltung): direkt in "Consulting", ohne Anlegen/Kalkulation.
+  if (config.isConsultant && !config.isMarketing && !config.isAdmin) {
+    ['mktsubBtn-create', 'mktsubBtn-precalc'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    setTimeout(() => switchMktSubtab('consulting'), 0);
+    return;
+  }
+  // Zweiter Button neben "Projekt anlegen".
+  const submit = document.getElementById('submitBtn_marketing');
+  if (submit && !document.getElementById('consultBtn_marketing')) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.id = 'consultBtn_marketing';
+    b.className = 'btn btn-secondary';
+    b.style.cssText = 'width:auto;padding:0 30px;margin-right:12px;';
+    b.innerHTML = '<span class="material-icons-outlined" style="margin-right:8px;">support_agent</span><span data-i18n="mk_ask_consulting">' + escapeHtml(tr_('mk_ask_consulting', 'Ask for Consulting')) + '</span>';
+    b.onclick = () => ensureScript_('MarketingUi', () => mktAskConsulting_('_marketing'));
+    submit.parentNode.insertBefore(b, submit);
+  }
+}
+
+function switchMktSubtab(name) {
+  ['create', 'precalc', 'consulting'].forEach(n => {
+    const pane = document.getElementById('mktsub-' + n);
+    const btn = document.getElementById('mktsubBtn-' + n);
+    if (pane) pane.style.display = n === name ? '' : 'none';
+    if (btn) btn.classList.toggle('active', n === name);
+  });
+  if (name === 'consulting') ensureScript_('MarketingUi', () => mktConsultingRender_());
+  if (name === 'precalc') ensureScript_('MarketingUi', () => mktPrecalcRender_());
 }
 
 // --- Navigation: "Neues Projekt" + Bereichszeile -------------------------------
@@ -572,6 +615,7 @@ function renderTemplateOptions(suffix) {
   const normal = [];
   const pinned = [];
   allKeys.forEach(gName => {
+    if (templateGroups[gName] && templateGroups[gName].isMax) return; // nur ueber maxTemplateNameFor_
     const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim().toLowerCase();
     const isPinned = TEMPLATE_PIN_TO_END_KEYWORDS.some(kw => label.includes(kw));
     if (isPinned) pinned.push(gName);
@@ -585,6 +629,9 @@ function renderTemplateOptions(suffix) {
   normal.sort(sortFn);
   pinned.sort(sortFn);
   const sortedKeys = [...normal, ...pinned];
+  // "Maximaltemplate" (MaxTemplateUi.html): immer oben, wenn fuer diesen Bereich erlaubt.
+  const maxName = maxTemplateNameFor_(suffix);
+  if (maxName && sortedKeys.indexOf(maxName) < 0) sortedKeys.unshift(maxName);
 
   const currentVal = tmplSelect.value;
   tmplSelect.innerHTML = '<option disabled value="">' + tr_('opt_select_template', 'Select Template Type') + '</option>';
@@ -605,10 +652,10 @@ function renderTemplateOptions(suffix) {
   sortedKeys.forEach(gName => {
     const label = gName.replace(/^\[([^\]]+)\]\s*/, '').trim();
     const div = document.createElement('div');
-    div.className = 'tmpl-option' + (gName === currentVal ? ' selected' : '');
+    div.className = 'tmpl-option' + (gName === currentVal ? ' selected' : '') + (gName === maxName ? ' tmpl-option-max' : '');
     div.dataset.value = gName;
-    div.textContent = label;
-    div.onclick = () => selectTemplateOption_(suffix, gName, label);
+    div.textContent = tplDisplayLabel_(gName === maxName ? label : gName);
+    div.onclick = () => selectTemplateOption_(suffix, gName, div.textContent);
     optionsList.appendChild(div);
   });
 }
@@ -707,9 +754,23 @@ function groupTemplates(rawTemplates) {
   return groups;
 }
 
+/** Name des Maximaltemplates, wenn es in diesem Formular angeboten wird, sonst ''. */
+function maxTemplateNameFor_(suffix) {
+  const portals = (configData && configData.maxTemplatePortals) || [];
+  return portals.indexOf(String(suffix).replace(/^_/, '')) >= 0 ? (configData.maxTemplateName || 'Maximaltemplate') : '';
+}
+
 function onTemplateGroupChange(suffix) {
   const tmplSelect = document.getElementById('templateUid' + suffix);
   if(!tmplSelect || !tmplSelect.value) return;
+  // Maximaltemplate: erst den XXL-Dialog, der die Gruppe (Basis-Vorlage + alle Sprachen) anlegt.
+  const maxName = maxTemplateNameFor_(suffix);
+  const editBtn = document.getElementById('maxTplEdit' + suffix);
+  if (editBtn) editBtn.style.display = tmplSelect.value === maxName ? '' : 'none';
+  if (maxName && tmplSelect.value === maxName && !(templateGroups[maxName] && templateGroups[maxName].forSuffix === suffix)) {
+    ensureScript_('MaxTemplateUi', () => maxTplOpen_(suffix));
+    return;
+  }
   selectedGroup = templateGroups[tmplSelect.value];
   finalSelectedUid = null;
   hidePivotTargetLangRow_(suffix);
@@ -851,13 +912,14 @@ function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
     .apiGetPivotChildLanguageOptions(tData.uid);
 }
 
+/** Ueberall gleich: "🇪🇸 ES · Spanish (Spain)" (Flagge + Kuerzel + Name), siehe langShort_ in JsCore. */
 function getPrettyLangName(code) {
   if (!code) return tr_('jx_88183b9', 'Unknown');
   const key = code.toLowerCase().replace(/-/g, "_");
-  if (PRETTY_LANG_MAP[key]) return PRETTY_LANG_MAP[key];
   const base = key.split("_")[0];
-  if (PRETTY_LANG_MAP[base]) return PRETTY_LANG_MAP[base];
-  return (configData.languages && configData.languages[key]) || code;
+  const full = PRETTY_LANG_MAP[key] || PRETTY_LANG_MAP[base] || '';
+  const name = full.replace(/^\S+\s*/, '');
+  return langShort_(code) + (name ? ' · ' + name : '');
 }
 
 function initMultiSelect(suffix, targetCodes, prefix) {

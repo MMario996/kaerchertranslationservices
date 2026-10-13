@@ -1,0 +1,549 @@
+<!-- MarketingUi.html - Marketing Projects: "Ask for Consulting", Unterreiter
+     "Consulting" (Anfragen mit Historie, Consultant bearbeitet und reicht ein) und
+     "Vorab-Kalkulation" (Phrase-Analyse + Quote). Nachgeladen per
+     ensureScript_('MarketingUi') (apiGetLazyScript, WebApp.gs), damit das
+     Startdokument nicht waechst. Server: MarketingConsulting.gs, MarketingPrecalc.gs. -->
+<script>
+const mkt_ = { list: null, filter: 'open', current: null, detail: null, pc: null, pcTimer: null };
+
+(function mktCss_() {
+  if (document.getElementById('mktUiCss')) return;
+  const st = document.createElement('style');
+  st.id = 'mktUiCss';
+  st.textContent = [
+    '.mkt-ov { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:6000; display:flex; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }',
+    '.mkt-box { background:var(--k-surface,#fff); width:560px; max-width:100%; max-height:92vh; overflow:auto; border-top:6px solid var(--primary-yellow); border-radius:var(--kg-r-lg,18px); box-shadow:var(--kg-elev-hi,0 10px 30px rgba(0,0,0,.25)); padding:24px; box-sizing:border-box; }',
+    '.mkt-box h3 { margin:0 0 12px; font-size:16px; font-weight:800; text-transform:uppercase; display:flex; align-items:center; gap:8px; }',
+    '.mkt-box textarea { width:100%; box-sizing:border-box; min-height:130px; }',
+    '.mkt-hint { font-size:13px; color:var(--k-ink-2,#666); line-height:1.5; margin:0 0 12px; }',
+    '.mkt-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:16px; }',
+    '.mkt-actions .btn { width:auto; padding:0 22px; height:40px; flex:0 0 auto; }',
+    '.mkt-wrap { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); gap:20px; align-items:start; }',
+    '@media (max-width: 1000px) { .mkt-wrap { grid-template-columns:minmax(0, 1fr); } }',
+    '.mkt-wrap .card { margin:0; }',
+    '.mkt-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }',
+    '.mkt-head .section-title { margin:0; border:none; padding:0; }',
+    '.mkt-chips { display:flex; gap:6px; flex-wrap:wrap; }',
+    '.mkt-chip { border:1px solid var(--k-line,#e8e8e4); background:var(--kg-glass,rgba(255,255,255,.7)); padding:5px 12px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; }',
+    '.mkt-chip.active { background:var(--kg-ink,#222); color:var(--primary-yellow); border-color:transparent; }',
+    '.mkt-list { display:grid; gap:8px; }',
+    '.mkt-item { text-align:left; width:100%; border:1px solid var(--k-line,#e8e8e4); background:var(--k-surface,#fff); padding:10px 12px; border-radius:var(--kg-r,12px); cursor:pointer; display:grid; gap:3px; font:inherit; color:inherit; }',
+    '.mkt-item:hover, .mkt-item.active { box-shadow:var(--kg-elev,0 2px 8px rgba(0,0,0,.08)); border-color:var(--primary-yellow); }',
+    '.mkt-item-top { display:flex; justify-content:space-between; gap:8px; align-items:center; }',
+    '.mkt-item-name { font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }',
+    '.mkt-item-sub { font-size:12px; color:var(--k-ink-2,#666); }',
+    '.mkt-st { font-size:10.5px; font-weight:800; text-transform:uppercase; padding:2px 8px; border-radius:999px; white-space:nowrap; }',
+    '.mkt-st-OPEN { background:#fffbe0; color:#8a6d00; } .mkt-st-IN_PROGRESS { background:#e3f2fd; color:#0d47a1; }',
+    '.mkt-st-SUBMITTED { background:#f1f8e9; color:#33691e; } .mkt-st-CLOSED { background:#ffebee; color:#777; }',
+    '.mkt-grid2 { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px 16px; }',
+    '@media (max-width: 700px) { .mkt-grid2 { grid-template-columns:minmax(0, 1fr); } }',
+    '.mkt-grid2 .full { grid-column:1 / -1; }',
+    '.mkt-field label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:var(--k-ink-2,#666); margin-bottom:4px; }',
+    '.mkt-field input, .mkt-field select, .mkt-field textarea { width:100%; box-sizing:border-box; }',
+    '.mkt-langs { display:flex; flex-wrap:wrap; gap:6px; max-height:160px; overflow:auto; padding:6px; border:1px solid var(--k-line,#e8e8e4); border-radius:8px; }',
+    '.mkt-langs input { width:auto; height:auto; margin:0; }',
+    '.mkt-head .btn { flex:0 0 auto; }',
+    '.mkt-langs label { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; text-transform:none; color:inherit; margin:0; padding:3px 8px; background:rgba(0,0,0,.04); border-radius:6px; }',
+    '.mkt-files { display:grid; gap:4px; font-size:13px; }',
+    '.mkt-files a { color:inherit; }',
+    '.mkt-missing { background:#fff3cd; color:#856404; padding:8px 12px; border-radius:8px; font-size:12.5px; margin-bottom:12px; }',
+    '.mkt-hist { list-style:none; margin:0; padding:0; display:grid; gap:10px; border-left:3px solid var(--primary-yellow); padding-left:14px; }',
+    '.mkt-hist li { font-size:13px; line-height:1.45; }',
+    '.mkt-hist .when { font-size:11px; color:var(--k-ink-2,#888); }',
+    '.mkt-hist .what { font-weight:700; }',
+    '.mkt-hist .txt { white-space:pre-wrap; background:rgba(0,0,0,.03); padding:6px 10px; border-radius:6px; margin-top:3px; }',
+    '.mkt-empty { color:var(--k-ink-2,#888); text-align:center; padding:30px 10px; font-size:13px; }',
+    '.mkt-pc-steps { display:grid; gap:8px; margin:12px 0; }',
+    '.mkt-pc-step { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--k-ink-2,#999); }',
+    '.mkt-pc-step.done { color:#33691e; } .mkt-pc-step.now { color:inherit; font-weight:700; }',
+    '.mkt-pc-amount { font-size:34px; font-weight:800; margin:6px 0; }',
+    '.mkt-table { width:100%; border-collapse:collapse; font-size:13px; }',
+    '.mkt-table th { text-align:left; font-size:11px; text-transform:uppercase; color:var(--k-ink-2,#888); padding:6px 8px; border-bottom:1px solid var(--k-line,#e8e8e4); }',
+    '.mkt-table td { padding:7px 8px; border-bottom:1px solid var(--k-line,#f0f0f0); vertical-align:top; }',
+    '.mkt-num { text-align:right; white-space:nowrap; }'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+function mktEsc_(v) { return escapeHtml(String(v == null ? '' : v)); }
+/** Vorhandene Formular-Beschriftungen enthalten Markup (Pflicht-Stern, Hinweise) - hier nur Text. */
+function mktLbl_(key, fallback) { return tr_(key, fallback).replace(/<[^>]*>[^<]*<\/[^>]*>/g, '').replace(/<[^>]*>/g, '').replace(/\*/g, '').trim(); }
+function mktDate_(iso) {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function mktErr_(err) {
+  showCustomAlert(mktEsc_(err && err.message ? err.message : (err && err.error) || String(err || 'Error')), tr_('jx_902b0d5', 'Error'));
+}
+function mktStatusLabel_(s) {
+  return ({ OPEN: tr_('mk_st_open', 'Open'), IN_PROGRESS: tr_('mk_st_progress', 'In progress'),
+    SUBMITTED: tr_('mk_st_submitted', 'Submitted'), CLOSED: tr_('mk_st_closed', 'Closed') })[s] || s;
+}
+function mktOverlay_(html) {
+  const ov = document.createElement('div');
+  ov.className = 'mkt-ov';
+  ov.innerHTML = '<div class="mkt-box" role="dialog" aria-modal="true">' + html + '</div>';
+  document.body.appendChild(ov);
+  return ov;
+}
+
+// ============================================================================
+// Ask for Consulting
+// ============================================================================
+function mktAskConsulting_(suffix) {
+  const ov = mktOverlay_(
+    '<h3><span class="material-icons-outlined">support_agent</span>' + mktEsc_(tr_('mk_ask_consulting', 'Ask for Consulting')) + '</h3>' +
+    '<p class="mkt-hint">' + mktEsc_(tr_('mk_ask_hint', 'No project is created yet. Your form and files go to our consultants, who contact you to clarify the open points and then submit the project for you.')) + '</p>' +
+    '<div class="mkt-field"><label for="mktConsultComment">' + mktEsc_(tr_('mk_ask_comment', 'Comment for the consultant')) + '</label>' +
+    '<textarea id="mktConsultComment" maxlength="5000" placeholder="' + mktEsc_(tr_('mk_ask_comment_ph', 'What is unclear? e.g. languages, budget, deadline, file formats ...')) + '"></textarea></div>' +
+    '<div class="mkt-actions"><button type="button" class="btn btn-secondary" data-act="cancel">' + mktEsc_(tr_('btn_cancel', 'Cancel')) + '</button>' +
+    '<button type="button" class="btn btn-primary" data-act="send"><span class="material-icons-outlined" style="margin-right:8px;">send</span>' + mktEsc_(tr_('mk_ask_send', 'Send request')) + '</button></div>');
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('[data-act=cancel]').onclick = close;
+  setTimeout(() => { const t = document.getElementById('mktConsultComment'); if (t) t.focus(); }, 50);
+  ov.querySelector('[data-act=send]').onclick = async () => {
+    const comment = document.getElementById('mktConsultComment').value.trim();
+    const btn = ov.querySelector('[data-act=send]');
+    btn.disabled = true;
+    try {
+      const payload = await collectFormPayload_(suffix);
+      google.script.run.withSuccessHandler(res => {
+        btn.disabled = false;
+        if (!res || !res.success) { mktErr_(res); return; }
+        close();
+        resetAppAndCloseOverlay();
+        mkt_.list = null;
+        showCustomAlert(mktEsc_(tr_('mk_ask_done', 'Your request was sent. A consultant will get in touch with you. You can follow the history under "Consulting".')) +
+          '<br><br><b>' + mktEsc_(res.id) + '</b>', tr_('mk_ask_consulting', 'Ask for Consulting'));
+      }).withFailureHandler(err => { btn.disabled = false; mktErr_(err); }).apiConsultingCreate(payload, comment);
+    } catch (e) {
+      btn.disabled = false;
+      mktErr_(e);
+    }
+  };
+}
+
+// ============================================================================
+// Unterreiter Consulting
+// ============================================================================
+function mktConsultingRender_(force) {
+  const root = document.getElementById('mktsub-consulting');
+  if (!root) return;
+  if (!root.dataset.ready) {
+    root.dataset.ready = '1';
+    root.innerHTML = '<div class="mkt-wrap"><div class="card"><div class="mkt-head"><div class="section-title" id="mktConsListTitle"></div>' +
+      '<button type="button" class="btn btn-secondary" style="width:auto;height:34px;padding:0 12px;" onclick="mktConsultingRender_(true)" title="' + mktEsc_(tr_('mk_refresh', 'Refresh')) + '"><span class="material-icons-outlined">refresh</span></button></div>' +
+      '<div class="mkt-chips" id="mktConsChips" style="margin-bottom:12px;"></div><div class="mkt-list" id="mktConsList"></div></div>' +
+      '<div class="card" id="mktConsDetail"><div class="mkt-empty">' + mktEsc_(tr_('mk_pick_request', 'Select a request on the left.')) + '</div></div></div>';
+  }
+  if (mkt_.list && !force) { mktConsultingPaint_(); return; }
+  document.getElementById('mktConsList').innerHTML = '<div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { mktErr_(res); return; }
+    mkt_.list = res;
+    mktConsultingPaint_();
+    if (mkt_.current) mktConsultingOpen_(mkt_.current);
+  }).withFailureHandler(mktErr_).apiConsultingList();
+}
+
+function mktConsultingSetFilter_(f) { mkt_.filter = f; mktConsultingPaint_(); }
+
+function mktConsultingPaint_() {
+  const res = mkt_.list;
+  document.getElementById('mktConsListTitle').textContent = res.isConsultant ? tr_('mk_cons_all', 'Consulting requests') : tr_('mk_cons_mine', 'My consulting requests');
+  const isOpen = r => r.status === 'OPEN' || r.status === 'IN_PROGRESS';
+  const counts = { open: res.requests.filter(isOpen).length, mine: res.requests.filter(r => r.assignee === configData.currentUser && isOpen(r)).length, all: res.requests.length };
+  const chips = [['open', tr_('mk_f_open', 'Open')], ['all', tr_('mk_f_all', 'All')]];
+  if (res.isConsultant) chips.splice(1, 0, ['mine', tr_('mk_f_mine', 'Assigned to me')]);
+  document.getElementById('mktConsChips').innerHTML = chips.map(c =>
+    '<button type="button" class="mkt-chip' + (mkt_.filter === c[0] ? ' active' : '') + '" onclick="mktConsultingSetFilter_(\'' + c[0] + '\')">' + mktEsc_(c[1]) + ' (' + counts[c[0]] + ')</button>').join('');
+  const rows = res.requests.filter(r => mkt_.filter === 'all' || (mkt_.filter === 'open' ? isOpen(r) : (r.assignee === configData.currentUser && isOpen(r))));
+  document.getElementById('mktConsList').innerHTML = rows.length ? rows.map(r =>
+    '<button type="button" class="mkt-item' + (mkt_.current === r.id ? ' active' : '') + '" onclick="mktConsultingOpen_(\'' + escapeJs(r.id) + '\')">' +
+      '<span class="mkt-item-top"><span class="mkt-item-name">' + mktEsc_(r.projectName || r.id) + '</span><span class="mkt-st mkt-st-' + mktEsc_(r.status) + '">' + mktEsc_(mktStatusLabel_(r.status)) + '</span></span>' +
+      '<span class="mkt-item-sub">' + mktEsc_(r.id) + ' · ' + mktEsc_(mktDate_(r.createdAt)) + (res.isConsultant ? ' · ' + mktEsc_(r.requester) : '') + '</span>' +
+      '<span class="mkt-item-sub">' + mktEsc_(r.templateName || '-') + (r.targetLangs.length ? ' · ' + mktEsc_(langsShort_(r.targetLangs)) : '') +
+        (r.assignee ? ' · <span class="material-icons-outlined" style="font-size:13px;vertical-align:-2px;">person</span> ' + mktEsc_(r.assignee) : '') + '</span>' +
+    '</button>').join('') : '<div class="mkt-empty">' + mktEsc_(tr_('mk_none', 'No requests.')) + '</div>';
+}
+
+function mktConsultingOpen_(id) {
+  mkt_.current = id;
+  document.querySelectorAll('#mktConsList .mkt-item').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').indexOf("'" + id + "'") >= 0));
+  const box = document.getElementById('mktConsDetail');
+  box.innerHTML = '<div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { box.innerHTML = '<div class="mkt-empty">' + mktEsc_((res && res.error) || 'Error') + '</div>'; return; }
+    mkt_.detail = res;
+    mktConsultingPaintDetail_();
+  }).withFailureHandler(mktErr_).apiConsultingGet(id);
+}
+
+const MKT_FIELD_LABELS_ = () => ({
+  template: mktLbl_('lbl_template', 'Template'), projectName: mktLbl_('lbl_projectname', 'Project name'),
+  sourceLang: mktLbl_('lbl_source', 'Source language'), targetLangs: mktLbl_('lbl_target', 'Target languages'), mainFiles: mktLbl_('title_mainfiles', 'Main files')
+});
+const MKT_ACTIONS_ = () => ({
+  CREATED: tr_('mk_h_created', 'Request created'), ASSIGNED: tr_('mk_h_assigned', 'Taken over'), EDITED: tr_('mk_h_edited', 'Changed'),
+  COMMENT: tr_('mk_h_comment', 'Comment'), SUBMITTING: tr_('mk_h_submitting', 'Submission started'), SUBMITTED: tr_('mk_h_submitted', 'Project submitted'),
+  SUBMIT_FAILED: tr_('mk_h_failed', 'Submission failed'), CLOSED: tr_('mk_h_closed', 'Closed'), WITHDRAWN: tr_('mk_h_withdrawn', 'Withdrawn')
+});
+
+/** Vorlagen-Gruppen des Einreichers (gleiche Gruppierung wie im Formular). */
+function mktTplGroups_() {
+  return mkt_.detail && mkt_.detail.templates ? groupTemplates(mkt_.detail.templates) : {};
+}
+
+function mktConsultingPaintDetail_() {
+  const d = mkt_.detail, r = d.request, p = r.payload || {};
+  const box = document.getElementById('mktConsDetail');
+  const labels = MKT_FIELD_LABELS_();
+  const acts = MKT_ACTIONS_();
+  let html = '<div class="mkt-head"><div class="section-title">' + mktEsc_(p.projectName || r.id) + '</div><span class="mkt-st mkt-st-' + mktEsc_(r.status) + '">' + mktEsc_(mktStatusLabel_(r.status)) + '</span></div>';
+  html += '<div class="mkt-item-sub" style="margin-bottom:12px;">' + mktEsc_(r.id) + ' · ' + mktEsc_(tr_('mk_from', 'From')) + ' <b>' + mktEsc_(r.requester) + '</b> · ' + mktEsc_(mktDate_(r.createdAt)) +
+    (r.assignee ? ' · ' + mktEsc_(tr_('mk_assignee', 'Consultant')) + ': <b>' + mktEsc_(r.assignee) + '</b>' : '') + '</div>';
+  if (r.projectUids && r.projectUids.length) {
+    html += '<div class="mkt-missing" style="background:#f1f8e9;color:#33691e;">' + mktEsc_(tr_('mk_submitted_as', 'Submitted as Phrase project:')) + ' ' +
+      r.projectUids.map(u => '<a href="https://cloud.memsource.com/web/project/show/' + encodeURIComponent(u) + '" target="_blank">' + mktEsc_(u) + '</a>').join(', ') + '</div>';
+  }
+  if (d.canEdit && r.missing && r.missing.length) {
+    html += '<div class="mkt-missing">' + mktEsc_(tr_('mk_missing', 'Still missing before submitting:')) + ' ' + mktEsc_(r.missing.map(m => labels[m] || m).join(', ')) + '</div>';
+  }
+
+  if (d.canEdit) {
+    const groups = mktTplGroups_();
+    const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+    const g = groups[p.templateGroup] || null;
+    const sources = g ? Object.keys(g.variants).sort() : [];
+    const variant = g && g.variants[p.sourceLang];
+    const targets = variant ? (variant.targets || []) : [];
+    html += '<div class="mkt-grid2">' +
+      '<div class="mkt-field full"><label>' + mktEsc_(labels.projectName) + '</label><input type="text" id="mktCdName" value="' + mktEsc_(p.projectName) + '"></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(labels.template) + '</label><select id="mktCdTpl" onchange="mktConsultingTplChanged_()"><option value="">' + mktEsc_(tr_('opt_select_template', 'Select Template Type')) + '</option>' +
+        names.map(n => '<option value="' + mktEsc_(n) + '"' + (n === p.templateGroup ? ' selected' : '') + '>' + mktEsc_(tplDisplayLabel_(n)) + '</option>').join('') +
+        (p.templateGroup && !groups[p.templateGroup] ? '<option value="' + mktEsc_(p.templateGroup) + '" selected>' + mktEsc_(p.templateGroup) + '</option>' : '') + '</select></div>' +
+      '<div class="mkt-field"><label>' + mktEsc_(labels.sourceLang) + '</label><select id="mktCdSrc" onchange="mktConsultingTplChanged_(true)">' +
+        (sources.length ? sources : [p.sourceLang || '']).map(s => '<option value="' + mktEsc_(s) + '"' + (s === p.sourceLang ? ' selected' : '') + '>' + mktEsc_(s ? getPrettyLangName(s) : '-') + '</option>').join('') + '</select></div>' +
+      '<div class="mkt-field"><label>' + mktEsc_(mktLbl_('lbl_duedate', 'Due date')) + '</label><input type="date" id="mktCdDue" value="' + mktEsc_((p.dueDate || '').slice(0, 10)) + '"></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(labels.targetLangs) + '</label><div class="mkt-langs" id="mktCdTargets">' +
+        (targets.length ? targets : (p.targetLangs || [])).map(t => '<label><input type="checkbox" value="' + mktEsc_(t) + '"' + ((p.targetLangs || []).indexOf(t) >= 0 ? ' checked' : '') + '> ' + mktEsc_(getPrettyLangName(t)) + '</label>').join('') +
+      '</div></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(mktLbl_('lbl_note', 'Note')) + '</label><textarea id="mktCdNote" rows="3">' + mktEsc_(p.note) + '</textarea></div>' +
+    '</div>';
+  } else {
+    html += '<div class="mkt-grid2" style="font-size:13px;">' +
+      '<div><b>' + mktEsc_(labels.template) + ':</b> ' + mktEsc_(p.templateName || p.templateGroup || '-') + '</div>' +
+      '<div><b>' + mktEsc_(labels.sourceLang) + ':</b> ' + mktEsc_(langShort_(p.sourceLang) || '-') + '</div>' +
+      '<div class="full"><b>' + mktEsc_(labels.targetLangs) + ':</b> ' + mktEsc_(langsShort_(p.targetLangs || []) || '-') + '</div>' +
+      (p.dueDate ? '<div><b>' + mktEsc_(mktLbl_('lbl_duedate', 'Due date')) + ':</b> ' + mktEsc_(new Date(p.dueDate).toLocaleDateString()) + '</div>' : '') +
+      (p.note ? '<div class="full"><b>' + mktEsc_(mktLbl_('lbl_note', 'Note')) + ':</b> ' + mktEsc_(p.note) + '</div>' : '') + '</div>';
+  }
+  if (p.maxSettings) html += '<div class="mkt-item-sub" style="margin-top:10px;"><span class="material-icons-outlined" style="font-size:14px;vertical-align:-2px;">tune</span> ' + mktEsc_(tr_('mk_has_max', 'Maximaltemplate settings are kept and applied on submission.')) + '</div>';
+
+  const files = p.files || [];
+  html += '<div class="section-title" style="margin-top:18px;">' + mktEsc_(tr_('mk_files', 'Files')) + '</div><div class="mkt-files">' +
+    (files.length ? files.map(f => '<div>' + (d.canEdit ? '<label style="display:inline;text-transform:none;font-weight:400;"><input type="checkbox" class="mktCdKeep" value="' + mktEsc_(f.fileId) + '" checked title="' + mktEsc_(tr_('mk_keep_file', 'Keep file')) + '"> </label>' : '') +
+      '<span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">' + (f.kind === 'ref' ? 'attach_file' : 'description') + '</span> ' +
+      '<a href="https://drive.google.com/file/d/' + encodeURIComponent(f.fileId) + '/view" target="_blank">' + mktEsc_(f.name) + '</a>' +
+      (f.kind === 'ref' ? ' <small>(' + mktEsc_(tr_('mk_ref', 'reference')) + ')</small>' : '') + '</div>').join('') : '<div class="mkt-item-sub">-</div>') +
+    (r.folderUrl && d.isConsultant ? '<div><a href="' + mktEsc_(r.folderUrl) + '" target="_blank"><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">folder_open</span> ' + mktEsc_(tr_('mk_folder', 'Open folder')) + '</a></div>' : '') + '</div>';
+
+  html += '<div class="section-title" style="margin-top:18px;">' + mktEsc_(tr_('mk_history', 'History')) + '</div><ul class="mkt-hist">' +
+    (r.history || []).slice().reverse().map(h => '<li><div class="when">' + mktEsc_(mktDate_(h.at)) + ' · ' + mktEsc_(h.by) + '</div><div class="what">' + mktEsc_(acts[h.action] || h.action) + '</div>' +
+      (h.text ? '<div class="txt">' + mktEsc_(h.text) + '</div>' : '') + '</li>').join('') + '</ul>';
+
+  const open = r.status === 'OPEN' || r.status === 'IN_PROGRESS';
+  if (open) {
+    html += '<div class="mkt-field" style="margin-top:16px;"><label>' + mktEsc_(tr_('mk_add_comment', 'Add comment')) + '</label><textarea id="mktCdComment" rows="2"></textarea></div>';
+  }
+  html += '<div class="mkt-actions">';
+  if (open) html += '<button type="button" class="btn btn-secondary" onclick="mktConsultingAction_(\'comment\')"><span class="material-icons-outlined" style="margin-right:6px;">chat</span>' + mktEsc_(tr_('mk_btn_comment', 'Comment')) + '</button>';
+  if (d.canEdit && r.assignee !== configData.currentUser) html += '<button type="button" class="btn btn-secondary" onclick="mktConsultingAction_(\'assign\')"><span class="material-icons-outlined" style="margin-right:6px;">assignment_ind</span>' + mktEsc_(tr_('mk_btn_assign', 'Take over')) + '</button>';
+  if (d.canEdit) html += '<button type="button" class="btn btn-secondary" onclick="mktConsultingAction_(\'close\')">' + mktEsc_(tr_('mk_btn_close', 'Close request')) + '</button>' +
+    '<button type="button" class="btn btn-secondary" onclick="mktConsultingAction_(\'save\')"><span class="material-icons-outlined" style="margin-right:6px;">save</span>' + mktEsc_(tr_('btn_save', 'Save')) + '</button>' +
+    '<button type="button" class="btn btn-primary" onclick="mktConsultingAction_(\'submit\')"><span class="material-icons-outlined" style="margin-right:6px;">rocket_launch</span>' + mktEsc_(tr_('mk_btn_submit', 'Submit project')) + '</button>';
+  if (d.canWithdraw) html += '<button type="button" class="btn btn-secondary" onclick="mktConsultingAction_(\'withdraw\')">' + mktEsc_(tr_('mk_btn_withdraw', 'Withdraw request')) + '</button>';
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+/** Vorlage/Quellsprache geaendert: Quell- und Zielsprachen neu aufbauen. */
+function mktConsultingTplChanged_(srcOnly) {
+  const groups = mktTplGroups_();
+  const g = groups[document.getElementById('mktCdTpl').value];
+  const srcSel = document.getElementById('mktCdSrc');
+  if (!srcOnly) {
+    const sources = g ? Object.keys(g.variants).sort() : [];
+    srcSel.innerHTML = sources.map(s => '<option value="' + mktEsc_(s) + '">' + mktEsc_(getPrettyLangName(s)) + '</option>').join('');
+  }
+  const v = g && g.variants[srcSel.value];
+  const checked = Array.from(document.querySelectorAll('#mktCdTargets input:checked')).map(i => i.value);
+  document.getElementById('mktCdTargets').innerHTML = (v ? v.targets || [] : []).map(t =>
+    '<label><input type="checkbox" value="' + mktEsc_(t) + '"' + (checked.indexOf(t) >= 0 ? ' checked' : '') + '> ' + mktEsc_(getPrettyLangName(t)) + '</label>').join('');
+}
+
+/** Aenderungen des Consultants als Patch (Vorlage -> UIDs je Sprache wie im Formular). */
+function mktConsultingPatch_() {
+  const groups = mktTplGroups_();
+  const groupName = document.getElementById('mktCdTpl').value;
+  const g = groups[groupName];
+  const src = document.getElementById('mktCdSrc').value;
+  const v = g && g.variants[src];
+  const targets = Array.from(document.querySelectorAll('#mktCdTargets input:checked')).map(i => i.value);
+  const map = {};
+  targets.forEach(t => { map[t] = (v && v.targetUidMap && v.targetUidMap[t]) || (v && v.uid) || ''; });
+  const due = document.getElementById('mktCdDue').value;
+  const keep = Array.from(document.querySelectorAll('.mktCdKeep'));
+  const patch = {
+    projectName: document.getElementById('mktCdName').value.trim(),
+    templateGroup: groupName,
+    templateName: groupName ? groupName.replace(/^\[([^\]]+)\]\s*/, '') : '',
+    templateUid: v ? v.uid : '',
+    targetUidMap: map,
+    sourceLang: src,
+    targetLangs: targets,
+    dueDate: due ? new Date(due + 'T12:00:00').toISOString() : '',
+    note: document.getElementById('mktCdNote').value,
+    removeFileIds: keep.filter(k => !k.checked).map(k => k.value)
+  };
+  // Vorlage unveraendert und nicht (mehr) in der Liste: gespeicherte UIDs behalten.
+  const p = mkt_.detail.request.payload || {};
+  if (groupName && !g && groupName === p.templateGroup) { patch.templateUid = p.templateUid; patch.targetUidMap = p.targetUidMap; }
+  return patch;
+}
+
+function mktConsultingAction_(act) {
+  const id = mkt_.current;
+  const done = res => {
+    if (!res || res.success === false) { mktErr_(res); return; }
+    mkt_.list = null;
+    mktConsultingRender_(true);
+  };
+  const run = () => google.script.run.withSuccessHandler(done).withFailureHandler(mktErr_);
+  const comment = (document.getElementById('mktCdComment') || {}).value || '';
+  if (act === 'comment') {
+    if (!comment.trim()) { showCustomAlert(mktEsc_(tr_('mk_comment_empty', 'Please write a comment first.'))); return; }
+    run().apiConsultingComment(id, comment);
+  } else if (act === 'assign') {
+    run().apiConsultingAssign(id);
+  } else if (act === 'save') {
+    run().apiConsultingUpdate(id, mktConsultingPatch_());
+  } else if (act === 'close' || act === 'withdraw') {
+    showCustomConfirm(act === 'close' ? tr_('mk_confirm_close', 'Close this request without a project?') : tr_('mk_confirm_withdraw', 'Withdraw this request?'),
+      () => run().apiConsultingClose(id, comment));
+  } else if (act === 'submit') {
+    const patch = mktConsultingPatch_();
+    showCustomConfirm(tr_('mk_confirm_submit', 'Create the project in Phrase now on behalf of the requester?'), () => {
+      document.getElementById('overlay').style.display = 'flex';
+      document.getElementById('loadingSpinner').style.display = 'block';
+      document.getElementById('successIcon').style.display = 'none';
+      document.getElementById('statusTitle').innerText = 'PROCESSING';
+      document.getElementById('overlayActions').style.display = 'none';
+      startStatusAnimation();
+      google.script.run.withSuccessHandler(res => {
+        if (res && res.success) {
+          // Projekt gehoert dem Einreicher - kein "Zu meinen Projekten" wie bei onSuccess().
+          stopStatusAnimation('');
+          document.getElementById('overlay').style.display = 'none';
+          const req = mkt_.detail && mkt_.detail.request;
+          showCustomAlert(mktEsc_(fmt_(tr_('mk_submit_done', 'Project created for {name}.'), { name: req ? req.requester : '' })) +
+            '<br><br><b>' + mktEsc_((res.allProjectUids || [res.projectUid]).join(', ')) + '</b>' +
+            (res.errors && res.errors.length ? '<br><br>' + mktEsc_(tr_('jx_c9c8347', 'Warnings:')) + '<br>' + res.errors.map(mktEsc_).join('<br>') : ''),
+            tr_('mk_btn_submit', 'Submit project'));
+          mkt_.list = null;
+          mktConsultingRender_(true);
+        } else {
+          document.getElementById('overlay').style.display = 'none';
+          mktErr_(res);
+          mktConsultingRender_(true);
+        }
+      }).withFailureHandler(err => { document.getElementById('overlay').style.display = 'none'; mktErr_(err); }).apiConsultingSubmit(id, patch);
+    });
+  }
+}
+
+// ============================================================================
+// Unterreiter Vorab-Kalkulation
+// ============================================================================
+function mktPrecalcRender_() {
+  const head = document.getElementById('mktPrecalcHead');
+  if (head && !head.dataset.ready) {
+    head.dataset.ready = '1';
+    head.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="section-title"><span class="material-icons-outlined" style="vertical-align:-4px;">calculate</span> ' +
+      mktEsc_(tr_('mk_pc_title', 'Pre-calculation')) + '</div><p class="mkt-hint" style="margin:0;">' +
+      mktEsc_(tr_('mk_pc_hint2', 'Phrase analyses your files against the translation memories of the chosen area and creates a quote. No project is created: the files are removed from Phrase again right after the calculation. No translation is ordered.')) + '</p></div>';
+  }
+  mktPrecalcForm_();
+  mktPrecalcHistory_();
+}
+
+/** Formular: Bereich (Kalkulationsprojekt mit TMs), Zielsprachen dieses Projekts, Dateien. */
+function mktPrecalcForm_() {
+  const host = document.getElementById('mktPrecalcForm');
+  if (!host || host.dataset.ready) return;
+  host.dataset.ready = '1';
+  mkt_.pcFiles = [];
+  host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { host.dataset.ready = ''; host.innerHTML = '<div class="card"><div class="mkt-empty">' + mktEsc_((res && res.error) || 'Error') + '</div></div>'; return; }
+    mkt_.pcOptions = res.projects || [];
+    if (!mkt_.pcOptions.length) {
+      host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-missing" style="margin:0;">' + mktEsc_(tr_('mk_pc_not_configured', 'No calculation projects are set up yet (admin: Script Property PRECALC_PROJECTS).')) + '</div></div>';
+      return;
+    }
+    host.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="mkt-grid2">' +
+      '<div class="mkt-field"><label for="mktPcArea">' + mktEsc_(tr_('mk_pc_area', 'Area (translation memories)')) + '</label><select id="mktPcArea" onchange="mktPrecalcAreaChanged_()">' +
+        mkt_.pcOptions.map((o, i) => '<option value="' + i + '">' + mktEsc_(o.label) + '</option>').join('') + '</select></div>' +
+      '<div class="mkt-field"><label>' + mktEsc_(mktLbl_('lbl_source', 'Source language')) + '</label><div id="mktPcSource" class="mkt-item-sub" style="padding:10px 0;"></div></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(mktLbl_('lbl_target', 'Target languages')) + ' <button type="button" class="mx-mini mkt-chip" style="margin-left:8px;" onclick="mktPrecalcAllLangs_()">' + mktEsc_(tr_('mk_pc_all', 'all')) + '</button></label><div class="mkt-langs" id="mktPcLangs"></div></div>' +
+      '<div class="mkt-field full"><label>' + mktEsc_(tr_('mk_files', 'Files')) + '</label>' +
+        '<div class="dropzone" id="mktPcDrop" onclick="document.getElementById(\'mktPcFile\').click()"><span class="material-icons-outlined">upload_file</span><span>' + mktEsc_(tr_('dz_hint', 'Drag files here or click to select')) + '</span></div>' +
+        '<input type="file" id="mktPcFile" multiple style="display:none;" onchange="mktPrecalcAddFiles_(this.files); this.value=\'\'">' +
+        '<div id="mktPcFileList" class="mkt-files" style="margin-top:8px;"></div></div>' +
+      '</div><div class="mkt-actions"><button type="button" class="btn btn-primary" onclick="mktPrecalcStart_()"><span class="material-icons-outlined" style="margin-right:10px;">calculate</span>' + mktEsc_(tr_('mk_pc_run', 'Calculate costs')) + '</button></div></div>';
+    const drop = document.getElementById('mktPcDrop');
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); if (e.dataTransfer && e.dataTransfer.files) mktPrecalcAddFiles_(e.dataTransfer.files); });
+    mktPrecalcAreaChanged_();
+  }).withFailureHandler(err => { host.dataset.ready = ''; mktErr_(err); }).apiPrecalcOptions();
+}
+
+function mktPrecalcArea_() {
+  const sel = document.getElementById('mktPcArea');
+  return sel ? mkt_.pcOptions[Number(sel.value)] : null;
+}
+
+function mktPrecalcAreaChanged_() {
+  const o = mktPrecalcArea_();
+  if (!o) return;
+  document.getElementById('mktPcSource').textContent = o.error ? o.error : (o.sourceLang ? getPrettyLangName(o.sourceLang) : '-');
+  document.getElementById('mktPcLangs').innerHTML = (o.targetLangs || []).map(l =>
+    '<label><input type="checkbox" value="' + mktEsc_(l) + '"> ' + mktEsc_(getPrettyLangName(l)) + '</label>').join('') || '<span class="mkt-item-sub">-</span>';
+}
+
+function mktPrecalcAllLangs_() {
+  const boxes = Array.from(document.querySelectorAll('#mktPcLangs input'));
+  const all = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !all; });
+}
+
+function mktPrecalcAddFiles_(files) {
+  Array.from(files || []).forEach(f => {
+    if (/\.(pdf|doc)$/i.test(f.name)) { showCustomAlert(mktEsc_(f.name + ': ' + tr_('mk_pc_blocked', 'PDF and .doc cannot be analysed – please use the editable format.'))); return; }
+    if (!mkt_.pcFiles.some(x => x.name === f.name && x.size === f.size)) mkt_.pcFiles.push(f);
+  });
+  mktPrecalcPaintFiles_();
+}
+
+function mktPrecalcRemoveFile_(i) { mkt_.pcFiles.splice(i, 1); mktPrecalcPaintFiles_(); }
+
+function mktPrecalcPaintFiles_() {
+  document.getElementById('mktPcFileList').innerHTML = mkt_.pcFiles.map((f, i) =>
+    '<div><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">description</span> ' + mktEsc_(f.name) +
+    ' <button type="button" class="mx-mini" style="border:none;background:none;cursor:pointer;" onclick="mktPrecalcRemoveFile_(' + i + ')" title="' + mktEsc_(tr_('btn_cancel', 'Remove')) + '"><span class="material-icons-outlined" style="font-size:15px;">close</span></button></div>').join('');
+}
+
+function mktPrecalcHistory_() {
+  const host = document.getElementById('mktPrecalcHistory');
+  if (!host) return;
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) return;
+    const rows = res.rows || [];
+    host.innerHTML = '<div class="card" style="margin:0 0 60px;"><div class="section-title">' + mktEsc_(tr_('mk_pc_history', 'Recent calculations')) + '</div>' +
+      (rows.length ? '<div style="overflow-x:auto;"><table class="mkt-table"><thead><tr><th>' + mktEsc_(tr_('mk_pc_date', 'Date')) + '</th>' + (res.all ? '<th>' + mktEsc_(tr_('mk_from', 'From')) + '</th>' : '') +
+        '<th>' + mktEsc_(mktLbl_('lbl_template', 'Template')) + '</th><th>' + mktEsc_(tr_('mk_files', 'Files')) + '</th><th>' + mktEsc_(mktLbl_('lbl_target', 'Target languages')) + '</th><th class="mkt-num">' +
+        mktEsc_(tr_('mk_pc_words', 'Words')) + '</th><th class="mkt-num">' + mktEsc_(tr_('mk_pc_amount', 'Amount')) + '</th></tr></thead><tbody>' +
+        rows.map(r => '<tr><td>' + mktEsc_(mktDate_(r.createdAt)) + '</td>' + (res.all ? '<td>' + mktEsc_(r.user) + '</td>' : '') + '<td>' + mktEsc_(r.template) + '</td><td>' + mktEsc_(r.files) +
+          '</td><td>' + mktEsc_(langsShort_(r.targetLangs)) + '</td><td class="mkt-num">' + (r.words ? mktEsc_(r.words.toLocaleString()) : '') + '</td><td class="mkt-num">' +
+          (r.status === 'DONE' && r.amount != null ? '<b>' + mktEsc_(mktMoney_(r.amount, r.currency)) + '</b>' : '<small>' + mktEsc_(r.status === 'DONE' ? '' : (r.status.indexOf('ERROR') === 0 ? tr_('mk_pc_failed', 'failed') : tr_('mk_pc_open', 'not finished'))) + '</small>') +
+          '</td></tr>').join('') + '</tbody></table></div>' : '<div class="mkt-empty">' + mktEsc_(tr_('mk_pc_none', 'No calculations yet.')) + '</div>') + '</div>';
+  }).apiPrecalcHistory();
+}
+
+function mktMoney_(amount, currency) {
+  try { return new Intl.NumberFormat(currentLang || 'de', { style: 'currency', currency: currency || 'EUR' }).format(amount); }
+  catch (e) { return Number(amount).toFixed(2) + ' ' + (currency || ''); }
+}
+
+const MKT_PC_PHASES_ = ['IMPORT', 'ANALYSE', 'QUOTE', 'CLEANUP'];
+
+function mktPrecalcStart_() {
+  const area = mktPrecalcArea_();
+  const langs = Array.from(document.querySelectorAll('#mktPcLangs input:checked')).map(b => b.value);
+  if (!area) return;
+  if (!langs.length) { showCustomAlert(mktEsc_(tr_('jx_1e33de8', 'Please select Target Language.'))); return; }
+  if (!mkt_.pcFiles.length) { showCustomAlert(mktEsc_(tr_('jx_de7a362', 'Please select a Main File.'))); return; }
+  const ov = mktOverlay_('<h3><span class="material-icons-outlined">calculate</span>' + mktEsc_(tr_('mk_pc_title', 'Pre-calculation')) + ' – ' + mktEsc_(area.label) + '</h3><div id="mktPcBody"><div class="mkt-empty"><div class="loader" style="margin:0 auto 8px;"></div>' +
+    mktEsc_(tr_('mk_pc_upload', 'Uploading files to Phrase ...')) + '</div></div><div class="mkt-actions" id="mktPcActions"><button type="button" class="btn btn-secondary" data-act="cancel">' + mktEsc_(tr_('btn_cancel', 'Cancel')) + '</button></div>');
+  const pc = mkt_.pc = { id: '', ov: ov, stopped: false };
+  ov.querySelector('[data-act=cancel]').onclick = () => mktPrecalcStop_(true);
+  (async () => {
+    try {
+      const mainFiles = [];
+      for (const f of mkt_.pcFiles) { const d = await readFile(f); mainFiles.push({ source: 'pc', name: f.name, data: d.data, mime: d.mime }); }
+      google.script.run.withSuccessHandler(res => {
+        // Abgebrochen, waehrend noch hochgeladen wurde: Jobs sofort wieder loeschen.
+        if (pc.stopped) { if (res && res.id) google.script.run.apiPrecalcCancel(res.id); return; }
+        if (!res || !res.success) { mktPrecalcStop_(false); mktErr_(res); return; }
+        pc.id = res.id;
+        mktPrecalcPaint_(res.phase);
+        mktPrecalcPoll_();
+      }).withFailureHandler(err => { if (!pc.stopped) { mktPrecalcStop_(false); mktErr_(err); } })
+        .apiPrecalcStart({ calcProjectUid: area.projectUid, targetLangs: langs, mainFiles: mainFiles });
+    } catch (e) { if (!pc.stopped) { mktPrecalcStop_(false); mktErr_(e); } }
+  })();
+}
+
+function mktPrecalcPaint_(phase) {
+  const body = document.getElementById('mktPcBody');
+  if (!body) return;
+  const names = { IMPORT: tr_('mk_pc_p_import', 'Phrase imports the files'), ANALYSE: tr_('mk_pc_p_analyse', 'Analysis'),
+    QUOTE: tr_('mk_pc_p_quote', 'Quote with price list'), CLEANUP: tr_('mk_pc_p_cleanup2', 'Removing the files from Phrase') };
+  const idx = MKT_PC_PHASES_.indexOf(phase);
+  body.innerHTML = '<div class="mkt-pc-steps">' + MKT_PC_PHASES_.map((p, i) =>
+    '<div class="mkt-pc-step' + (i < idx ? ' done' : (i === idx ? ' now' : '')) + '"><span class="material-icons-outlined">' + (i < idx ? 'check_circle' : (i === idx ? 'autorenew' : 'radio_button_unchecked')) + '</span>' + mktEsc_(names[p]) + '</div>').join('') +
+    '</div><p class="mkt-hint">' + mktEsc_(tr_('mk_pc_wait', 'This usually takes one to a few minutes. You can keep this window open.')) + '</p>';
+}
+
+function mktPrecalcPoll_() {
+  if (!mkt_.pc || mkt_.pc.stopped) return;
+  mkt_.pcTimer = setTimeout(() => {
+    google.script.run.withSuccessHandler(res => {
+      if (!mkt_.pc || mkt_.pc.stopped) return;
+      if (!res || !res.success) { mktPrecalcStop_(false); mktErr_(res); mktPrecalcHistory_(); return; }
+      if (res.phase === 'DONE') { mktPrecalcResult_(res); return; }
+      mktPrecalcPaint_(res.phase);
+      mktPrecalcPoll_();
+    }).withFailureHandler(err => {
+      // Einzelner Netzwerkfehler: weiter versuchen, Server-Zustand bleibt erhalten.
+      console.warn(err);
+      mktPrecalcPoll_();
+    }).apiPrecalcPoll(mkt_.pc.id);
+  }, 4000);
+}
+
+function mktPrecalcResult_(res) {
+  const body = document.getElementById('mktPcBody');
+  const per = (res.perTemplate || []).length > 1 ? '<table class="mkt-table" style="margin-top:10px;">' + res.perTemplate.map(p =>
+    '<tr><td>' + mktEsc_(langsShort_(p.langs || [])) + '</td><td class="mkt-num">' + mktEsc_(mktMoney_(p.amount, p.currency)) + '</td></tr>').join('') + '</table>' : '';
+  body.innerHTML = '<div style="text-align:center;"><div class="mkt-item-sub">' + mktEsc_(tr_('mk_pc_result', 'Estimated costs')) + '</div>' +
+    '<div class="mkt-pc-amount">' + mktEsc_(mktMoney_(res.amount, res.currency)) + '</div>' +
+    (res.words ? '<div class="mkt-item-sub">' + mktEsc_(Number(res.words).toLocaleString()) + ' ' + mktEsc_(tr_('mk_pc_words', 'Words')) + ' · ' + mktEsc_((res.files || []).join(', ')) + '</div>' : '') +
+    (res.mixedCurrency ? '<div class="mkt-missing" style="margin-top:10px;">' + mktEsc_(tr_('mk_pc_mixed', 'Different currencies – see the breakdown.')) + '</div>' : '') + per +
+    '<p class="mkt-hint" style="margin-top:14px;">' + mktEsc_(tr_('mk_pc_deleted2', 'The files have been removed from Phrase again.')) + '</p></div>';
+  document.getElementById('mktPcActions').innerHTML = '<button type="button" class="btn btn-primary" onclick="mktPrecalcStop_(false)">OK</button>';
+  mkt_.pc.stopped = true;
+  mktPrecalcHistory_();
+}
+
+function mktPrecalcStop_(cancel) {
+  if (!mkt_.pc) return;
+  if (cancel && mkt_.pc.id && !mkt_.pc.stopped) google.script.run.withSuccessHandler(() => mktPrecalcHistory_()).apiPrecalcCancel(mkt_.pc.id);
+  mkt_.pc.stopped = true;
+  clearTimeout(mkt_.pcTimer);
+  if (mkt_.pc.ov) mkt_.pc.ov.remove();
+  mkt_.pc = null;
+}
+</script>

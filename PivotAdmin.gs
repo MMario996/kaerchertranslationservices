@@ -20,7 +20,7 @@ function canManagePivot_(email) {
 
 /** Liest die Template-Liste aus dem (in Stuecke geteilten) Script-Cache. */
 function pivotTplCacheGet_() {
-  var cache = CacheService.getScriptCache();
+  var cache = phraseScriptCache_();
   var head = cache.get(PIVOT_TPL_CACHE_KEY_ + "_n");
   if (!head) return null;
   var n = Number(head);
@@ -42,7 +42,7 @@ function pivotTplCachePut_(list) {
   var n = Math.ceil(json.length / PIVOT_TPL_CACHE_CHUNK_) || 1;
   for (var i = 0; i < n; i++) map[PIVOT_TPL_CACHE_KEY_ + "_" + i] = json.substr(i * PIVOT_TPL_CACHE_CHUNK_, PIVOT_TPL_CACHE_CHUNK_);
   map[PIVOT_TPL_CACHE_KEY_ + "_n"] = String(n);
-  try { CacheService.getScriptCache().putAll(map, 21600); } catch (e) { console.warn("pivotTplCachePut_: " + e.message); }
+  try { phraseScriptCache_().putAll(map, 21600); } catch (e) { console.warn("pivotTplCachePut_: " + e.message); }
 }
 
 /** Alle Projekt-Templates aus Phrase als schlanke Liste (gecacht, 6 h). */

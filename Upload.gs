@@ -28,8 +28,6 @@ const UPLOAD_DEADLINE_MS_ = 300 * 1000; // 5 minutes
 // --- Project Creation + Upload ------------------------------------------------
 
 function apiCreateProjectAndUpload(payload) {
-  const _startTime = Date.now();
-
   const access = apiCheckAccess();
   if (!access.allowed) {
     if (access.reason === "maintenance") {
@@ -37,9 +35,27 @@ function apiCreateProjectAndUpload(payload) {
     }
     return { ok: false, error: "Not authorized. Please request access." };
   }
+  if (payload && payload.maxSettings) {
+    const check = maxTplCheckAllowed_(getUserEmail_(), payload);
+    if (!check.ok) return { ok: false, error: check.error };
+  }
+  return createProjectAndUploadAs_(payload, getUserEmail_(), {});
+}
 
-  const userEmail = getUserEmail_();
+/**
+ * Kern der Projektanlage. Berechtigungen prueft der Aufrufer.
+ * userEmail = Einreicher/Eigentuemer (Queue Spalte B, Phrase-Owner, Chat).
+ * opts.createdBy: wer das Projekt tatsaechlich angelegt hat, falls nicht der
+ *   Einreicher (Consultant, MarketingConsulting.gs) - Queue-Spalte "Created By".
+ * payload.maxSettings: Maximaltemplate (MaxTemplate.gs) - Workflow, Provider,
+ *   TMs/TBs, MT, Prompt werden nach dem Anlegen auf das Projekt geschrieben.
+ */
+function createProjectAndUploadAs_(payload, userEmail, opts) {
+  const _startTime = Date.now();
+  opts = opts || {};
+  userEmail = String(userEmail || "").trim().toLowerCase();
   console.log("\u2022 Starting project creation for user:", userEmail);
+  const maxSettings = payload.maxSettings ? maxTplSanitize_(payload.maxSettings) : null;
 
   const portalType = String(payload.portalType || "").trim().toLowerCase();
 
@@ -155,7 +171,7 @@ function apiCreateProjectAndUpload(payload) {
         targetLangs: groupLangs,
         note:        noteToSend,
         dateDue:     dueDate || undefined
-      });
+      }, maxSettings);
       phraseSetProjectCreator_(projectUid, userEmail);
       // Einreicher wird echter Phrase-Owner - fuer alle Reiter (abschaltbar, siehe ProjectsApi.gs).
       phraseAssignSubmitterOwner_(projectUid, userEmail);
@@ -176,6 +192,7 @@ function apiCreateProjectAndUpload(payload) {
             ") hat ein Mapping auf einen Custom-Field-Wert (Admin -> Pivot Templates -> Sprachen-Mapping).");
         }
       }
+      if (maxSettings) maxTplApplyProjectSettings_(projectUid, maxSettings, groupLangs, overallErrors);
       overallProjectUids.push(projectUid);
       console.log("\u2022 Project created:", projectUid);
 
@@ -216,7 +233,8 @@ function apiCreateProjectAndUpload(payload) {
 
           const up = kecSettings
             ? kecUploadJob_(projectUid, blob, mainFileName, groupLangs, kecSettings, overallErrors)
-            : phraseUploadJob_(projectUid, blob, mainFileName, groupLangs);
+            : phraseUploadJob_(projectUid, blob, mainFileName, groupLangs, null,
+                maxSettings ? { workflowSettings: maxTplJobWorkflowSettings_(maxSettings, groupLangs) } : null);
 
           const jobsArr = Array.isArray(up.jobs) ? up.jobs : [];
           const extractedUids = jobsArr.map(j => String(j.uid || "")).filter(Boolean);
@@ -259,7 +277,8 @@ function apiCreateProjectAndUpload(payload) {
         JSON.stringify(groupJobMapping), ""
       ]);
 
-      logAuditEvent_(userEmail, "PROJECT_CREATE", `Created '${groupProjectName}' (${projectUid}) ? ${targetLangStr}`);
+      logAuditEvent_(opts.createdBy || userEmail, "PROJECT_CREATE", `Created '${groupProjectName}' (${projectUid}) ? ${targetLangStr}` +
+        (opts.createdBy ? " for " + userEmail : "") + (maxSettings ? " [Maximaltemplate]" : ""));
 
     } catch (error) {
       console.error(`? Project creation failed for UID ${uid}:`, error);
@@ -356,9 +375,15 @@ function apiCreateProjectAndUpload(payload) {
     }
 
     const sh = getQueueSheet_();
+    const createdByCol = opts.createdBy ? queueEnsureHeaderCol_(sh, "Created By") : 0;
+    // Pivot: gewaehlte Sprachen des Uebersetzungsschritts merken - der Download des
+    // Child-Projekts filtert darauf (DownloadZip.gs dlAllowedLangs_).
+    const pivotLangsCol = (isPivot && pivotTargetLangs.length) ? queueEnsureHeaderCol_(sh, "Pivot Langs") : 0;
     queueRowsToAppend.forEach(row => {
       row[19] = threadId;
       sh.appendRow(row);
+      if (createdByCol) sh.getRange(sh.getLastRow(), createdByCol).setValue(opts.createdBy);
+      if (pivotLangsCol) sh.getRange(sh.getLastRow(), pivotLangsCol).setValue(pivotTargetLangs.join(", "));
       if (isPivot) {
         try { pivotTagNewParentRow_(sh, sh.getLastRow()); } catch (e) {
           console.warn("pivotTagNewParentRow_ failed:", e.message);
@@ -554,7 +579,9 @@ function noteFindQueueRow_(projectUid) {
 function noteCallerMayEdit_(row, caller) {
   const owner      = String(row.values[1] || "").toLowerCase().trim();
   const sharedWith = String(row.values[17] || "").toLowerCase();
-  return isAdmin_(caller) || owner === caller || sharedWith.split(/[;,]+/).map(s => s.trim()).indexOf(caller) !== -1;
+  if (isAdmin_(caller) || owner === caller || sharedWith.split(/[;,]+/).map(s => s.trim()).indexOf(caller) !== -1) return true;
+  // Urlaubsvertretung (Deputies.gs) darf wie die vertretene Person bearbeiten.
+  return deputyActsFor_(caller, owner);
 }
 
 function noteCallerMayView_(row, caller) {
@@ -686,6 +713,7 @@ function requireChatBotService_() {
 }
 
 function sendPrivateMessage_(userEmail, messageText) {
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) messageText = "[SANDBOX] " + String(messageText || "");
   try {
     const result = sendPrivateMessageRaw_(userEmail, messageText);
     logChatMessage_(normalizeEmail_(userEmail), true, messageText);
@@ -693,6 +721,9 @@ function sendPrivateMessage_(userEmail, messageText) {
   } catch (e) {
     logChatMessage_(normalizeEmail_(userEmail), false, messageText, e.message);
     throw e;
+  } finally {
+    // Urlaubsvertretung bekommt eine Kopie (Deputies.gs).
+    deputyForwardChat_(userEmail, messageText);
   }
 }
 
@@ -776,6 +807,8 @@ function sendThreadReply_(userEmail, threadMessageName, replyText) {
 
   const code = res.getResponseCode();
   const body = res.getContentText();
+  if ((typeof sandboxActive_ === "function" && sandboxActive_())) replyText = "[SANDBOX] " + String(replyText || "");
+  if (userEmail) deputyForwardChat_(userEmail, replyText);
   if (code >= 400) {
     console.warn("Thread reply failed (" + code + "):", body);
     logChatMessage_(userEmail, false, replyText, "HTTP " + code + " " + String(body).slice(0, 150));

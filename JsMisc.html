@@ -254,7 +254,7 @@
 
 
 
-    const ADMIN_LIGHT_LABELS_ = { get users() { return tr_('jx_687c52e', 'User Manager'); }, get templates() { return tr_('jx_83ae0cb', 'Template Manager'); }, get pivot() { return tr_('jx_cd07a63', 'Pivot Templates'); }, get tests() { return tr_('jx_90792de', 'Tests'); }, get dashboard() { return tr_('jx_2938c7f', 'Dashboard'); } };
+    const ADMIN_LIGHT_LABELS_ = { get users() { return tr_('jx_687c52e', 'User Manager'); }, get templates() { return tr_('jx_83ae0cb', 'Template Manager'); }, get pivot() { return tr_('jx_cd07a63', 'Pivot Templates'); }, get tests() { return tr_('jx_90792de', 'Tests'); }, get dashboard() { return tr_('jx_2938c7f', 'Dashboard'); }, get consulting() { return tr_('mk_consultant_role', 'Consultant Marketing Projects'); } };
 
 
 
@@ -583,7 +583,7 @@
     // --- DRIVE LINK UPLOAD --------------------------------------------------------
 
   function handleDriveLinkClick(type, suffix) {
-  if (!checkPreconditions(suffix)) return;
+  if (!filePickAllowed_(suffix)) return;
   showCustomPrompt(
     tr_('jx_b572fda', 'Google Drive Link einfügen:\n\n⚠ Du musst Editor-Rechte auf die Datei haben, damit sie hochgeladen werden kann.'),
     "",

@@ -269,6 +269,7 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
   pivotWriteRow_(sh, rowNum, cols, { link: child.uid, state: PIVOT_STATE_CHILD_LINKED_ });
 
   pivotCreateChildQueueRow_(sh, {
+    pivotLangs:   pivotParentLangs_(sh, row, parentUid),
     ownerEmail:   rowUser,
     sharedWith:   sharedWith,
     templateName: templateName,
@@ -290,7 +291,13 @@ function pivotTryLinkChild_(sh, cols, rowNum, row) {
  * Meldungen laufen ueber die Parent-Zeile.
  */
 function pivotCreateChildQueueRow_(sh, parentInfo, child) {
-  var targetLangs = Array.isArray(child.targetLangs) ? child.targetLangs.join(", ") : "";
+  // Nur die bei der Einreichung gewaehlten Pivot-Sprachen - das Child-Projekt
+  // kann (je nach Child-Template) mehr Zielsprachen haben.
+  var childLangs = Array.isArray(child.targetLangs) ? child.targetLangs : [];
+  var chosen = (parentInfo.pivotLangs || []).length
+    ? childLangs.filter(function (l) { return dlLangAllowed_(l, parentInfo.pivotLangs.map(dlNormLang_)); })
+    : childLangs;
+  var targetLangs = (chosen.length ? chosen : childLangs).join(", ");
 
   // WICHTIG: Status hier IMMER als Platzhalter "NEW" anlegen, NIE mit dem
   // tatsaechlichen (moeglicherweise schon fertigen) Live-Status aus Phrase.
@@ -520,4 +527,62 @@ function debugPivotQueueState_() {
       " | Link: " + String(data[i][cols.link - 1] || "")
     );
   }
+}
+
+// ============================================================================
+// Pivot-Sprachen des Parents (fuer Child-Zeile und Download-Filter)
+// ============================================================================
+
+/** Aus der Queue-Spalte "Pivot Langs", sonst aus dem Custom Field in Phrase. */
+function pivotParentLangs_(sh, row, parentUid) {
+  try {
+    var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || "").trim().toLowerCase(); });
+    var i = header.indexOf("pivot langs");
+    if (i >= 0 && String(row[i] || "").trim()) {
+      return String(row[i]).split(/[,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+  } catch (e) {}
+  return pivotParentLangsFromPhrase_(parentUid);
+}
+
+/**
+ * Liest das Custom Field "Pivot languages" des Parent-Projekts und uebersetzt
+ * die Options-Werte ueber das Sprachen-Mapping (PivotLanguageMap.gs) zurueck in
+ * Sprachcodes. Fuer Projekte, die vor der Spalte "Pivot Langs" angelegt wurden.
+ */
+function pivotParentLangsFromPhrase_(parentUid) {
+  if (!parentUid) return [];
+  var cache = phraseScriptCache_();
+  var key = "pivot_parent_langs_" + parentUid;
+  var hit = cache.get(key);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var out = [];
+  try {
+    var res = phraseFetchJson_(phraseApiUrlV1_("/projects/" + encodeURIComponent(parentUid) + "/customFields?pageSize=50"),
+      { method: "get", headers: { Authorization: getPhraseAuthHeader_() } });
+    var inst = (res && Array.isArray(res.content)) ? res.content : (Array.isArray(res) ? res : []);
+    var defs = phraseGetCustomFieldDefinitionsMap_();
+    var values = [];
+    inst.forEach(function (x) {
+      var fUid = x.customField && x.customField.uid;
+      if (!fUid || defs[fUid] !== "Pivot languages") return;
+      (x.selectedOptions || []).forEach(function (o) { if (o && o.value) values.push(String(o.value)); });
+    });
+    out = pivotLangsForOptionValues_(values, pivotLangMapReadAll_());
+  } catch (e) {
+    console.warn("pivotParentLangsFromPhrase_: " + e.message);
+  }
+  try { cache.put(key, JSON.stringify(out), 21600); } catch (e) {}
+  return out;
+}
+
+/** Reine Funktion (getestet): Options-Werte ("DE") -> Sprachcodes ("de_de") laut Mapping. */
+function pivotLangsForOptionValues_(values, mapRows) {
+  var out = [];
+  (values || []).forEach(function (v) {
+    (mapRows || []).forEach(function (r) {
+      if (String(r.optionValue).trim().toLowerCase() === String(v).trim().toLowerCase() && out.indexOf(r.langCode) < 0) out.push(r.langCode);
+    });
+  });
+  return out;
 }
