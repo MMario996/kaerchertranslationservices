@@ -14,9 +14,12 @@
  * Routing laeuft primaer ueber diese Zahl; der getippte Befehlsname dient nur
  * als Fallback, falls appCommandId aus irgendeinem Grund fehlt.
  *
- * Die Antwort wird ueber CardService (newChatResponseBuilder) gebaut statt
- * als rohes {text:...}-Objekt, damit Apps Script sie fuer die aktuelle
- * Add-on-Antwortstruktur korrekt serialisiert.
+ * ANTWORT-FORMAT: Ein Chat-App als Workspace Add-on (Event mit e.chat /
+ * e.commonEventObject) erwartet eine hostAppDataAction-Struktur; eine klassische
+ * Chat-App (und doPost per HTTP) erwartet ein einfaches {text:...}. Ein
+ * CardService-ChatResponse passt zu keinem der beiden Add-on-Wege und laesst
+ * sich in doPost nicht per JSON.stringify serialisieren - Chat zeigt dann
+ * "not responding". Daher waehlt _chatTextResponse_ das Format pro Event.
  *
  * Alle mutierenden Befehle pruefen Admin/Owner/Shared-Zugriff genauso wie die
  * entsprechenden Portal-Aktionen (Queue-Sheet: Owner/SharedWith) und nutzen
@@ -65,7 +68,7 @@ function onAppCommand(e) {
       ""
     );
     if (!userEmail) {
-      return _chatTextResponse_("⚠️ I couldn't determine your email. Please open the bot directly in Google Chat.");
+      return _chatTextResponse_(e, "⚠️ I couldn't determine your email. Please open the bot directly in Google Chat.");
     }
 
     var payload = e.appCommandPayload || (e.chat && e.chat.appCommandPayload) || {};
@@ -93,20 +96,23 @@ function onAppCommand(e) {
     console.log("• App Command: appCommandId=" + appCommandId + " | args: \"" + argText + "\" | user: " + userEmail);
 
     if (!handler) {
-      return _chatTextResponse_(_appCommandHelpText_());
+      return _chatTextResponse_(e, _appCommandHelpText_());
     }
 
     var replyText = handler(argText.trim(), userEmail);
-    return _chatTextResponse_(replyText);
+    return _chatTextResponse_(e, replyText);
 
   } catch (err) {
     console.error("onAppCommand error:", err.message);
-    return _chatTextResponse_("⚠️ Something went wrong: " + err.message);
+    return _chatTextResponse_(e, "⚠️ Something went wrong: " + err.message);
   }
 }
 
-function _chatTextResponse_(text) {
-  return CardService.newChatResponseBuilder().setText(String(text || "")).build();
+function _chatTextResponse_(e, text) {
+  var message = { text: String(text || "") };
+  var isAddOnEvent = !!(e && (e.chat || e.commonEventObject));
+  if (!isAddOnEvent) return message;
+  return { hostAppDataAction: { chatDataAction: { createMessageAction: { message: message } } } };
 }
 
 function _appCommandHelpText_() {
