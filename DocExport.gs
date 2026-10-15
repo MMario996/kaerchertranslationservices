@@ -77,6 +77,31 @@ function docExportGetQueueFileNames_(projectUid) {
   return map;
 }
 
+/**
+ * Zielordner für den Export: bevorzugt die beim Import im Queue-Sheet
+ * gespeicherte Drive-Ordner-ID (eindeutig, auch bei verschachtelter Ablage
+ * Root/<Auftrag>/<Projekt>), sonst Namenssuche als Fallback.
+ */
+function docExportResolveProjectFolder_(projectUid, projectName) {
+  try {
+    var sh = SpreadsheetApp.openById(DOC_IMPORT_SHEET_ID_).getSheetByName(DOC_IMPORT_SHEET_NAME_);
+    if (sh && projectUid) {
+      var data = sh.getDataRange().getValues();
+      var headers = data[0].map(function(h) { return String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, ""); });
+      var uidCol = headers.indexOf("projectuid");
+      var folderCol = headers.indexOf("drivefolderid");
+      if (uidCol !== -1 && folderCol !== -1) {
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][uidCol]).trim() !== projectUid) continue;
+          var fid = String(data[i][folderCol] || "").trim();
+          if (fid) return DriveApp.getFolderById(fid);
+        }
+      }
+    }
+  } catch (e) {}
+  return docDriveFindProjectFolder_(projectName);
+}
+
 function docExportFindOrCreateLangFolder_(projectFolder, targetLang) {
   var normalized = String(targetLang || "").toLowerCase().replace(/_/g, "-");
   var it = projectFolder.getFolders();
@@ -105,7 +130,7 @@ function apiExportDocProjectToDrive(projectUid, projectName, jobs) {
   if (!Array.isArray(jobs) || !jobs.length) return { success: false, error: "Keine Jobs übergeben." };
 
   try {
-    var projectFolder = docDriveFindProjectFolder_(projectName);
+    var projectFolder = docExportResolveProjectFolder_(projectUid, projectName);
     if (!projectFolder) {
       return { success: false, error: "Kein Drive-Ordner mit dem Namen '" + projectName + "' unter dem konfigurierten Root gefunden." };
     }
@@ -159,7 +184,7 @@ function apiExportSingleJobToDrive(projectUid, projectName, job) {
   }
 
   try {
-    var projectFolder = docDriveFindProjectFolder_(projectName);
+    var projectFolder = docExportResolveProjectFolder_(projectUid, projectName);
     if (!projectFolder) {
       return { success: false, error: "Kein Drive-Ordner mit dem Namen '" + projectName + "' gefunden." };
     }

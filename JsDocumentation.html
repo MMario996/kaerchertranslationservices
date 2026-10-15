@@ -238,7 +238,7 @@ function renderDocImportFolderList_(folders) {
     return;
   }
   list.innerHTML = folders.map(f =>
-    `<button type="button" class="folder-row${f.id === _docImportSelectedFolderId_ ? ' selected' : ''}" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>
+    `<button type="button" class="folder-row${f.id === _docImportSelectedFolderId_ ? ' selected' : ''}" onclick='selectDocImportFolder_(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)}, ${JSON.stringify(f.orderName ? f.orderName + " " + f.projectName : f.name)})'>
        <span class="material-icons-outlined">${f.id === _docImportSelectedFolderId_ ? 'check_circle' : 'folder'}</span><span class="folder-row-name">${escapeHtml(f.name)}</span>
      </button>`
   ).join('');
@@ -291,7 +291,7 @@ function docImportPreloadFolders_() {
     .apiSearchDocDriveFolders('');
 }
 
-function selectDocImportFolder_(folderId, folderName) {
+function selectDocImportFolder_(folderId, folderName, suggestedProjectName) {
   _docImportSelectedFolderId_ = folderId;
   _docImportSelectedFolderName_ = folderName;
   _docImportDuplicateConfirmed_ = false;
@@ -308,7 +308,7 @@ function selectDocImportFolder_(folderId, folderName) {
   });
 
   const pName = document.getElementById('projectName_docimport');
-  if (pName && !pName.value.trim()) pName.value = folderName;
+  if (pName && !pName.value.trim()) pName.value = suggestedProjectName || folderName;
 
   const container = document.getElementById('docImportValidationContainer');
   container.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loader" style="width:28px;height:28px;border-width:3px;margin:0 auto;"></div></div>';

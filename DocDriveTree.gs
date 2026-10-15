@@ -4,6 +4,9 @@
  * read-only Baumstruktur (Sprachunterordner + XML-Dateien) - gemeinsam
  * genutzt von Import (Quelldateien) und Export (Zielort).
  *
+ * Ablagestruktur: Root / <Auftrag, z.B. AW19869> / <Projekt> / <Sprache>.
+ * Die alte flache Struktur Root / <Projekt> / <Sprache> wird weiter erkannt.
+ *
  * Ordner-Zugriff läuft über zwei Wege:
  *  - per ID (apiGetDocDriveTreeById): das Frontend wählt den Ordner über die
  *    Such-Dropdown (apiSearchDocDriveFolders) aus und referenziert ihn danach
@@ -21,8 +24,20 @@ function docDriveFindProjectFolder_(projectName) {
   var name = String(projectName || "").trim();
   if (!name) return null;
   var root = docDriveGetRootFolder_();
+  // Alte flache Struktur: Root/<Projekt>/<Sprache>
   var it = root.getFoldersByName(name);
   if (it.hasNext()) return it.next();
+  // Neue Struktur: Root/<Auftrag, z.B. AW19869>/<Projekt>/<Sprache>. Der
+  // Projektname ist "<Projekt>" oder "<Auftrag> <Projekt>" (so befüllt der
+  // Doc-Import das Namensfeld vor).
+  var orders = root.getFolders();
+  while (orders.hasNext()) {
+    var order = orders.next();
+    var prefix = order.getName() + " ";
+    var sub = name.indexOf(prefix) === 0 ? name.slice(prefix.length).trim() : name;
+    var hit = order.getFoldersByName(sub);
+    if (hit.hasNext()) return hit.next();
+  }
   return null;
 }
 
@@ -103,29 +118,78 @@ function apiGetDocDriveTreeById(folderId) {
 }
 
 /**
- * Durchsucht die direkten Unterordner des konfigurierten Root-Ordners per
+ * Listet Drive-Ordner per Query (Drive-API v2), alle Seiten bis maxItems.
+ */
+function docDriveListFolders_(q, maxItems) {
+  var out = [], token = null;
+  do {
+    var res = Drive.Files.list({ q: q, maxResults: 200, pageToken: token || undefined,
+      supportsAllDrives: true, includeItemsFromAllDrives: true,
+      fields: "nextPageToken,items(id,title,createdDate,parents(id))" });
+    (res.items || []).forEach(function(f) { out.push(f); });
+    token = res.nextPageToken;
+  } while (token && out.length < maxItems);
+  return out;
+}
+
+var DOC_DRIVE_FOLDER_MIME_Q_ = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+var DOC_DRIVE_SEARCH_LIMIT_ = 100;
+
+/**
+ * Durchsucht die Projektordner unter dem konfigurierten Root per
  * Namens-Teilstring (case-insensitive), für die Such-Dropdown im Frontend.
- * Nutzt die Drive-API v2 (in appsscript.json aktiviert) statt alle Unterordner
- * client-seitig zu iterieren, damit auch bei vielen Projektordnern schnell
- * gefiltert werden kann.
+ *
+ * Ablagestruktur:
+ *   Root (TranslationPool_new) / <Auftrag, z.B. AW19869> / <Projekt, z.B. BTA PCL 6> / <Sprache, z.B. en-GB>
+ * Projekte liegen also auf Ebene 2; angezeigt werden sie als
+ * "AW19869 / BTA PCL 6". Der Suchbegriff trifft Auftrags- oder Projektnamen.
+ * Liegen Sprachordner direkt in einem Ordner der Ebene 1 (alte, flache
+ * Struktur Root/<Projekt>/<Sprache>), wird dieser Ordner selbst als Projekt
+ * gelistet.
+ * Nutzt die Drive-API v2 (in appsscript.json aktiviert), damit auch bei vielen
+ * Ordnern serverseitig gefiltert wird.
  */
 function apiSearchDocDriveFolders(query) {
   var access = apiCheckAccess();
   if (!access.allowed) return { success: false, error: "Not authorized." };
   try {
     var root = docDriveGetRootFolder_();
-    var q = "'" + root.getId() + "' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     var term = String(query || "").trim();
-    if (term) {
-      var escaped = term.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-      q += " and title contains '" + escaped + "'";
+    var termLower = term.toLowerCase();
+
+    var orders = docDriveListFolders_("'" + root.getId() + "' in parents and " + DOC_DRIVE_FOLDER_MIME_Q_, 5000);
+    var orderById = {};
+    orders.forEach(function(o) { orderById[o.id] = o; });
+
+    // Unterordner der Auftragsordner in Blöcken abfragen (Query-Länge begrenzt)
+    var subs = [];
+    var CHUNK = 40;
+    for (var i = 0; i < orders.length; i += CHUNK) {
+      var parentQ = orders.slice(i, i + CHUNK).map(function(o) { return "'" + o.id + "' in parents"; }).join(" or ");
+      subs = subs.concat(docDriveListFolders_("(" + parentQ + ") and " + DOC_DRIVE_FOLDER_MIME_Q_, 5000));
     }
-    var res = Drive.Files.list({ q: q, maxResults: 50, fields: "items(id,title,createdDate)" });
-    var items = (res.items || []).map(function(f) {
-      return { id: f.id, name: f.title, createdDate: f.createdDate };
+
+    var items = [], seen = {};
+    function add(f, orderName) {
+      if (seen[f.id]) return;
+      var label = orderName ? orderName + " / " + f.title : f.title;
+      if (termLower && label.toLowerCase().indexOf(termLower) === -1) return;
+      seen[f.id] = true;
+      items.push({ id: f.id, name: label, projectName: f.title, orderName: orderName || "", createdDate: f.createdDate });
+    }
+    subs.forEach(function(f) {
+      var parentId = (f.parents || []).map(function(p) { return p.id; }).filter(function(id) { return orderById[id]; })[0];
+      var order = orderById[parentId];
+      if (!order) return;
+      if (DOC_DRIVE_LANG_FOLDER_RE_.test(f.title)) add(order, "");   // alte flache Struktur
+      else add(f, order.title);
     });
-    items.sort(function(a, b) { return a.name.localeCompare(b.name); });
-    return { success: true, folders: items };
+
+    // Neueste zuerst, damit ohne Suchbegriff die aktuellen Projekte oben stehen
+    items.sort(function(a, b) {
+      return String(b.createdDate || "").localeCompare(String(a.createdDate || "")) || a.name.localeCompare(b.name);
+    });
+    return { success: true, folders: items.slice(0, DOC_DRIVE_SEARCH_LIMIT_) };
   } catch (e) {
     return { success: false, error: e.message || String(e) };
   }
