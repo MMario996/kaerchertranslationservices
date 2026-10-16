@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const plain = (v) => JSON.parse(JSON.stringify(v));
 const { load } = require('./lib/load');
 
-const ctx = load(['DocQueue.gs', 'PivotProjects.gs', 'Upload.gs', 'DownloadZip.gs']);
+const ctx = load(['DocQueue.gs', 'DocQueueSync.gs', 'PivotProjects.gs', 'Upload.gs', 'DownloadZip.gs']);
 const j = (status) => ({ status });
 
 test('docAggregateStatus_: Projekt ist so weit wie sein langsamster Job', () => {
@@ -31,6 +31,60 @@ test('docAggregateStatus_: ohne Jobs NEW, Phrase-Projektstatus gewinnt', () => {
 
 test('docAggregateStatus_: unbekannte Job-Status gelten als UPLOADED', () => {
   assert.equal(ctx.docAggregateStatus_([j('WHATEVER'), j('COMPLETED')], ''), 'UPLOADED');
+});
+
+test('Doku-Sheet-Sync: nur offene Projekte werden bei Phrase abgefragt', () => {
+  const data = [
+    ['Project UID', 'Target Lang', 'File Name', 'Status', 'Phrase Project Status'],
+    ['P1', 'de_de', 'a_de.xml', 'UPLOADED', 'NEW'],
+    ['P2', 'fr_fr', 'a_fr.xml', 'COMPLETED', 'COMPLETED'],
+    ['P3', 'es_es', 'a_es.xml', 'UPLOADED', 'COMPLETED'],
+    ['', 'it_it', 'x.xml', 'UPLOADED', '']
+  ];
+  const col = ctx.docSyncColumns_(data[0]);
+  assert.deepEqual(plain(col), { uid: 0, status: 3, projectStatus: 4, lang: 1, file: 2 });
+  assert.deepEqual(plain(ctx.docSyncOpenProjects_(data, col)), ['P1', 'P3']);
+});
+
+test('Doku-Sheet-Sync: Projekt- und Job-Status werden nur bei Aenderung geschrieben', () => {
+  const data = [
+    ['Project UID', 'Target Lang', 'File Name', 'Status', 'Phrase Project Status'],
+    ['P1', 'de_de', 'a_de.xml', 'UPLOADED', 'NEW'],
+    ['P1', 'fr_fr', 'a_fr.xml', 'COMPLETED', 'NEW'],
+    ['P1', 'it_it', 'a_it.xml', 'NOTIFIED', 'NEW'],
+    ['P2', 'en_gb', 'b.xml', 'UPLOADED', 'ASSIGNED']
+  ];
+  const col = ctx.docSyncColumns_(data[0]);
+  const changes = ctx.docSyncPlanUpdates_(data, col, {
+    P1: { status: 'ASSIGNED', jobs: [
+      { targetLang: 'de_de', filename: 'a_de.xml', status: 'ACCEPTED' },
+      { targetLang: 'fr_fr', filename: 'a_fr.xml', status: 'COMPLETED' },
+      { targetLang: 'it_it', filename: 'a_it.xml', status: 'COMPLETED' }
+    ] }
+  });
+  assert.deepEqual(plain(changes).map((c) => [c.row, c.col, c.value]), [
+    [2, 5, 'ASSIGNED'], [2, 4, 'ACCEPTED'],
+    [3, 5, 'ASSIGNED'],
+    [4, 5, 'ASSIGNED']
+  ], 'NOTIFIED bleibt, P2 ohne Phrase-Daten unveraendert');
+});
+
+test('Doku-Sheet-Sync: Zuordnung ueber Sprache, bei mehreren Dateien ueber den Dateinamen', () => {
+  const data = [
+    ['Project UID', 'Target Lang', 'File Name', 'Status', 'Phrase Project Status'],
+    ['P1', 'de-DE', 'x.xml', 'UPLOADED', 'NEW'],
+    ['P1', 'fr_fr', 'f1.xml', 'UPLOADED', 'NEW'],
+    ['P1', 'fr_fr', 'f2.xml', 'UPLOADED', 'NEW']
+  ];
+  const col = ctx.docSyncColumns_(data[0]);
+  const changes = ctx.docSyncPlanUpdates_(data, col, {
+    P1: { status: 'NEW', jobs: [
+      { targetLang: 'de_de', filename: 'other.xml', status: 'COMPLETED' },
+      { targetLang: 'fr_fr', filename: 'f1.xml', status: 'ACCEPTED' },
+      { targetLang: 'fr_fr', filename: 'f2.xml', status: 'COMPLETED' }
+    ] }
+  });
+  assert.deepEqual(plain(changes).map((c) => [c.row, c.value]), [[2, 'COMPLETED'], [3, 'ACCEPTED'], [4, 'COMPLETED']]);
 });
 
 test('Projektnotiz: Pivot-Marker bleibt beim Speichern erhalten und wird nicht angezeigt', () => {

@@ -38,7 +38,7 @@ function pvInit_() {
   }).withFailureHandler(() => {}).apiGetPivotFieldOptionValues();
   if (typeof PRETTY_LANG_MAP !== 'undefined') {
     document.getElementById('pvLangDatalist').innerHTML = Object.keys(PRETTY_LANG_MAP).sort()
-      .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(PRETTY_LANG_MAP[c])}</option>`).join('');
+      .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(PRETTY_LANG_MAP[c].replace(/^\S+\s*/, ''))}</option>`).join('');
   }
 }
 

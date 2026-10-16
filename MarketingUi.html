@@ -163,7 +163,7 @@ function mktConsultingPaint_() {
     '<button type="button" class="mkt-item' + (mkt_.current === r.id ? ' active' : '') + '" onclick="mktConsultingOpen_(\'' + escapeJs(r.id) + '\')">' +
       '<span class="mkt-item-top"><span class="mkt-item-name">' + mktEsc_(r.projectName || r.id) + '</span><span class="mkt-st mkt-st-' + mktEsc_(r.status) + '">' + mktEsc_(mktStatusLabel_(r.status)) + '</span></span>' +
       '<span class="mkt-item-sub">' + mktEsc_(r.id) + ' · ' + mktEsc_(mktDate_(r.createdAt)) + (res.isConsultant ? ' · ' + mktEsc_(r.requester) : '') + '</span>' +
-      '<span class="mkt-item-sub">' + mktEsc_(r.templateName || '-') + (r.targetLangs.length ? ' · ' + mktEsc_(langsShort_(r.targetLangs)) : '') +
+      '<span class="mkt-item-sub">' + mktEsc_(r.templateName || '-') + (r.targetLangs.length ? ' · ' + langBadgesHtml_(r.targetLangs, '', true) : '') +
         (r.assignee ? ' · <span class="material-icons-outlined" style="font-size:13px;vertical-align:-2px;">person</span> ' + mktEsc_(r.assignee) : '') + '</span>' +
     '</button>').join('') : '<div class="mkt-empty">' + mktEsc_(tr_('mk_none', 'No requests.')) + '</div>';
 }
@@ -234,8 +234,8 @@ function mktConsultingPaintDetail_() {
   } else {
     html += '<div class="mkt-grid2" style="font-size:13px;">' +
       '<div><b>' + mktEsc_(labels.template) + ':</b> ' + mktEsc_(p.templateName || p.templateGroup || '-') + '</div>' +
-      '<div><b>' + mktEsc_(labels.sourceLang) + ':</b> ' + mktEsc_(langShort_(p.sourceLang) || '-') + '</div>' +
-      '<div class="full"><b>' + mktEsc_(labels.targetLangs) + ':</b> ' + mktEsc_(langsShort_(p.targetLangs || []) || '-') + '</div>' +
+      '<div><b>' + mktEsc_(labels.sourceLang) + ':</b> ' + langBadgesHtml_(p.sourceLang ? [p.sourceLang] : [], '', true) + '</div>' +
+      '<div class="full"><b>' + mktEsc_(labels.targetLangs) + ':</b> ' + langBadgesHtml_(p.targetLangs || [], '', true) + '</div>' +
       (p.dueDate ? '<div><b>' + mktEsc_(mktLbl_('lbl_duedate', 'Due date')) + ':</b> ' + mktEsc_(new Date(p.dueDate).toLocaleDateString()) + '</div>' : '') +
       (p.note ? '<div class="full"><b>' + mktEsc_(mktLbl_('lbl_note', 'Note')) + ':</b> ' + mktEsc_(p.note) + '</div>' : '') + '</div>';
   }
@@ -511,7 +511,7 @@ function mktPrecalcHistory_() {
         '<th>' + mktEsc_(mktLbl_('lbl_template', 'Template')) + '</th><th>' + mktEsc_(tr_('mk_files', 'Files')) + '</th><th>' + mktEsc_(mktLbl_('lbl_target', 'Target languages')) + '</th><th class="mkt-num">' +
         mktEsc_(tr_('mk_pc_words', 'Words')) + '</th><th class="mkt-num">' + mktEsc_(tr_('mk_pc_amount', 'Amount')) + '</th></tr></thead><tbody>' +
         rows.map(r => '<tr><td>' + mktEsc_(mktDate_(r.createdAt)) + '</td>' + (res.all ? '<td>' + mktEsc_(r.user) + '</td>' : '') + '<td>' + mktEsc_(r.template) + '</td><td>' + mktEsc_(r.files) +
-          '</td><td>' + mktEsc_(langsShort_(r.targetLangs)) + '</td><td class="mkt-num">' + (r.words ? mktEsc_(r.words.toLocaleString()) : '') + '</td><td class="mkt-num">' +
+          '</td><td>' + langBadgesHtml_(r.targetLangs) + '</td><td class="mkt-num">' + (r.words ? mktEsc_(r.words.toLocaleString()) : '') + '</td><td class="mkt-num">' +
           (r.status === 'DONE' && r.amount != null ? '<b>' + mktEsc_(mktMoney_(r.amount, r.currency)) + '</b>' : '<small>' + mktEsc_(r.status === 'DONE' ? '' : (r.status.indexOf('ERROR') === 0 ? tr_('mk_pc_failed', 'failed') : tr_('mk_pc_open', 'not finished'))) + '</small>') +
           '</td></tr>').join('') + '</tbody></table></div>' : '<div class="mkt-empty">' + mktEsc_(tr_('mk_pc_none', 'No calculations yet.')) + '</div>') + '</div>';
   }).apiPrecalcHistory();
@@ -582,7 +582,7 @@ function mktPrecalcPoll_() {
 function mktPrecalcResult_(res) {
   const body = document.getElementById('mktPcBody');
   const per = (res.perTemplate || []).length > 1 ? '<table class="mkt-table" style="margin-top:10px;">' + res.perTemplate.map(p =>
-    '<tr><td>' + mktEsc_(langsShort_(p.langs || [])) + '</td><td class="mkt-num">' + mktEsc_(mktMoney_(p.amount, p.currency)) + '</td></tr>').join('') + '</table>' : '';
+    '<tr><td>' + langBadgesHtml_(p.langs || []) + '</td><td class="mkt-num">' + mktEsc_(mktMoney_(p.amount, p.currency)) + '</td></tr>').join('') + '</table>' : '';
   body.innerHTML = '<div style="text-align:center;"><div class="mkt-item-sub">' + mktEsc_(tr_('mk_pc_result', 'Estimated costs')) + '</div>' +
     '<div class="mkt-pc-amount">' + mktEsc_(mktMoney_(res.amount, res.currency)) + '</div>' +
     (res.words ? '<div class="mkt-item-sub">' + mktEsc_(Number(res.words).toLocaleString()) + ' ' + mktEsc_(tr_('mk_pc_words', 'Words')) + ' · ' + mktEsc_((res.files || []).join(', ')) + '</div>' : '') +

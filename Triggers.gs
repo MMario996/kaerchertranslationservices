@@ -21,6 +21,13 @@ function setupAllTriggers() {
     .create();
   console.log("\u2022 AutoSync: alle 15 Minuten");
 
+  // ?? 1b. Dokumentations-Queue-Sheet <-> Phrase ? alle 15 Minuten -----------
+  ScriptApp.newTrigger("autoSyncDocQueueStatuses_")
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+  console.log("\u2022 Doc-Queue-Sync: alle 15 Minuten");
+
   // ?? 2. Chat-Property-Cleanup ? täglich 03:00 -----------------------------
   ScriptApp.newTrigger("cleanupChatDedupProperties_")
     .timeBased()
@@ -37,6 +44,7 @@ function setupAllTriggers() {
 
   // Script Property setzen damit der Toggle in der UI korrekt angezeigt wird
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "true");
+  PropertiesService.getScriptProperties().setProperty("DOC_AUTO_SYNC_ENABLED", "true");
 
   // ?? Übersicht aller gesetzten Trigger ------------------------------------
   console.log("--------------------------------");
@@ -79,6 +87,7 @@ function removeAllTriggers() {
     console.log("\u26A0 Gelöscht: " + t.getHandlerFunction());
   });
   PropertiesService.getScriptProperties().setProperty("AUTO_SYNC_ENABLED", "false");
+  PropertiesService.getScriptProperties().setProperty("DOC_AUTO_SYNC_ENABLED", "false");
   console.log("\u2022 Alle Trigger entfernt.");
 }
 /**

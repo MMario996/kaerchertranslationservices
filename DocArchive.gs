@@ -8,6 +8,10 @@
 function apiArchiveDocQueueProject(projectUid, projectName) {
   var access = apiCheckAccess();
   if (!access.allowed) return { success: false, error: "Not authorized." };
+  // Gleicher Lock wie der Status-Sync (DocQueueSync.gs): der schreibt per
+  // Zeilennummer, das Loeschen hier verschiebt die Zeilen.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return { success: false, error: "Sheet is busy (status sync) - please try again shortly." };
   try {
     var ss = SpreadsheetApp.openById(DOC_QUEUE_SHEET_ID_);
     var queueSh = ss.getSheetByName(DOC_QUEUE_SHEET_NAME_);
@@ -84,5 +88,7 @@ function apiArchiveDocQueueProject(projectUid, projectName) {
     };
   } catch (e) {
     return { success: false, error: e.message || String(e) };
+  } finally {
+    lock.releaseLock();
   }
 }

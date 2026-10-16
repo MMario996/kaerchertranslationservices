@@ -374,7 +374,10 @@ const PRETTY_LANG_MAP = {
   "vi":           "🇻🇳 Vietnamese", "vi_vn":        "🇻🇳 Vietnamese",
 };
 
-// --- Sprachen einheitlich anzeigen: Flagge + Kuerzel (+ Name) --------------------
+// --- Sprachen einheitlich anzeigen: Kuerzel, in Listen als Kaestchen -------------
+// Keine Flaggen mehr: Sprachen erscheinen ueberall wie bei den
+// Dokumentationsprojekten als Kaestchen (Farbe = Status), in reinen Textfeldern
+// (Dropdowns, Labels) als Kuerzel.
 /** "es_es" -> "ES", "en_gb" -> "EN-GB", "zh_hans_cn" -> "ZH-CN". */
 function langShortCode_(code) {
   const p = String(code || '').toLowerCase().replace(/-/g, '_').split('_').filter(Boolean);
@@ -383,32 +386,52 @@ function langShortCode_(code) {
   return (region && region !== p[0] ? p[0] + '-' + region : p[0]).toUpperCase();
 }
 
-/** Flagge: Land aus dem Code (es_mx -> MX), sonst die der Sprache aus PRETTY_LANG_MAP. */
-function langFlag_(code) {
-  const key = String(code || '').toLowerCase().replace(/-/g, '_');
-  const p = key.split('_');
-  const fromMap = v => (v && /^\S+/.exec(v) || [''])[0];
-  if (PRETTY_LANG_MAP[key]) return fromMap(PRETTY_LANG_MAP[key]);
-  const region = p.length > 1 && /^[a-z]{2}$/.test(p[p.length - 1]) ? p[p.length - 1] : '';
-  if (region) return String.fromCodePoint(...region.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
-  return fromMap(PRETTY_LANG_MAP[p[0]]);
-}
-
-/** Kurzform fuer Listen/Tabellen: "🇪🇸 ES". */
+/** Kurzform fuer Text: "ES". */
 function langShort_(code) {
-  if (!code) return '';
-  const f = langFlag_(code);
-  return (f ? f + ' ' : '') + langShortCode_(code);
+  return code ? langShortCode_(code) : '';
 }
 
-/** Mehrere Sprachen (Array oder "de_de, fr_fr") als Kurzform. */
-function langsShort_(list) {
+/** Liste (Array oder "de_de, fr_fr") als Array der Codes. */
+function langList_(list) {
   const arr = Array.isArray(list) ? list : String(list || '').split(/[,;]+/);
-  return arr.map(s => String(s).trim()).filter(Boolean).map(langShort_).join(', ');
+  return arr.map(s => String(s).trim()).filter(Boolean);
+}
+
+/** Mehrere Sprachen als Text: "DE, EN-GB". */
+function langsShort_(list) {
+  return langList_(list).map(langShort_).join(', ');
+}
+
+/** Farbe eines Sprach-Kaestchens nach (Job-/Projekt-)Status; ohne Status neutral. */
+function langStatusColor_(status) {
+  const s = String(status || '').toUpperCase();
+  if (!s) return '#666666';
+  if (['COMPLETED', 'DELIVERED', 'NOTIFIED'].includes(s)) return '#2e7d32';
+  if (['CANCELLED', 'CANCELED', 'REJECTED', 'DECLINED', 'ERROR'].includes(s)) return '#c62828';
+  return '#b08d00';
+}
+
+/** Ein Sprach-Kaestchen (Text = Sprachcode wie im Sheet, z. B. "DE_DE"). */
+function langBadgeHtml_(code, status, title) {
+  const c = langStatusColor_(status);
+  return `<span class="doc-job-badge" style="color:${c};border-color:${c}66;background:${c}14;" title="${escapeHtml(title || code || '')}">${escapeHtml(code || '?')}</span>`;
+}
+
+/** Sprachen als Kaestchen, alle in der Farbe des Projektstatus. "-" wenn leer. */
+function langBadgesHtml_(list, status, inline) {
+  const arr = langList_(list);
+  if (!arr.length) return '-';
+  return `<span class="doc-job-badges${inline ? ' inline' : ''}">` +
+    arr.map(code => langBadgeHtml_(code, status, getPrettyLangNameSafe_(code) + (status ? ' \u2013 ' + status : ''))).join('') + '</span>';
+}
+
+/** getPrettyLangName (JsForms) falls geladen, sonst das Kuerzel. */
+function getPrettyLangNameSafe_(code) {
+  return typeof getPrettyLangName === 'function' ? getPrettyLangName(code) : langShort_(code);
 }
 
 /**
- * Vorlagenname mit Flaggen: "[ES] Flyer" -> "🇪🇸 ES · Flyer", "Flyer DE>FR" -> "Flyer 🇩🇪 DE>🇫🇷 FR".
+ * Vorlagenname fuer Dropdowns: "[ES] Flyer" -> "ES · Flyer", "[MKT] Flyer" -> "Flyer".
  * Nur Kuerzel in GROSSBUCHSTABEN (bzw. xx-XX), die eine bekannte Sprache sind.
  */
 function tplDisplayLabel_(name) {
@@ -416,8 +439,7 @@ function tplDisplayLabel_(name) {
   const known = c => !!PRETTY_LANG_MAP[c.toLowerCase().replace(/-/g, '_')] || !!PRETTY_LANG_MAP[c.toLowerCase().split(/[-_]/)[0]];
   let prefix = '';
   const m = /^\[([^\]]+)\]\s*/.exec(s);
-  if (m) { s = s.slice(m[0].length); if (/^[A-Z]{2}(?:[-_][A-Z]{2})?$/.test(m[1]) && known(m[1])) prefix = langFlag_(m[1]) + ' ' + m[1] + ' · '; }
-  s = s.replace(/(^|[^A-Za-z\u{1F1E6}-\u{1F1FF}])([A-Z]{2}(?:[-_][A-Z]{2})?)(?=$|[^A-Za-z])/gu, (all, pre, c) => known(c) ? pre + langFlag_(c) + ' ' + c : all);
+  if (m) { s = s.slice(m[0].length); if (/^[A-Z]{2}(?:[-_][A-Z]{2})?$/.test(m[1]) && known(m[1])) prefix = m[1] + ' · '; }
   return prefix + s;
 }
 

@@ -871,6 +871,7 @@ function toggleAdminHelp(id) {
                 document.getElementById('autoSyncLastRun').innerText = tr_('ax_54219de', 'Never run');
             }
         }).apiGetAutoSyncStatus();
+        loadDocAutoSyncStatus_();
 
 // Lazy load ? nur via Reload-Button
         // loadScriptProperties();
@@ -1289,6 +1290,40 @@ function toggleAdminHelp(id) {
             txt.innerText = enable ? 'ON' : 'OFF';
             showCustomAlert(`Auto-Sync is now ${enable ? 'ENABLED' : 'DISABLED'}.`, tr_('ax_505a83f', 'Success'));
         }).apiToggleAutoSync(enable);
+    }
+    function loadDocAutoSyncStatus_() {
+        google.script.run.withSuccessHandler(r => {
+            const tg = document.getElementById('docAutoSyncToggle');
+            if (!tg) return;
+            tg.checked = r.enabled;
+            document.getElementById('docAutoSyncStatusText').innerText = r.enabled ? 'ON' : 'OFF';
+            document.getElementById('docAutoSyncLastRun').innerText = r.lastRun
+                ? `${tr_('ax_9d84f32', 'Last run:')} ${new Date(r.lastRun).toLocaleString()} (${r.lastUpdated} updated)`
+                : tr_('ax_54219de', 'Never run');
+        }).apiGetDocAutoSyncStatus();
+    }
+    function toggleDocAutoSync(enable) {
+        const txt = document.getElementById('docAutoSyncStatusText');
+        txt.innerText = tr_('ax_a7d784a', 'Updating...');
+        google.script.run.withSuccessHandler(r => {
+            txt.innerText = enable ? 'ON' : 'OFF';
+            showCustomAlert(r.msg, tr_('ax_505a83f', 'Success'));
+        }).withFailureHandler(e => {
+            txt.innerText = enable ? 'OFF' : 'ON';
+            document.getElementById('docAutoSyncToggle').checked = !enable;
+            showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
+        }).apiToggleDocAutoSync(enable);
+    }
+    function syncDocQueueNow(btn) {
+        btn.disabled = true;
+        google.script.run.withSuccessHandler(r => {
+            btn.disabled = false;
+            showCustomAlert(r.success ? `\u2713 ${r.updated} project(s) updated (${r.checked} checked).` : '\u2717 ' + r.message, 'Status Sync');
+            loadDocAutoSyncStatus_();
+        }).withFailureHandler(e => {
+            btn.disabled = false;
+            showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error'));
+        }).apiSyncDocQueueStatuses();
     }
     function loadScriptProperties() {
       const container = document.getElementById('scriptPropsContainer');
