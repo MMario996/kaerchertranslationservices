@@ -30,7 +30,11 @@ function doGet(e) {
  * tests/ui.consistency.test.js prueft die Gesamtgroesse.
  */
 function include(name) {
-  return HtmlService.createHtmlOutputFromFile(name).getContent().replace(/^[ \t]+/gm, "");
+  var src = HtmlService.createHtmlOutputFromFile(name).getContent().replace(/^[ \t]+/gm, "");
+  // Styles: CSS-Kommentare entfernen (nur dort sicher - in JS koennten "/*"
+  // auch in Strings oder Regexen stehen).
+  if (name === "Styles") src = src.replace(/\/\*[\s\S]*?\*\//g, "");
+  return src;
 }
 
 /**

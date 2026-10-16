@@ -98,7 +98,11 @@ test('Ausgeliefertes Startdokument bleibt unter der Apps-Script-Grenze', () => {
   // Apps Script schneidet die Seite ab ca. 600 KB mitten im <script> ab (590 KB
   // liefen noch, 652 KB nicht mehr). Groesseres gehoert in nachgeladene Teile
   // (GuideContent, Admin, DarkTheme, Woerterbuecher in I18nDicts.gs).
-  const page = index.replace(/<\?!= include\('(\w+)'\); \?>/g, (m, n) => read(n + '.html').replace(/^[ \t]+/gm, ''));
+  // Wie include() in WebApp.gs: Einrueckung weg, bei Styles auch CSS-Kommentare.
+  const page = index.replace(/<\?!= include\('(\w+)'\); \?>/g, (m, n) => {
+    const src = read(n + '.html').replace(/^[ \t]+/gm, '');
+    return n === 'Styles' ? src.replace(/\/\*[\s\S]*?\*\//g, '') : src;
+  });
   const bytes = Buffer.byteLength(page, 'utf8');
   assert.ok(bytes < 560000, 'Startdokument ist ' + bytes + ' Bytes gross (Grenze 560000)');
 });

@@ -913,13 +913,12 @@ function maybeLoadPivotTargetLanguages_(suffix, group, tData) {
     .apiGetPivotChildLanguageOptions(tData.uid);
 }
 
-/** Ueberall gleich: "🇪🇸 ES · Spanish (Spain)" (Flagge + Kuerzel + Name), siehe langShort_ in JsCore. */
+/** Ueberall gleich: "ES · Spanish (Spain)" (Kuerzel + Name), siehe langShort_ in JsCore. */
 function getPrettyLangName(code) {
   if (!code) return tr_('jx_88183b9', 'Unknown');
   const key = code.toLowerCase().replace(/-/g, "_");
   const base = key.split("_")[0];
-  const full = PRETTY_LANG_MAP[key] || PRETTY_LANG_MAP[base] || '';
-  const name = full.replace(/^\S+\s*/, '');
+  const name = PRETTY_LANG_MAP[key] || PRETTY_LANG_MAP[base] || '';
   return langShort_(code) + (name ? ' · ' + name : '');
 }
 
