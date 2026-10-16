@@ -199,6 +199,7 @@ Admin → Console → System zeigt Properties an; Werte mit `token`, `key`, `sec
 | Funktion | Takt | Zweck |
 |---|---|---|
 | `autoSyncProjectStatuses_` | alle 15 min | Status aus Phrase holen, Chat/Glocke benachrichtigen, Pivot-Kinder verfolgen |
+| `autoSyncDocQueueStatuses_` | alle 15 min | Dokumentations-Queue-Sheet mit Phrase abgleichen: „Phrase Project Status“ und Status pro Sprache (Job im letzten Workflow-Schritt); eigener Schalter im Admin-Bereich (DocQueueSync.gs) |
 | `calendarSyncAllTrigger` | stündlich | Fristen in die Kalender der Nutzer |
 | `psNightlySync_` | täglich ~02:00 | UI-Texte aus Phrase Strings zurückholen |
 | `cleanupChatDedupProperties_` | täglich ~03:00 | Aufräumen der Chat-Dedup-Properties |

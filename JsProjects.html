@@ -74,7 +74,7 @@ function fillTable(projects) {
     tr.innerHTML=`<td>${nameCell}</td>
       <td><a href="${p.phraseUrl}" target="_blank" style="font-size:11px;" title="Open in Phrase TMS">${p.projectUid} <span class="material-icons-outlined" style="font-size:12px">open_in_new</span></a></td>
       <td style="font-size:11px;">${p.uploadDate||"-"}</td><td>${p.sourceLang}</td>
-      <td>${p.docProject ? docJobBadges_(p) : `<span style="font-size:11px;">${escapeHtml(langsShort_(p.targetLang)||"-")}</span>`}</td>
+      <td>${projLangBadges_(p)}</td>
       <td><span class="status-badge status-${p.status}">${p.status}</span></td>
       <td>${due}</td><td>${shText}</td>
       <td style="text-align:center;">${dlBtn}</td>
@@ -276,7 +276,7 @@ function syncProjectStatuses() {
       btn.disabled = false; btn.innerHTML = '<i class="material-icons-outlined">sync</i> Sync Status';
       showCustomAlert(tr_('jx_3d9f514', 'Error:') + ' ' + e.message, tr_('jx_902b0d5', 'Error'));
     })
-    .apiSyncProjectStatuses();
+    [historyScope_ === 'doc' ? 'apiSyncDocQueueStatuses' : 'apiSyncProjectStatuses']();
 }
 
 let currentHistoryView = 'table';
@@ -332,7 +332,7 @@ function calChipHtml_(p, detailed) {
   return `<button type="button" class="cal-card ${calChipClass_(p)}" title="${title}" onclick="showTimeline('${escapeJs(p.projectUid)}')">
       <span class="cal-card-name">${escapeHtml(p.projectName)}</span>
       <span class="cal-card-meta"><span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(p.status || '-')}</span>
-      ${p.targetLang ? `<span class="cal-card-langs">${escapeHtml(langsShort_(p.targetLang))}</span>` : ''}</span>
+      ${p.targetLang ? `<span class="cal-card-langs">${projLangBadges_(p, true)}</span>` : ''}</span>
     </button>`;
 }
 
@@ -549,7 +549,7 @@ function openProjectDetail_(uid) {
   document.getElementById('drawerActions').innerHTML = a.join('');
 
   const due = p.dueDate ? `<span class="${dueClass_(p)}">${escapeHtml(new Date(p.dueDate).toLocaleString())}</span>` : '';
-  const langs = p.docProject ? docJobBadges_(p) : escapeHtml(langsShort_(p.targetLang));
+  const langs = projLangBadges_(p);
   let html = '<section class="pd-section">' + pdStepsHtml_(p.status) + '</section>';
   html += '<section class="pd-section"><h4>' + escapeHtml(tr_('pd_facts', 'Project')) + '</h4>' +
     pdRow_(tr_('jx_b3acfd2', 'Phrase ID'), p.projectUid ? `<a href="${p.phraseUrl}" target="_blank">${escapeHtml(p.projectUid)}</a>` : '') +

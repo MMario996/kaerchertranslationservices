@@ -335,10 +335,12 @@ function homeTime_(d) {
   try { return d.toLocaleTimeString(calLocale_(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
 }
 
+/** Unterzeile (HTML): Sprachen als Kaestchen wie in "Meine Projekte", ggf. Besitzer. */
 function homeSub_(p) {
-  const langs = langsShort_(p.targetLangs && p.targetLangs.length ? p.targetLangs : (p.targetLang || ''));
+  const hasLangs = p.docProject ? (p.docJobs || []).length : langList_(p.targetLangs && p.targetLangs.length ? p.targetLangs : p.targetLang).length;
   const owner = p.owner && configData.currentUser && p.owner !== String(configData.currentUser).toLowerCase() ? p.owner : '';
-  return [langs, owner].filter(Boolean).join(' · ') || p.status || '';
+  const parts = [hasLangs ? projLangBadges_(p, true) : '', owner ? escapeHtml(owner) : ''].filter(Boolean);
+  return parts.length ? parts.join(' · ') : escapeHtml(p.status || '');
 }
 
 function homeCustomize_(sec) {
@@ -598,7 +600,7 @@ function homeItem_(p, mode) {
   const pin = p.teamView ? '' : `<button type="button" class="h-pin${pinned ? ' on' : ''}" aria-pressed="${pinned}" onclick="event.stopPropagation(); togglePin_('${u}')" title="${escapeHtml(pinned ? tr_('hm_unpin', 'Unpin') : tr_('hm_pin', 'Pin'))}"><span class="material-icons-outlined">${pinned ? 'star' : 'star_border'}</span></button>`;
   return `<li class="h-item" data-uid="${escapeHtml(p.projectUid)}" onclick="openFromHome_('${u}')" tabindex="0" onkeydown="if(event.key==='Enter')openFromHome_('${u}')">
       <span class="h-dot st-${statusGroup_(p.status)}"></span>
-      <span class="h-item-main"><span class="h-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="h-item-sub">${escapeHtml(homeSub_(p))}</span>${mode !== 'done' ? homeProgHtml_(p.projectUid) : ''}</span>
+      <span class="h-item-main"><span class="h-item-name">${escapeHtml(p.projectName || p.projectUid)}</span><span class="h-item-sub">${homeSub_(p)}</span>${mode !== 'done' ? homeProgHtml_(p.projectUid) : ''}</span>
       <span class="h-qa">${actions}</span>${pin}${right}
     </li>`;
 }
@@ -614,7 +616,7 @@ function homeFocusHtml_(b) {
       <div class="h-focus-when">${escapeHtml(homeDueText_(d))}</div>
       <div class="h-focus-date">${escapeHtml(fmtDay_(d) + ' · ' + homeTime_(d))}</div>
       <div class="h-focus-name">${escapeHtml(p.projectName || p.projectUid)}</div>
-      <div class="h-focus-sub">${escapeHtml(homeSub_(p))}</div>
+      <div class="h-focus-sub">${homeSub_(p)}</div>
       <div class="h-actions"><button type="button" class="h-btn h-btn-glass h-btn-sm" onclick="openFromHome_('${escapeJs(p.projectUid)}')"><span class="material-icons-outlined">open_in_full</span><span>${escapeHtml(tr_('hm_open_project', 'Open project'))}</span></button>
         <button type="button" class="h-btn h-btn-glass h-btn-sm" onclick="openDueDateModal('${escapeJs(p.projectUid)}','${escapeJs(p.projectName || '')}','${escapeJs(p.dueDate || '')}')"><span class="material-icons-outlined">edit_calendar</span><span>${escapeHtml(tr_('pd_due', 'Due date'))}</span></button></div>
     </section>`;
@@ -753,7 +755,7 @@ function homeSearch_(q) {
     html += `<div class="h-sr-h">${escapeHtml(tr_('hm_projects', 'Projects'))}</div>` + hits.map(p => {
       const i = homeSr_.push(() => openFromHome_(p.projectUid)) - 1;
       const d = pDate_(p.dueDate);
-      return row(i, `<span class="h-dot st-${statusGroup_(p.status)}"></span><span class="h-sr-main"><b>${escapeHtml(p.projectName || p.projectUid)}</b><small>${escapeHtml(homeSub_(p))}</small></span><span class="h-sr-meta">${escapeHtml(d ? fmtDay_(d) : '')}</span>`);
+      return row(i, `<span class="h-dot st-${statusGroup_(p.status)}"></span><span class="h-sr-main"><b>${escapeHtml(p.projectName || p.projectUid)}</b><small>${homeSub_(p)}</small></span><span class="h-sr-meta">${escapeHtml(d ? fmtDay_(d) : '')}</span>`);
     }).join('');
   } else if (s) {
     html += `<div class="h-sr-empty">${escapeHtml(tr_('home_search_none', 'No matching projects.'))}</div>`;

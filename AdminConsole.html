@@ -153,6 +153,25 @@
                         When enabled, project statuses are automatically synced from Phrase every 15 minutes.
                         Chat notifications are sent when translations complete.
                     </div>
+
+                    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+                    <label data-i18n="ax_docsync_title">Sync documentation sheet with Phrase</label>
+                    <div style="display:flex;align-items:center;gap:15px;margin-top:8px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;margin:0;">
+                                <input type="checkbox" id="docAutoSyncToggle" style="opacity:0;width:0;height:0;"
+                                       onchange="toggleDocAutoSync(this.checked)">
+                                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s;cursor:pointer;"></span>
+                                <span style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;"></span>
+                            </label>
+                            <span id="docAutoSyncStatusText" style="font-size:12px;font-weight:700;color:#888;">OFF</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="syncDocQueueNow(this)" style="font-size:12px;padding:0 15px;" title="Syncs the status in the documentation sheet now" data-i18n-title="ax_docsync_now"><i class="material-icons-outlined">sync</i> Sync</button>
+                        <span id="docAutoSyncLastRun" style="font-size:11px;color:#999;"></span>
+                    </div>
+                    <div style="font-size:11px;color:#888;margin-top:6px;" data-i18n="ax_docsync_hint">
+                        When enabled, project and language statuses in the linked documentation queue sheet are synced from Phrase every 15 minutes (separate trigger).
+                    </div>
                 </div>
 
                 <div class="card" data-cgroup="system" style="border-top-color:#1a73e8;">

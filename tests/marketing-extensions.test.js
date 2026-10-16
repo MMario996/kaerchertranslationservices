@@ -151,18 +151,26 @@ test('Sandbox: Cache-Schluessel getrennt je Umgebung', () => {
   assert.equal(s.sandboxCacheKey_('phrase_cf_defs_map', true), 'sbx_phrase_cf_defs_map');
 });
 
-test('Sprachen: Flagge + Kuerzel einheitlich, Vorlagennamen mit Flaggen', () => {
+test('Sprachen: Kuerzel ohne Flaggen, in Listen als Kaestchen wie bei Dokumentationsprojekten', () => {
   const b = load(['JsCore.html', 'JsMisc.html', 'JsForms.html'], browserStubs());
   assert.equal(b.langShortCode_('es_es'), 'ES');
   assert.equal(b.langShortCode_('en_gb'), 'EN-GB');
   assert.equal(b.langShortCode_('zh_hans_cn'), 'ZH-CN');
-  assert.equal(b.langShort_('es_ES'), '🇪🇸 ES');
-  assert.equal(b.langShort_('es_mx'), '🇲🇽 ES-MX', 'Flagge aus dem Land, auch ohne Eintrag in der Liste');
-  assert.equal(b.langsShort_('de_de, en_gb'), '🇩🇪 DE, 🇬🇧 EN-GB');
-  assert.equal(b.getPrettyLangName('es_es'), '🇪🇸 ES · Spanish (Spain)');
-  assert.equal(b.tplDisplayLabel_('[ES] Flyer'), '🇪🇸 ES · Flyer');
-  assert.equal(b.tplDisplayLabel_('[MKT] Flyer DE>FR'), 'Flyer 🇩🇪 DE>🇫🇷 FR');
+  assert.equal(b.langShort_('es_ES'), 'ES');
+  assert.equal(b.langShort_('es_mx'), 'ES-MX');
+  assert.equal(b.langsShort_('de_de, en_gb'), 'DE, EN-GB');
+  assert.equal(b.getPrettyLangName('es_es'), 'ES · Spanish (Spain)');
+  assert.equal(b.tplDisplayLabel_('[ES] Flyer'), 'ES · Flyer');
+  assert.equal(b.tplDisplayLabel_('[MKT] Flyer DE>FR'), 'Flyer DE>FR');
   assert.equal(b.tplDisplayLabel_('Marketing Express'), 'Marketing Express', 'normale Woerter bleiben');
+  const flags = /[\u{1F1E6}-\u{1F1FF}]/u;
+  const html = b.langBadgesHtml_('de_de, fr_fr', 'COMPLETED');
+  assert.equal((html.match(/class="doc-job-badge"/g) || []).length, 2, 'ein Kaestchen pro Sprache');
+  assert.ok(html.includes('>de_de<') && html.includes('#2e7d32'), 'Sprachcode wie im Sheet, gruen wenn fertig');
+  assert.ok(!flags.test(html) && !flags.test(b.getPrettyLangName('de_de')), 'keine Flaggen');
+  assert.ok(b.langBadgesHtml_('es', 'ASSIGNED').includes('#b08d00'), 'offen = gelb');
+  assert.ok(!b.langBadgesHtml_('x<script>').includes('<script>'), 'escaped');
+  assert.equal(b.langBadgesHtml_(''), '-');
 });
 
 test('Kalkulationsprojekte: Editor-Zeilen werden sauber gespeichert', () => {

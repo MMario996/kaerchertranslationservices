@@ -47,13 +47,14 @@ function switchDocSubtab(name) {
 
 /** Sprach-Badges pro Job (Farbe = Job-Status) fuer Dokumentationsprojekte. */
 function docJobBadges_(p) {
-  const colors = { COMPLETED: '#2e7d32', DELIVERED: '#2e7d32', NOTIFIED: '#2e7d32', CANCELLED: '#c62828', ERROR: '#c62828' };
   const jobs = p.docJobs || [];
   if (!jobs.length) return '-';
-  return '<span class="doc-job-badges">' + jobs.map(j => {
-    const c = colors[j.status] || '#b08d00';
-    return `<span class="doc-job-badge" style="color:${c};border-color:${c}66;background:${c}14;" title="${escapeHtml((j.fileName || '') + ' – ' + j.status)}">${escapeHtml(j.targetLang || '?')}</span>`;
-  }).join('') + '</span>';
+  return '<span class="doc-job-badges">' + jobs.map(j => langBadgeHtml_(j.targetLang, j.status, (j.fileName || '') + ' \u2013 ' + j.status)).join('') + '</span>';
+}
+
+/** Zielsprachen eines Projekts als Kaestchen - Doku-Projekte pro Job, sonst nach Projektstatus. */
+function projLangBadges_(p, inline) {
+  return p.docProject ? docJobBadges_(p) : langBadgesHtml_(p.targetLangs && p.targetLangs.length ? p.targetLangs : p.targetLang, p.status, inline);
 }
 
 function docArchiveFromHistory_(projectUid, projectName) {
