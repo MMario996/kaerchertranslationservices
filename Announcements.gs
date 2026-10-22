@@ -9,7 +9,7 @@
  * Spalten: ID | Type | Title DE | Text DE | Title EN | Text EN | Start | End |
  *          Audience | Active | Created By | Created At | Chat Sent At
  * Type: info | success | warning | critical
- * Audience: "all" oder kommagetrennte Bereiche (general, marketing, woma, cc,
+ * Audience: "all" oder kommagetrennte Bereiche (general, marketing, woma, cc, dlar,
  *           kec, documentation, campus, admin) - siehe AdminAccess.gs
  */
 var ANNOUNCEMENTS_SHEET_NAME_ = "Announcements";
@@ -64,6 +64,7 @@ function announcementAreasFromFlags_(f) {
   if (f.isMarketing) areas.push("marketing");
   if (f.isWoma) areas.push("woma");
   if (f.isCc) areas.push("cc");
+  if (f.isDlar) areas.push("dlar");
   if (f.isKeC) areas.push("kec");
   if (f.isDoc) areas.push("documentation");
   if (f.isArticulate) areas.push("campus");

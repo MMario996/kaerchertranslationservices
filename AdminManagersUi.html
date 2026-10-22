@@ -53,7 +53,7 @@
   document.head.appendChild(st);
 })();
 
-const MGRX_AREAS_ = [['general', 'General'], ['marketing', 'Marketing'], ['woma', 'WOMA'], ['cc', 'CC'], ['kec', 'KeC'], ['documentation', 'Doku'], ['campus', 'Campus'], ['admin', 'Admin'], ['light', 'Admin-Light']];
+const MGRX_AREAS_ = [['general', 'General'], ['marketing', 'Marketing'], ['woma', 'WOMA'], ['cc', 'CC'], ['dlar', 'DLA-R'], ['kec', 'KeC'], ['documentation', 'Doku'], ['campus', 'Campus'], ['admin', 'Admin'], ['light', 'Admin-Light']];
 const mgrxAreaLabel_ = id => (MGRX_AREAS_.find(a => a[0] === id) || [id, id])[1];
 const mgrxDate_ = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(); };
 

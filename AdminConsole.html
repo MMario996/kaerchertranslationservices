@@ -316,6 +316,21 @@
                     </div>
                     <div id="ccWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;" data-i18n="ax_8524de9">Loading...</div></div>
                 </div>
+                <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#5e35b1;">
+                    <div class="admin-card-header">
+                        <div class="section-title" style="color:#5e35b1;" data-i18n="ax_dlar_wl_title">[DLA-R] Digital Services Robotics Whitelist</div>
+                        <button class="help-toggle-btn" onclick="toggleAdminHelp('dlarwl')" title="Help" data-i18n-title="ax_6a26f54">?</button>
+                    </div>
+                    <div id="help-dlarwl" class="admin-help-panel">
+                        <span class="help-impact impact-medium" data-i18n="ax_a20fa0a">Medium Impact &#8211; Exclusive tab</span>
+                        <p data-i18n="ax_dlar_wl_help">Users listed here see <strong>only the "[DLA-R] Digital Services Robotics"</strong> tab (funktional identisch zu "General Projects") &#8211; der Standard "General Projects" Tab wird für sie ausgeblendet.</p>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="email" id="newDlarWhitelistEmail" placeholder="colleague@karcher.com">
+                        <button class="btn btn-primary" style="width:auto; padding:0 20px;" onclick="addDlarWhitelistUser()">ADD</button>
+                    </div>
+                    <div id="dlarWhitelistContainer" class="list-container"><div style="padding:15px; color:#888; text-align:center;" data-i18n="ax_8524de9">Loading...</div></div>
+                </div>
                 <div class="card" data-cgroup="access" data-legacy="1" style="border-top-color:#9c27b0;">
                     <div class="admin-card-header">
                         <div class="section-title" style="color:#9c27b0;" data-i18n="ax_41322f4">KeC Projects Whitelist</div>

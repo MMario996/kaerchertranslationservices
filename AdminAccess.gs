@@ -14,6 +14,7 @@ function accessAreas_() {
     { id: "marketing",     get: apiGetMarketingWhitelist,  add: apiAddMarketingWhitelist,  remove: apiRemoveMarketingWhitelist },
     { id: "woma",          get: apiGetWomaWhitelist,       add: apiAddWomaWhitelist,       remove: apiRemoveWomaWhitelist },
     { id: "cc",            get: apiGetCcWhitelist,         add: apiAddCcWhitelist,         remove: apiRemoveCcWhitelist },
+    { id: "dlar",          get: apiGetDlarWhitelist,       add: apiAddDlarWhitelist,       remove: apiRemoveDlarWhitelist },
     { id: "kec",           get: apiGetKeCWhitelist,        add: apiAddKeCWhitelist,        remove: apiRemoveKeCWhitelist },
     { id: "documentation", get: apiGetDocWhitelist,        add: apiAddDocWhitelist,        remove: apiRemoveDocWhitelist },
     { id: "campus",        get: apiGetArticulateWhitelist, add: apiAddArticulateWhitelist, remove: apiRemoveArticulateWhitelist },

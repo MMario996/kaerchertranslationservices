@@ -37,12 +37,13 @@ function getConfig_(impersonateEmail) {
   const isArticulate = anyOf(isArticulateUser_);
   const isWoma = anyOf(isWomaUser_);
   const isCc = anyOf(isCcUser_);
+  const isDlar = anyOf(isDlarUser_);
 
   const effectiveIsAdmin = isAdmin_(effectiveUser);
   const adminLightSubtabs = effectiveIsAdmin ? [] : getAdminLightSubtabs_(effectiveUser);
   const isGeneral = anyOf(isGeneralUser_);
   // isExclusive: User sieht NUR den jeweiligen Spezial-Tab (kein "General Projects")
-  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isArticulate);
+  const isExclusive = !effectiveIsAdmin && (isMarketing || isKeC || isDoc || isWoma || isCc || isDlar || isArticulate);
 
   // ?? FETCH TEMPLATES AND FILTER ??
   const allTemplates = readTemplates_();
@@ -79,6 +80,7 @@ function getConfig_(impersonateEmail) {
     isArticulate: isArticulate,
     isWoma: isWoma,
     isCc: isCc,
+    isDlar: isDlar,
     isGeneral: isGeneral,
     isExclusive: isExclusive,
     maintenance: maintenance,
@@ -93,7 +95,7 @@ function getConfig_(impersonateEmail) {
     maxTemplateName: typeof MAXTPL_NAME_ === "string" ? MAXTPL_NAME_ : "Maximaltemplate",
     userPrefs: (function () { try { return apiGetUserPrefs().prefs; } catch (e) { return {}; } })(),
     announcements: announcementsForUser_({
-      isGeneral: isGeneral, isMarketing: isMarketing, isWoma: isWoma, isCc: isCc, isKeC: isKeC,
+      isGeneral: isGeneral, isMarketing: isMarketing, isWoma: isWoma, isCc: isCc, isDlar: isDlar, isKeC: isKeC,
       isDoc: isDoc, isArticulate: isArticulate, effectiveIsAdmin: effectiveIsAdmin
     })
   };
