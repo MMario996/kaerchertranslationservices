@@ -552,7 +552,7 @@ function toggleAdminHelp(id) {
     // --- Console: Unterreiter & Zugriffs-Uebersicht ----------------------
     let consoleGroup_ = 'access';
     let accData_ = null;
-    const ACC_AREA_ICONS_ = { general: 'public', marketing: 'campaign', woma: 'water_drop', cc: 'hub', kec: 'inventory_2', documentation: 'description', campus: 'school', admin: 'admin_panel_settings' };
+    const ACC_AREA_ICONS_ = { general: 'public', marketing: 'campaign', woma: 'water_drop', cc: 'hub', dlar: 'precision_manufacturing', kec: 'inventory_2', documentation: 'description', campus: 'school', admin: 'admin_panel_settings' };
 
     function switchConsoleGroup(g) {
         consoleGroup_ = g || 'access';
@@ -598,7 +598,7 @@ function toggleAdminHelp(id) {
     window.addEventListener('resize', () => { clearTimeout(window._agT_); window._agT_ = setTimeout(layoutAdminGrid_, 120); });
 
     function accAreaLabel_(id) {
-        return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
+        return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', dlar: 'DLA-R Digital Services Robotics', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
     }
 
     function loadAccessMatrix() {
@@ -689,7 +689,7 @@ function toggleAdminHelp(id) {
 
     // --- Ankuendigungen ---------------------------------------------------------
     let annList_ = [];
-    const ANN_AREAS_ = ['all', 'general', 'marketing', 'woma', 'cc', 'kec', 'documentation', 'campus', 'admin'];
+    const ANN_AREAS_ = ['all', 'general', 'marketing', 'woma', 'cc', 'dlar', 'kec', 'documentation', 'campus', 'admin'];
 
     function annAudienceLabel_(a) { return a === 'all' ? tr_('ann_all', 'Alle Nutzer') : accAreaLabel_(a); }
 
@@ -837,6 +837,7 @@ function toggleAdminHelp(id) {
         loadMarketingWhitelist();
         loadWomaWhitelist();
         loadCcWhitelist();
+        loadDlarWhitelist();
         loadKecWhitelist();
         loadDocWhitelist();
         loadArticulateWhitelist();
@@ -1004,6 +1005,35 @@ function toggleAdminHelp(id) {
           })
           .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
           .apiAddCcWhitelist(email);
+    }
+    function loadDlarWhitelist() {
+        const c = document.getElementById('dlarWhitelistContainer');
+        if(!c) return;
+        c.innerHTML = ('<div style="padding:15px;color:#888;">' + tr_('ax_8524de9', 'Loading...') + '</div>');
+        google.script.run
+          .withSuccessHandler(r => {
+              c.innerHTML = r.emails.map(e => `
+                  <div class="list-row">
+                      <span>${e}</span>
+                      <span class="material-icons-outlined icon-btn-danger" onclick="removeUserFromList('${e}', 'dlar')">delete</span>
+                  </div>
+              `).join('') || ('<div style="padding:15px;color:#888;">' + tr_('ax_ef68cf0', 'No users found.') + '</div>');
+          })
+          .withFailureHandler(e => {
+              c.innerHTML = '<div style="padding:15px;color:#d93025;">Error: ' + escapeHtml(e.message) + '</div>';
+          })
+          .apiGetDlarWhitelist();
+    }
+    function addDlarWhitelistUser() {
+        const email = document.getElementById('newDlarWhitelistEmail').value.trim();
+        if(!email) return;
+        google.script.run
+          .withSuccessHandler(() => {
+              document.getElementById('newDlarWhitelistEmail').value = "";
+              loadDlarWhitelist();
+          })
+          .withFailureHandler(e => showCustomAlert(tr_('ax_3d9f514', 'Error:') + ' ' + e.message, tr_('ax_902b0d5', 'Error')))
+          .apiAddDlarWhitelist(email);
     }
     function loadWomaWhitelist() {
         const c = document.getElementById('womaWhitelistContainer');
@@ -1178,6 +1208,8 @@ function toggleAdminHelp(id) {
                 google.script.run.withSuccessHandler(loadWomaWhitelist).apiRemoveWomaWhitelist(email);
             } else if(type === 'cc') {
                 google.script.run.withSuccessHandler(loadCcWhitelist).apiRemoveCcWhitelist(email);
+            } else if(type === 'dlar') {
+                google.script.run.withSuccessHandler(loadDlarWhitelist).apiRemoveDlarWhitelist(email);
             } else if(type === 'admin') {
                 google.script.run.withSuccessHandler(loadAdmins).apiRemoveAdmin(email);
             }

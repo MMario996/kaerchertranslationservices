@@ -135,6 +135,10 @@ function checkWhitelistAccess_(user) {
     if (ccWl.includes(user)) return { allowed: true, reason: "cc_whitelisted" };
   } catch(e) {}
   try {
+    const dlarWl = apiGetDlarWhitelist().emails;
+    if (dlarWl.includes(user)) return { allowed: true, reason: "dlar_whitelisted" };
+  } catch(e) {}
+  try {
     const artWl = apiGetArticulateWhitelist().emails;
     if (artWl.includes(user)) return { allowed: true, reason: "articulate_whitelisted" };
   } catch(e) {}

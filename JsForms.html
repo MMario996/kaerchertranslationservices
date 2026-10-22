@@ -37,7 +37,7 @@ function initForm(config) {
 
   // "Allgemeine Projekte" nur fuer explizit auf der Whitelist stehende User (oder Admins),
   // nicht mehr Default-sichtbar fuer jeden, der in keiner anderen Exklusiv-Kategorie steckt.
-  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Articulate) sehen weiterhin NUR ihren Spezial-Tab.
+  // Exklusive User (Marketing/KeC/Doc/Woma/Cc/Dlar/Articulate) sehen weiterhin NUR ihren Spezial-Tab.
   const showRequest = (config.isGeneral && !config.isExclusive) || (config.isAdmin && !config.isImpersonating);
   if (showRequest) {
     if (btnRequest) btnRequest.style.display = 'block';
@@ -169,6 +169,15 @@ function initForm(config) {
     activePortals.push('_cc');
   } else {
     if (btnCc) btnCc.style.display = 'none';
+  }
+  const btnDlar = document.getElementById('btn-nav-dlar');
+  const showDlar = config.isDlar || (config.isAdmin && !config.isImpersonating);
+  if (showDlar) {
+    if (btnDlar) btnDlar.style.display = 'block';
+    renderFormFromTemplate('dlar', '[DLA-R] Digital Services Robotics');
+    activePortals.push('_dlar');
+  } else {
+    if (btnDlar) btnDlar.style.display = 'none';
   }
 
   if (showKec) {
