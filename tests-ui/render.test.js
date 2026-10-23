@@ -50,7 +50,8 @@ async function openApp(viewport, extraMocks, opts) {
       apiGetMyProjects: { projects: projects, email: me },
       apiGetAdminContent: L.admin,
       apiGetTranslateUiContent: L.translate,
-      apiGetLazyScript: (n) => L.lazy[n]
+      apiGetLazyScript: (n) => L.lazy[n],
+      apiGetManagerCatalog: { success: true, clients: [], domains: [], subDomains: [], businessUnits: [], workflowSteps: [], languages: [] }
     }, extra ? (0, eval)('(' + extra + ')') : {});
     if (patch) Object.assign(window.__mock.apiGetConfig, patch);
   }, { L: parts, me: ME, projects: PROJECTS, extra: extraMocks || '', patch: (opts && opts.configPatch) || null });
@@ -775,6 +776,37 @@ test('Admin: Subtab Maximaltemplate - Liste einschraenken, Feld freigeben, speic
   const saved = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiMaxTplAdminSave').args[0]);
   assert.deepEqual(saved.lists, { mtSettings: [{ id: 'm1', name: 'DeepL (DEEPL)' }] });
   assert.deepEqual(saved.sections[0].fields, { level: { editable: true, type: 'string', sample: 'low', label: '', values: [] } });
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('User/Template Manager: Ladeanzeige, Auswahl aus Phrase-Werten speichert live', async () => {
+  const { page, errors } = await openApp(null, MGR_MOCKS.replace(/\}\s*$/, `,
+    apiGetManagerCatalog: { success: true, clients: [{ id: '1', name: 'KAG' }, { id: '2', name: 'KNA' }], domains: [{ id: 'd1', name: 'Marketing' }],
+      subDomains: [{ id: 's1', name: 'Web' }], businessUnits: [{ id: 'b1', name: 'PC' }, { id: 'b2', name: 'HC' }], workflowSteps: [{ id: 'w1', name: 'Translation' }],
+      languages: [{ id: 'de_de', name: 'German (Germany)' }, { id: 'fr_fr', name: 'French (France)' }] },
+    apiUpdateUserField: { success: true },
+    apiUpdateTemplateField: (uid, field, value) => ({ success: true, value: value })
+  }`));
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('users'));
+  await page.waitForFunction(() => document.querySelector('#userMgrTable tbody tr[data-username="anna"]'));
+  await page.evaluate(() => userMgrToggleExpand('anna', 'seg'));
+  const sel = page.locator('#userMgrTable .detail-row .mgr-pick-sel').first();
+  await sel.selectOption('KNA');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiUpdateUserField'));
+  const u = await page.evaluate(() => __calls.find((c) => c.fn === 'apiUpdateUserField').args);
+  assert.equal(u[0], 'anna');
+  assert.equal(u[1], 'clients');
+  assert.match(u[2], /KNA$/);
+  assert.equal(u[3], true, 'live nach Phrase');
+  await page.evaluate(() => switchAdminSubtab('templates'));
+  await page.waitForFunction(() => document.querySelector('#tmplMgrTable tbody tr[data-uid="T1"]'));
+  await page.evaluate(() => tmplMgrToggleExpand_('T1'));
+  await page.locator('#tmplMgrTable .detail-row select.mgr-pick-sel').nth(5).selectOption('HC');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiUpdateTemplateField'));
+  assert.deepEqual(await page.evaluate(() => __calls.find((c) => c.fn === 'apiUpdateTemplateField').args), ['T1', 'businessUnit', 'HC']);
+  await page.waitForFunction(() => /HC/.test(document.querySelector('#tmplMgrTable tbody tr[data-uid="T1"]').innerText));
   assert.deepEqual(errors, []);
   await page.close();
 });

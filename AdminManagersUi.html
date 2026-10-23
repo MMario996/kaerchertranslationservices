@@ -49,11 +49,17 @@
   .mgrx-area input { width:auto; }
   .mgrx-empty { color:var(--k-ink-2,#888); font-size:12px; font-style:italic; }
   .mgrx-err { color:#c5221f; }
-  `;
+    .mgr-pick { display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-height:36px; padding:4px; border:1px solid #ddd; border-radius:8px; background:#fff; box-sizing:border-box; }
+  .mgr-chip { display:inline-flex; align-items:center; gap:4px; background:#fff8c4; border-radius:6px; padding:2px 4px 2px 8px; font-size:11.5px; font-weight:600; }
+  .mgr-chip.bad { background:#ffebee; color:#b71c1c; }
+  .mgr-chip button { border:none; background:none; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; color:inherit; }
+  .mgr-pick .mgr-pick-sel { border:none; background:transparent; height:28px; font-size:12px; flex:1; min-width:120px; width:auto; }
+  select.mgr-pick-sel { height:36px; font-size:12px; width:100%; }
+`;
   document.head.appendChild(st);
 })();
 
-const MGRX_AREAS_ = [['general', 'General'], ['marketing', 'Marketing'], ['woma', 'WOMA'], ['cc', 'CC'], ['dlar', 'DLA-R'], ['kec', 'KeC'], ['documentation', 'Doku'], ['campus', 'Campus'], ['admin', 'Admin'], ['light', 'Admin-Light']];
+const MGRX_AREAS_ = [['general', '[AKW]'], ['marketing', '[MM]'], ['woma', '[SWT-D]'], ['cc', '[OTC-ME]'], ['dlar', '[DLA-R]'], ['kec', '[MMV-P]'], ['documentation', '[MAT-D]'], ['campus', '[FTC-D]'], ['admin', 'Admin'], ['light', 'Admin-Light']];
 const mgrxAreaLabel_ = id => (MGRX_AREAS_.find(a => a[0] === id) || [id, id])[1];
 const mgrxDate_ = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(); };
 
@@ -219,6 +225,7 @@ function umxApplyBulk_() {
         if (!res || !res.success) { showCustomAlert((res && res.error) || 'Error', tr_('ax_902b0d5', 'Error')); return; }
         (res.changed || []).forEach(c => { const r = _userMgrRows.find(x => x.username === c.username); if (r) r[field] = c.value; });
         showToast_(res.changed.length + ' ' + tr_('umx_changed', 'Nutzer geändert'), 'ok');
+        if (res.phraseWarnings && res.phraseWarnings.length) showCustomAlert(escapeHtml(tr_('ax_a77bfff', '⚠ Sheet gespeichert, aber Phrase-Sync fehlgeschlagen:') + ' ' + res.phraseWarnings.join(' | ')), tr_('ax_a13fa15', 'Teilweise gespeichert'));
         renderUserManager(); umxLoad_();
       })
       .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
@@ -493,5 +500,123 @@ function tmxSetActive_(uid, cb) {
     })
     .withFailureHandler(err => { cb.disabled = false; cb.checked = !cb.checked; showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')); })
     .apiSetTemplateActive(uid, cb.checked);
+}
+// --- Auswahllisten aus Phrase (Nutzer- und Template-Verwaltung) -------------------
+// Werte kommen aus apiGetManagerCatalog (ManagerPhraseSync.gs). Gespeichert wird
+// sofort: Nutzer ueber userMgrSaveField (Sheet + Phrase), Templates ueber
+// apiUpdateTemplateField (erst Phrase, dann Sheet).
+let mgrCat_ = null;
+let mgrCatErr_ = '';
+
+/** Auswahllisten einmal je Seitenaufruf laden; cb laeuft auch bei Fehler. */
+function mgrLoadCatalog_(cb) {
+  if (mgrCat_) { cb(); return; }
+  google.script.run.withSuccessHandler(res => {
+    mgrCat_ = res && res.success ? res : null;
+    mgrCatErr_ = mgrCat_ ? '' : ((res && res.error) || 'Error');
+    cb();
+  }).withFailureHandler(err => { mgrCatErr_ = err && err.message ? err.message : String(err); cb(); }).apiGetManagerCatalog();
+}
+
+/** Feld -> [Katalog, mehrfach?] */
+const MGR_PICK_ = {
+  clients: ['clients', true], domains: ['domains', true], subdomains: ['subDomains', true], businessUnit: ['businessUnits', false],
+  sourceLangs: ['languages', true], targetLangs: ['languages', true], workflowSteps: ['workflowSteps', true],
+  sourceLang: ['languages', false], client: ['clients', false], domain: ['domains', false], subDomain: ['subDomains', false]
+};
+
+function mgrSplit_(v) { return String(v || '').split(/[\n,;]+/).map(s => s.trim()).filter(Boolean); }
+
+function mgrRow_(ctx, key) {
+  return ctx === 'u' ? _userMgrRows.find(r => r.username === key) : _tmplMgrRows.find(r => r.uid === key);
+}
+
+/** Wert im Sheet -> Katalogeintrag (Sprachen per Code, sonst per Name). */
+function mgrFind_(list, v) {
+  const l = String(v).toLowerCase();
+  return list.find(x => String(x.id).toLowerCase() === l || String(x.name).toLowerCase() === l);
+}
+
+/** Auswahlfeld mit Phrase-Werten; ohne Katalog ein Textfeld wie bisher. */
+function mgrPickerHtml_(ctx, key, field, value, label) {
+  const def = MGR_PICK_[field];
+  const list = def && mgrCat_ ? (mgrCat_[def[0]] || []) : null;
+  const k = escapeJs(key);
+  if (!list || !list.length) {
+    const save = ctx === 'u' ? 'userMgrSaveField(\'' + k + '\',\'' + field + '\',this.value,this)' : 'tmplMgrSaveField_(\'' + k + '\',\'' + field + '\',this.value)';
+    return '<div class="detail-field"><label>' + escapeHtml(label) + '</label><input type="text" value="' + escapeHtml(value || '') + '" onblur="' + save + '"></div>';
+  }
+  const isLang = def[0] === 'languages';
+  const cur = mgrSplit_(value);
+  const optLabel = x => isLang ? x.name + ' (' + x.id + ')' : x.name;
+  const sheetVal = x => isLang ? x.id : x.name;
+  if (!def[1]) {
+    const hit = cur[0] ? mgrFind_(list, cur[0]) : null;
+    return '<div class="detail-field"><label>' + escapeHtml(label) + '</label><select class="mgr-pick-sel" onchange="mgrPickSet_(\'' + ctx + '\',\'' + k + '\',\'' + field + '\',this.value)">' +
+      '<option value="">–</option>' + (cur[0] && !hit ? '<option value="' + escapeHtml(cur[0]) + '" selected>' + escapeHtml(cur[0]) + ' ⚠</option>' : '') +
+      list.map(x => '<option value="' + escapeHtml(sheetVal(x)) + '"' + (hit === x ? ' selected' : '') + '>' + escapeHtml(optLabel(x)) + '</option>').join('') + '</select></div>';
+  }
+  const chips = cur.map((v, i) => {
+    const hit = mgrFind_(list, v);
+    return '<span class="mgr-chip' + (hit ? '' : ' bad') + '" title="' + escapeHtml(hit ? optLabel(hit) : tr_('mgr_not_in_phrase', 'Not found in Phrase')) + '">' + escapeHtml(v) +
+      '<button type="button" onclick="mgrPickRemove_(\'' + ctx + '\',\'' + k + '\',\'' + field + '\',' + i + ')" aria-label="' + escapeHtml(tr_('mgr_remove', 'Remove')) + '">×</button></span>';
+  }).join('');
+  const taken = cur.map(v => String(v).toLowerCase());
+  return '<div class="detail-field"><label>' + escapeHtml(label) + '</label><div class="mgr-pick">' + chips +
+    '<select class="mgr-pick-sel" onchange="mgrPickAdd_(\'' + ctx + '\',\'' + k + '\',\'' + field + '\',this.value)"><option value="">+ ' + escapeHtml(tr_('mgr_add', 'Add')) + '</option>' +
+    list.filter(x => taken.indexOf(String(sheetVal(x)).toLowerCase()) < 0).map(x => '<option value="' + escapeHtml(sheetVal(x)) + '">' + escapeHtml(optLabel(x)) + '</option>').join('') + '</select></div></div>';
+}
+
+function mgrPickAdd_(ctx, key, field, v) {
+  if (!v) return;
+  const r = mgrRow_(ctx, key);
+  mgrPickSet_(ctx, key, field, mgrSplit_(r && r[field]).concat([v]).join(', '));
+}
+function mgrPickRemove_(ctx, key, field, i) {
+  const r = mgrRow_(ctx, key);
+  const cur = mgrSplit_(r && r[field]);
+  cur.splice(i, 1);
+  mgrPickSet_(ctx, key, field, cur.join(', '));
+}
+function mgrPickSet_(ctx, key, field, value) {
+  if (ctx === 'u') {
+    userMgrSaveField(key, field, value, null);
+    const r = mgrRow_(ctx, key);
+    if (r) r[field] = value;
+    renderUserManager();
+  } else {
+    tmplMgrSaveField_(key, field, value);
+  }
+}
+
+/** Template-Feld speichern: erst Phrase, dann Sheet (apiUpdateTemplateField). */
+function tmplMgrSaveField_(uid, field, value) {
+  const r = mgrRow_('t', uid);
+  if (r && String(r[field] || '') === value) return;
+  showToast_(tr_('mgr_saving', 'Saving to Phrase ...'), 'info');
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || 'Error'), tr_('ax_902b0d5', 'Error')); renderTemplateManager(); return; }
+    if (r) r[field] = res.value;
+    showToast_('✓ ' + tr_('mgr_saved', 'Saved in Phrase and sheet'), 'ok');
+    renderTemplateManager();
+  }).withFailureHandler(err => { showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error')); renderTemplateManager(); })
+    .apiUpdateTemplateField(uid, field, value);
+}
+
+/** Detailzeile im Template Manager: Sprachen und Segmentierung bearbeiten. */
+function tmplMgrDetailHtml_(r) {
+  const k = r.uid;
+  return '<tr class="detail-row"><td colspan="8"><div class="detail-panel-grid">' +
+    mgrPickerHtml_('t', k, 'sourceLang', r.sourceLang, tr_('mgr_source', 'Source language')) +
+    mgrPickerHtml_('t', k, 'targetLangs', r.targetLangs, tr_('mgr_targets', 'Target languages')) +
+    mgrPickerHtml_('t', k, 'client', r.client, 'Client') +
+    mgrPickerHtml_('t', k, 'domain', r.domain, 'Domain') +
+    mgrPickerHtml_('t', k, 'subDomain', r.subDomain, 'Subdomain') +
+    mgrPickerHtml_('t', k, 'businessUnit', r.businessUnit, 'Business Unit') +
+    '</div>' + mgrCatErrHtml_() + '</td></tr>';
+}
+
+function mgrCatErrHtml_() {
+  return mgrCatErr_ ? '<div class="mgrx-empty" style="margin-top:8px;">' + escapeHtml(tr_('mgr_cat_err', 'Phrase values could not be loaded:') + ' ' + mgrCatErr_) + '</div>' : '';
 }
 </script>

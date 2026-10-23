@@ -323,53 +323,9 @@ function apiUpdateUserField(username, field, value, syncToPhrase) {
   return result;
 }
 
-/**
- * Schreibt firstName/lastName/role live in Phrase TMS.
- * Sucht zuerst die interne Phrase-userUid per userName-Lookup.
- *
- * ANNAHME (nicht live getestet ? vor Rollout mit einem Test-User prüfen):
- * - Auth-Header: "Bearer " + PHRASE_API_TOKEN (wie in eurem übrigen Code verwendet)
- * - GET  /web/api2/v1/users?userName=... liefert { content: [ {id, userName, ...} ] }
- * - PUT  /web/api2/v1/users/{uid}  nimmt { firstName / lastName / role } entgegen
- *
- * Falls ihr schon einen zentralen Helper für Phrase-Header habt (z.B. eine
- * Funktion wie getPhraseHeaders_()), den hier statt der Inline-Konstruktion nutzen.
- */
+/** Nutzerfeld live nach Phrase (alle Felder, siehe ManagerPhraseSync.gs). */
 function _syncUserFieldToPhrase_(username, field, value) {
-  // Zentrale Helfer (ProjectsApi.gs): beachten auch die Admin-Sandbox.
-  const headers = { Authorization: getPhraseAuthHeader_() };
-  const base = getPhraseWebBaseUrl_() + "/api2/v1";
-
-  // 1) Phrase-UID per userName-Lookup ermitteln
-  const searchUrl = base + "/users?userName=" + encodeURIComponent(username);
-  const searchRes = UrlFetchApp.fetch(searchUrl, { headers: headers, muteHttpExceptions: true });
-  if (searchRes.getResponseCode() !== 200) {
-    throw new Error("Phrase User-Lookup fehlgeschlagen (" + searchRes.getResponseCode() + "): " + searchRes.getContentText());
-  }
-  const searchData = JSON.parse(searchRes.getContentText());
-  const match = (searchData.content || []).find(function(u) { return u.userName === username; });
-  if (!match) throw new Error("User '" + username + "' nicht in Phrase gefunden (userName-Lookup leer).");
-  const phraseUid = match.id;
-
-  // 2) Feld-Mapping App ? Phrase-API
-  const fieldMap = { firstName: 'firstName', lastName: 'lastName', role: 'role' };
-  const phraseField = fieldMap[field];
-  if (!phraseField) throw new Error("Feld '" + field + "' ist nicht für Phrase-Sync vorgesehen.");
-
-  const body = {};
-  body[phraseField] = value;
-
-  const editUrl = base + "/users/" + phraseUid;
-  const editRes = UrlFetchApp.fetch(editUrl, {
-    method: "put",
-    contentType: "application/json",
-    headers: headers,
-    payload: JSON.stringify(body),
-    muteHttpExceptions: true
-  });
-  if (editRes.getResponseCode() >= 300) {
-    throw new Error("Phrase-Update fehlgeschlagen (" + editRes.getResponseCode() + "): " + editRes.getContentText());
-  }
+  mgrSyncUserField_(username, field, value);
 }
 
 function DEBUG_userMgr() {

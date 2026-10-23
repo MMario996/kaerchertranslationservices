@@ -129,7 +129,7 @@
                         </a>
                     </div>
                     <label data-i18n="ax_52a5687">Manual Synchronization</label>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
+                    <div class="sync-btn-grid">
                         <button class="btn btn-secondary" onclick="triggerSync('users', this)"><i class="material-icons-outlined">people</i> <span data-i18n="ax_2e594fb">Sync Users</span></button>
                         <button class="btn btn-secondary" onclick="triggerSync('templates', this)"><i class="material-icons-outlined">fact_check</i> <span data-i18n="ax_376a346">Sync Templates</span></button>
                         <button class="btn btn-secondary" onclick="triggerSync('notifications', this)" title="Syncs PROJECT_MANAGER / ADMIN users into Notifications sheet (OFF)" data-i18n-title="ax_81211a2"><i class="material-icons-outlined">notifications</i> <span data-i18n="ax_7de2100">Sync Notifications</span></button>
@@ -698,7 +698,7 @@
                 </div>
               </div>
               <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;" data-i18n="ax_f66328a">
-                Aus dem Sheet <strong>FetchTMS_USERS-Prod</strong> geladen. <strong>First Name, Last Name, Role</strong> werden live nach Phrase TMS geschrieben. <strong>Clients, Domains, Subdomains, Business Unit, Source Langs, Target Langs, Workflow Steps</strong> sind eure eigenen Filterkriterien und werden nur im Sheet gespeichert. <strong>Username</strong> und <strong>Email</strong> sind nur lesbar. <strong>Status</strong> wird aktuell nur im Sheet gepflegt.
+                Aus dem Sheet <strong>FetchTMS_USERS-Prod</strong> geladen. <strong>Vorname, Nachname, Rolle, Clients, Domains, Subdomains, Business Unit, Quell- und Zielsprachen, Workflow-Schritte</strong> werden aus Phrase ausgewählt und live nach Phrase TMS geschrieben (und ins Sheet). <strong>Username</strong> und <strong>Email</strong> sind nur lesbar. <strong>Status</strong> wird nur im Sheet gepflegt.
               </div>
               <div id="umxBar" class="mgrx-bar"></div>
               <div id="userMgrLoading" style="text-align:center;padding:40px;display:none;"><div class="loader"></div></div>

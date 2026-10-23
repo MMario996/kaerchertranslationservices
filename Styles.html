@@ -1084,7 +1084,7 @@
   .acc-area-opt input { display:none; }
   .acc-table-wrap { overflow:auto; max-height:560px; border:1px solid #ececec; border-radius:12px; }
   .acc-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-  .acc-table th { position:sticky; top:0; background:#f7f7f5; z-index:1; font-size:11px; font-weight:700; color:#555; padding:8px 6px; border-bottom:1px solid #e8e8e8; text-align:center; white-space:nowrap; }
+  .acc-table th { position:sticky; top:0; background:#f7f7f5; z-index:1; font-size:11px; font-weight:700; color:#555; padding:8px 6px; border-bottom:1px solid #e8e8e8; text-align:center; white-space:nowrap; user-select:none; }
   .acc-table th:first-child { text-align:left; padding-left:14px; }
   .acc-table th .material-icons-outlined { font-size:18px; color:#777; display:block; margin:0 auto 2px; }
   .acc-table th small { display:block; color:#999; font-weight:600; }
@@ -1093,6 +1093,9 @@
   .acc-email { padding-left:14px !important; font-weight:600; white-space:nowrap; }
   .acc-me { font-size:10.5px; background:var(--primary-yellow); border-radius:999px; padding:1px 7px; margin-left:4px; }
   .acc-cell { text-align:center; }
+  .sync-btn-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-bottom:20px; }
+  .sync-btn-grid .btn { width:100%; height:auto; min-height:44px; padding:8px 14px; font-size:12px; line-height:1.25; white-space:normal; text-align:left; justify-content:flex-start; gap:8px; }
+  .sync-btn-grid .btn i { flex-shrink:0; }
   .acc-cell input { width:18px; height:18px; cursor:pointer; accent-color:#111; }
   .acc-light span { display:inline-block; font-size:10.5px; font-weight:700; background:#efebe9; color:#5d4037; border-radius:999px; padding:1px 7px; margin:1px; }
   .acc-legacy-toggle { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#666; font-weight:500; margin:12px 0 0; cursor:pointer; }

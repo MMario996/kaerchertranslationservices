@@ -393,3 +393,23 @@ test('Erkennungsmerkmale: jede Datei enthaelt genau ihr eigenes; vertauschter In
   sources.JsUpload = sources.JsProjects;
   assert.deepEqual(plain(st.wrongFileContents_(sources)), ['JsUpload: enthaelt Inhalt von JsProjects (1339 Zeilen) - Datei aus dem Repo neu einfuegen']);
 });
+
+test('Nutzer/Templates nach Phrase: Werte, PUT-Body, Pruefung', () => {
+  const m = load(['AdminManagers.gs', 'ManagerPhraseSync.gs']);
+  const cat = { clients: [{ id: '1', name: 'AKW' }, { id: '2', name: 'KNA' }], domains: [{ id: 'd', name: 'Technical Content' }], subDomains: [],
+    businessUnits: [{ id: 'b9', name: 'OTC' }], workflowSteps: [{ id: 's1', name: 'Translation' }] };
+  assert.deepEqual(plain(m.mgrPhraseValue_('clients', 'akw, KNA', cat)), [{ id: '1' }, { id: '2' }]);
+  assert.deepEqual(plain(m.mgrPhraseValue_('businessUnit', 'OTC', cat)), { id: 'b9' });
+  assert.equal(m.mgrPhraseValue_('businessUnit', '', cat), null);
+  assert.deepEqual(plain(m.mgrPhraseValue_('targetLangs', 'DE_DE; fr_fr', cat)), ['de_de', 'fr_fr']);
+  assert.equal(m.mgrPhraseValue_('sourceLang', 'EN', cat), 'en');
+  assert.throws(() => m.mgrPhraseValue_('clients', 'Unbekannt', cat), /unbekannt/);
+  assert.throws(() => m.mgrPhraseValue_('client', 'AKW, KNA', cat), /nur ein Wert/);
+  assert.deepEqual(plain(m.mgrEditBody_({ uid: 'U', id: '7', userName: 'x', role: 'LINGUIST', clients: [{ id: 1, name: 'AKW' }],
+    businessUnit: { uid: 'b9', name: 'OTC' }, createdBy: { id: 3 }, settings: { a: { id: 5 }, b: 2 } })),
+    { userName: 'x', role: 'LINGUIST', clients: [{ id: '1' }], businessUnit: { id: 'b9' }, settings: { a: { id: '5' }, b: 2 } });
+  assert.equal(m.mgrSameValue_([{ id: 2, name: 'KNA' }, { id: 1 }], [{ id: '1' }, { id: '2' }]), true);
+  assert.equal(m.mgrSameValue_(['DE_DE'], ['de_de']), true);
+  assert.equal(m.mgrSameValue_(null, []), true);
+  assert.equal(m.mgrSameValue_({ id: 1 }, { id: '2' }), false);
+});
