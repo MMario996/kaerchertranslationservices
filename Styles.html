@@ -75,6 +75,8 @@
   input[type="radio"]:disabled, input[type="radio"]:disabled + span { cursor: not-allowed; opacity: 0.45; }
   input:focus, select:focus, textarea:focus { border-color: var(--primary-black); outline: none; background-color: #fafafa; }
   select { height: 48px; }
+  /* Niedrige Auswahlfelder in Tabellen: 12px Innenabstand schnitt den Text ab (Rolle war leer). */
+  .modern-table select, .detail-field select { padding: 0 8px; }
   .btn { border: none; padding: 0 30px; font-size: 15px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; height: 48px; border-radius: 0; letter-spacing: 0.5px; text-decoration: none; }
   .btn i { font-size: 20px; margin-right: 10px; }
   .btn-primary { background-color: var(--primary-yellow); color: var(--primary-black); width: 100%; transition: background 0.2s; }
@@ -959,7 +961,7 @@
   @media (max-width: 700px) { .dbx-grid { grid-template-columns:minmax(0,1fr); } .dbx-w.s1, .dbx-w.s2, .dbx-w.s4 { grid-column:span 1; } .dbx-btn-lbl { display:none; } .dbx-filters { position:static; } .dbx-filters select { max-width:none; flex:1 1 45%; } .dbx-title { font-size:21px; } }
 
   /* ===== Admin: Selbsttests ===== */
-  .selftest-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 16px; }
+  .selftest-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; border-bottom: 2px solid #eee; padding-bottom: 18px; margin-bottom: 16px; }
   .selftest-summary { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
   .st-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 800; font-size: 13px; background: #fff; border: 1px solid #ddd; }
   .st-pill .material-icons-outlined { font-size: 18px; }
@@ -1084,7 +1086,7 @@
   .acc-area-opt input { display:none; }
   .acc-table-wrap { overflow:auto; max-height:560px; border:1px solid #ececec; border-radius:12px; }
   .acc-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-  .acc-table th { position:sticky; top:0; background:#f7f7f5; z-index:1; font-size:11px; font-weight:700; color:#555; padding:8px 6px; border-bottom:1px solid #e8e8e8; text-align:center; white-space:nowrap; }
+  .acc-table th { position:sticky; top:0; background:#f7f7f5; z-index:1; font-size:11px; font-weight:700; color:#555; padding:8px 6px; border-bottom:1px solid #e8e8e8; text-align:center; white-space:nowrap; user-select:none; }
   .acc-table th:first-child { text-align:left; padding-left:14px; }
   .acc-table th .material-icons-outlined { font-size:18px; color:#777; display:block; margin:0 auto 2px; }
   .acc-table th small { display:block; color:#999; font-weight:600; }
@@ -1093,6 +1095,9 @@
   .acc-email { padding-left:14px !important; font-weight:600; white-space:nowrap; }
   .acc-me { font-size:10.5px; background:var(--primary-yellow); border-radius:999px; padding:1px 7px; margin-left:4px; }
   .acc-cell { text-align:center; }
+  .sync-btn-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-bottom:20px; }
+  .sync-btn-grid .btn { width:100%; height:auto; min-height:44px; padding:8px 14px; font-size:12px; line-height:1.25; white-space:normal; text-align:left; justify-content:flex-start; gap:8px; }
+  .sync-btn-grid .btn i { flex-shrink:0; }
   .acc-cell input { width:18px; height:18px; cursor:pointer; accent-color:#111; }
   .acc-light span { display:inline-block; font-size:10.5px; font-weight:700; background:#efebe9; color:#5d4037; border-radius:999px; padding:1px 7px; margin:1px; }
   .acc-legacy-toggle { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#666; font-weight:500; margin:12px 0 0; cursor:pointer; }

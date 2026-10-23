@@ -252,17 +252,25 @@ function toggleAdminHelp(id) {
         })
         .apiGetTranslateUiContent();
     }
+    let _tmplMgrExpanded = {};
     function loadTemplateManager() {
       document.getElementById('tmplMgrLoading').style.display = 'block';
       document.getElementById('tmplMgrTable').style.display = 'none';
       document.getElementById('tmplMgrEmpty').style.display = 'none';
+      let rows = null, ready = false;
+      const show = () => {
+        if (!rows || !ready) return;
+        document.getElementById('tmplMgrLoading').style.display = 'none';
+        _tmplMgrRows = rows;
+        _tmplMgrSelected = {};
+        renderTemplateManager();
+        tmxLoad_();
+      };
+      mgrLoadAll_('tmplMgrLoading', () => { ready = true; show(); });
       google.script.run
         .withSuccessHandler(res => {
-          document.getElementById('tmplMgrLoading').style.display = 'none';
-          _tmplMgrRows = (res && res.rows) || [];
-          _tmplMgrSelected = {};
-          renderTemplateManager();
-          ensureScript_('AdminManagersUi', function () { tmxLoad_(); });
+          rows = (res && res.rows) || [];
+          show();
         })
         .withFailureHandler(e => {
           document.getElementById('tmplMgrLoading').style.display = 'none';
@@ -345,11 +353,15 @@ function toggleAdminHelp(id) {
           <td style="font-size:12px;color:#666;white-space:normal;word-break:break-word;">${escapeHtml(r.phraseName)}</td>
           <td style="font-size:11px;">${escapeHtml(r.sourceLang)}</td>
           <td style="font-size:11px;line-height:1.6;">${tmplMgrTruncateTargets_(r.targetLangs)}</td>
-          <td><span class="truncate-cell" style="font-size:11px;" title="${escapeHtml(segSummary)}">${escapeHtml(segSummary)}</span></td>
+          <td><button type="button" class="expand-btn${_tmplMgrExpanded[r.uid] ? ' open' : ''}" onclick="tmplMgrToggleExpand_('${escapeJs(r.uid)}')" title="${escapeHtml(segSummary)}">${_tmplMgrExpanded[r.uid] ? '\u25BE' : '\u25B8'} ${escapeHtml(segSummary)}</button></td>
           <td>${typeof tmxCell_ === 'function' ? tmxCell_(r) : ''}</td>
-        </tr>`;
+        </tr>` + (_tmplMgrExpanded[r.uid] && typeof tmplMgrDetailHtml_ === 'function' ? tmplMgrDetailHtml_(r) : '');
       }).join('');
       _tmplMgrUpdateBatchBar();
+    }
+    function tmplMgrToggleExpand_(uid) {
+      if (_tmplMgrExpanded[uid]) delete _tmplMgrExpanded[uid]; else _tmplMgrExpanded[uid] = true;
+      renderTemplateManager();
     }
     function toggleTemplateActive(uid, checkboxEl) {
       const newState = checkboxEl.checked;
@@ -418,21 +430,37 @@ function toggleAdminHelp(id) {
       else _userMgrExpanded[key] = true;
       renderUserManager();
     }
-    function userMgrDetailField(uid, field, value, label) {
+    function userMgrDetailField(username, field, value, label) {
+      // Auswahl aus Phrase-Werten (AdminManagersUi.html), sonst Textfeld.
+      if (typeof mgrPickerHtml_ === 'function') return mgrPickerHtml_('u', username, field, value, label);
+      const uid = escapeJs(username);
       return '<div class="detail-field"><label>' + label + '</label>' +
         '<input type="text" value="' + escapeHtml(value || '') + '" ' +
         'onblur="userMgrSaveField(\'' + uid + '\',\'' + field + '\',this.value,this)"></div>';
+    }
+    /** Ladeanzeige, bis Zeilen, Erweiterungen und Phrase-Werte da sind; dann cb. */
+    function mgrLoadAll_(loadingId, cb) {
+      const box = document.getElementById(loadingId);
+      box.innerHTML = '<div class="loader"></div><div style="margin-top:12px;font-size:13px;color:#666;">' + escapeHtml(tr_('mgr_loading', 'Loading values from Phrase ...')) + '</div>';
+      ensureScript_('AdminManagersUi', function () { mgrLoadCatalog_(cb); });
     }
     function loadUserManager() {
       document.getElementById('userMgrLoading').style.display = 'block';
       document.getElementById('userMgrTable').style.display = 'none';
       document.getElementById('userMgrEmpty').style.display = 'none';
+      let rows = null, ready = false;
+      const show = () => {
+        if (!rows || !ready) return;
+        document.getElementById('userMgrLoading').style.display = 'none';
+        _userMgrRows = rows;
+        renderUserManager();
+        umxLoad_();
+      };
+      mgrLoadAll_('userMgrLoading', () => { ready = true; show(); });
       google.script.run
         .withSuccessHandler(res => {
-          document.getElementById('userMgrLoading').style.display = 'none';
-          _userMgrRows = (res && res.rows) || [];
-          renderUserManager();
-          ensureScript_('AdminManagersUi', function () { umxLoad_(); });
+          rows = (res && res.rows) || [];
+          show();
         })
         .withFailureHandler(e => {
           document.getElementById('userMgrLoading').style.display = 'none';
@@ -515,17 +543,17 @@ function toggleAdminHelp(id) {
 
         if (segOpen) {
           html += '<tr class="detail-row"><td colspan="10"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'clients', r.clients, tr_('ax_0f55824', 'Clients')) +
-            userMgrDetailField(uid, 'domains', r.domains, tr_('ax_78cd2c7', 'Domains')) +
-            userMgrDetailField(uid, 'subdomains', r.subdomains, tr_('ax_51e2fe0', 'Subdomains')) +
-            userMgrDetailField(uid, 'businessUnit', r.businessUnit, tr_('ax_112588a', 'Business Unit')) +
+            userMgrDetailField(r.username, 'clients', r.clients, tr_('ax_0f55824', 'Clients')) +
+            userMgrDetailField(r.username, 'domains', r.domains, tr_('ax_78cd2c7', 'Domains')) +
+            userMgrDetailField(r.username, 'subdomains', r.subdomains, tr_('ax_51e2fe0', 'Subdomains')) +
+            userMgrDetailField(r.username, 'businessUnit', r.businessUnit, tr_('ax_112588a', 'Business Unit')) +
             '</div></td></tr>';
         }
         if (langOpen) {
           html += '<tr class="detail-row"><td colspan="10"><div class="detail-panel-grid">' +
-            userMgrDetailField(uid, 'sourceLangs', r.sourceLangs, tr_('ax_646fcee', 'Source Langs')) +
-            userMgrDetailField(uid, 'targetLangs', r.targetLangs, tr_('ax_ef4411e', 'Target Langs')) +
-            userMgrDetailField(uid, 'workflowSteps', r.workflowSteps, tr_('ax_cf42a0e', 'Workflow Steps')) +
+            userMgrDetailField(r.username, 'sourceLangs', r.sourceLangs, tr_('ax_646fcee', 'Source Langs')) +
+            userMgrDetailField(r.username, 'targetLangs', r.targetLangs, tr_('ax_ef4411e', 'Target Langs')) +
+            userMgrDetailField(r.username, 'workflowSteps', r.workflowSteps, tr_('ax_cf42a0e', 'Workflow Steps')) +
             '</div></td></tr>';
         }
       });
@@ -599,7 +627,7 @@ function toggleAdminHelp(id) {
     window.addEventListener('resize', () => { clearTimeout(window._agT_); window._agT_ = setTimeout(layoutAdminGrid_, 120); });
 
     function accAreaLabel_(id) {
-        return tr_('acc_area_' + id, { general: 'Allgemein', marketing: 'Marketing', woma: 'WOMA', cc: 'Competence Center', dlar: 'DLA-R Digital Services Robotics', kec: 'KeC', documentation: 'Dokumentation', campus: 'Campus', admin: 'Admin' }[id] || id);
+        return tr_('acc_area_' + id, { general: '[AKW]', marketing: '[MM]', woma: '[SWT-D]', cc: '[OTC-ME]', dlar: '[DLA-R]', kec: '[MMV-P]', documentation: '[MAT-D]', campus: '[FTC-D]', admin: 'Admin' }[id] || id);
     }
 
     function loadAccessMatrix() {

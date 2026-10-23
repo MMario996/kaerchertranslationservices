@@ -260,7 +260,14 @@ function apiBulkUpdateUserField(usernames, field, value, mode) {
   }
   logAuditEvent_(caller, "USER_FIELD_BULK", field + " (" + mode + " '" + value + "') fuer " + changed.length + " Nutzer: " +
     changed.map(function (c) { return c.username; }).join(", ").slice(0, 400));
-  return { success: true, changed: changed };
+  // Live nach Phrase (ManagerPhraseSync.gs); Fehler einzelner Nutzer als Warnung.
+  var phraseWarnings = [];
+  if (MGR_USER_PHRASE_FIELDS_[field]) {
+    changed.forEach(function (c) {
+      try { mgrSyncUserField_(c.username, field, c.value); } catch (e) { phraseWarnings.push(c.username + ": " + e.message); }
+    });
+  }
+  return { success: true, changed: changed, phraseWarnings: phraseWarnings };
 }
 
 /** Segmentierung (Client, Domain, Subdomain, BU) von einem Nutzer auf andere kopieren. */
