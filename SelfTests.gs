@@ -96,8 +96,76 @@ function pruefeOberflaeche() {
     missing.length ? "FEHLER - fehlende Dateien: " + missing.join(", ") : "OK - alle " + SELF_TEST_INCLUDE_FILES_.length + " Oberflaechen-Dateien vorhanden",
     (dup.status === "ok" ? "OK - " : "FEHLER - ") + dup.message
   ];
+  if (dup.status !== "ok") lines = lines.concat(describeDuplicateFiles_());
+  var wrong = checkFileSignatures_();
+  lines.push(wrong.length ? "FEHLER - falscher Inhalt:\n" + wrong.join("\n") : "OK - jede Datei hat ihren eigenen Inhalt");
   Logger.log(lines.join("\n"));
   return lines;
+}
+
+/**
+ * Erkennungsmerkmal je Datei (erste eigene Funktion). Fehlt es, wurde beim
+ * Kopieren ins Apps-Script-Projekt vermutlich der Inhalt einer anderen Datei
+ * eingefuegt - die Meldung nennt dann, wessen Inhalt tatsaechlich drinsteht.
+ */
+var SELF_TEST_FILE_SIGNATURES_ = {
+  JsCore: "function showCustomAlert(", JsForms: "function initForm(", JsNavigation: "function loadGuideContent_(",
+  JsDocumentation: "function mountHistoryView_(", JsUpload: "function switchKecSubtab(", JsProjects: "function loadMyProjects(",
+  JsDownload: "function ensureDriveSaveConfig_(", JsMisc: "function extractDriveFileId_(", JsPersonal: "function fmt_(",
+  JsCampus: "function t_(", AdminScript: "function loadDocDriveRootSettings(", PivotAdminScript: "function pvTemplateUrl_(",
+  AdminManagersUi: "function mgrxCsv_(", KecSettingsUi: "function kecSetEsc_(", MarketingUi: "function mktEsc_(",
+  MaxTemplateUi: "function mxEsc_(", HomeUi: "function homeRender_(", TranslateUi: "function psLoad_("
+};
+
+/** {Datei: Inhalt} -> ["JsUpload: enthaelt Inhalt von JsProjects (1338 Zeilen)"]. */
+function wrongFileContents_(sources) {
+  var sig = SELF_TEST_FILE_SIGNATURES_;
+  return Object.keys(sig).filter(function (f) {
+    return sources[f] !== undefined && sources[f].indexOf(sig[f]) === -1;
+  }).map(function (f) {
+    var actual = Object.keys(sig).filter(function (o) { return sources[f].indexOf(sig[o]) !== -1; });
+    return f + ": enthaelt " + (actual.length ? "Inhalt von " + actual.join(" + ") : "unbekannten Inhalt") +
+      " (" + sources[f].split("\n").length + " Zeilen) - Datei aus dem Repo neu einfuegen";
+  });
+}
+
+function checkFileSignatures_() {
+  var sources = {};
+  Object.keys(SELF_TEST_FILE_SIGNATURES_).forEach(function (n) {
+    try { sources[n] = HtmlService.createHtmlOutputFromFile(n).getContent(); } catch (e) {}
+  });
+  return wrongFileContents_(sources);
+}
+
+/**
+ * Details fuer pruefeOberflaeche(): je betroffener Datei Zeilenzahl, die
+ * Kopfzeilen-Kommentare ("// JsX.html - eingebunden ...", verraten, welcher
+ * Inhalt tatsaechlich in der Datei steckt) und die Zeilen der Doppelungen.
+ */
+function describeDuplicateFiles_() {
+  var sources = {};
+  SELF_TEST_WINDOW_SCRIPTS_.forEach(function (n) {
+    try { sources[n] = HtmlService.createHtmlOutputFromFile(n).getContent(); } catch (e) {}
+  });
+  var where = {};
+  Object.keys(sources).forEach(function (file) {
+    sources[file].split("\n").forEach(function (l, i) {
+      var m = /^(?:let|const|class)\s+([A-Za-z_$][\w$]*)/.exec(l);
+      if (m) (where[m[1]] = where[m[1]] || []).push({ file: file, line: i + 1 });
+    });
+  });
+  var files = {};
+  Object.keys(where).forEach(function (n) {
+    if (where[n].length < 2) return;
+    where[n].forEach(function (w) { (files[w.file] = files[w.file] || []).push(n + " Z. " + w.line); });
+  });
+  return Object.keys(files).map(function (file) {
+    var lines = sources[file].split("\n");
+    var heads = [];
+    lines.forEach(function (l, i) { if (/^\/\/ \w+\.html - /.test(l)) heads.push("Z. " + (i + 1) + ": " + l.slice(3, 60)); });
+    return "DATEI " + file + ": " + lines.length + " Zeilen; Kopfzeilen: " + (heads.join(" | ") || "-") +
+      "; doppelt: " + files[file].slice(0, 5).join(", ") + (files[file].length > 5 ? " ..." : "");
+  });
 }
 
 function selfTestOk_(message) { return { status: "ok", message: message || "" }; }
