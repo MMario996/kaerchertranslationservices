@@ -175,6 +175,7 @@ function initForm(config) {
   if (showDlar) {
     if (btnDlar) btnDlar.style.display = 'block';
     renderFormFromTemplate('dlar', '[DLA-R] PROJECTS');
+    hideDlarExtras_();
     activePortals.push('_dlar');
   } else {
     if (btnDlar) btnDlar.style.display = 'none';
@@ -267,6 +268,19 @@ function updatePortalNav_(activeTab) {
   newBtn.classList.toggle('active', inPortal);
   // Nur ein Bereich -> keine zweite Zeile noetig.
   nav.classList.toggle('open', inPortal && visible.length > 1);
+}
+
+/**
+ * [DLA-R]: nur Hochladen (und spaeter Herunterladen) - keine Einstellungen
+ * (Frist, Notiz) und keine Referenzdateien. Die Karten bleiben ausgeblendet im
+ * DOM, damit das Formular-Payload unveraendert funktioniert; die Hauptdateien
+ * ruecken an die Stelle der Einstellungen.
+ */
+function hideDlarExtras_() {
+  ['settingsCard_dlar', 'refFilesCard_dlar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 }
 
 function renderFormFromTemplate(id, name, targetDiv) {

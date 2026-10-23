@@ -810,3 +810,15 @@ test('User/Template Manager: Ladeanzeige, Auswahl aus Phrase-Werten speichert li
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('[DLA-R]: nur Hauptdateien hochladen - keine Einstellungen, keine Referenzdateien', async () => {
+  const { page, errors } = await openApp();
+  await page.evaluate(() => switchTab('dlar'));
+  await page.waitForSelector('#tab-dlar #mainDrop_dlar');
+  assert.equal(await page.locator('#settingsCard_dlar').isVisible(), false, 'keine Einstellungen');
+  assert.equal(await page.locator('#refFilesCard_dlar').isVisible(), false, 'keine Referenz');
+  assert.ok(await page.locator('#mainDrop_dlar').isVisible(), 'Hauptdateien');
+  assert.ok(await page.locator('#settingsCard_request').count() === 1, 'andere Reiter unveraendert');
+  assert.deepEqual(errors, []);
+  await page.close();
+});

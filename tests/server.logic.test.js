@@ -127,8 +127,10 @@ const personal = load(['UserPrefs.gs', 'CalendarSync.gs'], {
   Utilities: {
     DigestAlgorithm: { MD5: 'md5' },
     computeDigest: (alg, s) => [...crypto.createHash(alg).update(String(s), 'utf8').digest()].map((b) => (b > 127 ? b - 256 : b)),
-    base64Encode: (bytes) => Buffer.from(bytes.map((b) => b & 0xff)).toString('base64')
+    base64Encode: (bytes) => Buffer.from(bytes.map((b) => b & 0xff)).toString('base64'),
+    formatDate: (d) => d.toISOString().slice(0, 16).replace('T', ' ')
   },
+  Session: { getScriptTimeZone: () => 'UTC' },
   PORTAL_URL_: 'https://portal.example',
   console
 });
@@ -187,6 +189,19 @@ test('Kalender: Termin aus Projekt - offen, fertig, abgebrochen', () => {
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { status: 'COMPLETED' }), Object.assign({}, row, { includeDone: false })), null);
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { status: 'CANCELLED' }), row), null);
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { dueDate: 'kaputt' }), row), null);
+});
+
+test('Kalender: Beschreibung enthaelt alle vorhandenen Projektdaten', () => {
+  const row = { email: 'me@x.de', includeDone: true, lang: 'de' };
+  const p = { projectUid: 'P1', projectName: 'Flyer', status: 'ASSIGNED', dueDate: '2026-10-01T10:00:00.000Z', targetLangs: ['fr_fr', 'it_it'],
+    pivotLangs: ['en_gb'], templateName: '[MM] Flyer', fileName: 'flyer.docx', totalWords: 1200, netWords: 800, jobUids: ['j1', 'j2'],
+    owner: 'me@x.de', createdBy: 'consultant@x.de', sharedWith: 'kollege@x.de', pivotRole: 'PARENT', timestamp: '2026-09-20T08:00:00.000Z',
+    downloadedAt: '', phraseUrl: 'https://cloud.memsource.com/web/project/show/P1' };
+  const d = personal.calBuildEvent_(p, row).description;
+  ['Projekt: Flyer', 'Status: ASSIGNED', 'Fälligkeit:', 'fr_fr, it_it', 'Pivot-Sprachen: en_gb', 'Vorlage: [MM] Flyer', 'Datei: flyer.docx',
+    '1200 / 800', 'Jobs: 2', 'Auftraggeber: me@x.de', 'Angelegt von: consultant@x.de', 'Geteilt mit: kollege@x.de', 'Pivot: PARENT',
+    'Hochgeladen:', 'Projekt-UID: P1', 'In Phrase öffnen: https://cloud.memsource.com/web/project/show/P1'].forEach((t) => assert.ok(d.includes(t), t));
+  assert.ok(!d.includes('Zuletzt heruntergeladen'), 'leere Felder entfallen');
 });
 
 test('Startseite: Fortschritt = erledigte / relevante Phrase-Jobs', () => {
@@ -412,4 +427,13 @@ test('Nutzer/Templates nach Phrase: Werte, PUT-Body, Pruefung', () => {
   assert.equal(m.mgrSameValue_(['DE_DE'], ['de_de']), true);
   assert.equal(m.mgrSameValue_(null, []), true);
   assert.equal(m.mgrSameValue_({ id: 1 }, { id: '2' }), false);
+});
+
+test('SelfTests.gs: alle Logik-Selbsttests laufen auch ausserhalb von Apps Script durch', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const all = load(fs.readdirSync(path.join(__dirname, '..')).filter((f) => f.endsWith('.gs')));
+  const logic = all.selfTestRegistry_().filter((t) => t.group === 'Logik');
+  assert.ok(logic.length >= 6);
+  logic.forEach((t) => assert.equal(t.fn().status, 'ok', t.name));
 });

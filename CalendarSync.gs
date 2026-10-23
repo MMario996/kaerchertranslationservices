@@ -61,12 +61,24 @@ var CAL_TRIGGER_FN_ = "calendarSyncAllTrigger";
 var CAL_MAX_WRITES_PER_RUN_ = 200;
 
 var CAL_TEXT_ = {
-  de: { due: "Frist", done: "Fertig", cancelled: "Abgebrochen", status: "Status", langs: "Zielsprachen", template: "Vorlage", owner: "Auftraggeber", portal: "Im Portal öffnen", phrase: "In Phrase öffnen" },
-  en: { due: "Due", done: "Done", cancelled: "Cancelled", status: "Status", langs: "Target languages", template: "Template", owner: "Requested by", portal: "Open in the portal", phrase: "Open in Phrase" },
-  fr: { due: "Échéance", done: "Terminé", cancelled: "Annulé", status: "Statut", langs: "Langues cibles", template: "Modèle", owner: "Demandeur", portal: "Ouvrir dans le portail", phrase: "Ouvrir dans Phrase" },
-  es: { due: "Plazo", done: "Terminado", cancelled: "Cancelado", status: "Estado", langs: "Idiomas de destino", template: "Plantilla", owner: "Solicitante", portal: "Abrir en el portal", phrase: "Abrir en Phrase" },
-  pt: { due: "Prazo", done: "Concluído", cancelled: "Cancelado", status: "Status", langs: "Idiomas de destino", template: "Modelo", owner: "Solicitante", portal: "Abrir no portal", phrase: "Abrir no Phrase" },
-  zh: { due: "截止", done: "已完成", cancelled: "已取消", status: "状态", langs: "目标语言", template: "模板", owner: "申请人", portal: "在门户中打开", phrase: "在 Phrase 中打开" }
+  de: { due: "Frist", done: "Fertig", cancelled: "Abgebrochen", status: "Status", langs: "Zielsprachen", template: "Vorlage", owner: "Auftraggeber", portal: "Im Portal öffnen", phrase: "In Phrase öffnen",
+        project: "Projekt", uid: "Projekt-UID", deadline: "Fälligkeit", pivotLangs: "Pivot-Sprachen", file: "Datei", words: "Wörter (gesamt / netto)", jobs: "Jobs",
+        created: "Hochgeladen", createdBy: "Angelegt von", shared: "Geteilt mit", pivot: "Pivot", downloaded: "Zuletzt heruntergeladen" },
+  en: { due: "Due", done: "Done", cancelled: "Cancelled", status: "Status", langs: "Target languages", template: "Template", owner: "Requested by", portal: "Open in the portal", phrase: "Open in Phrase",
+        project: "Project", uid: "Project UID", deadline: "Due date", pivotLangs: "Pivot languages", file: "File", words: "Words (total / net)", jobs: "Jobs",
+        created: "Uploaded", createdBy: "Created by", shared: "Shared with", pivot: "Pivot", downloaded: "Last downloaded" },
+  fr: { due: "Échéance", done: "Terminé", cancelled: "Annulé", status: "Statut", langs: "Langues cibles", template: "Modèle", owner: "Demandeur", portal: "Ouvrir dans le portail", phrase: "Ouvrir dans Phrase",
+        project: "Projet", uid: "UID du projet", deadline: "Échéance", pivotLangs: "Langues pivot", file: "Fichier", words: "Mots (total / net)", jobs: "Jobs",
+        created: "Envoyé le", createdBy: "Créé par", shared: "Partagé avec", pivot: "Pivot", downloaded: "Dernier téléchargement" },
+  es: { due: "Plazo", done: "Terminado", cancelled: "Cancelado", status: "Estado", langs: "Idiomas de destino", template: "Plantilla", owner: "Solicitante", portal: "Abrir en el portal", phrase: "Abrir en Phrase",
+        project: "Proyecto", uid: "UID del proyecto", deadline: "Plazo", pivotLangs: "Idiomas pivote", file: "Archivo", words: "Palabras (total / netas)", jobs: "Jobs",
+        created: "Subido", createdBy: "Creado por", shared: "Compartido con", pivot: "Pivote", downloaded: "Última descarga" },
+  pt: { due: "Prazo", done: "Concluído", cancelled: "Cancelado", status: "Status", langs: "Idiomas de destino", template: "Modelo", owner: "Solicitante", portal: "Abrir no portal", phrase: "Abrir no Phrase",
+        project: "Projeto", uid: "UID do projeto", deadline: "Prazo", pivotLangs: "Idiomas pivô", file: "Arquivo", words: "Palavras (total / líquidas)", jobs: "Jobs",
+        created: "Enviado", createdBy: "Criado por", shared: "Compartilhado com", pivot: "Pivô", downloaded: "Último download" },
+  zh: { due: "截止", done: "已完成", cancelled: "已取消", status: "状态", langs: "目标语言", template: "模板", owner: "申请人", portal: "在门户中打开", phrase: "在 Phrase 中打开",
+        project: "项目", uid: "项目 UID", deadline: "截止日期", pivotLangs: "中转语言", file: "文件", words: "字数（总计 / 净）", jobs: "任务",
+        created: "上传时间", createdBy: "创建者", shared: "共享给", pivot: "中转", downloaded: "最近下载" }
 };
 
 // ============================================================================
@@ -376,6 +388,39 @@ function calStatusGroup_(status) {
   return "open";
 }
 
+/** Beschreibung des Termins: alle Projektdaten aus der Queue (leere Felder entfallen). */
+function calDescription_(p, T) {
+  var tz = typeof Session !== "undefined" ? Session.getScriptTimeZone() : "Europe/Berlin";
+  var fmt = function (v) {
+    var d = v instanceof Date ? v : (v ? new Date(v) : null);
+    if (!d || isNaN(d.getTime())) return v ? String(v) : "";
+    return typeof Utilities !== "undefined" ? Utilities.formatDate(d, tz, "dd.MM.yyyy HH:mm") : d.toISOString();
+  };
+  var line = function (label, value) { return value ? label + ": " + value : ""; };
+  var langs = (p.targetLangs || []).join(", ") || p.targetLang || "";
+  var jobs = (p.jobUids || []).length;
+  var words = p.totalWords || p.netWords ? (p.totalWords || 0) + " / " + (p.netWords || 0) : "";
+  var lines = [
+    line(T.project, p.projectName),
+    line(T.status, p.status || "-"),
+    line(T.deadline, fmt(p.dueDate)),
+    line(T.langs, langs),
+    line(T.pivotLangs, (p.pivotLangs || []).join(", ")),
+    line(T.template, p.templateName),
+    line(T.file, p.fileName && p.fileName !== p.projectName ? p.fileName : ""),
+    line(T.words, words),
+    line(T.jobs, jobs ? String(jobs) : ""),
+    line(T.owner, p.owner),
+    line(T.createdBy, p.createdBy && p.createdBy !== p.owner ? p.createdBy : ""),
+    line(T.shared, p.sharedWith),
+    line(T.pivot, p.pivotRole ? p.pivotRole + (p.pivotLink ? " (" + p.pivotLink + ")" : "") : ""),
+    line(T.created, fmt(p.timestamp || p.uploadDate)),
+    line(T.downloaded, fmt(p.downloadedAt)),
+    line(T.uid, p.projectUid)
+  ].filter(Boolean);
+  return lines.concat(["", T.portal + ": " + PORTAL_URL_].concat(p.phraseUrl ? [T.phrase + ": " + p.phraseUrl] : [])).join("\n");
+}
+
 /** Gewuenschter Termin fuer ein Projekt oder null (kein Termin). */
 function calBuildEvent_(p, row) {
   var due = p.dueDate instanceof Date ? p.dueDate : new Date(p.dueDate);
@@ -387,16 +432,7 @@ function calBuildEvent_(p, row) {
   var T = CAL_TEXT_[row.lang] || CAL_TEXT_.en;
   var prefix = group === "done" ? "✅ " + T.done : "⏰ " + T.due;
   var start = new Date(due.getTime() - 30 * 60000);
-  var langs = (p.targetLangs || []).join(", ") || p.targetLang || "-";
-  var description = [
-    T.status + ": " + (p.status || "-"),
-    T.langs + ": " + langs,
-    p.templateName ? T.template + ": " + p.templateName : "",
-    p.owner && p.owner !== row.email ? T.owner + ": " + p.owner : "",
-    "",
-    T.portal + ": " + PORTAL_URL_,
-    p.phraseUrl ? T.phrase + ": " + p.phraseUrl : ""
-  ].filter(function (l, i) { return l !== "" || i === 4; }).join("\n");
+  var description = calDescription_(p, T);
 
   var ev = {
     summary: prefix + ": " + (p.projectName || p.projectUid),

@@ -75,6 +75,8 @@
   input[type="radio"]:disabled, input[type="radio"]:disabled + span { cursor: not-allowed; opacity: 0.45; }
   input:focus, select:focus, textarea:focus { border-color: var(--primary-black); outline: none; background-color: #fafafa; }
   select { height: 48px; }
+  /* Niedrige Auswahlfelder in Tabellen: 12px Innenabstand schnitt den Text ab (Rolle war leer). */
+  .modern-table select, .detail-field select { padding: 0 8px; }
   .btn { border: none; padding: 0 30px; font-size: 15px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; height: 48px; border-radius: 0; letter-spacing: 0.5px; text-decoration: none; }
   .btn i { font-size: 20px; margin-right: 10px; }
   .btn-primary { background-color: var(--primary-yellow); color: var(--primary-black); width: 100%; transition: background 0.2s; }
@@ -959,7 +961,7 @@
   @media (max-width: 700px) { .dbx-grid { grid-template-columns:minmax(0,1fr); } .dbx-w.s1, .dbx-w.s2, .dbx-w.s4 { grid-column:span 1; } .dbx-btn-lbl { display:none; } .dbx-filters { position:static; } .dbx-filters select { max-width:none; flex:1 1 45%; } .dbx-title { font-size:21px; } }
 
   /* ===== Admin: Selbsttests ===== */
-  .selftest-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 16px; }
+  .selftest-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; border-bottom: 2px solid #eee; padding-bottom: 18px; margin-bottom: 16px; }
   .selftest-summary { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
   .st-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 800; font-size: 13px; background: #fff; border: 1px solid #ddd; }
   .st-pill .material-icons-outlined { font-size: 18px; }

@@ -168,6 +168,9 @@ function describeDuplicateFiles_() {
   });
 }
 
+/** Globales Objekt (Apps Script V8: alle Top-Level-Funktionen). */
+function selfTestGlobal_() { return typeof globalThis !== "undefined" ? globalThis : (function () { return this; })(); }
+
 function selfTestOk_(message) { return { status: "ok", message: message || "" }; }
 function selfTestWarn_(message) { return { status: "warning", message: message || "" }; }
 
@@ -281,6 +284,89 @@ function selfTestRegistry_() {
     { group: "Integrationen", name: "Automatische Status-Synchronisierung", fn: function () {
       var exists = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === "autoSyncProjectStatuses_"; });
       return exists ? selfTestOk_("Trigger aktiv (alle 15 Minuten)") : selfTestWarn_("Kein Trigger - Status nur per 'Status synchronisieren'");
+    }},
+    { group: "Integrationen", name: "Zeitgesteuerte Trigger zeigen auf vorhandene Funktionen", fn: function () {
+      var g = selfTestGlobal_();
+      var triggers = ScriptApp.getProjectTriggers();
+      var dead = triggers.map(function (t) { return t.getHandlerFunction(); }).filter(function (h) { return typeof g[h] !== "function"; });
+      if (dead.length) return { status: "error", message: "Funktion fehlt: " + dead.join(", ") };
+      return selfTestOk_(triggers.length + " Trigger in Ordnung");
+    }},
+    { group: "Integrationen", name: "Phrase-Kataloge (Clients, Domains, Workflow, MT)", fn: function () {
+      var c = maxTplCatalog_();
+      var counts = ["clients", "domains", "subDomains", "businessUnits", "workflowSteps", "mtSettings"].map(function (k) { return k + " " + (c[k] || []).length; });
+      if (!(c.workflowSteps || []).length) return selfTestWarn_("Keine Workflow-Schritte geladen - " + counts.join(", "));
+      return selfTestOk_(counts.join(", "));
+    }},
+    { group: "Integrationen", name: "Phrase-Sprachliste", fn: function () {
+      var n = mgrLanguages_().length;
+      return n ? selfTestOk_(n + " Sprachen") : selfTestWarn_("Keine Sprachen geladen - Auswahl in der Nutzerverwaltung fällt auf Textfelder zurück");
+    }},
+    { group: "Integrationen", name: "E-Mail-Kontingent", fn: function () {
+      var left = MailApp.getRemainingDailyQuota();
+      return left > 20 ? selfTestOk_(left + " Mails heute übrig") : selfTestWarn_("Nur noch " + left + " Mails heute");
+    }},
+
+    // Weitere Logik und Daten
+    { group: "Logik", name: "Mehrfachwerte (hinzufügen / entfernen / ersetzen)", fn: function () {
+      selfTestAssertEqual_(mergeMultiValue_("KAG, KNA", "kna, HC", "add"), "KAG, KNA, HC", "hinzufügen");
+      selfTestAssertEqual_(mergeMultiValue_("KAG, KNA", "kag", "remove"), "KNA", "entfernen");
+      selfTestAssertEqual_(mergeMultiValue_("KAG", "X; Y", "replace"), "X, Y", "ersetzen");
+      return selfTestOk_("3 Fälle");
+    }},
+    { group: "Logik", name: "Nutzer-/Template-Werte für Phrase", fn: function () {
+      var cat = { clients: [{ id: "1", name: "AKW" }], businessUnits: [{ id: "b", name: "OTC" }] };
+      selfTestAssertEqual_(mgrPhraseValue_("clients", "akw", cat), [{ id: "1" }], "Clients per Name");
+      selfTestAssertEqual_(mgrPhraseValue_("businessUnit", "OTC", cat), { id: "b" }, "Business Unit");
+      selfTestAssertEqual_(mgrPhraseValue_("targetLangs", "DE_DE, fr_fr", cat), ["de_de", "fr_fr"], "Sprachen");
+      selfTestAssertEqual_(mgrEditBody_({ uid: "U", clients: [{ id: 1, name: "AKW" }] }), { clients: [{ id: "1" }] }, "PUT-Body");
+      return selfTestOk_("4 Fälle");
+    }},
+    { group: "Logik", name: "Maximaltemplate-Regeln", fn: function () {
+      var cfg = maxTplSanitizeConfig_({ lists: { mtSettings: [{ id: "m1" }] }, sections: [{ key: "qa", path: "/projects/{uid}/qaSettings", fields: { a: { editable: true, type: "boolean" } } }] });
+      var r = maxTplEnforceConfig_(maxTplSanitize_({ mtSettingsUid: "m2", extra: { qa: { a: "true", b: "x" } } }), cfg);
+      selfTestAssertEqual_(r.ms.mtSettingsUid, "", "MT-Profil nicht freigegeben");
+      selfTestAssertEqual_(r.ms.extra, { qa: { a: true } }, "nur freigegebene Felder");
+      return selfTestOk_("2 Fälle");
+    }},
+    { group: "Konfiguration", name: "Browser-Dateien mit eigenem Inhalt", fn: function () {
+      var wrong = checkFileSignatures_();
+      return wrong.length ? { status: "error", message: wrong.join("; ") } : selfTestOk_(Object.keys(SELF_TEST_FILE_SIGNATURES_).length + " Dateien geprüft");
+    }},
+    { group: "Konfiguration", name: "Startdokument unter der Apps-Script-Grenze", fn: function () {
+      var len = HtmlService.createTemplateFromFile("Index").evaluate().getContent().length;
+      if (len > 590000) return { status: "error", message: len + " Zeichen - die Seite wird abgeschnitten" };
+      return len > 560000 ? selfTestWarn_(len + " Zeichen - knapp an der Grenze (~600.000)") : selfTestOk_(len + " Zeichen");
+    }},
+    { group: "Konfiguration", name: "Maximaltemplate-Regeln", fn: function () {
+      var cfg = maxTplLoadConfig_();
+      var lists = Object.keys(cfg.lists).length;
+      var fields = cfg.sections.reduce(function (n, s) { return n + (s.enabled ? Object.keys(s.fields).length : 0); }, 0);
+      return selfTestOk_(lists + " eingeschränkte Listen, " + cfg.sections.length + " Bereiche, " + fields + " freigegebene Felder");
+    }},
+    { group: "Daten", name: "Template-Sheet (sichtbare Vorlagen)", fn: function () {
+      var n = Object.keys(readTemplates_()).length;
+      return n ? selfTestOk_(n + " aktive Vorlagen") : selfTestWarn_("Keine aktiven Vorlagen - Nutzer sehen nichts im Dropdown");
+    }},
+    { group: "Daten", name: "Nutzer-Sheet (FetchTMS_USERS-Prod)", fn: function () {
+      var sh = openUserSheetSS_().getSheetByName("FetchTMS_USERS-Prod");
+      if (!sh) return { status: "error", message: "Sheet nicht gefunden" };
+      var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h).trim(); });
+      var missing = Object.keys(USER_MGR_HEADER_MAP).filter(function (h) { return headers.indexOf(h) === -1; });
+      if (missing.length) return selfTestWarn_("Spalten fehlen: " + missing.join(", "));
+      return selfTestOk_(Math.max(0, sh.getLastRow() - 1) + " Nutzer, alle Spalten vorhanden");
+    }},
+    { group: "Daten", name: "Whitelists aller Bereiche lesbar", fn: function () {
+      var bad = [];
+      var total = 0;
+      accessAreas_().forEach(function (a) {
+        try { total += (a.get().emails || []).length; } catch (e) { bad.push(a.id + " (" + e.message + ")"); }
+      });
+      return bad.length ? { status: "error", message: bad.join("; ") } : selfTestOk_(accessAreas_().length + " Bereiche, " + total + " Einträge");
+    }},
+    { group: "Daten", name: "Prompt-Hub", fn: function () {
+      var n = maxTplPromptHub_("").prompts.length;
+      return n ? selfTestOk_(n + " Prompts") : selfTestWarn_("Kein Prompt im Sheet 'Prompt_Hub'");
     }}
   ];
 }
