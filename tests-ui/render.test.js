@@ -694,3 +694,21 @@ test('Admin-Sandbox: Banner im Sandbox-Modus, Schalter nur fuer Admins in den Ei
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Startfehler: bricht ein Script-Block ab (doppeltes let), erscheint ein Hinweis statt leerer Seite', async () => {
+  const broken = path.join(path.dirname(file), 'broken.html');
+  fs.writeFileSync(broken, buildPreview().replace('</body>', '<script>let userPrefs_ = {};</script></body>'));
+  const page = await browser.newPage({ viewport: { width: 1440, height: 800 } });
+  await page.goto('file://' + broken);
+  await page.waitForSelector('#startErrorBox');
+  assert.match(await page.locator('#startErrorBox').innerText(), /userPrefs_/);
+  assert.match(await page.locator('#startErrorBox').innerText(), /pruefeOberflaeche/);
+  await page.close();
+});
+
+test('Startfehler-Hinweis erscheint nicht beim normalen Start', async () => {
+  const { page, errors } = await openApp();
+  assert.equal(await page.locator('#startErrorBox').count(), 0);
+  assert.deepEqual(errors, []);
+  await page.close();
+});

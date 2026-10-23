@@ -46,6 +46,60 @@ function selfTestAssertEqual_(actual, expected, label) {
   if (a !== e) throw new Error(label + ": erwartet " + e + ", erhalten " + a);
 }
 
+/**
+ * Dateien, deren <script>-Inhalt im selben Browserfenster landet (Startdokument
+ * und Nachgeladenes). Steht ein let/const/class auf oberster Ebene zweimal darin
+ * (z. B. nach doppeltem Einfuegen beim Kopieren ins Apps-Script-Projekt), bricht
+ * der Browser den ganzen Block mit "Identifier ... has already been declared"
+ * ab - die Seite bleibt bis auf die Kopfzeile leer.
+ */
+var SELF_TEST_WINDOW_SCRIPTS_ = [
+  "Index", "JsCore", "JsForms", "JsNavigation", "JsDocumentation", "JsUpload", "JsProjects",
+  "JsDownload", "JsMisc", "JsPersonal", "JsCampus", "AdminConsole", "AdminScript",
+  "PivotAdminConsole", "PivotAdminScript", "AdminManagersUi", "KecSettingsUi", "MarketingUi",
+  "MaxTemplateUi", "HomeUi", "TranslateUi", "PrefsUi", "DarkTheme", "GuideContent"
+];
+
+/** {Datei: Inhalt} -> ["name (DateiA, DateiB)"] fuer doppelte Top-Level-Deklarationen. */
+function findDuplicateTopLevelDecls_(sources) {
+  var seen = {};
+  Object.keys(sources).forEach(function (file) {
+    var re = /^(?:let|const|class)\s+([A-Za-z_$][\w$]*)/gm;
+    var m;
+    while ((m = re.exec(sources[file]))) (seen[m[1]] = seen[m[1]] || []).push(file);
+  });
+  return Object.keys(seen).filter(function (n) { return seen[n].length > 1; })
+    .map(function (n) { return n + " (" + seen[n].join(", ") + ")"; });
+}
+
+function selfTestDuplicateDecls_() {
+  var sources = {};
+  SELF_TEST_WINDOW_SCRIPTS_.forEach(function (n) {
+    try { sources[n] = HtmlService.createHtmlOutputFromFile(n).getContent(); } catch (e) {}
+  });
+  var dups = findDuplicateTopLevelDecls_(sources);
+  if (dups.length) return { status: "error", message: "Doppelt deklariert: " + dups.join("; ") };
+  return selfTestOk_(Object.keys(sources).length + " Dateien ohne Doppelungen");
+}
+
+/**
+ * Im Apps-Script-Editor ausfuehrbar (Funktion "pruefeOberflaeche" waehlen,
+ * "Ausfuehren"), auch wenn die Web-App leer bleibt und der Admin-Bereich
+ * deshalb nicht erreichbar ist. Ergebnis steht im Ausfuehrungsprotokoll.
+ */
+function pruefeOberflaeche() {
+  var missing = SELF_TEST_INCLUDE_FILES_.filter(function (n) {
+    try { HtmlService.createHtmlOutputFromFile(n); return false; } catch (e) { return true; }
+  });
+  var dup = selfTestDuplicateDecls_();
+  var lines = [
+    missing.length ? "FEHLER - fehlende Dateien: " + missing.join(", ") : "OK - alle " + SELF_TEST_INCLUDE_FILES_.length + " Oberflaechen-Dateien vorhanden",
+    (dup.status === "ok" ? "OK - " : "FEHLER - ") + dup.message
+  ];
+  Logger.log(lines.join("\n"));
+  return lines;
+}
+
 function selfTestOk_(message) { return { status: "ok", message: message || "" }; }
 function selfTestWarn_(message) { return { status: "warning", message: message || "" }; }
 
@@ -95,6 +149,7 @@ function selfTestRegistry_() {
       if (missing.length) return { status: "error", message: "Fehlt im Apps-Script-Projekt: " + missing.join(", ") };
       return selfTestOk_(SELF_TEST_INCLUDE_FILES_.length + " Dateien vorhanden");
     }},
+    { group: "Konfiguration", name: "Browser-Code ohne doppelte Deklarationen", fn: selfTestDuplicateDecls_ },
     { group: "Oberfläche", name: "Knowledge Base: alle Artikel-Pakete lesbar", fn: function () {
       var bad = [];
       var articles = 0;

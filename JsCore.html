@@ -559,6 +559,7 @@ function loadAppConfig() {
   try {
     google.script.run
       .withSuccessHandler((config) => {
+        window.__appStarted = true;
         stopStartupOverlay_();
 
         // fr/es/pt/zh liegen serverseitig und kommen mit der Config mit.
