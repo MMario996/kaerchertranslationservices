@@ -359,3 +359,22 @@ test('Knowledge-Base-Build: Hinweis-Ueberschriften werden zu Callouts, Code blei
   assert.match(out, /^# not a heading$/m);
   assert.equal(safeJson({ u: 'https://x/</a>' }), '{"u":"https:\\/\\/x\\/\\u003c\\/a>"}');
 });
+
+test('findDuplicateTopLevelDecls_: doppeltes let/const/class wird gemeldet, eingerueckte nicht', () => {
+  const st = load(['SelfTests.gs']);
+  assert.deepEqual(plain(st.findDuplicateTopLevelDecls_({
+    JsCore: 'let a = 1;\nconst b = 2;\nfunction f() {\n  let a = 3;\n}',
+    JsMisc: 'let userPrefs_ = {};\nclass K {}',
+    JsPersonal: 'let userPrefs_ = {};\nvar b = 4;'
+  })), ['userPrefs_ (JsMisc, JsPersonal)']);
+  assert.deepEqual(plain(st.findDuplicateTopLevelDecls_({ JsPersonal: 'let x = 1;\nlet x = 2;' })), ['x (JsPersonal, JsPersonal)']);
+});
+
+test('Browser-Code im Repo: keine doppelte Top-Level-Deklaration (SELF_TEST_WINDOW_SCRIPTS_)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const st = load(['SelfTests.gs']);
+  const sources = {};
+  st.SELF_TEST_WINDOW_SCRIPTS_.forEach((n) => { sources[n] = fs.readFileSync(path.join(__dirname, '..', n + '.html'), 'utf8'); });
+  assert.deepEqual(plain(st.findDuplicateTopLevelDecls_(sources)), []);
+});
