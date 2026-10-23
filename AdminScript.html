@@ -197,7 +197,7 @@ function toggleAdminHelp(id) {
         })
         .apiSaveKecEligibilitySettings(clientId, domainId, buId);
     }
-    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'translate', 'tests'];
+    const ADMIN_SUBTABS_ = ['console', 'users', 'templates', 'pivot', 'translate', 'maxtpl', 'tests'];
     function applyAdminAccessRestrictions_() {
       const isFullAdmin = !!(configData && configData.isAdmin);
       const allowed = isFullAdmin ? ADMIN_SUBTABS_ : (_adminLightSubtabs_ || []).filter(n => ADMIN_SUBTABS_.includes(n));
@@ -229,6 +229,7 @@ function toggleAdminHelp(id) {
         });
       }
       if (name === 'translate') loadTranslateUi_();
+      if (name === 'maxtpl') ensureScript_('MaxTemplateUi', () => mxAdminOpen_());
     }
     let _translateUiLoaded_ = false;
     function loadTranslateUi_() {
