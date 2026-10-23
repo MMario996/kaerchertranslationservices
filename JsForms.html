@@ -139,7 +139,7 @@ function initForm(config) {
   activePortals = [];
 
   if (showRequest || config.effectiveIsAdmin) {
-    renderFormFromTemplate('request', 'Standard');
+    renderFormFromTemplate('request', '[AKW] PROJECTS');
     activePortals.push('_request');
   }
 
@@ -156,7 +156,7 @@ function initForm(config) {
   const showWoma = config.isWoma || (config.isAdmin && !config.isImpersonating);
   if (showWoma) {
     if (btnWoma) btnWoma.style.display = 'block';
-    renderFormFromTemplate('woma', 'WOMA');
+    renderFormFromTemplate('woma', '[SWT-D] PROJECTS');
     activePortals.push('_woma');
   } else {
     if (btnWoma) btnWoma.style.display = 'none';
@@ -165,7 +165,7 @@ function initForm(config) {
   const showCc = config.isCc || (config.isAdmin && !config.isImpersonating);
   if (showCc) {
     if (btnCc) btnCc.style.display = 'block';
-    renderFormFromTemplate('cc', 'Competence Center');
+    renderFormFromTemplate('cc', '[OTC-ME] PROJECTS');
     activePortals.push('_cc');
   } else {
     if (btnCc) btnCc.style.display = 'none';
@@ -174,7 +174,7 @@ function initForm(config) {
   const showDlar = config.isDlar || (config.isAdmin && !config.isImpersonating);
   if (showDlar) {
     if (btnDlar) btnDlar.style.display = 'block';
-    renderFormFromTemplate('dlar', '[DLA-R] Digital Services Robotics');
+    renderFormFromTemplate('dlar', '[DLA-R] PROJECTS');
     activePortals.push('_dlar');
   } else {
     if (btnDlar) btnDlar.style.display = 'none';
@@ -548,7 +548,7 @@ function scanKeCProjects(suffix) {
                   tr_('jx_a10b342', '• Domain: Marketing Content') + '\n' +
                   tr_('jx_f21b06d', '• Business Unit: MMV-P') + '\n\n' +
                   tr_('jx_47cd0a7', 'Das Projekt darf sich noch nicht ab Workflow-Schritt 2 in Bearbeitung befinden.') + '\n' +
-                  tr_('kec_buf_rule', '• Created no longer ago than your buffer (KeC Projects → Settings):') + ' ' + ((res && res.bufferHours) || 2) + ' h\n\n' +
+                  tr_('kec_buf_rule', '• Created no longer ago than your buffer ([MMV-P] PROJECTS → Settings):') + ' ' + ((res && res.bufferHours) || 2) + ' h\n\n' +
                   tr_('jx_a0be7e5', 'Nutze den – Debugger unterhalb des Formulars um ein konkretes Projekt direkt zu prüfen.'),
                   tr_('jx_d45235e', 'Scan-Ergebnis')
                 ); 

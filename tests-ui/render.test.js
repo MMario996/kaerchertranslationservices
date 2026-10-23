@@ -712,3 +712,12 @@ test('Startfehler-Hinweis erscheint nicht beim normalen Start', async () => {
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Startseite ohne Schnellstart; Reiter heissen [AKW] PROJECTS usw.', async () => {
+  const { page, errors } = await openApp();
+  assert.equal(await page.locator('#homeQuick').count(), 0, 'kein Schnellstart');
+  assert.equal((await page.locator('#btn-nav-request').innerText()).trim(), '[AKW] PROJECTS');
+  assert.equal((await page.locator('#btn-nav-dlar').textContent()).trim(), '[DLA-R] PROJECTS');
+  assert.deepEqual(errors, []);
+  await page.close();
+});

@@ -153,7 +153,7 @@ test('sanitizeClientPrefs_: neue Einstellungen (Anrede, Dichte, Startseite, Gloc
   assert.equal(out.density, 'comfortable');
   assert.equal(out.reduceMotion, false);
   assert.equal(out.startTab, 'history');
-  assert.deepEqual(out.home, { widgets: { quick: true, kpis: true, focus: true, week: true, activity: true, tips: false }, tab: 'auto' });
+  assert.deepEqual(out.home, { widgets: { kpis: true, focus: true, week: true, activity: true, tips: false }, tab: 'auto' });
   assert.deepEqual(out.pinned, ['A1', 'B_2-c']);
   assert.deepEqual(out.notifTypes, ['completed', 'shared']);
   assert.equal(out.notifToast, false);
