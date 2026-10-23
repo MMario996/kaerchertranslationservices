@@ -191,17 +191,35 @@ test('Kalender: Termin aus Projekt - offen, fertig, abgebrochen', () => {
   assert.equal(personal.calBuildEvent_(Object.assign({}, p, { dueDate: 'kaputt' }), row), null);
 });
 
-test('Kalender: Beschreibung enthaelt alle vorhandenen Projektdaten', () => {
+test('Kalender: Beschreibung in Abschnitten, Status und Job-Link je Sprache, ohne Projekt-UID', () => {
   const row = { email: 'me@x.de', includeDone: true, lang: 'de' };
-  const p = { projectUid: 'P1', projectName: 'Flyer', status: 'ASSIGNED', dueDate: '2026-10-01T10:00:00.000Z', targetLangs: ['fr_fr', 'it_it'],
-    pivotLangs: ['en_gb'], templateName: '[MM] Flyer', fileName: 'flyer.docx', totalWords: 1200, netWords: 800, jobUids: ['j1', 'j2'],
-    owner: 'me@x.de', createdBy: 'consultant@x.de', sharedWith: 'kollege@x.de', pivotRole: 'PARENT', timestamp: '2026-09-20T08:00:00.000Z',
+  const p = { projectUid: 'P1', projectName: 'Flyer', status: 'ASSIGNED', dueDate: '2026-10-01T10:00:00.000Z', targetLangs: ['de_de', 'fr_fr', 'it_it'],
+    pivotLangs: [], templateName: 'Pivot <Test>', fileName: 'flyer.docx', totalWords: 1200, netWords: 800,
+    jobMapping: [{ jobUid: 'qd', targetLang: 'de_de' }, { jobUid: 'qf', targetLang: 'fr_fr' }, { jobUid: 'qi', targetLang: 'it_it' }],
+    owner: 'me@x.de', createdBy: 'consultant@x.de', sharedWith: 'kollege@x.de', timestamp: '2026-09-20T08:00:00.000Z',
     downloadedAt: '', phraseUrl: 'https://cloud.memsource.com/web/project/show/P1' };
-  const d = personal.calBuildEvent_(p, row).description;
-  ['Projekt: Flyer', 'Status: ASSIGNED', 'Fälligkeit:', 'fr_fr, it_it', 'Pivot-Sprachen: en_gb', 'Vorlage: [MM] Flyer', 'Datei: flyer.docx',
-    '1200 / 800', 'Jobs: 2', 'Auftraggeber: me@x.de', 'Angelegt von: consultant@x.de', 'Geteilt mit: kollege@x.de', 'Pivot: PARENT',
-    'Hochgeladen:', 'Projekt-UID: P1', 'In Phrase öffnen: https://cloud.memsource.com/web/project/show/P1'].forEach((t) => assert.ok(d.includes(t), t));
+  const jobs = [
+    { uid: 'd1', status: 'COMPLETED', targetLang: 'de_de', workflowLevel: 1 }, { uid: 'd2', status: 'COMPLETED_BY_LINGUIST', targetLang: 'de_de', workflowLevel: 2 },
+    { uid: 'f1', status: 'COMPLETED', targetLang: 'fr_fr', workflowLevel: 1 }, { uid: 'f2', status: 'NEW', targetLang: 'fr_fr', workflowLevel: 2 },
+    { uid: 'i1', status: 'NEW', targetLang: 'it_it', workflowLevel: 1 }, { uid: 'x', status: 'CANCELLED', targetLang: 'it_it', workflowLevel: 2 }
+  ];
+  const d = personal.calBuildEvent_(p, row, jobs).description;
+  ['<b>📋 PROJEKT</b>', '<b>Status:</b> ASSIGNED (1 von 3 Sprachen fertig)', '<b>Vorlage:</b> Pivot &lt;Test&gt;', 'flyer.docx · 1.200 Wörter (netto 800)',
+    '<b>🌍 SPRACHEN &amp; JOBS</b>',
+    '<li><b>DE</b> – ✅ Abgeschlossen – <a href="https://cloud.memsource.com/web/job/d2/translate">Job öffnen</a></li>',
+    '<li><b>FR</b> – ⏳ In Bearbeitung – <a href="https://cloud.memsource.com/web/job/f2/translate">Job öffnen</a></li>',
+    '<li><b>IT</b> – 🆕 Neu – <a href="https://cloud.memsource.com/web/job/i1/translate">Job öffnen</a></li>',
+    '<b>👤 BETEILIGTE</b>', '<a href="mailto:me@x.de">me@x.de</a>', '<b>Angelegt von:</b>', '<b>Geteilt mit:</b> <a href="mailto:kollege@x.de">',
+    '<b>🔗 LINKS</b>', '<a href="https://cloud.memsource.com/web/project/show/P1">Projekt in Phrase</a> · <a href="https://portal.example">Im Portal öffnen</a>'
+  ].forEach((t) => assert.ok(d.includes(t), t));
+  assert.ok(!d.includes('Projekt-UID'), 'keine Projekt-UID');
+  assert.equal(personal.calLangShort_('en_gb'), 'EN-GB');
+  assert.equal(personal.calLangShort_('zh_hans_cn'), 'ZH-CN');
   assert.ok(!d.includes('Zuletzt heruntergeladen'), 'leere Felder entfallen');
+  // Ohne Phrase-Jobs: Links aus der Queue, kein Status
+  const q = personal.calBuildEvent_(p, row).description;
+  assert.ok(q.includes('<li><b>FR</b> – <a href="https://cloud.memsource.com/web/job/qf/translate">Job öffnen</a></li>'));
+  assert.ok(q.includes('<b>Status:</b> ASSIGNED<br>'));
 });
 
 test('Startseite: Fortschritt = erledigte / relevante Phrase-Jobs', () => {

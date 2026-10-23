@@ -63,22 +63,28 @@ var CAL_MAX_WRITES_PER_RUN_ = 200;
 var CAL_TEXT_ = {
   de: { due: "Frist", done: "Fertig", cancelled: "Abgebrochen", status: "Status", langs: "Zielsprachen", template: "Vorlage", owner: "Auftraggeber", portal: "Im Portal öffnen", phrase: "In Phrase öffnen",
         project: "Projekt", uid: "Projekt-UID", deadline: "Fälligkeit", pivotLangs: "Pivot-Sprachen", file: "Datei", words: "Wörter (gesamt / netto)", jobs: "Jobs",
-        created: "Hochgeladen", createdBy: "Angelegt von", shared: "Geteilt mit", pivot: "Pivot", downloaded: "Zuletzt heruntergeladen" },
+        created: "Hochgeladen", createdBy: "Angelegt von", shared: "Geteilt mit", pivot: "Pivot", downloaded: "Zuletzt heruntergeladen",
+        secProject: "PROJEKT", secLangs: "SPRACHEN & JOBS", secPeople: "BETEILIGTE", secLinks: "LINKS", openJob: "Job öffnen", phraseProject: "Projekt in Phrase", wordsShort: "Wörter", net: "netto", stDone: "Abgeschlossen", stProgress: "In Bearbeitung", stNew: "Neu", ofDone: "{d} von {n} Sprachen fertig" },
   en: { due: "Due", done: "Done", cancelled: "Cancelled", status: "Status", langs: "Target languages", template: "Template", owner: "Requested by", portal: "Open in the portal", phrase: "Open in Phrase",
         project: "Project", uid: "Project UID", deadline: "Due date", pivotLangs: "Pivot languages", file: "File", words: "Words (total / net)", jobs: "Jobs",
-        created: "Uploaded", createdBy: "Created by", shared: "Shared with", pivot: "Pivot", downloaded: "Last downloaded" },
+        created: "Uploaded", createdBy: "Created by", shared: "Shared with", pivot: "Pivot", downloaded: "Last downloaded",
+        secProject: "PROJECT", secLangs: "LANGUAGES & JOBS", secPeople: "PEOPLE", secLinks: "LINKS", openJob: "Open job", phraseProject: "Project in Phrase", wordsShort: "words", net: "net", stDone: "Completed", stProgress: "In progress", stNew: "New", ofDone: "{d} of {n} languages done" },
   fr: { due: "Échéance", done: "Terminé", cancelled: "Annulé", status: "Statut", langs: "Langues cibles", template: "Modèle", owner: "Demandeur", portal: "Ouvrir dans le portail", phrase: "Ouvrir dans Phrase",
         project: "Projet", uid: "UID du projet", deadline: "Échéance", pivotLangs: "Langues pivot", file: "Fichier", words: "Mots (total / net)", jobs: "Jobs",
-        created: "Envoyé le", createdBy: "Créé par", shared: "Partagé avec", pivot: "Pivot", downloaded: "Dernier téléchargement" },
+        created: "Envoyé le", createdBy: "Créé par", shared: "Partagé avec", pivot: "Pivot", downloaded: "Dernier téléchargement",
+        secProject: "PROJET", secLangs: "LANGUES & JOBS", secPeople: "PERSONNES", secLinks: "LIENS", openJob: "Ouvrir le job", phraseProject: "Projet dans Phrase", wordsShort: "mots", net: "net", stDone: "Terminé", stProgress: "En cours", stNew: "Nouveau", ofDone: "{d} sur {n} langues terminées" },
   es: { due: "Plazo", done: "Terminado", cancelled: "Cancelado", status: "Estado", langs: "Idiomas de destino", template: "Plantilla", owner: "Solicitante", portal: "Abrir en el portal", phrase: "Abrir en Phrase",
         project: "Proyecto", uid: "UID del proyecto", deadline: "Plazo", pivotLangs: "Idiomas pivote", file: "Archivo", words: "Palabras (total / netas)", jobs: "Jobs",
-        created: "Subido", createdBy: "Creado por", shared: "Compartido con", pivot: "Pivote", downloaded: "Última descarga" },
+        created: "Subido", createdBy: "Creado por", shared: "Compartido con", pivot: "Pivote", downloaded: "Última descarga",
+        secProject: "PROYECTO", secLangs: "IDIOMAS Y JOBS", secPeople: "PERSONAS", secLinks: "ENLACES", openJob: "Abrir job", phraseProject: "Proyecto en Phrase", wordsShort: "palabras", net: "netas", stDone: "Terminado", stProgress: "En curso", stNew: "Nuevo", ofDone: "{d} de {n} idiomas listos" },
   pt: { due: "Prazo", done: "Concluído", cancelled: "Cancelado", status: "Status", langs: "Idiomas de destino", template: "Modelo", owner: "Solicitante", portal: "Abrir no portal", phrase: "Abrir no Phrase",
         project: "Projeto", uid: "UID do projeto", deadline: "Prazo", pivotLangs: "Idiomas pivô", file: "Arquivo", words: "Palavras (total / líquidas)", jobs: "Jobs",
-        created: "Enviado", createdBy: "Criado por", shared: "Compartilhado com", pivot: "Pivô", downloaded: "Último download" },
+        created: "Enviado", createdBy: "Criado por", shared: "Compartilhado com", pivot: "Pivô", downloaded: "Último download",
+        secProject: "PROJETO", secLangs: "IDIOMAS E JOBS", secPeople: "PESSOAS", secLinks: "LINKS", openJob: "Abrir job", phraseProject: "Projeto no Phrase", wordsShort: "palavras", net: "líquidas", stDone: "Concluído", stProgress: "Em andamento", stNew: "Novo", ofDone: "{d} de {n} idiomas prontos" },
   zh: { due: "截止", done: "已完成", cancelled: "已取消", status: "状态", langs: "目标语言", template: "模板", owner: "申请人", portal: "在门户中打开", phrase: "在 Phrase 中打开",
         project: "项目", uid: "项目 UID", deadline: "截止日期", pivotLangs: "中转语言", file: "文件", words: "字数（总计 / 净）", jobs: "任务",
-        created: "上传时间", createdBy: "创建者", shared: "共享给", pivot: "中转", downloaded: "最近下载" }
+        created: "上传时间", createdBy: "创建者", shared: "共享给", pivot: "中转", downloaded: "最近下载",
+        secProject: "项目", secLangs: "语言与任务", secPeople: "相关人员", secLinks: "链接", openJob: "打开任务", phraseProject: "在 Phrase 中查看项目", wordsShort: "字", net: "净", stDone: "已完成", stProgress: "进行中", stNew: "新建", ofDone: "{n} 种语言中已完成 {d} 种" }
 };
 
 // ============================================================================
@@ -388,41 +394,155 @@ function calStatusGroup_(status) {
   return "open";
 }
 
-/** Beschreibung des Termins: alle Projektdaten aus der Queue (leere Felder entfallen). */
-function calDescription_(p, T) {
+/** Sprachkuerzel wie im Portal (langShortCode_): "de_de" -> "DE", "en_gb" -> "EN-GB". */
+function calLangShort_(code) {
+  var p = String(code || "").toLowerCase().replace(/-/g, "_").split("_").filter(Boolean);
+  if (!p.length) return "";
+  var region = p.length > 1 && /^[a-z]{2}$/.test(p[p.length - 1]) ? p[p.length - 1] : "";
+  return (region && region !== p[0] ? p[0] + "-" + region : p[0]).toUpperCase();
+}
+
+/** Link zum Job im Phrase-Editor. */
+function calJobUrl_(jobUid) {
+  return "https://cloud.memsource.com/web/job/" + encodeURIComponent(jobUid) + "/translate";
+}
+
+/**
+ * Je Zielsprache ein Eintrag {lang, state, jobUid}. state: done | progress | new | "" (unbekannt).
+ * phraseJobs: Jobs aus Phrase (alle Workflow-Schritte) oder null - dann nur die Job-UIDs aus der Queue.
+ * Link: der aktuelle Job (erster nicht fertige Schritt, sonst der letzte).
+ */
+function calLangJobs_(p, phraseJobs) {
+  var DONE = { COMPLETED: 1, COMPLETED_BY_LINGUIST: 1, DELIVERED: 1 };
+  var SKIP = { CANCELLED: 1, DECLINED: 1, REJECTED: 1 };
+  var norm = function (l) { return String(l || "").toLowerCase().replace(/-/g, "_"); };
+  var order = [];
+  var by = {};
+  var add = function (lang) { var k = norm(lang); if (k && !by[k]) { by[k] = { lang: k, state: "", jobUid: "", jobs: [] }; order.push(k); } return by[k]; };
+  (p.targetLangs || []).forEach(add);
+  (p.jobMapping || []).forEach(function (m) { var e = m && m.targetLang ? add(m.targetLang) : null; if (e && !e.jobUid && m.jobUid) e.jobUid = String(m.jobUid); });
+  if (phraseJobs) {
+    phraseJobs.forEach(function (j) {
+      var st = String((j && j.status) || "").toUpperCase();
+      if (!j || !j.uid || SKIP[st]) return;
+      add(j.targetLang).jobs.push({ uid: String(j.uid), level: Number(j.workflowLevel) || 1, done: !!DONE[st], started: st !== "NEW" });
+    });
+  }
+  var projectDone = calStatusGroup_(p.status) === "done";
+  return order.map(function (k) {
+    var e = by[k];
+    if (e.jobs.length) {
+      e.jobs.sort(function (a, b) { return a.level - b.level; });
+      var open = e.jobs.filter(function (j) { return !j.done; });
+      e.state = !open.length ? "done" : (e.jobs.some(function (j) { return j.started || j.done; }) ? "progress" : "new");
+      e.jobUid = (open[0] || e.jobs[e.jobs.length - 1]).uid;
+    } else if (projectDone) {
+      e.state = "done";
+    }
+    return { lang: e.lang, state: e.state, jobUid: e.jobUid };
+  });
+}
+
+/**
+ * Beschreibung des Termins (Google Kalender zeigt einfaches HTML): Abschnitte
+ * Projekt, Sprachen & Jobs, Beteiligte, Links. Leere Felder entfallen.
+ * langJobs: Ergebnis von calLangJobs_.
+ */
+function calDescription_(p, T, langJobs) {
   var tz = typeof Session !== "undefined" ? Session.getScriptTimeZone() : "Europe/Berlin";
+  var esc = function (v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+  var link = function (href, text) { return '<a href="' + esc(href) + '">' + esc(text) + "</a>"; };
+  var mail = function (list) {
+    return String(list || "").split(/[;,]+/).map(function (s) { return s.trim(); }).filter(Boolean)
+      .map(function (m) { return link("mailto:" + m, m); }).join(", ");
+  };
   var fmt = function (v) {
     var d = v instanceof Date ? v : (v ? new Date(v) : null);
     if (!d || isNaN(d.getTime())) return v ? String(v) : "";
     return typeof Utilities !== "undefined" ? Utilities.formatDate(d, tz, "dd.MM.yyyy HH:mm") : d.toISOString();
   };
-  var line = function (label, value) { return value ? label + ": " + value : ""; };
-  var langs = (p.targetLangs || []).join(", ") || p.targetLang || "";
-  var jobs = (p.jobUids || []).length;
-  var words = p.totalWords || p.netWords ? (p.totalWords || 0) + " / " + (p.netWords || 0) : "";
-  var lines = [
-    line(T.project, p.projectName),
-    line(T.status, p.status || "-"),
-    line(T.deadline, fmt(p.dueDate)),
-    line(T.langs, langs),
-    line(T.pivotLangs, (p.pivotLangs || []).join(", ")),
-    line(T.template, p.templateName),
-    line(T.file, p.fileName && p.fileName !== p.projectName ? p.fileName : ""),
-    line(T.words, words),
-    line(T.jobs, jobs ? String(jobs) : ""),
-    line(T.owner, p.owner),
-    line(T.createdBy, p.createdBy && p.createdBy !== p.owner ? p.createdBy : ""),
-    line(T.shared, p.sharedWith),
-    line(T.pivot, p.pivotRole ? p.pivotRole + (p.pivotLink ? " (" + p.pivotLink + ")" : "") : ""),
-    line(T.created, fmt(p.timestamp || p.uploadDate)),
-    line(T.downloaded, fmt(p.downloadedAt)),
-    line(T.uid, p.projectUid)
-  ].filter(Boolean);
-  return lines.concat(["", T.portal + ": " + PORTAL_URL_].concat(p.phraseUrl ? [T.phrase + ": " + p.phraseUrl] : [])).join("\n");
+  var line = function (label, html) { return html ? "<b>" + esc(label) + ":</b> " + html + "<br>" : ""; };
+  langJobs = langJobs || calLangJobs_(p, null);
+
+  var nDone = langJobs.filter(function (l) { return l.state === "done"; }).length;
+  var known = langJobs.some(function (l) { return l.state; });
+  var status = esc(p.status || "-") + (known && langJobs.length ? " (" + esc(T.ofDone.replace("{d}", nDone).replace("{n}", langJobs.length)) + ")" : "");
+  var file = p.fileName && p.fileName !== p.projectName ? esc(p.fileName) : "";
+  var words = p.totalWords ? Number(p.totalWords).toLocaleString("de-DE") + " " + esc(T.wordsShort) + (p.netWords ? " (" + esc(T.net) + " " + Number(p.netWords).toLocaleString("de-DE") + ")" : "") : "";
+  var html = "<b>📋 " + esc(T.secProject) + "</b><br>" +
+    line(T.status, status) +
+    line(T.deadline, esc(fmt(p.dueDate))) +
+    line(T.template, esc(p.templateName)) +
+    line(T.file, [file, words].filter(Boolean).join(" · ")) +
+    line(T.pivot, p.pivotRole ? esc(p.pivotRole) + (p.pivotLangs && p.pivotLangs.length ? " · " + esc(p.pivotLangs.join(", ").toUpperCase()) : "") : "") +
+    line(T.created, esc(fmt(p.timestamp || p.uploadDate))) +
+    line(T.downloaded, esc(fmt(p.downloadedAt)));
+
+  if (langJobs.length) {
+    var icon = { done: "✅", progress: "⏳", "new": "🆕" };
+    var label = { done: T.stDone, progress: T.stProgress, "new": T.stNew };
+    html += "<br><b>🌍 " + esc(T.secLangs) + "</b><ul>" + langJobs.map(function (l) {
+      var parts = ["<b>" + esc(calLangShort_(l.lang)) + "</b>"];
+      if (l.state) parts.push(icon[l.state] + " " + esc(label[l.state]));
+      if (l.jobUid) parts.push(link(calJobUrl_(l.jobUid), T.openJob));
+      return "<li>" + parts.join(" – ") + "</li>";
+    }).join("") + "</ul>";
+  }
+
+  var people = line(T.owner, mail(p.owner)) +
+    line(T.createdBy, p.createdBy && p.createdBy !== p.owner ? mail(p.createdBy) : "") +
+    line(T.shared, mail(p.sharedWith));
+  if (people) html += "<b>👤 " + esc(T.secPeople) + "</b><br>" + people + "<br>";
+
+  html += "<b>🔗 " + esc(T.secLinks) + "</b><br>" +
+    [p.phraseUrl ? link(p.phraseUrl, T.phraseProject) : "", link(PORTAL_URL_, T.portal)].filter(Boolean).join(" · ");
+  return html;
 }
 
-/** Gewuenschter Termin fuer ein Projekt oder null (kein Termin). */
-function calBuildEvent_(p, row) {
+/**
+ * Phrase-Jobs je Projekt (nur offene Projekte; 30 Minuten gecacht, parallel).
+ * Fehler -> Projekt fehlt im Ergebnis, der Termin zeigt dann nur die Job-Links.
+ * @return {Object<string, Array>} projectUid -> Jobs
+ */
+function calFetchJobs_(projects) {
+  var out = {};
+  var want = (projects || []).filter(function (p) { return p.projectUid && calStatusGroup_(p.status) === "open"; })
+    .map(function (p) { return String(p.projectUid); });
+  if (!want.length) return out;
+  var cache = CacheService.getScriptCache();
+  var hit = cache.getAll(want.map(function (u) { return "calj_" + u; }));
+  var missing = want.filter(function (u) {
+    var c = hit["calj_" + u];
+    if (c) { try { out[u] = JSON.parse(c); return false; } catch (e) {} }
+    return true;
+  });
+  var auth = getPhraseAuthHeader_();
+  for (var i = 0; i < missing.length; i += 30) {
+    var batch = missing.slice(i, i + 30);
+    var res;
+    try {
+      res = UrlFetchApp.fetchAll(batch.map(function (u) {
+        return { url: phraseApiUrlV2_("/projects/" + encodeURIComponent(u) + "/jobs") + "?pageSize=100&pageNumber=0",
+          headers: { Authorization: auth }, muteHttpExceptions: true };
+      }));
+    } catch (e) { console.warn("Calendar jobs: " + e.message); break; }
+    var put = {};
+    batch.forEach(function (u, k) {
+      if (res[k].getResponseCode() !== 200) return;
+      try {
+        out[u] = (JSON.parse(res[k].getContentText()).content || []).map(function (j) {
+          return { uid: j.uid, status: j.status, targetLang: j.targetLang, workflowLevel: j.workflowLevel };
+        });
+        put["calj_" + u] = JSON.stringify(out[u]);
+      } catch (e) {}
+    });
+    try { if (Object.keys(put).length) cache.putAll(put, 1800); } catch (e) {}
+  }
+  return out;
+}
+
+/** Gewuenschter Termin fuer ein Projekt oder null (kein Termin). phraseJobs: Jobs aus Phrase (optional). */
+function calBuildEvent_(p, row, phraseJobs) {
   var due = p.dueDate instanceof Date ? p.dueDate : new Date(p.dueDate);
   if (isNaN(due.getTime())) return null;
   var group = calStatusGroup_(p.status);
@@ -432,7 +552,7 @@ function calBuildEvent_(p, row) {
   var T = CAL_TEXT_[row.lang] || CAL_TEXT_.en;
   var prefix = group === "done" ? "✅ " + T.done : "⏰ " + T.due;
   var start = new Date(due.getTime() - 30 * 60000);
-  var description = calDescription_(p, T);
+  var description = calDescription_(p, T, calLangJobs_(p, phraseJobs || null));
 
   var ev = {
     summary: prefix + ": " + (p.projectName || p.projectUid),
@@ -524,8 +644,10 @@ function calendarSyncUser_(email, rows) {
     var calendarId = calEnsureCalendar_(token, row);
     var existing = calListEvents_(token, calendarId);
     var wanted = {};
-    calProjectsForUser_(email, rows).forEach(function (p) {
-      var ev = calBuildEvent_(p, row);
+    var projects = calProjectsForUser_(email, rows);
+    var jobs = calFetchJobs_(projects);
+    projects.forEach(function (p) {
+      var ev = calBuildEvent_(p, row, jobs[p.projectUid]);
       if (ev) wanted[calEventId_(p.projectUid)] = ev;
     });
 
@@ -575,7 +697,7 @@ function calendarRefreshProject_(projectUid) {
       if (!service.hasAccess()) return;
       var token = service.getAccessToken();
       var id = calEventId_(uid);
-      var ev = p.dueDate && p.pivotRole !== "CHILD" ? calBuildEvent_(p, row) : null;
+      var ev = p.dueDate && p.pivotRole !== "CHILD" ? calBuildEvent_(p, row, calFetchJobs_([p])[p.projectUid]) : null;
       if (ev) calUpsertEvent_(token, row.calendarId, id, ev, true);
       else calFetch_(token, "delete", "/calendars/" + encodeURIComponent(row.calendarId) + "/events/" + id);
     } catch (e) {
