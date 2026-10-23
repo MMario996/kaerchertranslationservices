@@ -96,8 +96,40 @@ function pruefeOberflaeche() {
     missing.length ? "FEHLER - fehlende Dateien: " + missing.join(", ") : "OK - alle " + SELF_TEST_INCLUDE_FILES_.length + " Oberflaechen-Dateien vorhanden",
     (dup.status === "ok" ? "OK - " : "FEHLER - ") + dup.message
   ];
+  if (dup.status !== "ok") lines = lines.concat(describeDuplicateFiles_());
   Logger.log(lines.join("\n"));
   return lines;
+}
+
+/**
+ * Details fuer pruefeOberflaeche(): je betroffener Datei Zeilenzahl, die
+ * Kopfzeilen-Kommentare ("// JsX.html - eingebunden ...", verraten, welcher
+ * Inhalt tatsaechlich in der Datei steckt) und die Zeilen der Doppelungen.
+ */
+function describeDuplicateFiles_() {
+  var sources = {};
+  SELF_TEST_WINDOW_SCRIPTS_.forEach(function (n) {
+    try { sources[n] = HtmlService.createHtmlOutputFromFile(n).getContent(); } catch (e) {}
+  });
+  var where = {};
+  Object.keys(sources).forEach(function (file) {
+    sources[file].split("\n").forEach(function (l, i) {
+      var m = /^(?:let|const|class)\s+([A-Za-z_$][\w$]*)/.exec(l);
+      if (m) (where[m[1]] = where[m[1]] || []).push({ file: file, line: i + 1 });
+    });
+  });
+  var files = {};
+  Object.keys(where).forEach(function (n) {
+    if (where[n].length < 2) return;
+    where[n].forEach(function (w) { (files[w.file] = files[w.file] || []).push(n + " Z. " + w.line); });
+  });
+  return Object.keys(files).map(function (file) {
+    var lines = sources[file].split("\n");
+    var heads = [];
+    lines.forEach(function (l, i) { if (/^\/\/ \w+\.html - /.test(l)) heads.push("Z. " + (i + 1) + ": " + l.slice(3, 60)); });
+    return "DATEI " + file + ": " + lines.length + " Zeilen; Kopfzeilen: " + (heads.join(" | ") || "-") +
+      "; doppelt: " + files[file].slice(0, 5).join(", ") + (files[file].length > 5 ? " ..." : "");
+  });
 }
 
 function selfTestOk_(message) { return { status: "ok", message: message || "" }; }
