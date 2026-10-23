@@ -96,7 +96,7 @@ function maxTplAllLangs_() {
 
 function maxTplEmpty_() {
   return { baseTemplateUid: '', workflowSteps: [], stepDue: {}, providers: {}, client: '', businessUnit: '', domain: '', subDomain: '', costCenter: '',
-    tmsOverride: false, tms: [], tbsOverride: false, tbs: [], mtSettingsUid: '', prompt: '', promptName: '' };
+    tmsOverride: false, tms: [], tbsOverride: false, tbs: [], mtSettingsUid: '', prompt: '', promptName: '', extra: {} };
 }
 
 // --- Oeffnen / Schliessen ----------------------------------------------------------
@@ -180,7 +180,13 @@ const MX_SECS_ = () => [
   ['project', 'settings', tr_('mx_sec_project', 'Project settings')],
   ['tm', 'storage', tr_('mx_sec_tm', 'TMs & termbases')],
   ['ai', 'auto_awesome', tr_('mx_sec_ai', 'MT & prompt')]
-];
+].concat(maxTplRuleSections_().length ? [['more', 'tune', tr_('mx_sec_more', 'More Phrase settings')]] : []);
+
+/** Vom Admin freigegebene weitere Phrase-Einstellungen (MaxTemplateAdmin.gs). */
+function maxTplRuleSections_() {
+  const o = maxTplDlg_ && maxTplDlg_.opts;
+  return (o && o.rules && o.rules.sections) || [];
+}
 
 function maxTplShowSec_(sec) { maxTplDlg_.sec = sec; maxTplPaint_(); }
 
@@ -190,7 +196,7 @@ function maxTplPaint_() {
   document.getElementById('mxNav').innerHTML = MX_SECS_().map(x =>
     '<button type="button" class="' + (d.sec === x[0] ? 'active' : '') + '" onclick="maxTplShowSec_(\'' + x[0] + '\')"><span class="material-icons-outlined">' + x[1] + '</span>' + mxEsc_(x[2]) + '</button>').join('');
   const body = document.getElementById('mxBody');
-  body.innerHTML = '<div class="mx-sec">' + ({ base: maxTplSecBase_, workflow: maxTplSecWorkflow_, project: maxTplSecProject_, tm: maxTplSecTm_, ai: maxTplSecAi_ }[d.sec])() + '</div>';
+  body.innerHTML = '<div class="mx-sec">' + ({ base: maxTplSecBase_, workflow: maxTplSecWorkflow_, project: maxTplSecProject_, tm: maxTplSecTm_, ai: maxTplSecAi_, more: maxTplSecMore_ }[d.sec] || maxTplSecBase_)() + '</div>';
   maxTplSummary_();
 }
 
@@ -203,13 +209,15 @@ function maxTplSummary_() {
     (d.sourceLang || '?') + ' → ' + (d.targetLangs.length ? d.targetLangs.length + ' ' + tr_('mx_langs', 'languages') : '?'),
     s.workflowSteps.length + ' ' + tr_('mx_steps', 'steps'),
     nProv + ' ' + tr_('mx_assignments', 'assignments'),
-    s.prompt ? tr_('mx_prompt_set', 'prompt set') : ''
+    s.prompt ? tr_('mx_prompt_set', 'prompt set') : '',
+    maxTplExtraCount_() ? maxTplExtraCount_() + ' ' + tr_('mx_more_count', 'more settings') : ''
   ].filter(Boolean).join(' · ');
 }
 
 function maxTplSecBase_() {
   const d = maxTplDlg_, s = d.s;
-  const bases = maxTplBaseChoices_();
+  const allowed = d.opts && d.opts.rules && d.opts.rules.lists && d.opts.rules.lists.baseTemplates;
+  const bases = maxTplBaseChoices_().filter(b => !Array.isArray(allowed) || allowed.some(a => a.id === b.uid));
   const langs = maxTplAllLangs_();
   return '<h4>' + mxEsc_(tr_('mx_sec_base', 'Base & languages')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_base_hint', 'The base template provides the defaults (workflow, TMs, termbases, MT, prompt). Everything can be changed in the other sections.')) + '</p>' +
     '<div class="mx-grid"><div class="mx-f" style="grid-column:1 / -1;"><label>' + mxEsc_(tr_('mx_base', 'Base template')) + ' *</label><select onchange="maxTplSetBase_(this.value)"><option value="">' + mxEsc_(tr_('opt_select_template', 'Select Template Type')) + '</option>' +
@@ -305,7 +313,7 @@ function maxTplProvSearch_(btn, st, l) {
 }
 
 /** Gemeinsame Suche (Provider, TMs, TBs) mit kurzer Verzoegerung. */
-function maxTplWireSearch_(inp, kindFn, out, onPick) {
+function maxTplWireSearch_(inp, kindFn, out, onPick, unrestricted) {
   let t = null;
   const run = () => {
     const q = inp.value.trim();
@@ -321,7 +329,7 @@ function maxTplWireSearch_(inp, kindFn, out, onPick) {
         b.onclick = () => onPick(it);
         out.appendChild(b);
       });
-    }).apiMaxTplSearch(kindFn(), q);
+    }).apiMaxTplSearch(kindFn(), q, !!unrestricted);
   };
   inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 350); });
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(t); run(); } });
@@ -413,6 +421,47 @@ function maxTplUsePrompt_(i) {
   maxTplPaint_();
 }
 
+function maxTplExtraCount_() {
+  const e = (maxTplDlg_ && maxTplDlg_.s.extra) || {};
+  return Object.keys(e).reduce((n, k) => n + Object.keys(e[k] || {}).length, 0);
+}
+
+/** Weitere Phrase-Einstellungen: nur Felder, die der Admin freigegeben hat. Leer = wie Vorlage. */
+function maxTplSecMore_() {
+  const s = maxTplDlg_.s;
+  s.extra = s.extra || {};
+  const secs = maxTplRuleSections_();
+  const fromTpl = mxEsc_(tr_('mx_from_template', '(as in template)'));
+  return '<h4>' + mxEsc_(tr_('mx_sec_more', 'More Phrase settings')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_more_hint', 'Empty = as in the base template. Which fields appear here is set by the admin.')) + '</p>' +
+    secs.map((sec, i) => '<h4 style="margin-top:14px;">' + mxEsc_(sec.label) + '</h4><div class="mx-grid">' + sec.fields.map((f, j) => {
+      const cur = (s.extra[sec.key] || {})[f.path];
+      const val = cur === undefined ? '' : String(cur);
+      const on = 'onchange="maxTplSetExtra_(' + i + ',' + j + ',this.value)"';
+      let ctl;
+      if (f.values && f.values.length) {
+        ctl = '<select ' + on + '><option value="">' + fromTpl + '</option>' + f.values.map(v => '<option value="' + mxEsc_(v) + '"' + (v === val ? ' selected' : '') + '>' + mxEsc_(v) + '</option>').join('') + '</select>';
+      } else if (f.type === 'boolean') {
+        ctl = '<select ' + on + '><option value="">' + fromTpl + '</option><option value="true"' + (val === 'true' ? ' selected' : '') + '>' + mxEsc_(tr_('mx_yes', 'Yes')) + '</option><option value="false"' + (val === 'false' ? ' selected' : '') + '>' + mxEsc_(tr_('mx_no', 'No')) + '</option></select>';
+      } else if (f.type === 'json') {
+        ctl = '<textarea rows="2" ' + on + ' placeholder="' + mxEsc_(f.sample) + '">' + mxEsc_(val) + '</textarea>';
+      } else {
+        ctl = '<input type="' + (f.type === 'number' ? 'number' : 'text') + '" value="' + mxEsc_(val) + '" placeholder="' + mxEsc_(f.sample ? tr_('mx_template_value', 'Template:') + ' ' + f.sample : '') + '" ' + on + '>';
+      }
+      return '<div class="mx-f"><label title="' + mxEsc_(f.path) + '">' + mxEsc_(f.label || f.path) + '</label>' + ctl + '</div>';
+    }).join('') + '</div>').join('');
+}
+
+function maxTplSetExtra_(i, j, v) {
+  const sec = maxTplRuleSections_()[i];
+  if (!sec) return;
+  const f = sec.fields[j];
+  const e = maxTplDlg_.s.extra = maxTplDlg_.s.extra || {};
+  e[sec.key] = e[sec.key] || {};
+  if (v === '') delete e[sec.key][f.path]; else e[sec.key][f.path] = v;
+  if (!Object.keys(e[sec.key]).length) delete e[sec.key];
+  maxTplSummary_();
+}
+
 // --- Uebernehmen --------------------------------------------------------------------------------
 function maxTplApply_() {
   const d = maxTplDlg_, s = d.s;
@@ -465,5 +514,203 @@ function maxTplEnsureEditButton_(suffix) {
     wrap.parentNode.appendChild(b);
   }
   b.style.display = '';
+}
+// =====================================================================================
+// Admin -> Subtab "Maximaltemplate": erlaubte Werte und weitere Phrase-Einstellungen
+// festlegen (Server: MaxTemplateAdmin.gs). Nur fuer Admins.
+// =====================================================================================
+let mxAdm_ = null;   // { data (apiMaxTplAdminLoad), cfg (Entwurf), open: {}, scan: {}, filter: {} }
+
+const MXA_LISTS_ = () => [
+  ['baseTemplates', tr_('mxa_l_base', 'Base templates'), 'catalog'],
+  ['mtSettings', tr_('mxa_l_mt', 'MT profiles (translation profiles)'), 'catalog'],
+  ['clients', tr_('mx_client', 'Client'), 'catalog'],
+  ['businessUnits', tr_('mx_bu', 'Business unit'), 'catalog'],
+  ['domains', tr_('mx_domain', 'Domain'), 'catalog'],
+  ['subDomains', tr_('mx_subdomain', 'Subdomain'), 'catalog'],
+  ['costCenters', tr_('mx_costcenter', 'Cost center'), 'catalog'],
+  ['workflowSteps', tr_('mx_wf_title', 'Workflow steps'), 'catalog'],
+  ['prompts', tr_('mxa_l_prompts', 'Prompts (Prompt Hub)'), 'catalog'],
+  ['tms', tr_('mx_tms', 'Translation memories'), 'search'],
+  ['tbs', tr_('mx_tbs', 'Termbases'), 'search'],
+  ['providers', tr_('mxa_l_prov', 'Providers (users / vendors)'), 'search']
+];
+
+/** Katalog einer Liste als [{id, name}]. */
+function mxaCatalog_(key) {
+  const d = mxAdm_.data, c = d.catalog || {};
+  if (key === 'baseTemplates') return d.baseTemplates || [];
+  if (key === 'prompts') return d.prompts || [];
+  if (key === 'mtSettings') return (c.mtSettings || []).map(m => ({ id: m.uid, name: m.name + (m.type ? ' (' + m.type + ')' : '') }));
+  return (c[key] || []).map(x => ({ id: x.id, name: x.name || x.id }));
+}
+
+function mxAdminOpen_() {
+  const host = document.getElementById('admin-subtab-maxtpl');
+  if (!host) return;
+  host.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader" style="margin:0 auto;"></div></div>';
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { host.innerHTML = '<div class="card" style="padding:20px;">' + mxEsc_((res && res.error) || 'Error') + '</div>'; return; }
+    mxAdm_ = { data: res, cfg: JSON.parse(JSON.stringify(res.config)), open: {}, scan: {}, filter: {} };
+    mxaPaint_();
+  }).withFailureHandler(err => {
+    host.innerHTML = '<div class="card" style="padding:20px;">' + mxEsc_(err && err.message ? err.message : err) + '</div>';
+  }).apiMaxTplAdminLoad();
+}
+
+function mxaPaint_() {
+  const host = document.getElementById('admin-subtab-maxtpl');
+  if (!host || !mxAdm_) return;
+  const scroll = host.scrollTop;
+  host.innerHTML = '<div class="mx-sec" style="max-width:1300px;">' +
+    '<div class="card" style="padding:20px 24px;margin-bottom:18px;"><h4>' + mxEsc_(tr_('mxa_lists_title', 'Restrict choices in the Maximaltemplate')) + '</h4>' +
+    '<p class="mx-hint">' + mxEsc_(tr_('mxa_lists_hint', 'Per list: either everything from Phrase may be chosen, or only the entries released here. The server checks this again on submission.')) + '</p>' +
+    MXA_LISTS_().map(l => mxaListHtml_(l[0], l[1], l[2])).join('') + '</div>' +
+    '<div class="card" style="padding:20px 24px;margin-bottom:18px;"><h4>' + mxEsc_(tr_('mxa_secs_title', 'More Phrase settings in the dialog')) + '</h4>' +
+    '<p class="mx-hint">' + mxEsc_(tr_('mxa_secs_hint', 'Read the fields of each area from a reference project, then tick which ones users may change in the dialog and optionally which values are allowed (comma separated). Everything else stays as in the base template.')) + '</p>' +
+    '<div class="mx-grid"><div class="mx-f"><label>' + mxEsc_(tr_('mxa_ref', 'Reference project (Phrase project UID)')) + '</label><input type="text" value="' + mxEsc_(mxAdm_.cfg.referenceProject || '') + '" oninput="mxAdm_.cfg.referenceProject=this.value.trim()"></div>' +
+    '<div class="mx-f" style="display:flex;align-items:flex-end;gap:10px;"><button type="button" class="btn btn-secondary" style="width:auto;flex:0 0 auto;white-space:nowrap;height:40px;padding:0 16px;" onclick="mxaScan_()"><span class="material-icons-outlined" style="margin-right:6px;">download</span>' + mxEsc_(tr_('mxa_scan', 'Read fields from project')) + '</button>' +
+    '<button type="button" class="btn btn-secondary" style="width:auto;flex:0 0 auto;white-space:nowrap;height:40px;padding:0 16px;" onclick="mxaAddSection_()"><span class="material-icons-outlined" style="margin-right:6px;">add</span>' + mxEsc_(tr_('mxa_add_sec', 'Add area')) + '</button></div></div>' +
+    mxAdm_.cfg.sections.map((sec, i) => mxaSectionHtml_(sec, i)).join('') + '</div>' +
+    '<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:30px;"><button type="button" class="btn btn-secondary" style="width:auto;flex:0 0 auto;white-space:nowrap;padding:0 20px;" onclick="mxAdminOpen_()">' + mxEsc_(tr_('mxa_reload', 'Discard changes')) + '</button>' +
+    '<button type="button" class="btn btn-primary" style="width:auto;flex:0 0 auto;white-space:nowrap;padding:0 24px;" onclick="mxaSave_()"><span class="material-icons-outlined" style="margin-right:8px;">save</span>' + mxEsc_(tr_('mxa_save', 'Save rules')) + '</button></div></div>';
+  host.scrollTop = scroll;
+}
+
+function mxaListHtml_(key, label, kind) {
+  const list = mxAdm_.cfg.lists[key];
+  const restricted = Array.isArray(list);
+  const open = !!mxAdm_.open['l_' + key];
+  const status = restricted ? fmtCount_(list.length, tr_('mxa_released', '{n} released')) : tr_('mxa_all', 'everything allowed');
+  let inner = '';
+  if (open) {
+    inner = '<label class="mx-check" style="margin:8px 0;"><input type="checkbox"' + (restricted ? ' checked' : '') + ' onchange="mxaRestrict_(\'' + key + '\', this.checked)"> ' + mxEsc_(tr_('mxa_only_selected', 'Allow only the selected entries')) + '</label>';
+    if (restricted && kind === 'catalog') {
+      const q = (mxAdm_.filter[key] || '').toLowerCase();
+      const ids = list.map(x => String(x.id));
+      const cat = mxaCatalog_(key);
+      inner += '<div style="display:flex;gap:8px;margin:6px 0;"><input type="search" style="max-width:260px;" placeholder="' + mxEsc_(tr_('mx_search_name', 'Search name ...')) + '" value="' + mxEsc_(mxAdm_.filter[key] || '') + '" onchange="mxAdm_.filter[\'' + key + '\']=this.value;mxaPaint_()">' +
+        '<button type="button" class="mx-mini" onclick="mxaSetAll_(\'' + key + '\', true)">' + mxEsc_(tr_('mxa_all_on', 'select all')) + '</button><button type="button" class="mx-mini" onclick="mxaSetAll_(\'' + key + '\', false)">' + mxEsc_(tr_('mxa_all_off', 'select none')) + '</button></div>' +
+        '<div class="mx-langs">' + (cat.length ? cat.filter(x => !q || String(x.name).toLowerCase().indexOf(q) >= 0).map(x => '<label><input type="checkbox"' + (ids.indexOf(String(x.id)) >= 0 ? ' checked' : '') +
+          ' onchange="mxaToggle_(\'' + key + '\', \'' + escapeJs(x.id) + '\', \'' + escapeJs(x.name) + '\', this.checked)"> ' + mxEsc_(x.name || x.id) + '</label>').join('') : '<span class="mx-hint">' + mxEsc_(tr_('mx_no_hits', 'No hits.')) + '</span>') + '</div>';
+    }
+    if (restricted && kind === 'search') {
+      inner += '<div class="mx-list" style="margin-top:6px;">' + (list.map((x, i) => '<span class="mx-chip' + (x.type === 'VENDOR' ? ' v' : '') + '">' + mxEsc_(x.name || x.id) +
+        '<button type="button" onclick="mxAdm_.cfg.lists[\'' + key + '\'].splice(' + i + ',1);mxaPaint_()"><span class="material-icons-outlined">close</span></button></span>').join('') || '<span class="mx-hint">' + mxEsc_(tr_('mxa_none_yet', 'Nothing released yet - nothing can be chosen.')) + '</span>') + '</div>' +
+        '<div class="mx-search" style="max-width:460px;display:flex;gap:6px;">' + (key === 'providers' ? '<select id="mxaProvKind" style="width:auto;"><option value="users">' + mxEsc_(tr_('mx_users', 'User')) + '</option><option value="vendors">' + mxEsc_(tr_('mx_vendors', 'Vendor')) + '</option></select>' : '') +
+        '<input type="search" placeholder="' + mxEsc_(tr_('mx_search_add', 'Search and add ...')) + '" onfocus="mxaWireSearch_(this, \'' + key + '\')"><div class="mx-results" hidden></div></div>';
+    }
+  }
+  return '<div class="mx-row" style="display:block;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="mxaToggleOpen_(\'l_' + key + '\')">' +
+    '<span class="material-icons-outlined">' + (open ? 'expand_less' : 'expand_more') + '</span><span class="name">' + mxEsc_(label) + '</span><span class="mx-hint" style="margin:0;">' + mxEsc_(status) + '</span></div>' + inner + '</div>';
+}
+
+function fmtCount_(n, tpl) { return String(tpl).replace('{n}', n); }
+function mxaToggleOpen_(k) { mxAdm_.open[k] = !mxAdm_.open[k]; mxaPaint_(); }
+function mxaRestrict_(key, on) { if (on) mxAdm_.cfg.lists[key] = []; else delete mxAdm_.cfg.lists[key]; mxaPaint_(); }
+function mxaToggle_(key, id, name, on) {
+  const list = mxAdm_.cfg.lists[key] = (mxAdm_.cfg.lists[key] || []).filter(x => String(x.id) !== String(id));
+  if (on) list.push({ id: id, name: name });
+  mxaPaint_();
+}
+function mxaSetAll_(key, on) {
+  const q = (mxAdm_.filter[key] || '').toLowerCase();
+  const shown = mxaCatalog_(key).filter(x => !q || String(x.name).toLowerCase().indexOf(q) >= 0);
+  let list = (mxAdm_.cfg.lists[key] || []).filter(x => !shown.some(s => String(s.id) === String(x.id)));
+  if (on) list = list.concat(shown.map(x => ({ id: x.id, name: x.name })));
+  mxAdm_.cfg.lists[key] = list;
+  mxaPaint_();
+}
+
+function mxaWireSearch_(inp, key) {
+  if (inp.dataset.wired) return;
+  inp.dataset.wired = '1';
+  const kindFn = () => key === 'providers' ? ((document.getElementById('mxaProvKind') || {}).value || 'users') : key;
+  maxTplWireSearch_(inp, kindFn, inp.nextElementSibling, it => {
+    const list = mxAdm_.cfg.lists[key] = mxAdm_.cfg.lists[key] || [];
+    const id = String(it.id || it.uid);
+    if (!list.some(x => String(x.id) === id)) list.push(key === 'providers' ? { id: id, name: it.name, type: it.type } : { id: id, name: it.name });
+    mxaPaint_();
+  }, true);
+}
+
+function mxaSectionHtml_(sec, i) {
+  const open = !!mxAdm_.open['s_' + sec.key];
+  const scan = mxAdm_.scan[sec.key];
+  const nEdit = Object.keys(sec.fields || {}).length;
+  const state = scan ? (scan.ok ? '<span style="color:#2e7d32;">' + mxEsc_(fmtCount_(sec.schema.length, tr_('mxa_fields_read', '{n} fields read'))) + '</span>' : '<span style="color:#c62828;">' + mxEsc_(scan.error) + '</span>')
+    : '<span class="mx-hint" style="margin:0;">' + mxEsc_(fmtCount_(sec.schema.length, tr_('mxa_fields_known', '{n} fields known'))) + '</span>';
+  let html = '<div class="mx-row" style="display:block;margin-bottom:8px;' + (sec.enabled ? '' : 'opacity:.6;') + '"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">' +
+    '<button type="button" class="mx-mini" style="border:none;" onclick="mxaToggleOpen_(\'s_' + escapeJs(sec.key) + '\')"><span class="material-icons-outlined" style="font-size:22px;">' + (open ? 'expand_less' : 'expand_more') + '</span></button>' +
+    '<label class="mx-check"><input type="checkbox"' + (sec.enabled ? ' checked' : '') + ' onchange="mxAdm_.cfg.sections[' + i + '].enabled=this.checked;mxaPaint_()"> ' + mxEsc_(tr_('mxa_active', 'active')) + '</label>' +
+    '<input type="text" style="width:200px;font-weight:700;" value="' + mxEsc_(sec.label) + '" oninput="mxAdm_.cfg.sections[' + i + '].label=this.value">' +
+    '<select style="width:auto;" onchange="mxAdm_.cfg.sections[' + i + '].version=this.value">' + ['v1', 'v2', 'v3', 'v4', 'v5'].map(v => '<option' + (v === sec.version ? ' selected' : '') + '>' + v + '</option>').join('') + '</select>' +
+    '<input type="text" style="flex:1;min-width:240px;font-family:monospace;font-size:12px;" value="' + mxEsc_(sec.path) + '" oninput="mxAdm_.cfg.sections[' + i + '].path=this.value.trim()" title="' + mxEsc_(tr_('mxa_path_t', 'API path at the project, {uid} = project UID')) + '">' +
+    '<span class="mx-hint" style="margin:0;">' + mxEsc_(fmtCount_(nEdit, tr_('mxa_n_editable', '{n} changeable'))) + '</span> ' + state +
+    '<button type="button" class="mx-mini" onclick="mxaRemoveSection_(' + i + ')" title="' + mxEsc_(tr_('mxa_remove_sec', 'Remove area')) + '"><span class="material-icons-outlined">delete</span></button></div>';
+  if (open) {
+    const q = (mxAdm_.filter['s_' + sec.key] || '').toLowerCase();
+    html += sec.schema.length ? '<input type="search" style="max-width:260px;margin:10px 0 6px;" placeholder="' + mxEsc_(tr_('mxa_filter_fields', 'Filter fields ...')) + '" value="' + mxEsc_(mxAdm_.filter['s_' + sec.key] || '') + '" onchange="mxAdm_.filter[\'s_' + escapeJs(sec.key) + '\']=this.value;mxaPaint_()">' +
+      '<div class="mx-table-wrap" style="max-height:420px;"><table class="mx-table"><thead><tr><th>' + mxEsc_(tr_('mxa_editable', 'Changeable')) + '</th><th>' + mxEsc_(tr_('mxa_field', 'Field')) + '</th><th>' + mxEsc_(tr_('mxa_sample', 'Value in reference project')) + '</th><th>' + mxEsc_(tr_('mxa_label', 'Label in dialog')) + '</th><th>' + mxEsc_(tr_('mxa_values', 'Allowed values (comma separated, empty = any)')) + '</th></tr></thead><tbody>' +
+      sec.schema.map((f, j) => ({ f: f, j: j })).filter(x => !q || x.f.path.toLowerCase().indexOf(q) >= 0).map(x => {
+        const f = x.f, cfgF = (sec.fields || {})[f.path];
+        const ref = 'mxAdm_.cfg.sections[' + i + ']';
+        return '<tr><td><input type="checkbox"' + (cfgF ? ' checked' : '') + ' onchange="mxaSetField_(' + i + ',' + x.j + ',this.checked)"></td><td style="font-family:monospace;font-size:12px;">' + mxEsc_(f.path) + ' <small>(' + mxEsc_(f.type) + ')</small></td>' +
+          '<td style="font-size:12px;max-width:240px;word-break:break-all;">' + mxEsc_(f.sample) + '</td>' +
+          '<td>' + (cfgF ? '<input type="text" value="' + mxEsc_(cfgF.label || '') + '" oninput="' + ref + '.fields[\'' + escapeJs(f.path) + '\'].label=this.value">' : '') + '</td>' +
+          '<td>' + (cfgF ? '<input type="text" value="' + mxEsc_((cfgF.values || []).join(', ')) + '" oninput="' + ref + '.fields[\'' + escapeJs(f.path) + '\'].values=this.value.split(\',\').map(v=>v.trim()).filter(Boolean)">' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>'
+      : '<p class="mx-hint" style="margin-top:10px;">' + mxEsc_(tr_('mxa_no_fields', 'No fields known yet - enter a reference project above and read the fields.')) + '</p>';
+  }
+  return html + '</div>';
+}
+
+function mxaSetField_(i, j, on) {
+  const sec = mxAdm_.cfg.sections[i];
+  const f = sec.schema[j];
+  sec.fields = sec.fields || {};
+  if (on) sec.fields[f.path] = sec.fields[f.path] || { editable: true, type: f.type, sample: f.sample, label: '', values: [] };
+  else delete sec.fields[f.path];
+  mxaPaint_();
+}
+
+function mxaAddSection_() {
+  const n = mxAdm_.cfg.sections.length + 1;
+  mxAdm_.cfg.sections.push({ key: 'custom' + Date.now().toString(36), label: tr_('mxa_new_sec', 'New area') + ' ' + n, version: 'v1', path: '/projects/{uid}/', enabled: true, fields: {}, schema: [] });
+  mxaPaint_();
+}
+
+function mxaRemoveSection_(i) {
+  showCustomConfirm(tr_('mxa_remove_q', 'Remove this area? Its released fields disappear from the dialog.'), () => { mxAdm_.cfg.sections.splice(i, 1); mxaPaint_(); });
+}
+
+function mxaScan_() {
+  const uid = (mxAdm_.cfg.referenceProject || '').trim();
+  if (!uid) { showCustomAlert(mxEsc_(tr_('mxa_need_ref', 'Please enter the UID of a reference project first.'))); return; }
+  showCustomAlert('<div class="loader" style="margin:0 auto 10px;"></div>' + mxEsc_(tr_('mx_loading', 'Loading Phrase settings ...')), tr_('mxa_scan', 'Read fields from project'));
+  google.script.run.withSuccessHandler(res => {
+    closeCustomDialog();
+    if (!res || !res.success) { showCustomAlert(mxEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+    Object.keys(res.results).forEach(k => {
+      const r = res.results[k];
+      mxAdm_.scan[k] = r;
+      const sec = mxAdm_.cfg.sections.filter(s => s.key === k)[0];
+      if (sec && r.ok) sec.schema = r.schema;
+    });
+    mxaPaint_();
+  }).withFailureHandler(err => { closeCustomDialog(); showCustomAlert(mxEsc_(err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error')); })
+    .apiMaxTplAdminScan(uid, mxAdm_.cfg.sections);
+}
+
+function mxaSave_() {
+  google.script.run.withSuccessHandler(res => {
+    if (!res || !res.success) { showCustomAlert(mxEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); return; }
+    const dropped = mxAdm_.cfg.sections.filter(x => !res.config.sections.some(y => y.key === x.key)).map(x => x.label);
+    mxAdm_.cfg = JSON.parse(JSON.stringify(res.config));
+    if (dropped.length) { mxaPaint_(); showCustomAlert(mxEsc_(tr_('mxa_dropped', 'Not saved (path must look like /projects/{uid}/name):') + ' ' + dropped.join(', '))); return; }
+    mxaPaint_();
+    showCustomAlert(mxEsc_(tr_('mxa_saved', 'Rules saved. They apply to the next Maximaltemplate dialog.')));
+  }).withFailureHandler(err => showCustomAlert(mxEsc_(err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error')))
+    .apiMaxTplAdminSave(mxAdm_.cfg);
 }
 </script>

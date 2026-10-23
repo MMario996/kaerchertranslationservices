@@ -37,7 +37,7 @@
   .h-btn-sm { height:36px; padding:0 14px; font-size:12px; }
   .h-icon-btn { width:46px; height:46px; border-radius:50%; border:1px solid var(--k-line); background:var(--kg-glass-hi); color:var(--k-ink); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:box-shadow .15s, border-color .15s; }
   .h-icon-btn:hover { box-shadow:var(--kg-elev); border-color:#1a1a1a; }
-  .h-btn:focus-visible, .h-icon-btn:focus-visible, .h-seg-btn:focus-visible, .h-tile:focus-visible, .h-kpi:focus-visible, .h-day:focus-visible, .h-link:focus-visible { outline:none; box-shadow:var(--kg-ring); }
+  .h-btn:focus-visible, .h-icon-btn:focus-visible, .h-seg-btn:focus-visible, .h-kpi:focus-visible, .h-day:focus-visible, .h-link:focus-visible { outline:none; box-shadow:var(--kg-ring); }
   .h-link { background:none; border:none; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:var(--k-ink); display:inline-flex; align-items:center; gap:2px; padding:4px 6px; border-radius:8px; white-space:nowrap; }
   .h-ul { background:linear-gradient(var(--primary-yellow), var(--primary-yellow)) 0 100% / 100% 2px no-repeat; padding-bottom:2px; }
   .h-link:hover { background:rgba(0,0,0,.04); }
@@ -61,15 +61,6 @@
   .h-sr-meta { font-size:12px; color:var(--k-ink-2); white-space:nowrap; }
   .h-sr-empty { padding:12px 10px; font-size:13px; color:var(--k-ink-2); }
 
-  /* Schnellstart */
-  .h-tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
-  .h-tile { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px; cursor:pointer; font:inherit; color:var(--k-ink); text-align:left; background:var(--kg-glass); border:1px solid var(--kg-hair); box-shadow:var(--kg-elev); -webkit-backdrop-filter:var(--kg-blur); backdrop-filter:var(--kg-blur); transition:box-shadow .2s var(--kg-ease), transform .2s var(--kg-ease), background-color .2s; }
-  .h-tile:hover { box-shadow:var(--kg-elev-hi); transform:translateY(-2px); background:var(--kg-glass-hi); }
-  .h-tile-ico { width:42px; height:42px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--kg-fill); color:#000; box-shadow:var(--kg-tint); }
-  .h-tile-preset .h-tile-ico { background:var(--kg-ink); color:var(--primary-yellow); box-shadow:0 6px 14px -6px rgba(0,0,0,.5); }
-  .h-tile-txt { display:flex; flex-direction:column; min-width:0; }
-  .h-tile-txt b { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .h-tile-txt small { font-size:12px; color:var(--k-ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* Kennzahlen */
   .h-kpis { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-top:18px; }
@@ -213,14 +204,11 @@
   html[data-density="compact"] .h-kpi-n { font-size:24px; }
   html[data-density="compact"] .h-card { padding:14px; }
   html[data-density="compact"] .h-item { padding:7px 8px; }
-  html[data-density="compact"] .h-tile { padding:10px 12px; }
 
   @media (max-width: 1100px) { .h-main { grid-template-columns:minmax(0,1fr); } .h-side { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); } }
   @media (max-width: 900px) { .h-kpis { grid-template-columns:repeat(2, minmax(0,1fr)); } .h-steps { grid-template-columns:minmax(0,1fr); } }
   @media (max-width: 680px) { .h-side { grid-template-columns:minmax(0,1fr); } .h-hero { padding:22px 20px; border-radius:18px; } .h-hero h1 { font-size:26px; } .h-kpi { padding:12px; column-gap:10px; } .h-kpi-ico { width:40px; height:40px; } .h-kpi-n { font-size:22px; } .h-seg-l { display:none; } .h-kbd { display:none; } .h-search input { padding-right:14px; }
-    .h-hero .h-actions .h-btn-fill { flex:1 1 100%; } .h-hero .h-actions .h-btn-glass { flex:1; } .h-hide-sm { display:none; }
-    .h-tiles { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; } .h-tile { flex-direction:column; align-items:flex-start; gap:8px; padding:12px; }
-    .h-tile-txt b, .h-tile-txt small { white-space:normal; } .h-tile-ico { width:36px; height:36px; } }
+    .h-hero .h-actions .h-btn-fill { flex:1 1 100%; } .h-hero .h-actions .h-btn-glass { flex:1; } .h-hide-sm { display:none; } }
 
   /* Dunkler Modus */
   html[data-theme="dark"] .home { --h-bad:#f28b82; --h-bad-bg:#3d1a18; --h-warn:#fdd663; --h-warn-bg:#3a3410; --h-ok:#81c995; --h-ok-bg:#173522; --h-info:#8ab4f8; --h-info-bg:#172a45; }
@@ -246,14 +234,12 @@ let homeLoading_ = false;
 let homeTab_ = '';
 let homeDay_ = '';
 let homeTip_ = -1;
-let homePresets_ = null;
 let homeProg_ = {};
 let homeProgAt_ = 0;
 let homeSearchQ_ = '';
 let homeSr_ = [];
 let homeSrIdx_ = 0;
 
-const HOME_PORTAL_ICONS_ = { request: 'translate', marketing: 'campaign', woma: 'cleaning_services', cc: 'hub', dlar: 'precision_manufacturing', kec: 'engineering', documentation: 'menu_book', articulate: 'school' };
 const HOME_TABS_ = [
   ['overdue', 'error_outline', 'home_overdue', 'Overdue'],
   ['week', 'date_range', 'home_week', 'Due this week'],
@@ -264,7 +250,6 @@ const HOME_TABS_ = [
 const HOME_TIPS_ = [
   ['keyboard', 'hm_tip_search', 'Press Ctrl+K or / anywhere to search projects and jump straight to actions.', ''],
   ['star', 'hm_tip_pin', 'Pin important projects with the star - they stay in the "Pinned" list on this page.', ''],
-  ['bookmark', 'hm_tip_preset', 'Save template and languages as a preset in the order form - it then appears here under Quick start.', 'openNewProjectNav_()'],
   ['event', 'hm_tip_cal', 'Sync your deadlines with Google Calendar - they are kept up to date automatically.', 'openCalendarSync_()'],
   ['groups', 'hm_tip_team', 'Switch on the team view to see what your colleagues have ordered and avoid duplicate orders.', "homeCustomize_('team')"],
   ['dark_mode', 'hm_tip_dark', 'Prefer it dark? Switch on dark mode or let it follow your system.', "homeCustomize_('display')"],
@@ -281,7 +266,6 @@ function homeRender_(force) {
   if (!homeLoadedAt_) root.innerHTML = homeSkeleton_();
   if (homeLoading_) return;
   homeLoading_ = true;
-  if (force) homePresets_ = null;
   const take = r => {
     homeLoading_ = false;
     if (r && r.error) { root.innerHTML = `<div class="home-error">${escapeHtml(r.error)}</div>`; return; }
@@ -414,7 +398,6 @@ function paintHome_(projects) {
     ? teamProjects_.filter(p => statusGroup_(p.status) === 'open') : null;
   root.innerHTML = `
     ${homeHeroHtml_(L.b)}
-    ${W.quick ? homeQuickHtml_() : ''}
     ${W.kpis && !isNew ? homeKpisHtml_(L.b) : ''}
     <div class="h-main${side.length ? '' : ' h-main-full'}">
       <div class="h-col">${isNew ? homeWelcomeHtml_() : homeWorkHtml_(L.lists)}
@@ -431,7 +414,6 @@ function paintHome_(projects) {
     const inp = document.getElementById('homeSearch');
     if (inp) inp.focus();
   }
-  if (W.quick) homeLoadPresets_();
   const seen = new Set();
   [L.lists[homeTab_] || [], L.b.overdue, L.b.dueWeek].forEach(l => l.slice(0, 10).forEach(p => seen.add(p.projectUid)));
   loadHomeProgress_([...seen].filter(Boolean).slice(0, 24));
@@ -474,50 +456,6 @@ function homeHeroHtml_(b) {
         </div>
       </div>
     </section>`;
-}
-
-function homeQuickHtml_() {
-  const tile = (icon, title, sub, js, cls) => `<button type="button" class="h-tile h-glow ${cls || ''}" onclick="${js}">
-      <span class="h-tile-ico"><span class="material-icons-outlined">${icon}</span></span>
-      <span class="h-tile-txt"><b>${escapeHtml(title)}</b><small>${escapeHtml(sub)}</small></span></button>`;
-  const portals = (typeof visiblePortalButtons_ === 'function' ? visiblePortalButtons_() : []).map(btn => {
-    const id = btn.id.replace('btn-nav-', '');
-    return tile(HOME_PORTAL_ICONS_[id] || 'add_circle', btn.textContent.trim(), tr_('nav_new_project', 'New Project'), `switchTab('${escapeJs(id)}')`);
-  });
-  const presets = (homePresets_ || []).slice(0, 4).map(p => {
-    const langs = (p.targetLangs || []);
-    const sub = tr_('hm_quick_preset', 'Preset') + ' · ' + (p.sourceLang || '') + ' → ' + langs.slice(0, 3).join(', ') + (langs.length > 3 ? ' +' + (langs.length - 3) : '');
-    return tile('bookmark', p.presetName || p.templateName || '', sub, `homeStartPreset_('${escapeJs(p.presetId)}')`, 'h-tile-preset');
-  });
-  if (!portals.length && !presets.length) return '<div id="homeQuick"></div>';
-  return `<section id="homeQuick"><div class="h-sec-head"><h2>${escapeHtml(tr_('hm_quick', 'Quick start'))}</h2></div>
-      <div class="h-tiles">${portals.join('')}${presets.join('')}</div></section>`;
-}
-
-function homeLoadPresets_() {
-  if (homePresets_ !== null) return;
-  homePresets_ = [];
-  google.script.run.withSuccessHandler(r => {
-    homePresets_ = (r && r.presets) || [];
-    const el = document.getElementById('homeQuick');
-    if (el && homePresets_.length) el.outerHTML = homeQuickHtml_();
-  }).withFailureHandler(() => {}).apiLoadPresets();
-}
-
-/** Startet ein neues Projekt mit einer gespeicherten Vorlage (Template + Sprachen). */
-function homeStartPreset_(id) {
-  const p = (homePresets_ || []).find(x => x.presetId === id);
-  if (!p) return;
-  const req = document.getElementById('btn-nav-request');
-  if (req && req.style.display !== 'none') switchTab('request'); else openNewProjectNav_();
-  const tab = (document.querySelector('.tab-content.active') || { id: '' }).id.replace('tab-', '');
-  const dd = document.getElementById('presetsDropdown_' + tab);
-  if (!dd) return;
-  let opt = Array.from(dd.options).find(o => o.value === id);
-  if (!opt) { opt = document.createElement('option'); opt.value = id; opt.text = p.presetName; dd.appendChild(opt); }
-  opt.dataset.json = JSON.stringify(p);
-  dd.value = id;
-  loadPreset('_' + tab);
 }
 
 function homeKpisHtml_(b) {

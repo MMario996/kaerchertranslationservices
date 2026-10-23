@@ -712,3 +712,69 @@ test('Startfehler-Hinweis erscheint nicht beim normalen Start', async () => {
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('Startseite ohne Schnellstart; Reiter heissen [AKW] PROJECTS usw.', async () => {
+  const { page, errors } = await openApp();
+  assert.equal(await page.locator('#homeQuick').count(), 0, 'kein Schnellstart');
+  assert.equal((await page.locator('#btn-nav-request').innerText()).trim(), '[AKW] PROJECTS');
+  assert.equal((await page.locator('#btn-nav-dlar').textContent()).trim(), '[DLA-R] PROJECTS');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Maximaltemplate: Admin-Regeln - nur freigegebene Basis-Vorlagen, weitere Einstellungen landen in maxSettings.extra', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiMaxTplOptions: (uid) => ({ success: true,
+      catalog: { workflowSteps: [{ id: 's1', name: 'Translation', order: 1 }], clients: [], businessUnits: [], domains: [], subDomains: [], costCenters: [], mtSettings: [] },
+      rules: { lists: { baseTemplates: [{ id: 'T1', name: 'x' }] }, sections: [{ key: 'qa', label: 'QA', fields: [
+        { path: 'checks.emptyTarget', label: 'Leeres Ziel', type: 'boolean', sample: 'true', values: [] },
+        { path: 'level', label: 'Stufe', type: 'string', sample: 'low', values: ['low', 'high'] }] }] },
+      defaults: uid ? { uid: uid, sourceLang: 'en', targetLangs: ['de_de'], workflowSteps: ['s1'], tms: [], tbs: [] } : null,
+      prompts: [], templatePrompt: null, promptHubUrl: '', promptField: 'AI Prompt' })
+  }`, { configPatch: MKT_CONFIG });
+  await page.evaluate(() => switchTab('marketing'));
+  await page.click('#tmplTrigger_marketing');
+  await page.locator('#tmplOptionsList_marketing .tmpl-option-max').click();
+  await page.waitForSelector('#maxTplOverlay .mx-body select');
+  const bases = await page.locator('#maxTplOverlay .mx-body select').first().locator('option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+  assert.deepEqual(bases, ['T1'], 'nur freigegebene Basis-Vorlage');
+  await page.locator('#maxTplOverlay .mx-body select').first().selectOption('T1');
+  await page.waitForFunction(() => maxTplDlg_ && maxTplDlg_.s.workflowSteps.length === 1);
+  await page.evaluate(() => maxTplShowSec_('more'));
+  const sels = page.locator('#mxBody select');
+  assert.equal(await sels.count(), 2);
+  await sels.nth(0).selectOption('false');
+  await sels.nth(1).selectOption('high');
+  await page.getByRole('button', { name: /Apply settings|Einstellungen übernehmen/ }).click();
+  await page.waitForFunction(() => !document.getElementById('maxTplOverlay'));
+  const payload = await page.evaluate(async () => collectFormPayload_('_marketing'));
+  assert.deepEqual(payload.maxSettings.extra, { qa: { 'checks.emptyTarget': 'false', level: 'high' } });
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('Admin: Subtab Maximaltemplate - Liste einschraenken, Feld freigeben, speichern', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiMaxTplAdminLoad: { success: true,
+      config: { lists: {}, referenceProject: '', sections: [{ key: 'qa', label: 'QA', version: 'v1', path: '/projects/{uid}/qaSettings', enabled: true, fields: {}, schema: [] }] },
+      defaultSections: [], baseTemplates: [{ id: 'T1', name: 'Flyer [en]' }, { id: 'T2', name: 'Web [de]' }], prompts: [],
+      catalog: { mtSettings: [{ uid: 'm1', name: 'DeepL', type: 'DEEPL' }, { uid: 'm2', name: 'Google', type: 'GOOGLE' }], clients: [], businessUnits: [], domains: [], subDomains: [], costCenters: [], workflowSteps: [] } },
+    apiMaxTplAdminScan: (uid, secs) => ({ success: true, results: { qa: { ok: true, schema: [{ path: 'checks.emptyTarget', type: 'boolean', sample: 'true' }, { path: 'level', type: 'string', sample: 'low' }] } } }),
+    apiMaxTplAdminSave: (cfg) => ({ success: true, config: cfg })
+  }`);
+  await openAdmin(page);
+  await page.evaluate(() => switchAdminSubtab('maxtpl'));
+  await page.waitForFunction(() => typeof mxAdm_ !== 'undefined' && mxAdm_ && document.querySelector('#admin-subtab-maxtpl .mx-row'));
+  await page.evaluate(() => { mxaToggleOpen_('l_mtSettings'); mxaRestrict_('mtSettings', true); mxaToggle_('mtSettings', 'm1', 'DeepL (DEEPL)', true); });
+  assert.match(await page.locator('#admin-subtab-maxtpl').innerText(), /1 (released|freigegeben)/);
+  await page.evaluate(() => { mxAdm_.cfg.referenceProject = 'P1'; mxaScan_(); });
+  await page.waitForFunction(() => mxAdm_.cfg.sections[0].schema.length === 2);
+  await page.evaluate(() => { mxaToggleOpen_('s_qa'); mxaSetField_(0, 1, true); });
+  await page.evaluate(() => mxaSave_());
+  await page.waitForFunction(() => window.__calls.some((c) => c.fn === 'apiMaxTplAdminSave'));
+  const saved = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiMaxTplAdminSave').args[0]);
+  assert.deepEqual(saved.lists, { mtSettings: [{ id: 'm1', name: 'DeepL (DEEPL)' }] });
+  assert.deepEqual(saved.sections[0].fields, { level: { editable: true, type: 'string', sample: 'low', label: '', values: [] } });
+  assert.deepEqual(errors, []);
+  await page.close();
+});

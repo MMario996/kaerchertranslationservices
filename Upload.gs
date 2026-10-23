@@ -55,7 +55,14 @@ function createProjectAndUploadAs_(payload, userEmail, opts) {
   opts = opts || {};
   userEmail = String(userEmail || "").trim().toLowerCase();
   console.log("\u2022 Starting project creation for user:", userEmail);
-  const maxSettings = payload.maxSettings ? maxTplSanitize_(payload.maxSettings) : null;
+  let maxSettings = payload.maxSettings ? maxTplSanitize_(payload.maxSettings) : null;
+  // Admin-Regeln (MaxTemplateAdmin.gs): nicht Erlaubtes faellt auf die Vorlage zurueck.
+  let maxRemoved = [];
+  if (maxSettings) {
+    const enforced = maxTplEnforceConfig_(maxSettings, maxTplLoadConfig_());
+    maxSettings = enforced.ms;
+    maxRemoved = enforced.removed;
+  }
 
   const portalType = String(payload.portalType || "").trim().toLowerCase();
 
@@ -144,6 +151,7 @@ function createProjectAndUploadAs_(payload, userEmail, opts) {
   const overallMainResults = [];
   const overallRefResults = [];
   const overallErrors = [];
+  if (maxRemoved.length) overallErrors.push("Maximaltemplate: nicht freigegeben, Vorlage gilt - " + maxRemoved.join(", "));
   let threadId = "";
   const queueRowsToAppend = [];
 

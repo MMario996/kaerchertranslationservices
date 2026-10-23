@@ -17,7 +17,7 @@
  *   density      "comfortable" | "compact"
  *   reduceMotion true/false  (Animationen reduzieren)
  *   startTab     "auto" | "history"  (Startbereich, wenn die Startseite aus ist)
- *   home         { widgets: { quick, kpis, focus, week, activity, tips: bool }, tab: "auto" | ... }
+ *   home         { widgets: { kpis, focus, week, activity, tips: bool }, tab: "auto" | ... }
  *   pinned       [projectUid, ..]  (angeheftete Projekte, max. 100)
  *   notifTypes   [typ, ..]  (in der Glocke angezeigte Arten; fehlt = alle)
  *   notifToast   true/false  (Hinweis unten rechts bei neuer Benachrichtigung)
@@ -29,7 +29,7 @@ var USER_PREFS_SHEET_NAME_ = "UserPrefs";
 var USER_PREFS_HEADERS_ = ["Email", "Prefs JSON", "Updated At"];
 var USER_PREFS_CLIENT_KEYS_ = ["theme", "fontScale", "startPage", "team", "displayName", "density", "reduceMotion",
   "startTab", "home", "pinned", "notifTypes", "notifToast", "shortcuts", "showBuProjects"];
-var USER_PREFS_HOME_WIDGETS_ = ["quick", "kpis", "focus", "week", "activity", "tips"];
+var USER_PREFS_HOME_WIDGETS_ = ["kpis", "focus", "week", "activity", "tips"];
 var USER_PREFS_HOME_TABS_ = ["auto", "overdue", "week", "open", "done", "pinned"];
 var USER_PREFS_NOTIF_TYPES_ = ["completed", "shared", "due_changed", "due_soon", "renamed", "cancelled", "pivot_step", "submitted"];
 

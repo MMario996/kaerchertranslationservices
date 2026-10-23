@@ -181,13 +181,14 @@ test('Einstellungen: Standardwerte werden ergaenzt, gespeicherte Werte bleiben',
   assert.equal(d.density, 'comfortable');
   assert.equal(d.startPage, true);
   assert.equal(d.shortcuts, true);
-  assert.deepEqual(d.home, { widgets: { quick: true, kpis: true, focus: true, week: true, activity: true, tips: true }, tab: 'auto' });
+  assert.deepEqual(d.home, { widgets: { kpis: true, focus: true, week: true, activity: true, tips: true }, tab: 'auto' });
   assert.equal(d.notifTypes.length, 8, 'ohne Auswahl: alle Arten');
   assert.deepEqual(d.pinned, []);
   const p = plain(ctx.prefsWithDefaults_({ density: 'compact', home: { widgets: { tips: false }, tab: 'pinned' }, notifTypes: ['completed'], pinned: ['A'] }));
   assert.equal(p.density, 'compact');
   assert.equal(p.home.widgets.tips, false);
-  assert.equal(p.home.widgets.quick, true);
+  assert.equal(p.home.widgets.kpis, true);
+  assert.equal('quick' in p.home.widgets, false, 'Schnellstart gibt es nicht mehr');
   assert.equal(p.home.tab, 'pinned');
   assert.deepEqual(p.notifTypes, ['completed']);
   assert.deepEqual(p.pinned, ['A']);

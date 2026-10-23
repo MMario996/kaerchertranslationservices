@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const { load, browserStubs } = require('./lib/load');
 
 const plain = (v) => JSON.parse(JSON.stringify(v));
-const ctx = load(['Deputies.gs', 'MarketingConsulting.gs', 'MarketingPrecalc.gs', 'MaxTemplate.gs']);
+const ctx = load(['Deputies.gs', 'MarketingConsulting.gs', 'MarketingPrecalc.gs', 'MaxTemplate.gs', 'MaxTemplateAdmin.gs']);
 
 test('Vertretung: Eingabe bereinigen', () => {
   assert.deepEqual(plain(ctx.deputySanitize_({ email: ' Kollegin@Kaercher.com ', from: '2026-10-20', to: '2026-10-31', active: true }, 'me@kaercher.com')),
@@ -94,7 +94,7 @@ test('Maximaltemplate: Bereinigung', () => {
   assert.equal(s.tms[0].penalty, 100);
   assert.equal(s.tms[1].write, false, 'nur ein schreibendes TM');
   assert.equal(s.tbs[0].read, true);
-  assert.equal(s.extra, undefined);
+  assert.deepEqual(s.extra, {}, 'ungueltige weitere Einstellungen verworfen');
 });
 
 test('Maximaltemplate: applyTemplate-Felder, Provider im Job-Header, TM/TB-Bodies', () => {
@@ -191,4 +191,65 @@ test('Vertretungsgruppen: bereinigen (Name Pflicht, gueltige E-Mails, keine Dopp
     { name: 'Leer', members: '' }
   ]));
   assert.deepEqual(g, [{ name: 'MAT-D OUTDOOR', members: ['a@k.com', 'b@k.com'] }, { name: 'MAT-D INDOOR', members: ['c@k.com'] }]);
+});
+
+test('Maximaltemplate-Regeln: Konfiguration wird bereinigt, Felder behalten Typ', () => {
+  const cfg = plain(ctx.maxTplSanitizeConfig_({
+    lists: { mtSettings: [{ id: 'mt1', name: 'DeepL' }, { id: 'bad id!' }], clients: null, evil: [1], prompts: ['Flyer'] },
+    sections: [
+      { key: 'qa', label: 'QA', version: 'v1', path: '/projects/{uid}/qaSettings', fields: { 'a.b': { editable: true, type: 'boolean', values: ['true'] }, 'x': { editable: false } } },
+      { key: 'bad', path: 'https://evil.example/x' },
+      { key: 'qa', path: '/projects/{uid}/dup' }
+    ]
+  }));
+  assert.deepEqual(cfg.lists, { mtSettings: [{ id: 'mt1', name: 'DeepL' }], prompts: [{ id: 'Flyer', name: 'Flyer' }] });
+  assert.equal(cfg.sections.length, 1);
+  assert.deepEqual(cfg.sections[0].fields, { 'a.b': { editable: true, type: 'boolean', sample: '', label: '', values: ['true'] } });
+});
+
+test('Maximaltemplate-Regeln: maxTplFlatten_ und maxTplSetPath_', () => {
+  assert.deepEqual(plain(ctx.maxTplFlatten_({ a: true, b: { c: 3, d: null }, e: ['x'], 'bad-key': 1 })), [
+    { path: 'a', type: 'boolean', sample: 'true' },
+    { path: 'b.c', type: 'number', sample: '3' },
+    { path: 'b.d', type: 'string', sample: '' },
+    { path: 'e', type: 'json', sample: '["x"]' }
+  ]);
+  assert.deepEqual(plain(ctx.maxTplSetPath_({ a: { b: 1 } }, 'a.c.d', 'x')), { a: { b: 1, c: { d: 'x' } } });
+});
+
+test('Maximaltemplate-Regeln: maxTplEnforceConfig_ entfernt Nicht-Freigegebenes', () => {
+  const cfg = ctx.maxTplSanitizeConfig_({
+    lists: { mtSettings: [{ id: 'mt1' }], workflowSteps: [{ id: 's1' }], tms: [{ id: 'tm1' }], providers: [{ id: 'u1', type: 'USER' }] },
+    sections: [{ key: 'qa', path: '/projects/{uid}/qaSettings', fields: {
+      'checks.enabled': { editable: true, type: 'boolean' }, 'level': { editable: true, type: 'string', values: ['low', 'high'] }, 'n': { editable: true, type: 'number' } } }]
+  });
+  const ms = ctx.maxTplSanitize_({
+    workflowSteps: ['s1', 's2'], stepDue: { s2: '2026-11-01' }, mtSettingsUid: 'mt2', client: 'c9',
+    providers: { s1: { de_de: [{ type: 'USER', id: 'u1' }, { type: 'VENDOR', id: 'v9' }] } },
+    tmsOverride: true, tms: [{ uid: 'tm1' }, { uid: 'tm2' }],
+    extra: { qa: { 'checks.enabled': 'false', level: 'medium', n: '5', hidden: 'x' }, other: { a: 1 } }
+  });
+  const r = plain(ctx.maxTplEnforceConfig_(ms, cfg));
+  assert.deepEqual(r.ms.workflowSteps, ['s1']);
+  assert.deepEqual(r.ms.stepDue, {});
+  assert.equal(r.ms.mtSettingsUid, '');
+  assert.equal(r.ms.client, 'c9', 'Clients nicht eingeschraenkt');
+  assert.deepEqual(r.ms.providers, { s1: { de_de: [{ type: 'USER', id: 'u1', name: '' }] } });
+  assert.deepEqual(r.ms.tms.map((t) => t.uid), ['tm1']);
+  assert.deepEqual(r.ms.extra, { qa: { 'checks.enabled': false, n: 5 } });
+  assert.deepEqual(r.removed.sort(), ['mtSettingsUid', 'other.a', 'providers', 'qa.hidden', 'qa.level', 'tms', 'workflowSteps'].sort());
+});
+
+test('Maximaltemplate-Regeln: Kataloge und Dialog-Konfiguration', () => {
+  const cat = { clients: [{ id: 'c1' }, { id: 'c2' }], mtSettings: [{ uid: 'm1' }, { uid: 'm2' }], workflowSteps: [{ id: 's1' }] };
+  const f = plain(ctx.maxTplFilterCatalog_(cat, { clients: [{ id: 'c2' }], mtSettings: [] }));
+  assert.deepEqual(f.clients, [{ id: 'c2' }]);
+  assert.deepEqual(f.mtSettings, []);
+  assert.deepEqual(f.workflowSteps, [{ id: 's1' }]);
+  const cfg = ctx.maxTplSanitizeConfig_({ sections: [
+    { key: 'qa', label: 'QA', path: '/projects/{uid}/qaSettings', fields: { a: { editable: true, type: 'number', sample: '3', label: 'Schwelle' } } },
+    { key: 'off', path: '/projects/{uid}/x', enabled: false, fields: { a: { editable: true } } },
+    { key: 'empty', path: '/projects/{uid}/y' }
+  ] });
+  assert.deepEqual(plain(ctx.maxTplDialogConfig_(cfg)).sections, [{ key: 'qa', label: 'QA', fields: [{ path: 'a', label: 'Schwelle', type: 'number', sample: '3', values: [] }] }]);
 });

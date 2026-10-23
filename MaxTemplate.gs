@@ -26,6 +26,7 @@
  *   MAXTPL_PROMPT_FIELD  Custom Field fuer den Prompt (Standard "AI Prompt");
  *                        fehlt das Feld in Phrase, wird der Prompt an die Projektnotiz gehaengt
  *   MAXTPL_PORTALS       Bereiche mit Maximaltemplate (Standard "marketing")
+ * Admin-Regeln (erlaubte Werte, weitere Phrase-Einstellungen): MaxTemplateAdmin.gs
  */
 var MAXTPL_NAME_ = "Maximaltemplate";
 var PROMPT_HUB_SHEET_NAME_ = "Prompt_Hub";
@@ -62,7 +63,8 @@ function maxTplSanitize_(ms) {
     }).filter(function (t) { return t.id; }),
     mtSettingsUid: id(ms.mtSettingsUid),
     prompt: str(ms.prompt, 20000),
-    promptName: str(ms.promptName, 200)
+    promptName: str(ms.promptName, 200),
+    extra: maxTplSanitizeExtra_(ms.extra)
   };
   Object.keys(ms.stepDue || {}).forEach(function (k) {
     var s = id(k), d = day(ms.stepDue[k]);
@@ -207,6 +209,23 @@ function maxTplCatalog_() {
   });
 }
 
+/** Liste auf die vom Admin freigegebenen Eintraege kuerzen (allowed null = alle). */
+function maxTplFilterList_(items, allowed, idKey) {
+  if (!Array.isArray(allowed)) return items || [];
+  var ok = allowed.map(function (x) { return String(x.id); });
+  return (items || []).filter(function (x) { return ok.indexOf(String(x[idKey || "id"])) >= 0; });
+}
+
+/** Kataloge fuer den Dialog nach den Admin-Regeln filtern. */
+function maxTplFilterCatalog_(cat, lists) {
+  lists = lists || {};
+  var out = {};
+  Object.keys(cat || {}).forEach(function (k) { out[k] = cat[k]; });
+  ["clients", "businessUnits", "domains", "subDomains", "costCenters", "workflowSteps"].forEach(function (k) { out[k] = maxTplFilterList_(cat[k], lists[k], "id"); });
+  out.mtSettings = maxTplFilterList_(cat.mtSettings, lists.mtSettings, "uid");
+  return out;
+}
+
 /** Standardwerte der Basis-Vorlage: Schritte, Zuordnung, TMs, TBs, MT. */
 function maxTplTemplateDefaults_(uid) {
   return maxTplCached_("maxtpl_tpl_" + uid, 3600, function () {
@@ -267,12 +286,14 @@ function apiMaxTplOptions(baseTemplateUid) {
   var uid = String(baseTemplateUid || "").trim();
   try {
     var hub = maxTplPromptHub_(uid);
+    var cfg = maxTplLoadConfig_();
     return {
       success: true,
-      catalog: maxTplCatalog_(),
+      catalog: maxTplFilterCatalog_(maxTplCatalog_(), cfg.lists),
+      rules: maxTplDialogConfig_(cfg),
       defaults: uid ? maxTplTemplateDefaults_(uid) : null,
-      prompts: hub.prompts,
-      templatePrompt: hub.forTemplate,
+      prompts: maxTplFilterList_(hub.prompts, cfg.lists.prompts, "name"),
+      templatePrompt: hub.forTemplate && maxTplFilterList_([hub.forTemplate], cfg.lists.prompts, "name").length ? hub.forTemplate : null,
       promptHubUrl: String(PropertiesService.getScriptProperties().getProperty("PROMPT_HUB_URL") || ""),
       promptField: String(PropertiesService.getScriptProperties().getProperty("MAXTPL_PROMPT_FIELD") || "AI Prompt")
     };
@@ -281,13 +302,30 @@ function apiMaxTplOptions(baseTemplateUid) {
   }
 }
 
-/** Suche fuer Provider (users/vendors), TMs und TBs (Name enthaelt q). */
-function apiMaxTplSearch(kind, query) {
+/** Suche fuer Provider (users/vendors), TMs und TBs (Name enthaelt q); vom Admin eingeschraenkt nur die freigegebenen. */
+function apiMaxTplSearch(kind, query, unrestricted) {
   var caller = getUserEmail_();
   if (!maxTplAllowed_(caller)) return { success: false, error: "Not authorized." };
+  // unrestricted: Admin-Ansicht (Regeln pflegen) sucht in ganz Phrase.
+  var useRules = !(unrestricted && isAdmin_(caller));
   var q = String(query || "").trim().slice(0, 80);
   var enc = encodeURIComponent(q);
   var items = [];
+  var lists = maxTplLoadConfig_().lists;
+  var listKey = { users: "providers", vendors: "providers", tms: "tms", tbs: "tbs" }[kind];
+  if (useRules && listKey && Array.isArray(lists[listKey])) {
+    // Vom Admin eingeschraenkt: nur diese Eintraege, Suche im Namen.
+    var ql = q.toLowerCase();
+    items = lists[listKey].filter(function (x) {
+      if (listKey === "providers" && x.type !== (kind === "vendors" ? "VENDOR" : "USER")) return false;
+      return !ql || String(x.name || x.id).toLowerCase().indexOf(ql) >= 0;
+    }).map(function (x) {
+      if (kind === "tms") return { uid: x.id, name: x.name || x.id };
+      if (kind === "tbs") return { id: x.id, name: x.name || x.id };
+      return { type: x.type, id: x.id, name: x.name || x.id };
+    });
+    return { success: true, items: items.slice(0, 50) };
+  }
   if (kind === "users") {
     items = maxTplList_("/users?name=" + enc, function (u) {
       if (!u || !u.uid || u.active === false) return null;
@@ -332,6 +370,7 @@ function maxTplApplyProjectSettings_(projectUid, ms, langs, errors) {
   if (ms.mtSettingsUid) {
     try { put(phraseApiUrlV1_(base + "/mtSettings"), { machineTranslateSettings: { uid: ms.mtSettingsUid } }); } catch (e) { warn("MT", e); }
   }
+  maxTplApplyExtraSections_(projectUid, ms, put, warn);
   if (ms.prompt) {
     var field = String(PropertiesService.getScriptProperties().getProperty("MAXTPL_PROMPT_FIELD") || "AI Prompt");
     var exists = false;
@@ -358,6 +397,10 @@ function maxTplApplyProjectSettings_(projectUid, ms, langs, errors) {
  */
 function maxTplCheckAllowed_(email, payload) {
   if (!maxTplAllowed_(email)) return { ok: false, error: "Maximaltemplate: not authorized." };
+  var allowedBases = maxTplLoadConfig_().lists.baseTemplates;
+  if (Array.isArray(allowedBases) && !allowedBases.some(function (b) { return b.id === String(payload.templateUid || ""); })) {
+    return { ok: false, error: "Maximaltemplate: base template not released by the admin." };
+  }
   if (isAdmin_(email)) return { ok: true };
   var uids = [String(payload.templateUid || "")].concat(Object.keys(payload.targetUidMap || {}).map(function (k) { return String(payload.targetUidMap[k]); }))
     .filter(Boolean);
