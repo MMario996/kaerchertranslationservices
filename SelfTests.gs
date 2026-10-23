@@ -97,8 +97,44 @@ function pruefeOberflaeche() {
     (dup.status === "ok" ? "OK - " : "FEHLER - ") + dup.message
   ];
   if (dup.status !== "ok") lines = lines.concat(describeDuplicateFiles_());
+  var wrong = checkFileSignatures_();
+  lines.push(wrong.length ? "FEHLER - falscher Inhalt:\n" + wrong.join("\n") : "OK - jede Datei hat ihren eigenen Inhalt");
   Logger.log(lines.join("\n"));
   return lines;
+}
+
+/**
+ * Erkennungsmerkmal je Datei (erste eigene Funktion). Fehlt es, wurde beim
+ * Kopieren ins Apps-Script-Projekt vermutlich der Inhalt einer anderen Datei
+ * eingefuegt - die Meldung nennt dann, wessen Inhalt tatsaechlich drinsteht.
+ */
+var SELF_TEST_FILE_SIGNATURES_ = {
+  JsCore: "function showCustomAlert(", JsForms: "function initForm(", JsNavigation: "function loadGuideContent_(",
+  JsDocumentation: "function mountHistoryView_(", JsUpload: "function switchKecSubtab(", JsProjects: "function loadMyProjects(",
+  JsDownload: "function ensureDriveSaveConfig_(", JsMisc: "function extractDriveFileId_(", JsPersonal: "function fmt_(",
+  JsCampus: "function t_(", AdminScript: "function loadDocDriveRootSettings(", PivotAdminScript: "function pvTemplateUrl_(",
+  AdminManagersUi: "function mgrxCsv_(", KecSettingsUi: "function kecSetEsc_(", MarketingUi: "function mktEsc_(",
+  MaxTemplateUi: "function mxEsc_(", HomeUi: "function homeRender_(", TranslateUi: "function psLoad_("
+};
+
+/** {Datei: Inhalt} -> ["JsUpload: enthaelt Inhalt von JsProjects (1338 Zeilen)"]. */
+function wrongFileContents_(sources) {
+  var sig = SELF_TEST_FILE_SIGNATURES_;
+  return Object.keys(sig).filter(function (f) {
+    return sources[f] !== undefined && sources[f].indexOf(sig[f]) === -1;
+  }).map(function (f) {
+    var actual = Object.keys(sig).filter(function (o) { return sources[f].indexOf(sig[o]) !== -1; });
+    return f + ": enthaelt " + (actual.length ? "Inhalt von " + actual.join(" + ") : "unbekannten Inhalt") +
+      " (" + sources[f].split("\n").length + " Zeilen) - Datei aus dem Repo neu einfuegen";
+  });
+}
+
+function checkFileSignatures_() {
+  var sources = {};
+  Object.keys(SELF_TEST_FILE_SIGNATURES_).forEach(function (n) {
+    try { sources[n] = HtmlService.createHtmlOutputFromFile(n).getContent(); } catch (e) {}
+  });
+  return wrongFileContents_(sources);
 }
 
 /**

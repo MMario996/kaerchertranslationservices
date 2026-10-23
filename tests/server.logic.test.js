@@ -378,3 +378,18 @@ test('Browser-Code im Repo: keine doppelte Top-Level-Deklaration (SELF_TEST_WIND
   st.SELF_TEST_WINDOW_SCRIPTS_.forEach((n) => { sources[n] = fs.readFileSync(path.join(__dirname, '..', n + '.html'), 'utf8'); });
   assert.deepEqual(plain(st.findDuplicateTopLevelDecls_(sources)), []);
 });
+
+test('Erkennungsmerkmale: jede Datei enthaelt genau ihr eigenes; vertauschter Inhalt wird benannt', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const st = load(['SelfTests.gs']);
+  const sources = {};
+  Object.keys(st.SELF_TEST_FILE_SIGNATURES_).forEach((n) => { sources[n] = fs.readFileSync(path.join(__dirname, '..', n + '.html'), 'utf8'); });
+  assert.deepEqual(plain(st.wrongFileContents_(sources)), []);
+  Object.keys(sources).forEach((n) => {
+    const owners = Object.keys(sources).filter((o) => sources[o].includes(st.SELF_TEST_FILE_SIGNATURES_[n]));
+    assert.deepEqual(owners, [n], n + ': Merkmal eindeutig');
+  });
+  sources.JsUpload = sources.JsProjects;
+  assert.deepEqual(plain(st.wrongFileContents_(sources)), ['JsUpload: enthaelt Inhalt von JsProjects (1339 Zeilen) - Datei aus dem Repo neu einfuegen']);
+});
