@@ -42,7 +42,7 @@ test('Doku-Sheet-Sync: nur offene Projekte werden bei Phrase abgefragt', () => {
     ['', 'it_it', 'x.xml', 'UPLOADED', '']
   ];
   const col = ctx.docSyncColumns_(data[0]);
-  assert.deepEqual(plain(col), { uid: 0, status: 3, projectStatus: 4, lang: 1, file: 2 });
+  assert.deepEqual(plain(col), { uid: 0, status: 3, projectStatus: 4, jobUid: -1, lang: 1, file: 2 });
   assert.deepEqual(plain(ctx.docSyncOpenProjects_(data, col)), ['P1', 'P3']);
 });
 
@@ -85,6 +85,39 @@ test('Doku-Sheet-Sync: Zuordnung ueber Sprache, bei mehreren Dateien ueber den D
     ] }
   });
   assert.deepEqual(plain(changes).map((c) => [c.row, c.value]), [[2, 'COMPLETED'], [3, 'ACCEPTED'], [4, 'COMPLETED']]);
+});
+
+test('Doku-Sheet-Sync: NO im Sheet passt zu nb_no in Phrase, Job UID wird auf den letzten Schritt gesetzt', () => {
+  const data = [
+    ['Project UID', 'Target Lang', 'File Name', 'Status', 'Phrase Project Status', 'Job UID'],
+    ['P1', 'NO', 'a_NO.xml', 'UPLOADED', 'NEW', 'first-step'],
+    ['P1', 'PL', 'a_PL.xml', 'UPLOADED', 'NEW', 'pl-last']
+  ];
+  const col = ctx.docSyncColumns_(data[0]);
+  const changes = ctx.docSyncPlanUpdates_(data, col, {
+    P1: { status: 'NEW', jobs: [
+      { uid: 'no-last', targetLang: 'nb_no', filename: 'a_NO.xml', status: 'ACCEPTED' },
+      { uid: 'pl-last', targetLang: 'pl_pl', filename: 'a_PL.xml', status: 'ACCEPTED' }
+    ] }
+  });
+  assert.deepEqual(plain(changes).map((c) => [c.row, data[0][c.col - 1], c.value]), [
+    [2, 'Job UID', 'no-last'], [2, 'Status', 'ACCEPTED'],
+    [3, 'Status', 'ACCEPTED']
+  ]);
+});
+
+test('Doku-Sheet-Sync: exakter Code geht vor Basissprache (PT vs. PT-BR)', () => {
+  const jobs = [{ targetLang: 'pt_pt' }, { targetLang: 'pt_br' }];
+  assert.deepEqual(plain(ctx.docSyncJobsForLang_(jobs, 'pt_br')), [{ targetLang: 'pt_br' }]);
+  assert.equal(ctx.docSyncJobsForLang_(jobs, 'pt').length, 2, 'mehrdeutig -> Dateiname entscheidet');
+});
+
+test('dlLangAllowed_: Norwegisch NO passt zu nb_no, pt_br nicht zu pt_pt', () => {
+  assert.ok(ctx.dlLangAllowed_('nb_no', ['no']));
+  assert.ok(ctx.dlLangAllowed_('no', ['nb_no']));
+  assert.ok(ctx.dlLangAllowed_('pl_pl', ['pl']));
+  assert.ok(!ctx.dlLangAllowed_('pt_br', ['pt_pt']));
+  assert.ok(!ctx.dlLangAllowed_('da_dk', ['no']));
 });
 
 test('Projektnotiz: Pivot-Marker bleibt beim Speichern erhalten und wird nicht angezeigt', () => {

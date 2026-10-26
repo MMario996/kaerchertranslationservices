@@ -152,6 +152,20 @@ function docImportBuildFilesSummary_(results) {
 }
 
 /**
+ * UID des Jobs im letzten Workflow-Schritt aus der Upload-Antwort - wie es der
+ * Doku-Sheet-Sync spaeter auch eintraegt. Ohne workflowLevel der erste Job.
+ */
+function docImportLastStepJobUid_(jobRes) {
+  var jobs = (jobRes && Array.isArray(jobRes.jobs)) ? jobRes.jobs : [];
+  var best = null;
+  jobs.forEach(function(j) {
+    if (!j || !j.uid) return;
+    if (!best || (Number(j.workflowLevel) || 0) > (Number(best.workflowLevel) || 0)) best = j;
+  });
+  return best ? String(best.uid) : "";
+}
+
+/**
  * payload = {
  *   templateUid, templateName, sourceLang, projectName, iaNumber,
  *   dueDate (ISO|null), note,
@@ -285,7 +299,7 @@ function apiUploadDocXmlBatch(payload) {
         blob.setName(f.fileName);
 
         var jobRes = phraseUploadJob_(projectUid, blob, f.fileName, [f.targetLang], payload.dueDate || null);
-        var jobUid = (jobRes && Array.isArray(jobRes.jobs) && jobRes.jobs[0] && jobRes.jobs[0].uid) || "";
+        var jobUid = docImportLastStepJobUid_(jobRes);
         var asyncId = (jobRes && jobRes.asyncRequest && jobRes.asyncRequest.id) || "";
 
         // 1. In das Kanban-Sheet eintragen (Einzeleinträäge pro Sprache/Datei)

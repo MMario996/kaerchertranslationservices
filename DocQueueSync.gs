@@ -123,6 +123,7 @@ function docSyncColumns_(header) {
     uid: h.indexOf("Project UID"),
     status: h.indexOf("Status"),
     projectStatus: h.indexOf("Phrase Project Status"),
+    jobUid: h.indexOf("Job UID"),
     lang: h.indexOf("Target Lang"),
     file: h.indexOf("File Name")
   };
@@ -159,20 +160,33 @@ function docSyncFetchPhrase_(projectUid) {
   for (var page = 0; page < 40; page++) {
     var res = phraseFetchJson_(phraseApiUrlV2_("/projects/" + encodeURIComponent(projectUid) + "/jobs?workflowLevel=" + maxLevel + "&pageSize=50&pageNumber=" + page), { method: "get", headers: auth });
     var content = (res && res.content) || [];
-    content.forEach(function(j) { jobs.push({ targetLang: j.targetLang || "", filename: j.filename || "", status: j.status || "" }); });
+    content.forEach(function(j) { jobs.push({ uid: j.uid || "", targetLang: j.targetLang || "", filename: j.filename || "", status: j.status || "" }); });
     if (content.length < 50) break;
   }
   return { status: proj && proj.status ? String(proj.status).toUpperCase() : "", jobs: jobs };
 }
 
 /**
+ * Jobs, die zur Sprache einer Sheet-Zeile gehoeren. Die Zeile traegt den Namen
+ * des Drive-Unterordners ("NO", "PL"), Phrase das Locale ("nb_no", "pl_pl"):
+ * zuerst exakter Code, sonst gleiche Basissprache (inkl. NO = nb, dlLangBase_).
+ */
+function docSyncJobsForLang_(jobs, sheetLang) {
+  var exact = jobs.filter(function(j) { return dlNormLang_(j.targetLang) === sheetLang; });
+  if (exact.length) return exact;
+  var base = dlLangBase_(sheetLang);
+  return jobs.filter(function(j) { return dlLangBase_(j.targetLang) === base; });
+}
+
+/**
  * Rein (ohne Apps-Script-Dienste, siehe tests/): welche Zellen sich aendern.
  * Job-Zuordnung ueber Sprache + Dateiname, sonst nur Sprache (eindeutig).
  * "NOTIFIED" ist ein eigener Endstatus der Queue und wird nicht ueberschrieben.
+ * "Job UID" (falls vorhanden) zeigt danach auf den Job des letzten Schritts.
  * @return {Array<{row:number, col:number, value:string, projectUid:string}>} 1-basiert
  */
 function docSyncPlanUpdates_(data, col, phraseByUid) {
-  var norm = function(v) { return String(v || "").trim().toLowerCase().replace(/-/g, "_"); };
+  var norm = dlNormLang_;
   var changes = [];
   for (var r = 1; r < data.length; r++) {
     var uid = String(data[r][col.uid] || "").trim();
@@ -185,13 +199,70 @@ function docSyncPlanUpdates_(data, col, phraseByUid) {
     var lang = col.lang === -1 ? "" : norm(data[r][col.lang]);
     if (!lang) continue;
     var file = col.file === -1 ? "" : String(data[r][col.file] || "").trim();
-    var sameLang = ph.jobs.filter(function(j) { return norm(j.targetLang) === lang; });
+    var sameLang = docSyncJobsForLang_(ph.jobs, lang);
     var match = sameLang.filter(function(j) { return file && j.filename === file; })[0] || (sameLang.length === 1 ? sameLang[0] : null);
     if (!match || !match.status) continue;
+
+    if (col.jobUid !== undefined && col.jobUid !== -1 && match.uid) {
+      var curUid = String(data[r][col.jobUid] || "").trim();
+      if (curUid !== match.uid) changes.push({ row: r + 1, col: col.jobUid + 1, value: match.uid, projectUid: uid });
+    }
 
     var newJs = String(match.status).toUpperCase();
     var curJs = String(data[r][col.status] || "").trim().toUpperCase();
     if (newJs !== curJs && curJs !== "NOTIFIED") changes.push({ row: r + 1, col: col.status + 1, value: newJs, projectUid: uid });
   }
   return changes;
+}
+
+/**
+ * EINMALIG im Apps-Script-Editor ausfuehren: repariert Norwegisch-Zeilen im
+ * Doku-Sheet, die wegen NO <-> nb_no nie abgeglichen wurden (Status blieb
+ * "UPLOADED"/veraltet, Job UID zeigte auf den ersten Workflow-Schritt).
+ * Schreibt nur "Status" und "Job UID" der NO-Zeilen; alle anderen Zeilen und
+ * "Phrase Project Status" bleiben unangetastet.
+ * Erst repairNorwegianDocRowsDryRun() laufen lassen und das Protokoll pruefen.
+ */
+function repairNorwegianDocRows() { return docRepairNorwegianRows_(false); }
+function repairNorwegianDocRowsDryRun() { return docRepairNorwegianRows_(true); }
+
+function docRepairNorwegianRows_(dryRun) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) throw new Error("Sync laeuft gerade - bitte gleich nochmal versuchen.");
+  try {
+    var sh = SpreadsheetApp.openById(DOC_QUEUE_SHEET_ID_).getSheetByName(DOC_QUEUE_SHEET_NAME_);
+    if (!sh) throw new Error("Queue sheet not found.");
+    var data = sh.getDataRange().getValues();
+    var col = docSyncColumns_(data[0]);
+    if (col.uid === -1 || col.status === -1 || col.lang === -1) throw new Error("Spalten 'Project UID', 'Status' oder 'Target Lang' fehlen.");
+
+    var isNo = function(r) { return dlLangBase_(data[r][col.lang]) === "no"; };
+    var uids = [];
+    for (var r = 1; r < data.length; r++) {
+      var uid = String(data[r][col.uid] || "").trim();
+      if (uid && isNo(r) && uids.indexOf(uid) === -1) uids.push(uid);
+    }
+
+    var phraseByUid = {}, errors = [];
+    uids.forEach(function(uid) {
+      try { phraseByUid[uid] = docSyncFetchPhrase_(uid); }
+      catch (e) { errors.push(uid + ": " + e.message); }
+    });
+
+    var changes = docSyncPlanUpdates_(data, col, phraseByUid).filter(function(c) {
+      return c.col !== col.projectStatus + 1 && isNo(c.row - 1);
+    });
+    changes.forEach(function(c) {
+      var old = data[c.row - 1][c.col - 1];
+      console.log((dryRun ? "[Probelauf] " : "") + "Zeile " + c.row + " (" + c.projectUid + ", " + data[0][c.col - 1] + "): " + old + " -> " + c.value);
+      if (!dryRun) sh.getRange(c.row, c.col).setValue(c.value);
+    });
+    if (changes.length && !dryRun) SpreadsheetApp.flush();
+    errors.forEach(function(e) { console.warn("  ⚠ " + e); });
+    var res = { projects: uids.length, cells: changes.length, errors: errors.length, dryRun: dryRun };
+    console.log("• NO-Reparatur: " + JSON.stringify(res));
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
 }

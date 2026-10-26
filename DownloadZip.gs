@@ -125,12 +125,25 @@ function dlNormLang_(l) {
   return String(l || "").trim().toLowerCase().replace(/-/g, "_");
 }
 
-/** Gehoert die Job-Sprache zu den erlaubten? "de" passt zu "de_de" und umgekehrt. */
+/**
+ * Sprachen mit zwei gebraeuchlichen Codes: Die Drive-Ordner/Queue-Zeilen heissen
+ * "NO", Phrase fuehrt Norwegisch aber als "nb_no" (Bokmal) - "no" und "nb"
+ * haben keinen gemeinsamen Praefix und passten deshalb nie zusammen.
+ */
+var DL_LANG_ALIASES_ = { nb: "no", nn: "no" };
+
+/** Basissprache fuer den Vergleich: "nb_NO" -> "no", "pl-PL" -> "pl". */
+function dlLangBase_(l) {
+  var base = dlNormLang_(l).split("_")[0];
+  return DL_LANG_ALIASES_[base] || base;
+}
+
+/** Gehoert die Job-Sprache zu den erlaubten? "de" passt zu "de_de", "no" zu "nb_no" und umgekehrt. */
 function dlLangAllowed_(jobLang, allowed) {
   var j = dlNormLang_(jobLang);
   if (!j) return true; // unbekannt -> nicht wegfiltern
   return allowed.some(function (a) {
-    return a === j || a.split("_")[0] === j || j.split("_")[0] === a;
+    return a === j || ((a.indexOf("_") === -1 || j.indexOf("_") === -1) && dlLangBase_(a) === dlLangBase_(j));
   });
 }
 
