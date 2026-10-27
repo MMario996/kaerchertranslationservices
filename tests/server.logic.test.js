@@ -455,3 +455,11 @@ test('SelfTests.gs: alle Logik-Selbsttests laufen auch ausserhalb von Apps Scrip
   assert.ok(logic.length >= 6);
   logic.forEach((t) => assert.equal(t.fn().status, 'ok', t.name));
 });
+
+test('Phrase-Token: Authorization-Header ohne doppeltes "Bearer"', () => {
+  const api = load(['ProjectsApi.gs']);
+  assert.equal(api.phraseAuthHeaderFor_('abc123'), 'Bearer abc123');
+  assert.equal(api.phraseAuthHeaderFor_(' Bearer abc123 '), 'Bearer abc123');
+  assert.equal(api.phraseAuthHeaderFor_('bearer abc123'), 'Bearer abc123');
+  assert.equal(api.phraseAuthHeaderFor_('ApiToken xyz'), 'ApiToken xyz');
+});

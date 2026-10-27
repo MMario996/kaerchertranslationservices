@@ -145,22 +145,113 @@ function maxTplTbBody_(tbs) {
   return body;
 }
 
-/** Prompt-Hub-Zeilen -> Eintraege; Vorlagen-Prompt = erster Eintrag mit passender UID. */
-function maxTplParsePromptHub_(rows, templateUid) {
+/**
+ * Prompt-Hub-Zeilen -> Eintraege; Vorlagen-Prompt = erster Eintrag, dessen Spalte C
+ * die UID der Vorlage oder ihren Namen enthaelt (Gross-/Kleinschreibung egal).
+ */
+function maxTplParsePromptHub_(rows, templateUid, templateName) {
   var prompts = [];
   var forTemplate = null;
+  var tName = String(templateName || "").trim().toLowerCase();
   (rows || []).forEach(function (r, i) {
     if (i === 0) return;
     var name = String(r[0] || "").trim();
     var text = String(r[1] || "").trim();
     if (!name || !text) return;
     if (r.length > 4 && String(r[4] || "").trim() && String(r[4]).trim().toLowerCase() !== "yes") return;
-    var uids = String(r[2] || "").split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var refs = String(r[2] || "");
+    var uids = refs.split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var names = refs.split(/[,;\n]+/).map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
     var p = { name: name, prompt: text, templateUids: uids, link: String(r[3] || "").trim() };
     prompts.push(p);
-    if (!forTemplate && templateUid && uids.indexOf(templateUid) >= 0) forTemplate = p;
+    if (!forTemplate && ((templateUid && uids.indexOf(templateUid) >= 0) || (tName && names.indexOf(tName) >= 0))) forTemplate = p;
   });
   return { prompts: prompts, forTemplate: forTemplate };
+}
+
+/**
+ * Mit der Vorlage verknuepfter Prompt. Reihenfolge:
+ *   1. Custom Field der Vorlage (MAXTPL_PROMPT_FIELD): Name eines Prompt-Hub-Eintrags,
+ *      Link auf einen Eintrag oder der Prompt-Text selbst
+ *   2. Prompt-Hub-Eintrag, der die Vorlage in Spalte C nennt (UID oder Name)
+ * Ergebnis: Eintrag {name, prompt, link, source: "field"|"hub"} oder null.
+ */
+function maxTplLinkedPrompt_(fieldValue, fieldName, prompts, forTemplate) {
+  var v = String(fieldValue || "").trim();
+  if (v) {
+    var lower = v.toLowerCase();
+    var hit = (prompts || []).filter(function (p) {
+      return p.name.toLowerCase() === lower || (p.link && p.link === v);
+    })[0];
+    if (hit) return Object.assign({}, hit, { source: "field" });
+    if (/^https?:\/\/\S+$/i.test(v)) return { name: fieldName || "Prompt", prompt: "", templateUids: [], link: v, source: "field" };
+    return { name: fieldName || "Prompt", prompt: v, templateUids: [], link: "", source: "field" };
+  }
+  return forTemplate ? Object.assign({}, forTemplate, { source: "hub" }) : null;
+}
+
+/** Sortierfelder von GET v1/projectTemplates. */
+var MAXTPL_TPL_SORTS_ = ["templateName", "dateCreated", "clientName", "businessUnitName", "domainName", "subdomainName",
+  "createdBy", "owner", "sourceLang"];
+
+/** Filter aus dem Dialog -> Query-String fuer GET v1/projectTemplates (alle Parameter der API). */
+function maxTplTemplatesQuery_(f) {
+  f = f || {};
+  var q = [];
+  var add = function (k, v) { q.push(k + "=" + encodeURIComponent(v)); };
+  ["name", "clientName", "domainName", "subDomainName", "costCenterName", "businessUnitName"].forEach(function (k) {
+    var v = String(f[k] == null ? "" : f[k]).trim().slice(0, 100);
+    if (v) add(k, v);
+  });
+  ["ownerUid", "createdByUid"].forEach(function (k) {
+    var v = String(f[k] || "").trim();
+    if (/^[A-Za-z0-9_\-]{1,80}$/.test(v)) add(k, v);
+  });
+  ["clientId", "costCenterId"].forEach(function (k) {
+    var v = String(f[k] == null ? "" : f[k]).trim();
+    if (/^\d{1,18}$/.test(v)) add(k, v);
+  });
+  ["sourceLangs", "targetLangs"].forEach(function (k) {
+    var list = Array.isArray(f[k]) ? f[k] : String(f[k] || "").split(/[\s,;]+/);
+    list.map(function (l) { return String(l).trim().toLowerCase(); })
+      .filter(function (l) { return /^[a-z]{2,3}([_-][a-z0-9]{2,8})*$/.test(l); })
+      .slice(0, 30).forEach(function (l) { add(k, l); });
+  });
+  var hours = String(f.createdInLastHours == null ? "" : f.createdInLastHours).trim();
+  if (/^\d{1,6}$/.test(hours)) add("createdInLastHours", hours);
+  add("sort", MAXTPL_TPL_SORTS_.indexOf(f.sort) >= 0 ? f.sort : "dateCreated");
+  add("direction", f.direction === "asc" ? "asc" : "desc");
+  var page = Math.max(0, Math.floor(Number(f.pageNumber) || 0));
+  var size = Math.max(1, Math.min(50, Math.floor(Number(f.pageSize) || 50)));
+  add("pageNumber", page);
+  add("pageSize", size);
+  return q.join("&");
+}
+
+/** Ein Eintrag aus GET v1/projectTemplates -> Felder fuer die Anzeige. */
+function maxTplMapTemplate_(t) {
+  if (!t || !(t.uid || t.id)) return null;
+  var nm = function (o) { return o && typeof o === "object" ? String(o.name || "") : ""; };
+  var person = function (u) {
+    if (!u || typeof u !== "object") return "";
+    var n = ((u.firstName || "") + " " + (u.lastName || "")).trim();
+    return n ? n + (u.userName ? " (" + u.userName + ")" : "") : String(u.userName || u.email || "");
+  };
+  return {
+    uid: String(t.uid || t.id),
+    id: t.id != null ? String(t.id) : "",
+    name: String(t.templateName || t.name || ""),
+    sourceLang: String(t.sourceLang || ""),
+    targetLangs: Array.isArray(t.targetLangs) ? t.targetLangs.map(String) : [],
+    client: nm(t.client), businessUnit: nm(t.businessUnit), domain: nm(t.domain),
+    subDomain: nm(t.subDomain), costCenter: nm(t.costCenter),
+    owner: person(t.owner), createdBy: person(t.createdBy),
+    dateCreated: String(t.dateCreated || ""),
+    note: String(t.note || "").slice(0, 1000),
+    workflowSteps: (Array.isArray(t.workflowSteps) ? t.workflowSteps : []).map(function (s) {
+      return String((s && s.workflowStep && s.workflowStep.name) || (s && s.name) || "");
+    }).filter(Boolean)
+  };
 }
 
 // --- Phrase-Kataloge (gecacht) ------------------------------------------------------------
@@ -228,12 +319,13 @@ function maxTplFilterCatalog_(cat, lists) {
 
 /** Standardwerte der Basis-Vorlage: Schritte, Zuordnung, TMs, TBs, MT. */
 function maxTplTemplateDefaults_(uid) {
-  return maxTplCached_("maxtpl_tpl_" + uid, 3600, function () {
+  return maxTplCached_("maxtpl_tpl_v2_" + uid, 3600, function () {
     var out = { uid: uid, name: "", sourceLang: "", targetLangs: [], workflowSteps: [], client: "", businessUnit: "", domain: "",
       subDomain: "", costCenter: "", mtSettingsUid: "", tms: [], tbs: [] };
     var t = {};
     try { t = maxTplGet_(phraseApiUrlV1_("/projectTemplates/" + encodeURIComponent(uid))) || {}; } catch (e) { out.error = e.message; return out; }
     var ref = function (o) { return o && (o.id || o.uid) ? String(o.id || o.uid) : ""; };
+    out.info = maxTplMapTemplate_(Object.assign({ uid: uid }, t));
     out.name = String(t.templateName || t.name || "");
     out.sourceLang = String(t.sourceLang || "");
     out.targetLangs = Array.isArray(t.targetLangs) ? t.targetLangs : [];
@@ -257,15 +349,34 @@ function maxTplTemplateDefaults_(uid) {
         return { id: String(b.id || b.uid || ""), name: String(b.name || ""), read: x.readMode !== false, write: !!x.writeMode, qa: !!x.qualityAssurance };
       }).filter(function (x) { return x.id; });
     } catch (e) { console.warn("MaxTemplate TBs: " + e.message); }
+    out.promptFieldValue = maxTplTemplatePromptField_(uid);
     return out;
   });
 }
 
-function maxTplPromptHub_(templateUid) {
+/** Wert des Prompt-Custom-Fields (MAXTPL_PROMPT_FIELD) an der Vorlage ("" = keiner). */
+function maxTplTemplatePromptField_(uid) {
+  var field = String(PropertiesService.getScriptProperties().getProperty("MAXTPL_PROMPT_FIELD") || "AI Prompt").toLowerCase();
+  try {
+    var res = maxTplGet_(phraseApiUrlV1_("/projectTemplates/" + encodeURIComponent(uid) + "/customFields?pageSize=50"));
+    var items = (res && Array.isArray(res.content)) ? res.content : (Array.isArray(res) ? res : []);
+    for (var i = 0; i < items.length; i++) {
+      var x = items[i] || {};
+      var cf = x.customField || {};
+      if (String(cf.name || x.name || "").toLowerCase() !== field) continue;
+      var v = x.value != null && x.value !== "" ? x.value
+        : (Array.isArray(x.selectedOptions) ? x.selectedOptions.map(function (o) { return o && (o.value || o.name); }).filter(Boolean).join(", ") : "");
+      return String(v || "").slice(0, 20000);
+    }
+  } catch (e) { console.warn("MaxTemplate Prompt-Feld der Vorlage: " + e.message); }
+  return "";
+}
+
+function maxTplPromptHub_(templateUid, templateName) {
   try {
     var sh = openAccessSS_().getSheetByName(PROMPT_HUB_SHEET_NAME_);
     if (!sh) return { prompts: [], forTemplate: null };
-    return maxTplParsePromptHub_(sh.getDataRange().getValues(), templateUid);
+    return maxTplParsePromptHub_(sh.getDataRange().getValues(), templateUid, templateName);
   } catch (e) {
     console.warn("Prompt-Hub: " + e.message);
     return { prompts: [], forTemplate: null };
@@ -285,17 +396,62 @@ function apiMaxTplOptions(baseTemplateUid) {
   if (!access.allowed || !maxTplAllowed_(caller)) return { success: false, error: "Not authorized." };
   var uid = String(baseTemplateUid || "").trim();
   try {
-    var hub = maxTplPromptHub_(uid);
+    var props = PropertiesService.getScriptProperties();
+    var promptField = String(props.getProperty("MAXTPL_PROMPT_FIELD") || "AI Prompt");
+    var defaults = uid ? maxTplTemplateDefaults_(uid) : null;
+    var hub = maxTplPromptHub_(uid, defaults && defaults.name);
     var cfg = maxTplLoadConfig_();
+    var prompts = maxTplFilterList_(hub.prompts, cfg.lists.prompts, "name");
+    var forTemplate = hub.forTemplate && maxTplFilterList_([hub.forTemplate], cfg.lists.prompts, "name").length ? hub.forTemplate : null;
     return {
       success: true,
       catalog: maxTplFilterCatalog_(maxTplCatalog_(), cfg.lists),
       rules: maxTplDialogConfig_(cfg),
-      defaults: uid ? maxTplTemplateDefaults_(uid) : null,
-      prompts: maxTplFilterList_(hub.prompts, cfg.lists.prompts, "name"),
-      templatePrompt: hub.forTemplate && maxTplFilterList_([hub.forTemplate], cfg.lists.prompts, "name").length ? hub.forTemplate : null,
-      promptHubUrl: String(PropertiesService.getScriptProperties().getProperty("PROMPT_HUB_URL") || ""),
-      promptField: String(PropertiesService.getScriptProperties().getProperty("MAXTPL_PROMPT_FIELD") || "AI Prompt")
+      defaults: defaults,
+      prompts: prompts,
+      templatePrompt: maxTplLinkedPrompt_(defaults && defaults.promptFieldValue, promptField, prompts, forTemplate),
+      promptHubUrl: String(props.getProperty("PROMPT_HUB_URL") || ""),
+      promptField: promptField
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Phrase-Vorlagen durchsuchen (GET v1/projectTemplates mit allen Filtern der API).
+ * Admins sehen alle Vorlagen; alle anderen nur die, die sie (oder die von ihnen
+ * Vertretenen) im Portal sehen duerfen. selectable = als Basis-Vorlage waehlbar.
+ */
+function apiMaxTplListTemplates(filters) {
+  var caller = getUserEmail_();
+  var access = apiCheckAccess();
+  if (!access.allowed || !maxTplAllowed_(caller)) return { success: false, error: "Not authorized." };
+  try {
+    var res = maxTplGet_(phraseApiUrlV1_("/projectTemplates?" + maxTplTemplatesQuery_(filters))) || {};
+    var items = (Array.isArray(res.content) ? res.content : []).map(maxTplMapTemplate_).filter(Boolean);
+    var admin = isAdmin_(caller);
+    var allowedBases = maxTplLoadConfig_().lists.baseTemplates;
+    var released = function (u) { return !Array.isArray(allowedBases) || allowedBases.some(function (b) { return b.id === u; }); };
+    var visible = null;
+    if (!admin) {
+      visible = {};
+      var add = function (tpls) {
+        Object.keys(tpls).forEach(function (k) {
+          var t = tpls[k];
+          if (t.uid) visible[t.uid] = true;
+          Object.keys(t.targetUidMap || {}).forEach(function (l) { visible[t.targetUidMap[l]] = true; });
+        });
+      };
+      add(templatesForUser_(caller));
+      deputyPrincipalsOf_(caller).forEach(function (p) { add(templatesForUser_(p)); });
+      items = items.filter(function (t) { return visible[t.uid]; });
+    }
+    items.forEach(function (t) { t.selectable = released(t.uid); });
+    return {
+      success: true, items: items, admin: admin,
+      pageNumber: Number(res.pageNumber) || 0, pageSize: Number(res.pageSize) || items.length,
+      totalPages: Number(res.totalPages) || 0, totalElements: Number(res.totalElements) || 0
     };
   } catch (e) {
     return { success: false, error: e.message };

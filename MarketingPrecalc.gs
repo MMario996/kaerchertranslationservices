@@ -24,10 +24,13 @@
  *
  * Script Properties:
  *   PRECALC_PROJECTS          Kalkulationsprojekte, eins pro Zeile oder durch ";" getrennt:
- *                             "Bezeichnung|Projekt-UID" oder "Bezeichnung|Projekt-UID|Preislisten-UID"
- *                             z. B. "Home & Garden|aBc123; Professional|xYz789"
+ *                             "Bezeichnung|Projekt-UID[|Preislisten-UID[|Net-Rate-Scheme-UID]]"
+ *                             z. B. "Home & Garden|aBc123; Professional|xYz789||nrs456"
  *   PRECALC_PROJECTS_SANDBOX  dasselbe fuer die Admin-Sandbox (Sandbox.gs)
  *   PRECALC_PRICE_LIST_UID    Preisliste, wenn weder Eintrag noch Projekt eine liefern
+ *   PRECALC_NET_RATE_SCHEME_UID  Net Rate Scheme, wenn weder Eintrag noch Projekt eins liefern
+ *                             (Analyse und Quote rechnen damit; ohne Scheme nimmt Phrase den
+ *                             Standard der Organisation)
  *   PRECALC_ENABLED           "false" blendet den Unterreiter aus
  */
 var PRECALC_SHEET_NAME_ = "Precalc_Log";
@@ -47,14 +50,15 @@ function precalcAllowed_(email) {
 
 // --- Reine Helfer (getestet) ---------------------------------------------------------
 
-/** "H&G|uid1|pl1; Professional|uid2" -> [{label, projectUid, priceListUid}] */
+/** "H&G|uid1|pl1|nrs1; Professional|uid2" -> [{label, projectUid, priceListUid, netRateSchemeUid}] */
 function precalcParseProjects_(raw) {
   var out = [];
   String(raw || "").split(/[\n;]+/).forEach(function (line) {
     var parts = line.split("|").map(function (x) { return x.trim(); });
     if (parts.length < 2 || !parts[0] || !/^[A-Za-z0-9_\-]+$/.test(parts[1])) return;
     if (out.some(function (p) { return p.projectUid === parts[1]; })) return;
-    out.push({ label: parts[0].slice(0, 80), projectUid: parts[1], priceListUid: /^[A-Za-z0-9_\-]+$/.test(parts[2] || "") ? parts[2] : "" });
+    var ok = function (v) { return /^[A-Za-z0-9_\-]+$/.test(v || "") ? v : ""; };
+    out.push({ label: parts[0].slice(0, 80), projectUid: parts[1], priceListUid: ok(parts[2]), netRateSchemeUid: ok(parts[3]) });
   });
   return out;
 }
@@ -141,10 +145,12 @@ function precalcProjects_() {
   return precalcParseProjects_(props.getProperty(sbx ? "PRECALC_PROJECTS_SANDBOX" : "PRECALC_PROJECTS"));
 }
 
-/** Quell-/Zielsprachen und Name eines Kalkulationsprojekts (1 h gecacht). */
+var PRECALC_INFO_CACHE_ = "precalc_proj_v2_";
+
+/** Quell-/Zielsprachen, Name, Preisliste und Net Rate Scheme eines Kalkulationsprojekts (1 h gecacht). */
 function precalcProjectInfo_(projectUid) {
   var cache = phraseScriptCache_();
-  var key = "precalc_proj_" + projectUid;
+  var key = PRECALC_INFO_CACHE_ + projectUid;
   var hit = cache.get(key);
   if (hit) { try { return JSON.parse(hit); } catch (e) {} }
   var p = precalcPhrase_("get", phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid)));
@@ -152,8 +158,18 @@ function precalcProjectInfo_(projectUid) {
     name: String(p.name || ""),
     sourceLang: String(p.sourceLang || ""),
     targetLangs: Array.isArray(p.targetLangs) ? p.targetLangs : [],
-    priceListUid: String((p.priceList && (p.priceList.uid || p.priceList.id)) || (p.financialSettings && p.financialSettings.priceList && (p.financialSettings.priceList.uid || p.financialSettings.priceList.id)) || "")
+    priceListUid: String((p.priceList && (p.priceList.uid || p.priceList.id)) || (p.financialSettings && p.financialSettings.priceList && (p.financialSettings.priceList.uid || p.financialSettings.priceList.id)) || ""),
+    netRateSchemeId: "", netRateSchemeUid: ""
   };
+  var nrs = p.netRateScheme || (p.financialSettings && p.financialSettings.netRateScheme) || null;
+  if (!nrs) {
+    try {
+      var fin = precalcPhrase_("get", phraseApiUrlV1_("/projects/" + encodeURIComponent(projectUid) + "/financialSettings")) || {};
+      nrs = fin.netRateScheme || (fin.financialSettings && fin.financialSettings.netRateScheme) || null;
+      if (!info.priceListUid && fin.priceList) info.priceListUid = String(fin.priceList.uid || fin.priceList.id || "");
+    } catch (e) { console.warn("Precalc: Financial Settings von " + projectUid + ": " + e.message); }
+  }
+  if (nrs) { info.netRateSchemeId = String(nrs.id || ""); info.netRateSchemeUid = String(nrs.uid || ""); }
   try { cache.put(key, JSON.stringify(info), 3600); } catch (e) {}
   return info;
 }
@@ -184,6 +200,54 @@ function precalcPriceListUid_(projectUid, configured) {
     if (own) return own;
   } catch (e) { console.warn("Precalc: Preisliste des Projekts: " + e.message); }
   return String(PropertiesService.getScriptProperties().getProperty("PRECALC_PRICE_LIST_UID") || "").trim();
+}
+
+/**
+ * Net Rate Scheme: aus PRECALC_PROJECTS, sonst das des Projekts, sonst
+ * PRECALC_NET_RATE_SCHEME_UID. -> {id, uid} oder null (dann Standard der Organisation).
+ * Die Analyse braucht die ID, die Quote die UID; fehlt eins, wird es in Phrase nachgeschlagen.
+ */
+function precalcNetRateScheme_(projectUid, configuredUid) {
+  var id = "", uid = String(configuredUid || "").trim();
+  if (!uid) {
+    try {
+      var info = precalcProjectInfo_(projectUid);
+      id = info.netRateSchemeId || "";
+      uid = info.netRateSchemeUid || "";
+    } catch (e) { console.warn("Precalc: Net Rate Scheme des Projekts: " + e.message); }
+  }
+  if (!id && !uid) uid = String(PropertiesService.getScriptProperties().getProperty("PRECALC_NET_RATE_SCHEME_UID") || "").trim();
+  if (!id && !uid) return null;
+  if (id && uid) return { id: id, uid: uid };
+  var n;
+  try {
+    n = precalcPhrase_("get", phraseApiUrlV1_("/netRateSchemes/" + encodeURIComponent(uid || id))) || {};
+  } catch (e) {
+    throw new Error("Net Rate Scheme " + (uid || id) + " not found in Phrase (check PRECALC_PROJECTS / PRECALC_NET_RATE_SCHEME_UID" +
+      (typeof sandboxActive_ === "function" && sandboxActive_() ? ", sandbox mode is on" : "") + "): " + e.message);
+  }
+  return { id: String(n.id || id), uid: String(n.uid || uid) };
+}
+
+/** Body fuer POST v2/analyses (Reine Funktion, getestet). */
+function precalcAnalyseBody_(id, jobUids, nrs) {
+  var body = {
+    jobs: (jobUids || []).map(function (u) { return { uid: u }; }),
+    type: "PreAnalyse",
+    name: "Precalc " + id,
+    includeFuzzyRepetitions: true, includeConfirmedSegments: true, includeNumbers: true,
+    includeLockedSegments: true, countSourceUnits: true, includeTransMemory: true,
+    analyzeByLanguage: true
+  };
+  if (nrs && nrs.id) body.netRateScheme = { id: String(nrs.id) };
+  return body;
+}
+
+/** Body fuer POST v2/quotes (Reine Funktion, getestet): Projekt, Analyse, Preisliste, Net Rate Scheme. */
+function precalcQuoteBody_(id, projectUid, analyseId, priceListUid, nrs) {
+  var body = { name: "Precalc " + id, project: { uid: projectUid }, analyse: { id: String(analyseId) }, priceList: { uid: priceListUid } };
+  if (nrs && nrs.uid) body.netRateScheme = { uid: String(nrs.uid) };
+  return body;
 }
 
 /** Nur die Kalkulations-Jobs loeschen (DELETE v1/projects/{uid}/jobs/batch?purge=true). */
@@ -273,7 +337,8 @@ function apiPrecalcStart(payload) {
   sh.appendRow([id, new Date(), caller, cfg.label, info.sourceLang, targetLangs.join(", "), "",
     "RUNNING", "", "", "", JSON.stringify(state), ""]);
   var rec = { rowNum: sh.getLastRow(), state: state };
-  var group = { fixedProject: true, projectUid: cfg.projectUid, priceListUid: cfg.priceListUid, langs: targetLangs, jobUids: [], asyncIds: [] };
+  var group = { fixedProject: true, projectUid: cfg.projectUid, priceListUid: cfg.priceListUid, netRateSchemeUid: cfg.netRateSchemeUid || "",
+    langs: targetLangs, jobUids: [], asyncIds: [] };
   state.groups.push(group);
 
   try {
@@ -326,14 +391,12 @@ function apiPrecalcPoll(id) {
       });
       if (!running) {
         st.groups.forEach(function (g) {
-          var res = precalcPhrase_("post", phraseApiUrlV2_("/analyses"), {
-            jobs: g.jobUids.map(function (u) { return { uid: u }; }),
-            type: "PreAnalyse",
-            name: "Precalc " + id,
-            includeFuzzyRepetitions: true, includeConfirmedSegments: true, includeNumbers: true,
-            includeLockedSegments: true, countSourceUnits: true, includeTransMemory: true,
-            analyzeByLanguage: true
-          });
+          if (!g.jobUids.length) throw new Error("Phrase created no jobs (check the target languages of the calculation project).");
+          g.nrs = precalcNetRateScheme_(g.projectUid, g.netRateSchemeUid);
+          var res;
+          try {
+            res = precalcPhrase_("post", phraseApiUrlV2_("/analyses"), precalcAnalyseBody_(id, g.jobUids, g.nrs));
+          } catch (e) { throw new Error("Create analysis: " + e.message); }
           var item = (res && (res.asyncRequests || res.analyses) || [])[0] || {};
           var an = item.analyse || {};
           g.analyseId = String(an.id || an.uid || "");
@@ -357,9 +420,10 @@ function apiPrecalcPoll(id) {
       st.groups.forEach(function (g) {
         var priceList = precalcPriceListUid_(g.projectUid, g.priceListUid);
         if (!priceList) throw new Error("No price list: add it to PRECALC_PROJECTS (Label|ProjectUID|PriceListUID) or set PRECALC_PRICE_LIST_UID.");
-        var q = precalcPhrase_("post", phraseApiUrlV2_("/quotes"), {
-          analyse: { id: g.analyseId }, priceList: { uid: priceList }, name: "Precalc " + id
-        });
+        var q;
+        try {
+          q = precalcPhrase_("post", phraseApiUrlV2_("/quotes"), precalcQuoteBody_(id, g.projectUid, g.analyseId, priceList, g.nrs));
+        } catch (e) { throw new Error("Create quote (price list " + priceList + (g.nrs ? ", net rate scheme " + g.nrs.uid : "") + "): " + e.message); }
         g.quote = { totalPrice: Number(q.totalPrice) || 0, currency: String(q.currency || (q.priceList && q.priceList.currencyCode) || "") };
         quotes.push(g.quote);
         try {
@@ -433,9 +497,14 @@ function apiPrecalcHistory() {
 /** Reine Funktion (getestet): Zeilen aus dem Editor -> Property-Text. */
 function precalcProjectsToProperty_(rows) {
   var clean = precalcParseProjects_((rows || []).map(function (r) {
-    return [String(r.label || "").replace(/[|;\n]/g, " ").trim(), String(r.projectUid || "").trim(), String(r.priceListUid || "").trim()].join("|");
+    return [String(r.label || "").replace(/[|;\n]/g, " ").trim(), String(r.projectUid || "").trim(), String(r.priceListUid || "").trim(),
+      String(r.netRateSchemeUid || "").trim()].join("|");
   }).join("\n"));
-  return clean.map(function (p) { return [p.label, p.projectUid, p.priceListUid].filter(Boolean).join("|"); }).join("\n");
+  return clean.map(function (p) {
+    var parts = [p.label, p.projectUid, p.priceListUid, p.netRateSchemeUid];
+    while (parts.length > 2 && !parts[parts.length - 1]) parts.pop();
+    return parts.join("|");
+  }).join("\n");
 }
 
 function apiGetPrecalcProjectsConfig() {
@@ -453,8 +522,11 @@ function apiSavePrecalcProjects(rows) {
   var errors = [];
   var cache = phraseScriptCache_();
   list.forEach(function (p) {
-    cache.remove("precalc_proj_" + p.projectUid);
+    cache.remove(PRECALC_INFO_CACHE_ + p.projectUid);
     try { precalcProjectInfo_(p.projectUid); } catch (e) { errors.push(p.label + " (" + p.projectUid + "): " + e.message); }
+    if (p.netRateSchemeUid) {
+      try { precalcNetRateScheme_(p.projectUid, p.netRateSchemeUid); } catch (e) { errors.push(p.label + ": " + e.message); }
+    }
   });
   if (errors.length) return { success: false, error: errors.join("\n") };
   var key = (typeof sandboxActive_ === "function" && sandboxActive_()) ? "PRECALC_PROJECTS_SANDBOX" : "PRECALC_PROJECTS";

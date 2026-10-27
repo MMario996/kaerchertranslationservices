@@ -59,8 +59,17 @@ function getPhraseToken_() {
   return token;
 }
 
+/** Reine Funktion (getestet): Token -> Authorization-Header. Ein schon mitkopiertes
+ *  "Bearer " bzw. "ApiToken " (Token aus auth/login) wird uebernommen statt verdoppelt. */
+function phraseAuthHeaderFor_(token) {
+  var t = String(token || "").trim();
+  var m = /^(bearer|apitoken)\s+(\S+)$/i.exec(t);
+  if (m) return (m[1].toLowerCase() === "apitoken" ? "ApiToken " : "Bearer ") + m[2];
+  return "Bearer " + t;
+}
+
 function getPhraseAuthHeader_() {
-  return "Bearer " + getPhraseToken_();
+  return phraseAuthHeaderFor_(getPhraseToken_());
 }
 
 /**

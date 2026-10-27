@@ -428,14 +428,14 @@ function mktPrecalcForm_() {
 function mktPrecalcConfig_() {
   google.script.run.withSuccessHandler(res => {
     if (!res || !res.success) { mktErr_(res); return; }
-    const rows = (res.projects || []).length ? res.projects : [{ label: '', projectUid: '', priceListUid: '' }];
+    const rows = (res.projects || []).length ? res.projects : [{ label: '', projectUid: '', priceListUid: '', netRateSchemeUid: '' }];
     const ov = mktOverlay_('<h3><span class="material-icons-outlined">settings</span>' + mktEsc_(tr_('mk_pc_config', 'Manage calculation projects')) + (res.sandbox ? ' (Sandbox)' : '') + '</h3>' +
-      '<p class="mkt-hint">' + mktEsc_(tr_('mk_pc_config_hint', 'One fixed Phrase project per area (e.g. Home & Garden, Professional). Its translation memories and price list are used. Price list optional – otherwise the one of the project.')) + '</p>' +
+      '<p class="mkt-hint">' + mktEsc_(tr_('mk_pc_config_hint', 'One fixed Phrase project per area (e.g. Home & Garden, Professional). Its translation memories, price list and net rate scheme are used. Price list and net rate scheme optional – otherwise those of the project.')) + '</p>' +
       '<div id="mktPcCfgRows" style="display:grid;gap:8px;"></div>' +
       '<button type="button" class="mkt-chip" style="margin-top:10px;" onclick="mktPrecalcCfgAdd_()">+ ' + mktEsc_(tr_('mx_add', 'Add')) + '</button>' +
       '<div class="mkt-actions"><button type="button" class="btn btn-secondary" data-act="cancel">' + mktEsc_(tr_('btn_cancel', 'Cancel')) + '</button>' +
       '<button type="button" class="btn btn-primary" data-act="save">' + mktEsc_(tr_('btn_save', 'Save')) + '</button></div>');
-    ov.querySelector('.mkt-box').style.width = '760px';
+    ov.querySelector('.mkt-box').style.width = '960px';
     mkt_.pcCfgRows = rows.map(r => Object.assign({}, r));
     mktPrecalcCfgPaint_();
     ov.querySelector('[data-act=cancel]').onclick = () => ov.remove();
@@ -456,14 +456,14 @@ function mktPrecalcConfig_() {
 }
 
 function mktPrecalcCfgPaint_() {
-  const ph = [tr_('mk_pc_cfg_label', 'Area, e.g. Home & Garden'), tr_('mk_pc_cfg_uid', 'Phrase project UID'), tr_('mk_pc_cfg_pl', 'Price list UID (optional)')];
+  const ph = [tr_('mk_pc_cfg_label', 'Area, e.g. Home & Garden'), tr_('mk_pc_cfg_uid', 'Phrase project UID'), tr_('mk_pc_cfg_pl', 'Price list UID (optional)'), tr_('mk_pc_cfg_nrs', 'Net rate scheme UID (optional)')];
   document.getElementById('mktPcCfgRows').innerHTML = mkt_.pcCfgRows.map((r, i) =>
-    '<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 34px;gap:8px;align-items:center;">' +
-    ['label', 'projectUid', 'priceListUid'].map((k, j) => '<input type="text" value="' + mktEsc_(r[k] || '') + '" placeholder="' + mktEsc_(ph[j]) + '" oninput="mkt_.pcCfgRows[' + i + '].' + k + '=this.value">').join('') +
+    '<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 34px;gap:8px;align-items:center;">' +
+    ['label', 'projectUid', 'priceListUid', 'netRateSchemeUid'].map((k, j) => '<input type="text" value="' + mktEsc_(r[k] || '') + '" placeholder="' + mktEsc_(ph[j]) + '" oninput="mkt_.pcCfgRows[' + i + '].' + k + '=this.value">').join('') +
     '<button type="button" class="mkt-chip" title="' + mktEsc_(tr_('btn_cancel', 'Remove')) + '" onclick="mkt_.pcCfgRows.splice(' + i + ',1);mktPrecalcCfgPaint_()">×</button></div>').join('');
 }
 
-function mktPrecalcCfgAdd_() { mkt_.pcCfgRows.push({ label: '', projectUid: '', priceListUid: '' }); mktPrecalcCfgPaint_(); }
+function mktPrecalcCfgAdd_() { mkt_.pcCfgRows.push({ label: '', projectUid: '', priceListUid: '', netRateSchemeUid: '' }); mktPrecalcCfgPaint_(); }
 
 function mktPrecalcArea_() {
   const sel = document.getElementById('mktPcArea');

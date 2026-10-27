@@ -111,14 +111,19 @@ JWT (ca. 4 h gültig, gecacht) getauscht und als `Bearer` gesendet. Klassische S
   wieder gelöscht (`purge=true`, nur diese Jobs). Übrig bleibt nur der Betrag (Sheet `Precalc_Log`).
   Projekte hinterlegen: als Admin im Reiter selbst („Kalkulationsprojekte verwalten“, prüft jede UID
   in Phrase) oder per Script Property `PRECALC_PROJECTS`, z. B.
-  `Home & Garden|<Projekt-UID>; Professional|<Projekt-UID>|<Preislisten-UID>` (Sandbox:
+  `Home & Garden|<Projekt-UID>; Professional|<Projekt-UID>|<Preislisten-UID>|<Net-Rate-Scheme-UID>` (Sandbox:
   `PRECALC_PROJECTS_SANDBOX`). Preisliste: aus dem Eintrag, sonst die des Projekts, sonst
-  `PRECALC_PRICE_LIST_UID`. Abschaltbar mit `PRECALC_ENABLED=false`. In den Kalkulationsprojekten
+  `PRECALC_PRICE_LIST_UID`. Net Rate Scheme (für Analyse und Quote): aus dem Eintrag, sonst das des
+  Projekts, sonst `PRECALC_NET_RATE_SCHEME_UID`, sonst der Standard der Organisation. Abschaltbar mit `PRECALC_ENABLED=false`. In den Kalkulationsprojekten
   keine automatische Provider-Zuweisung einstellen.
 - **Maximaltemplate** im Vorlagen-Dropdown (Bereiche: `MAXTPL_PORTALS`, Standard `marketing`):
-  Basis-Vorlage + alles einstellbar. Prompts aus dem Sheet `Prompt_Hub`
-  (Name | Prompt | Template UIDs | Link | Active), Link zum Hub: `PROMPT_HUB_URL`, Ziel-Feld in
-  Phrase: `MAXTPL_PROMPT_FIELD` (Standard „AI Prompt“, sonst Projektnotiz).
+  Basis-Vorlage + alles einstellbar; der Dialog füllt fast den ganzen Bildschirm, zeigt alle Angaben
+  der Basis-Vorlage und kann alle Phrase-Projektvorlagen durchsuchen (alle Filter von
+  `GET v1/projectTemplates`). Prompts aus dem Sheet `Prompt_Hub`
+  (Name | Prompt | Template UIDs oder Vorlagennamen | Link | Active), Link zum Hub: `PROMPT_HUB_URL`, Ziel-Feld in
+  Phrase: `MAXTPL_PROMPT_FIELD` (Standard „AI Prompt“, sonst Projektnotiz). Der mit der Vorlage
+  verknüpfte Prompt (dieses Custom Field an der Vorlage – Prompt-Name, Link oder Text – oder ein
+  Hub-Eintrag, der die Vorlage nennt) wird vollständig angezeigt und vorbelegt.
 
 ## Urlaubsvertretung
 

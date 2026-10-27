@@ -12,8 +12,8 @@ let maxTplDlg_ = null;   // offener Dialog: { suffix, opts, s (Entwurf), sec }
   const st = document.createElement('style');
   st.id = 'maxTplCss';
   st.textContent = [
-    '.mx-ov { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:6100; display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; }',
-    '.mx-box { background:var(--k-surface,#fff); width:min(1400px, 100%); height:min(92vh, 1000px); display:flex; flex-direction:column; border-top:6px solid var(--primary-yellow); border-radius:var(--kg-r-lg,18px); box-shadow:var(--kg-elev-hi,0 10px 30px rgba(0,0,0,.25)); overflow:hidden; }',
+    '.mx-ov { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:6100; display:flex; align-items:center; justify-content:center; padding:8px; box-sizing:border-box; }',
+    '.mx-box { background:var(--k-surface,#fff); width:100%; height:100%; display:flex; flex-direction:column; border-top:6px solid var(--primary-yellow); border-radius:var(--kg-r-lg,18px); box-shadow:var(--kg-elev-hi,0 10px 30px rgba(0,0,0,.25)); overflow:hidden; }',
     '.mx-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:16px 22px; border-bottom:1px solid var(--k-line,#e8e8e4); }',
     '.mx-head h3 { margin:0; font-size:17px; font-weight:800; text-transform:uppercase; display:flex; gap:8px; align-items:center; }',
     '.mx-x { background:none; border:none; cursor:pointer; padding:6px; }',
@@ -51,7 +51,17 @@ let maxTplDlg_ = null;   // offener Dialog: { suffix, opts, s (Entwurf), sec }
     '.mx-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; font-size:13px; }',
     '.mx-row .name { flex:1; min-width:160px; font-weight:700; }',
     '.mx-row input[type=number] { width:70px; }',
-    '.mx-prompt { min-height:220px; font-family:monospace; font-size:12.5px; }',
+    '.mx-prompt { min-height:320px; font-family:monospace; font-size:12.5px; }',
+    '.mx-info { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px 16px; padding:12px 14px; border:1px solid var(--k-line,#e8e8e4); border-radius:10px; background:var(--k-surface-2,#f7f7f5); margin-bottom:16px; font-size:12.5px; }',
+    '.mx-info .k { display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--k-ink-2,#666); }',
+    '.mx-info .v { word-break:break-word; }',
+    '.mx-info .wide { grid-column:1 / -1; }',
+    '.mx-pre { white-space:pre-wrap; word-break:break-word; font-family:monospace; font-size:12.5px; max-height:340px; overflow:auto; margin:8px 0 0; padding:10px 12px; background:var(--k-surface,#fff); border:1px solid var(--k-line,#e8e8e4); border-radius:8px; color:var(--k-ink,#222); }',
+    '.mx-tb-filters { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:10px 14px; margin-bottom:10px; }',
+    '.mx-tb-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; font-size:12.5px; }',
+    '.mx-tb-bar .btn { width:auto; flex:0 0 auto; height:36px; padding:0 16px; }',
+    '.mx-table tr.sel td { background:rgba(255,237,0,.18); }',
+    '.mx-table td.mono { font-family:monospace; font-size:11.5px; }',
     '.mx-box-ok { background:#f1f8e9; color:#33691e; padding:8px 12px; border-radius:8px; font-size:12.5px; margin-bottom:12px; }',
     '.mx-foot { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:14px 22px; border-top:1px solid var(--k-line,#e8e8e4); flex-wrap:wrap; }',
     '.mx-foot .btn { width:auto; padding:0 24px; height:42px; flex:0 0 auto; }',
@@ -167,8 +177,8 @@ function maxTplApplyDefaults_(res) {
   s.tbs = (d.tbs || []).map(t => Object.assign({}, t));
   s.tmsOverride = false;
   s.tbsOverride = false;
-  s.prompt = res.templatePrompt ? res.templatePrompt.prompt : '';
-  s.promptName = res.templatePrompt ? res.templatePrompt.name : '';
+  s.prompt = res.templatePrompt ? res.templatePrompt.prompt || '' : '';
+  s.promptName = s.prompt ? res.templatePrompt.name : '';
   if (d.sourceLang) maxTplDlg_.sourceLang = String(d.sourceLang).toLowerCase();
   if (!maxTplDlg_.targetLangs.length) maxTplDlg_.targetLangs = (d.targetLangs || []).map(l => String(l).toLowerCase());
 }
@@ -202,10 +212,10 @@ function maxTplPaint_() {
 
 function maxTplSummary_() {
   const d = maxTplDlg_, s = d.s;
-  const base = maxTplBaseChoices_().filter(b => b.uid === s.baseTemplateUid)[0];
+  const baseLabel = s.baseTemplateUid ? maxTplBaseLabel_() : '';
   const nProv = Object.keys(s.providers).reduce((n, st) => n + Object.keys(s.providers[st]).length, 0);
   document.getElementById('mxSum').textContent = [
-    base ? base.label : tr_('mx_no_base', 'No base template'),
+    baseLabel || tr_('mx_no_base', 'No base template'),
     (d.sourceLang || '?') + ' → ' + (d.targetLangs.length ? d.targetLangs.length + ' ' + tr_('mx_langs', 'languages') : '?'),
     s.workflowSteps.length + ' ' + tr_('mx_steps', 'steps'),
     nProv + ' ' + tr_('mx_assignments', 'assignments'),
@@ -221,12 +231,140 @@ function maxTplSecBase_() {
   const langs = maxTplAllLangs_();
   return '<h4>' + mxEsc_(tr_('mx_sec_base', 'Base & languages')) + '</h4><p class="mx-hint">' + mxEsc_(tr_('mx_base_hint', 'The base template provides the defaults (workflow, TMs, termbases, MT, prompt). Everything can be changed in the other sections.')) + '</p>' +
     '<div class="mx-grid"><div class="mx-f" style="grid-column:1 / -1;"><label>' + mxEsc_(tr_('mx_base', 'Base template')) + ' *</label><select onchange="maxTplSetBase_(this.value)"><option value="">' + mxEsc_(tr_('opt_select_template', 'Select Template Type')) + '</option>' +
-    bases.map(b => '<option value="' + mxEsc_(b.uid) + '"' + (b.uid === s.baseTemplateUid ? ' selected' : '') + '>' + mxEsc_(b.label) + '</option>').join('') + '</select></div>' +
+    bases.map(b => '<option value="' + mxEsc_(b.uid) + '"' + (b.uid === s.baseTemplateUid ? ' selected' : '') + '>' + mxEsc_(b.label) + '</option>').join('') +
+    (s.baseTemplateUid && !bases.some(b => b.uid === s.baseTemplateUid) ? '<option value="' + mxEsc_(s.baseTemplateUid) + '" selected>' + mxEsc_(maxTplBaseLabel_() || s.baseTemplateUid) + '</option>' : '') + '</select></div>' +
     '<div class="mx-f"><label>' + mxEsc_(mxLbl_('lbl_source', 'Source language')) + ' *</label><select onchange="maxTplDlg_.sourceLang=this.value;maxTplSummary_()"><option value=""></option>' +
     langs.map(l => '<option value="' + mxEsc_(l) + '"' + (l === d.sourceLang ? ' selected' : '') + '>' + mxEsc_(getPrettyLangName(l)) + '</option>').join('') + '</select></div></div>' +
+    maxTplInfoHtml_() + maxTplLinkedPromptHtml_() +
     '<div class="mx-f"><label>' + mxEsc_(mxLbl_('lbl_target', 'Target languages')) + ' * <input type="search" placeholder="' + mxEsc_(tr_('ph_search_language', 'Search language...')) + '" oninput="maxTplFilterLangs_(this.value)" style="width:200px;margin-left:10px;text-transform:none;"></label>' +
     '<div class="mx-langs" id="mxLangs">' + langs.filter(l => l !== d.sourceLang).map(l => '<label data-l="' + mxEsc_(getPrettyLangName(l).toLowerCase() + ' ' + l) + '"><input type="checkbox" value="' + mxEsc_(l) + '"' + (d.targetLangs.indexOf(l) >= 0 ? ' checked' : '') +
-      ' onchange="maxTplToggleLang_(this.value, this.checked)"> ' + mxEsc_(getPrettyLangName(l)) + '</label>').join('') + '</div></div>';
+      ' onchange="maxTplToggleLang_(this.value, this.checked)"> ' + mxEsc_(getPrettyLangName(l)) + '</label>').join('') + '</div></div>' +
+    maxTplBrowserHtml_();
+}
+
+/** Alle Angaben der gewaehlten Basis-Vorlage aus Phrase (GET projectTemplates/{uid}). */
+function maxTplInfoHtml_() {
+  const o = (maxTplDlg_ && maxTplDlg_.opts) || {};
+  const i = o.defaults && o.defaults.info;
+  if (!i) return o.defaults && o.defaults.error ? '<p class="mx-hint" style="color:#b71c1c;">' + mxEsc_(o.defaults.error) + '</p>' : '';
+  const row = (k, v, wide) => v ? '<div' + (wide ? ' class="wide"' : '') + '><span class="k">' + mxEsc_(k) + '</span><span class="v">' + mxEsc_(v) + '</span></div>' : '';
+  return '<div class="mx-info">' +
+    row(tr_('mx_ti_name', 'Template name'), i.name) + row('UID', i.uid) + row('ID', i.id) +
+    row(mxLbl_('lbl_source', 'Source language'), i.sourceLang) +
+    row(mxLbl_('lbl_target', 'Target languages'), (i.targetLangs || []).join(', '), (i.targetLangs || []).length > 6) +
+    row('Client', i.client) + row('Business Unit', i.businessUnit) + row('Domain', i.domain) + row('Subdomain', i.subDomain) +
+    row('Cost Center', i.costCenter) + row(tr_('mx_ti_owner', 'Owner'), i.owner) + row(tr_('mx_ti_created_by', 'Created by'), i.createdBy) +
+    row(tr_('mx_ti_created', 'Created'), maxTplDate_(i.dateCreated)) +
+    row(tr_('mx_steps_t', 'Workflow'), (i.workflowSteps || []).join(' → ')) +
+    row(tr_('mx_ti_note', 'Note'), i.note, true) + '</div>';
+}
+
+function maxTplDate_(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+}
+
+/** Mit der Vorlage verknuepfter Prompt (Prompt-Hub oder Custom Field der Vorlage), voll angezeigt. */
+function maxTplLinkedPromptHtml_() {
+  const o = (maxTplDlg_ && maxTplDlg_.opts) || {};
+  const tp = o.templatePrompt;
+  if (!maxTplDlg_.s.baseTemplateUid) return '';
+  if (!tp) return '<p class="mx-hint">' + mxEsc_(tr_('mx_no_tpl_prompt', 'No prompt is stored for the base template in the Prompt Hub.')) + '</p>';
+  const used = tp.prompt && maxTplDlg_.s.prompt === tp.prompt;
+  const link = /^https:/i.test(tp.link || '') ? tp.link : '';
+  return '<div class="mx-box-ok"><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">bookmark</span> ' +
+    mxEsc_(tp.source === 'field' ? fmt_(tr_('mx_tpl_prompt_field', 'Prompt linked in the template (custom field "{f}"):'), { f: o.promptField || 'AI Prompt' }) : tr_('mx_tpl_prompt', 'Prompt stored for the base template:')) +
+    ' <b>' + mxEsc_(tp.name) + '</b> ' +
+    (tp.prompt ? '<button type="button" class="mx-mini" onclick="maxTplUsePrompt_(-1)"><span class="material-icons-outlined">' + (used ? 'check' : 'input') + '</span>' +
+      mxEsc_(used ? tr_('mx_prompt_used', 'In use') : tr_('mx_use_prompt', 'Use')) + '</button>' : '') +
+    (link ? ' <a href="' + mxEsc_(link) + '" target="_blank" rel="noopener" style="font-size:12.5px;">' + mxEsc_(tr_('mx_open_in_hub', 'Open in the Prompt Hub')) + '</a>' : '') +
+    (tp.prompt ? '<pre class="mx-pre">' + mxEsc_(tp.prompt) + '</pre>' : '') + '</div>';
+}
+
+// --- Phrase-Vorlagen durchsuchen (GET v1/projectTemplates, alle Filter der API) -------------
+const MX_TB_SORTS_ = ['dateCreated', 'templateName', 'clientName', 'businessUnitName', 'domainName', 'subdomainName', 'createdBy', 'owner', 'sourceLang'];
+
+function maxTplBrowserHtml_() {
+  const d = maxTplDlg_;
+  const b = d.tb = d.tb || { open: false, f: { sort: 'dateCreated', direction: 'desc', pageNumber: 0, pageSize: 50 }, res: null, busy: false };
+  let html = '<h4 style="margin-top:18px;display:flex;align-items:center;gap:8px;"><button type="button" class="mx-mini" onclick="maxTplDlg_.tb.open=!maxTplDlg_.tb.open;maxTplPaint_()">' +
+    '<span class="material-icons-outlined">' + (b.open ? 'expand_less' : 'expand_more') + '</span></button>' + mxEsc_(tr_('mx_tb_title', 'Browse Phrase project templates')) + '</h4>';
+  if (!b.open) return html + '<p class="mx-hint">' + mxEsc_(tr_('mx_tb_hint', 'Search all project templates in Phrase by name, client, domain, subdomain, cost center, business unit, owner, languages and creation date.')) + '</p>';
+  const f = b.f;
+  const inp = (k, label, ph, type) => '<div class="mx-f"><label>' + mxEsc_(label) + '</label><input type="' + (type || 'text') + '" value="' + mxEsc_(f[k] == null ? '' : f[k]) + '" placeholder="' + mxEsc_(ph || '') + '" ' +
+    'oninput="maxTplDlg_.tb.f.' + k + '=this.value" onkeydown="if(event.key===\'Enter\'){event.preventDefault();maxTplTbSearch_(0);}"></div>';
+  html += '<div class="mx-tb-filters">' +
+    inp('name', tr_('mx_ti_name', 'Template name'), tr_('mx_tb_part', 'full or partial')) +
+    inp('clientName', 'Client', tr_('mx_tb_part', 'full or partial')) + inp('clientId', 'Client ID', '123', 'number') +
+    inp('domainName', 'Domain', tr_('mx_tb_part', 'full or partial')) + inp('subDomainName', 'Subdomain', tr_('mx_tb_part', 'full or partial')) +
+    inp('costCenterName', 'Cost Center', tr_('mx_tb_part', 'full or partial')) + inp('costCenterId', 'Cost Center ID', '123', 'number') +
+    inp('businessUnitName', 'Business Unit', tr_('mx_tb_part', 'full or partial')) +
+    inp('ownerUid', tr_('mx_ti_owner', 'Owner') + ' (UID)', '') + inp('createdByUid', tr_('mx_ti_created_by', 'Created by') + ' (UID)', '') +
+    inp('sourceLangs', mxLbl_('lbl_source', 'Source language'), 'en, de') + inp('targetLangs', mxLbl_('lbl_target', 'Target languages'), 'de_de, fr_fr') +
+    inp('createdInLastHours', tr_('mx_tb_hours', 'Created in the last hours'), '24', 'number') +
+    '<div class="mx-f"><label>' + mxEsc_(tr_('mx_tb_sort', 'Sort by')) + '</label><select onchange="maxTplDlg_.tb.f.sort=this.value">' +
+      MX_TB_SORTS_.map(x => '<option value="' + x + '"' + (f.sort === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div>' +
+    '<div class="mx-f"><label>' + mxEsc_(tr_('mx_tb_dir', 'Direction')) + '</label><select onchange="maxTplDlg_.tb.f.direction=this.value">' +
+      ['desc', 'asc'].map(x => '<option value="' + x + '"' + (f.direction === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div>' +
+    '<div class="mx-f"><label>' + mxEsc_(tr_('mx_tb_size', 'Page size')) + '</label><input type="number" min="1" max="50" value="' + mxEsc_(f.pageSize) + '" oninput="maxTplDlg_.tb.f.pageSize=this.value"></div>' +
+    '</div>';
+  const r = b.res;
+  html += '<div class="mx-tb-bar"><button type="button" class="btn btn-primary" onclick="maxTplTbSearch_(0)"' + (b.busy ? ' disabled' : '') + '><span class="material-icons-outlined" style="margin-right:6px;">search</span>' + mxEsc_(tr_('mx_tb_search', 'Search')) + '</button>' +
+    '<button type="button" class="btn btn-secondary" onclick="maxTplDlg_.tb.f={sort:\'dateCreated\',direction:\'desc\',pageNumber:0,pageSize:50};maxTplPaint_()">' + mxEsc_(tr_('mx_tb_reset', 'Reset')) + '</button>' +
+    (b.busy ? '<div class="loader" style="width:20px;height:20px;"></div>' : '') +
+    (r ? '<span>' + mxEsc_(fmt_(tr_('mx_tb_count', '{n} templates · page {p} of {t}'), { n: r.totalElements, p: (r.pageNumber || 0) + 1, t: Math.max(1, r.totalPages || 1) })) + '</span>' +
+      '<button type="button" class="mx-mini" onclick="maxTplTbSearch_(' + ((r.pageNumber || 0) - 1) + ')"' + ((r.pageNumber || 0) <= 0 ? ' disabled' : '') + '><span class="material-icons-outlined">chevron_left</span></button>' +
+      '<button type="button" class="mx-mini" onclick="maxTplTbSearch_(' + ((r.pageNumber || 0) + 1) + ')"' + ((r.pageNumber || 0) + 1 >= (r.totalPages || 1) ? ' disabled' : '') + '><span class="material-icons-outlined">chevron_right</span></button>' : '') +
+    '</div>';
+  if (r && !r.admin) html += '<p class="mx-hint">' + mxEsc_(tr_('mx_tb_only_visible', 'Only templates you may use in the portal are listed.')) + '</p>';
+  if (r && r.items) {
+    const cols = [tr_('mx_ti_name', 'Template name'), 'UID', mxLbl_('lbl_source', 'Source language'), mxLbl_('lbl_target', 'Target languages'), 'Client', 'Business Unit', 'Domain', 'Subdomain', 'Cost Center',
+      tr_('mx_ti_owner', 'Owner'), tr_('mx_ti_created_by', 'Created by'), tr_('mx_ti_created', 'Created'), ''];
+    html += '<div class="mx-table-wrap" style="max-height:460px;"><table class="mx-table"><thead><tr>' + cols.map(c => '<th>' + mxEsc_(c) + '</th>').join('') + '</tr></thead><tbody>' +
+      (r.items.length ? r.items.map((t, i) => '<tr class="' + (t.uid === d.s.baseTemplateUid ? 'sel' : '') + '"><td><b>' + mxEsc_(t.name) + '</b></td><td class="mono">' + mxEsc_(t.uid) + '</td><td>' + mxEsc_(t.sourceLang) + '</td>' +
+        '<td>' + mxEsc_((t.targetLangs || []).join(', ')) + '</td><td>' + mxEsc_(t.client) + '</td><td>' + mxEsc_(t.businessUnit) + '</td><td>' + mxEsc_(t.domain) + '</td><td>' + mxEsc_(t.subDomain) + '</td>' +
+        '<td>' + mxEsc_(t.costCenter) + '</td><td>' + mxEsc_(t.owner) + '</td><td>' + mxEsc_(t.createdBy) + '</td><td>' + mxEsc_(maxTplDate_(t.dateCreated)) + '</td>' +
+        '<td>' + (t.selectable ? '<button type="button" class="mx-mini" onclick="maxTplTbPick_(' + i + ')"><span class="material-icons-outlined">check</span>' + mxEsc_(tr_('mx_tb_pick', 'Use as base')) + '</button>'
+          : '<span class="mx-res-sub">' + mxEsc_(tr_('mx_tb_not_released', 'not released')) + '</span>') + '</td></tr>').join('')
+        : '<tr><td colspan="' + cols.length + '">' + mxEsc_(tr_('mx_tb_none', 'No templates found.')) + '</td></tr>') + '</tbody></table></div>';
+  }
+  return html;
+}
+
+function maxTplTbSearch_(page) {
+  const b = maxTplDlg_ && maxTplDlg_.tb;
+  if (!b) return;
+  b.f.pageNumber = Math.max(0, page || 0);
+  b.busy = true;
+  maxTplPaint_();
+  google.script.run.withSuccessHandler(res => {
+    if (!maxTplDlg_) return;
+    b.busy = false;
+    if (!res || !res.success) { showCustomAlert(mxEsc_((res && res.error) || 'Error'), tr_('jx_902b0d5', 'Error')); maxTplPaint_(); return; }
+    b.res = res;
+    maxTplPaint_();
+  }).withFailureHandler(err => {
+    b.busy = false;
+    showCustomAlert(mxEsc_(err && err.message ? err.message : err), tr_('jx_902b0d5', 'Error'));
+    maxTplPaint_();
+  }).apiMaxTplListTemplates(Object.assign({}, b.f));
+}
+
+function maxTplTbPick_(i) {
+  const t = maxTplDlg_.tb.res.items[i];
+  if (!t || !t.selectable) return;
+  maxTplDlg_.pickedLabel = t.name + (t.sourceLang ? ' (' + langShort_(t.sourceLang) + ')' : '');
+  maxTplSetBase_(t.uid);
+}
+
+/** Anzeigename der Basis-Vorlage (Portal-Liste, sonst aus Phrase). */
+function maxTplBaseLabel_() {
+  const d = maxTplDlg_;
+  const base = maxTplBaseChoices_().filter(b => b.uid === d.s.baseTemplateUid)[0];
+  if (base) return base.label;
+  const info = d.opts && d.opts.defaults && d.opts.defaults.info;
+  return (info && info.uid === d.s.baseTemplateUid && info.name) || d.pickedLabel || '';
 }
 
 function maxTplFilterLangs_(q) {
@@ -389,13 +527,11 @@ function maxTplSecAi_() {
   const d = maxTplDlg_, s = d.s, o = d.opts || {};
   const mts = (o.catalog && o.catalog.mtSettings) || [];
   const prompts = o.prompts || [];
-  const tp = o.templatePrompt;
   return '<h4>' + mxEsc_(tr_('mx_mt', 'Machine translation')) + '</h4><div class="mx-grid"><div class="mx-f"><label>' + mxEsc_(tr_('mx_mt_engine', 'MT setting')) + '</label><select onchange="maxTplDlg_.s.mtSettingsUid=this.value">' +
     '<option value="">' + mxEsc_(tr_('mx_from_template', '(as in template)')) + '</option>' +
     mts.map(m => '<option value="' + mxEsc_(m.uid) + '"' + (m.uid === s.mtSettingsUid ? ' selected' : '') + '>' + mxEsc_(m.name) + (m.type ? ' (' + mxEsc_(m.type) + ')' : '') + '</option>').join('') + '</select></div></div>' +
     '<h4>' + mxEsc_(tr_('mx_prompt', 'Prompt')) + '</h4>' +
-    (tp ? '<div class="mx-box-ok"><span class="material-icons-outlined" style="font-size:15px;vertical-align:-3px;">bookmark</span> ' + mxEsc_(tr_('mx_tpl_prompt', 'Prompt stored for the base template:')) + ' <b>' + mxEsc_(tp.name) + '</b> ' +
-      '<button type="button" class="mx-mini" onclick="maxTplUsePrompt_(-1)"><span class="material-icons-outlined">visibility</span>' + mxEsc_(tr_('mx_show_prompt', 'Show / use')) + '</button></div>' : '<p class="mx-hint">' + mxEsc_(tr_('mx_no_tpl_prompt', 'No prompt is stored for the base template in the Prompt Hub.')) + '</p>') +
+    (s.baseTemplateUid ? maxTplLinkedPromptHtml_() : '<p class="mx-hint">' + mxEsc_(tr_('mx_no_tpl_prompt', 'No prompt is stored for the base template in the Prompt Hub.')) + '</p>') +
     '<div class="mx-grid"><div class="mx-f"><label>' + mxEsc_(tr_('mx_prompt_hub', 'From the Prompt Hub')) + '</label><select onchange="if(this.value!==\'\')maxTplUsePrompt_(Number(this.value))"><option value="">-</option>' +
     prompts.map((p, i) => '<option value="' + i + '"' + (p.name === s.promptName ? ' selected' : '') + '>' + mxEsc_(p.name) + '</option>').join('') + '</select></div>' +
     '<div class="mx-f" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">' +
@@ -408,7 +544,7 @@ function maxTplSecAi_() {
 
 function maxTplPromptLink_() {
   const o = maxTplDlg_.opts || {};
-  const p = (o.prompts || []).filter(x => x.name === maxTplDlg_.s.promptName)[0];
+  const p = (o.prompts || []).concat(o.templatePrompt ? [o.templatePrompt] : []).filter(x => x.name === maxTplDlg_.s.promptName)[0];
   return p && /^https:/i.test(p.link) ? p.link : '';
 }
 
@@ -475,7 +611,8 @@ function maxTplApply_() {
     if (s.workflowSteps.indexOf(st) < 0) { delete s.providers[st]; return; }
     Object.keys(s.providers[st]).forEach(l => { if (d.targetLangs.indexOf(l) < 0) delete s.providers[st][l]; });
   });
-  const base = maxTplBaseChoices_().filter(b => b.uid === s.baseTemplateUid)[0];
+  const baseLabel = maxTplBaseLabel_();
+  const base = baseLabel ? { label: baseLabel } : null;
   const suffix = d.suffix;
   const name = (configData && configData.maxTemplateName) || 'Maximaltemplate';
   maxTpl_[suffix] = { settings: JSON.parse(JSON.stringify(s)), sourceLang: d.sourceLang, targetLangs: d.targetLangs.slice(), baseLabel: base ? base.label : '' };

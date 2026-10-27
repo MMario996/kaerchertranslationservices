@@ -723,6 +723,45 @@ test('Startseite ohne Schnellstart; Reiter heissen [AKW] PROJECTS usw.', async (
   await page.close();
 });
 
+test('Maximaltemplate: fast bildschirmfuellend, Vorlagen-Infos, verknuepfter Prompt, Phrase-Vorlagen durchsuchen', async () => {
+  const { page, errors } = await openApp(null, `{
+    apiMaxTplOptions: (uid) => ({ success: true,
+      catalog: { workflowSteps: [{ id: 's1', name: 'Translation', order: 1 }], clients: [], businessUnits: [], domains: [], subDomains: [], costCenters: [], mtSettings: [] },
+      defaults: uid ? { uid: uid, name: uid === 'P9' ? 'GUI02' : 'Flyer', sourceLang: 'en', targetLangs: ['de_de'], workflowSteps: ['s1'], tms: [], tbs: [],
+        info: { uid: uid, id: '5', name: uid === 'P9' ? 'GUI02' : 'Flyer', sourceLang: 'en', targetLangs: ['de_de'], client: 'KAG', domain: 'Marketing', subDomain: 'Web',
+          costCenter: 'CC1', businessUnit: 'HC', owner: 'A B (ab)', createdBy: 'cd', dateCreated: '2026-01-01T00:00:00Z', note: 'Notiz', workflowSteps: ['Translation'] } } : null,
+      prompts: [], templatePrompt: uid ? { name: 'AI Prompt', prompt: 'Schreibe locker und kurz.', templateUids: [], link: '', source: 'field' } : null,
+      promptHubUrl: '', promptField: 'AI Prompt' }),
+    apiMaxTplListTemplates: (f) => ({ success: true, admin: true, pageNumber: f.pageNumber, pageSize: 50, totalPages: 1, totalElements: 1,
+      items: [{ uid: 'P9', id: '9', name: 'GUI02', sourceLang: 'en', targetLangs: ['de_de', 'fr_fr'], client: 'KAG', businessUnit: 'HC', domain: 'Marketing',
+        subDomain: 'Web', costCenter: 'CC1', owner: 'A B (ab)', createdBy: 'cd', dateCreated: '2026-01-01T00:00:00Z', selectable: true }] })
+  }`, { configPatch: MKT_CONFIG });
+  await page.evaluate(() => switchTab('marketing'));
+  await page.click('#tmplTrigger_marketing');
+  await page.locator('#tmplOptionsList_marketing .tmpl-option-max').click();
+  await page.waitForSelector('#maxTplOverlay .mx-body select');
+  const box = await page.locator('#maxTplOverlay .mx-box').boundingBox();
+  const vp = page.viewportSize();
+  assert.ok(box.width >= vp.width - 20 && box.height >= vp.height - 20, 'Dialog fuellt fast den ganzen Bildschirm');
+  await page.locator('#maxTplOverlay .mx-body select').first().selectOption('T1');
+  await page.waitForSelector('#maxTplOverlay .mx-info');
+  const base = await page.locator('#mxBody').innerText();
+  assert.match(base, /KAG/);
+  assert.match(base, /CC1/);
+  assert.match(base, /Schreibe locker und kurz\./, 'Prompt wird angezeigt');
+  // Phrase-Vorlagen durchsuchen und als Basis waehlen
+  await page.evaluate(() => { maxTplDlg_.tb = null; maxTplPaint_(); maxTplDlg_.tb.open = true; maxTplDlg_.tb.f.clientName = 'KAG'; maxTplPaint_(); maxTplTbSearch_(0); });
+  await page.waitForSelector('#mxBody .mx-table tbody tr');
+  const call = await page.evaluate(() => window.__calls.find((c) => c.fn === 'apiMaxTplListTemplates').args[0]);
+  assert.equal(call.clientName, 'KAG');
+  assert.equal(call.sort, 'dateCreated');
+  if (process.env.MX_SHOT) { await page.evaluate(() => { document.getElementById('mxBody').scrollTop = 1e6; }); await page.screenshot({ path: process.env.MX_SHOT }); }
+  await page.evaluate(() => maxTplTbPick_(0));
+  await page.waitForFunction(() => maxTplDlg_ && maxTplDlg_.s.baseTemplateUid === 'P9' && document.querySelector('#mxSum').textContent.includes('GUI02'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
 test('Maximaltemplate: Admin-Regeln - nur freigegebene Basis-Vorlagen, weitere Einstellungen landen in maxSettings.extra', async () => {
   const { page, errors } = await openApp(null, `{
     apiMaxTplOptions: (uid) => ({ success: true,

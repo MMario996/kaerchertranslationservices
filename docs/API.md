@@ -332,6 +332,7 @@ gehört.
 | `apiPrecalcStart({calcProjectUid, targetLangs, mainFiles})` / `apiPrecalcPoll(id)` / `apiPrecalcCancel(id)` | Marketing, Consultant, Vertretung | Vorab-Kalkulation im festen Projekt (Jobs hochladen → Analyse → Quote → nur diese Jobs löschen) → `{ phase, amount, currency, words }` |
 | `apiPrecalcHistory()` | angemeldet | letzte Kalkulationen (eigene; Consultants alle) |
 | `apiMaxTplOptions(baseTemplateUid)` | Marketing, Consultant | Kataloge (Workflow-Schritte, Client/BU/Domain/Subdomain/Cost Center, MT) nach Admin-Regeln gefiltert, Standardwerte der Basis-Vorlage, Prompt-Hub, `rules` (freigegebene Listen und weitere Phrase-Einstellungen) |
+| `apiMaxTplListTemplates(filters)` | Marketing, Consultant | Phrase-Projektvorlagen über `GET v1/projectTemplates` mit allen Filtern (`name`, `clientId`, `clientName`, `ownerUid`, `createdByUid`, `domainName`, `subDomainName`, `costCenterId`, `costCenterName`, `businessUnitName`, `sourceLangs`, `targetLangs`, `createdInLastHours`, `sort`, `direction`, `pageNumber`, `pageSize` ≤ 50); Nicht-Admins nur die im Portal sichtbaren, `selectable` = als Basis freigegeben |
 | `apiMaxTplSearch(kind, query, unrestricted)` | Marketing, Consultant | `users`, `vendors`, `tms`, `tbs` nach Namen; bei eingeschraenkter Liste nur die freigegebenen Eintraege (`unrestricted` nur fuer Admins) |
 | `apiMaxTplAdminLoad()` | Admin | Maximaltemplate-Regeln (MaxTemplateAdmin.gs) mit allen Katalogen zum Freigeben |
 | `apiMaxTplAdminSave(cfg)` | Admin | Regeln speichern (Sheet `MaxTemplate_Config`) |

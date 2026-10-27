@@ -71,7 +71,8 @@ test('Consulting: Historie passt in eine Sheet-Zelle, erster Eintrag bleibt', ()
 
 test('Vorab-Kalkulation: Gruppen, Async-Status, Woerter, Summe', () => {
   assert.deepEqual(plain(ctx.precalcParseProjects_('Home & Garden|aB1\n Professional | xY2 | pl9 ; kaputt ; Doppelt|aB1; Leer|')),
-    [{ label: 'Home & Garden', projectUid: 'aB1', priceListUid: '' }, { label: 'Professional', projectUid: 'xY2', priceListUid: 'pl9' }]);
+    [{ label: 'Home & Garden', projectUid: 'aB1', priceListUid: '', netRateSchemeUid: '' }, { label: 'Professional', projectUid: 'xY2', priceListUid: 'pl9', netRateSchemeUid: '' }]);
+  assert.equal(ctx.precalcParseProjects_('A|p1||nrs7')[0].netRateSchemeUid, 'nrs7');
   assert.equal(ctx.precalcJobFileName_('P-1', 'a/b:c.docx'), 'PRECALC-P-1-a_b_c.docx');
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: null }), 'running');
   assert.equal(ctx.precalcAsyncState_({ asyncResponse: { dateCreated: 'x' } }), 'ok');
@@ -121,6 +122,38 @@ test('Maximaltemplate: Prompt-Hub', () => {
   assert.deepEqual(hub.prompts.map((p) => p.name), ['Marketing DE', 'Allgemein']);
   assert.equal(hub.forTemplate.name, 'Marketing DE');
   assert.equal(ctx.maxTplParsePromptHub_(rows, 'T9').forTemplate, null);
+  // Spalte C darf auch den Vorlagennamen enthalten.
+  const byName = [rows[0], ['Flyer', 'Kurz.', 'Flyer DE [en], T7', '', 'yes']];
+  assert.equal(ctx.maxTplParsePromptHub_(byName, 'Tx', 'flyer de [en]').forTemplate.name, 'Flyer');
+});
+
+test('Maximaltemplate: verknuepfter Prompt (Custom Field der Vorlage oder Prompt-Hub)', () => {
+  const prompts = [{ name: 'Marketing DE', prompt: 'Du bist Texter.', link: 'https://hub/1', templateUids: [] }];
+  assert.equal(ctx.maxTplLinkedPrompt_('marketing de', 'AI Prompt', prompts, null).prompt, 'Du bist Texter.', 'Name aus dem Hub');
+  assert.equal(ctx.maxTplLinkedPrompt_('https://hub/1', 'AI Prompt', prompts, null).name, 'Marketing DE', 'Link aus dem Hub');
+  assert.deepEqual(plain(ctx.maxTplLinkedPrompt_('Schreibe locker.', 'AI Prompt', prompts, null)),
+    { name: 'AI Prompt', prompt: 'Schreibe locker.', templateUids: [], link: '', source: 'field' });
+  assert.equal(ctx.maxTplLinkedPrompt_('https://other/x', 'AI Prompt', prompts, null).link, 'https://other/x');
+  assert.equal(ctx.maxTplLinkedPrompt_('', 'AI Prompt', prompts, prompts[0]).source, 'hub');
+  assert.equal(ctx.maxTplLinkedPrompt_('', 'AI Prompt', prompts, null), null);
+});
+
+test('Maximaltemplate: Vorlagen-Suche (alle Filter von GET projectTemplates)', () => {
+  const q = ctx.maxTplTemplatesQuery_({ name: 'GUI 02', clientName: 'Kä', clientId: '12', costCenterId: 'x', ownerUid: 'u-1', createdByUid: 'bad uid',
+    domainName: 'Mkt', subDomainName: 'Web', costCenterName: 'CC', businessUnitName: 'BU', sourceLangs: 'en, de', targetLangs: ['de_de', '<x>'],
+    createdInLastHours: '24', sort: 'clientName', direction: 'asc', pageNumber: 2, pageSize: 500 });
+  assert.equal(q, 'name=GUI%2002&clientName=K%C3%A4&domainName=Mkt&subDomainName=Web&costCenterName=CC&businessUnitName=BU&ownerUid=u-1&clientId=12' +
+    '&sourceLangs=en&sourceLangs=de&targetLangs=de_de&createdInLastHours=24&sort=clientName&direction=asc&pageNumber=2&pageSize=50');
+  assert.equal(ctx.maxTplTemplatesQuery_({ sort: 'evil' }), 'sort=dateCreated&direction=desc&pageNumber=0&pageSize=50');
+  const t = plain(ctx.maxTplMapTemplate_({ uid: 'U1', id: 5, templateName: 'GUI02', sourceLang: 'en', targetLangs: ['de_de'],
+    client: { name: 'KAG' }, domain: { name: 'Marketing' }, owner: { firstName: 'A', lastName: 'B', userName: 'ab' }, createdBy: { userName: 'cd' },
+    dateCreated: '2026-01-01T00:00:00Z', workflowSteps: [{ workflowStep: { name: 'Translation' } }] }));
+  assert.equal(t.name, 'GUI02');
+  assert.equal(t.client, 'KAG');
+  assert.equal(t.owner, 'A B (ab)');
+  assert.equal(t.createdBy, 'cd');
+  assert.deepEqual(t.workflowSteps, ['Translation']);
+  assert.equal(ctx.maxTplMapTemplate_({}), null);
 });
 
 test('Meine Projekte: "Projekt **geteilt** von" fett und escaped', () => {
@@ -180,6 +213,17 @@ test('Kalkulationsprojekte: Editor-Zeilen werden sauber gespeichert', () => {
     { label: '', projectUid: 'leer' },
     { label: 'Doppelt', projectUid: 'aB1' }
   ]), 'Home & Garden|aB1\nPro fessional  X|xY2|pl9');
+  assert.equal(ctx.precalcProjectsToProperty_([{ label: 'A', projectUid: 'p1', priceListUid: '', netRateSchemeUid: 'n1' }]), 'A|p1||n1');
+});
+
+test('Vorab-Kalkulation: Analyse- und Quote-Body mit Net Rate Scheme und Projekt', () => {
+  const a = plain(ctx.precalcAnalyseBody_('P-1', ['j1', 'j2'], { id: '232', uid: 'nU' }));
+  assert.deepEqual(a.jobs, [{ uid: 'j1' }, { uid: 'j2' }]);
+  assert.deepEqual(a.netRateScheme, { id: '232' });
+  assert.equal(plain(ctx.precalcAnalyseBody_('P-1', ['j1'], null)).netRateScheme, undefined);
+  assert.deepEqual(plain(ctx.precalcQuoteBody_('P-1', 'proj', 77, 'pl', { id: '232', uid: 'nU' })),
+    { name: 'Precalc P-1', project: { uid: 'proj' }, analyse: { id: '77' }, priceList: { uid: 'pl' }, netRateScheme: { uid: 'nU' } });
+  assert.equal(plain(ctx.precalcQuoteBody_('P-1', 'proj', 77, 'pl', null)).netRateScheme, undefined);
 });
 
 test('Vertretungsgruppen: bereinigen (Name Pflicht, gueltige E-Mails, keine Doppelten)', () => {

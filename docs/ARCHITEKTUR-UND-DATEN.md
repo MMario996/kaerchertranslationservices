@@ -186,8 +186,8 @@ Als „erledigt“ gelten `COMPLETED`, `DELIVERED`, `NOTIFIED`.
 | `TERMBASE_UID` | Termbase für `/termsearch` |
 | `PHRASE_SANDBOX_API_TOKEN`, `PHRASE_SANDBOX_BASE_URL`, `SANDBOX_TEMPLATE_SHEET`, `SANDBOX_OPS_SHEET_ID`, `PHRASE_SANDBOX_CF_PROJECT_CREATOR_UID`, dynamisch `SANDBOX_ON__<email>` | Admin-Sandbox (`Sandbox.gs`) |
 | `CONSULTING_FOLDER_ID` | Drive-Ordner für Consulting-Anfragen (wird beim ersten Mal angelegt) |
-| `PRECALC_PROJECTS`, `PRECALC_PROJECTS_SANDBOX` | Vorab-Kalkulation: feste Kalkulationsprojekte `Bezeichnung\|Projekt-UID[\|Preislisten-UID]`, getrennt durch `;` oder Zeilenumbruch |
-| `PRECALC_PRICE_LIST_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Rückfall-Preisliste der Quote, `false` = aus |
+| `PRECALC_PROJECTS`, `PRECALC_PROJECTS_SANDBOX` | Vorab-Kalkulation: feste Kalkulationsprojekte `Bezeichnung\|Projekt-UID[\|Preislisten-UID[\|Net-Rate-Scheme-UID]]`, getrennt durch `;` oder Zeilenumbruch |
+| `PRECALC_PRICE_LIST_UID`, `PRECALC_NET_RATE_SCHEME_UID`, `PRECALC_ENABLED` | Vorab-Kalkulation: Rückfall-Preisliste und -Net-Rate-Scheme für Analyse/Quote, `false` = aus |
 | `PROMPT_HUB_URL`, `MAXTPL_PROMPT_FIELD`, `MAXTPL_PORTALS` | Maximaltemplate: Link zum Prompt-Hub, Custom Field für den Prompt (Standard `AI Prompt`), Bereiche (Standard `marketing`) |
 | dynamisch: `CHAT_USER_MAP__<email>`, `CHAT_NOTIFIED__<uid>`, `CHAT_PREF_ON__<email>`, `oauth2.*`, `Cal_*` | Laufzeitdaten |
 
