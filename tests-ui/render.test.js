@@ -387,7 +387,9 @@ const MGR_MOCKS = `{
   apiBatchSetTemplateActive: { success: true, changed: 2 },
   apiGetTemplateDetail: (uid) => ({ success: true, template: { uid, displayName: 'Orphan', phraseName: 'X', active: false, client: 'KAG', domain: '', subDomain: 'Web', businessUnit: 'PC' },
     missing: ['Domain'], visibleUsers: [], projects: [] }),
-  apiSetTemplateDisplayName: (uid, name) => ({ success: true, displayName: name })
+  apiSetTemplateDisplayName: (uid, name) => ({ success: true, displayName: name }),
+  apiRenameTemplate: (uid, name, alsoDisplay) => ({ success: true, phraseName: name, displayName: alsoDisplay ? name : 'Orphan', oldName: 'X' }),
+  apiCopyUserFromExample: (from, names, areas) => ({ success: true, from, results: names.map((n) => ({ username: n, changed: [{ field: 'role' }] })), areaChanges: 0, errors: [] })
 }`;
 
 test('User Manager: Kennzahlen-Filter, Mehrfachbearbeitung und Detailansicht', async () => {
@@ -410,6 +412,12 @@ test('User Manager: Kennzahlen-Filter, Mehrfachbearbeitung und Detailansicht', a
   await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiBulkUpdateUserField'));
   const call = await page.evaluate(() => __calls.find((c) => c.fn === 'apiBulkUpdateUserField').args);
   assert.deepEqual(call, [['anna', 'cara'], 'businessUnit', 'HC', 'add']);
+  await page.fill('#umxCopyFrom', 'anna');
+  await page.evaluate(() => umxCopyFromExample_());
+  assert.match(await page.locator('#customDialogMessage').innerText(), /Business Unit: PC/);
+  await page.click('#customDialogConfirmBtn');
+  await page.waitForFunction(() => __calls.some((c) => c.fn === 'apiCopyUserFromExample'));
+  assert.deepEqual(await page.evaluate(() => __calls.find((c) => c.fn === 'apiCopyUserFromExample').args), ['anna', ['cara'], false]);
   await page.evaluate(() => umxOpenDetail_('anna@kaercher.com'));
   await page.waitForFunction(() => /Flyer 2026/.test(document.getElementById('mgrxPanel').innerText));
   assert.match(await page.locator('#mgrxPanel').innerText(), /Print/);
@@ -437,6 +445,13 @@ test('Template Manager: unsichtbare Templates finden, Mehrfach-Aktivieren, Anzei
   await page.fill('#tmxName', 'Orphan (neu)');
   await page.evaluate(() => tmxSaveName_('T2'));
   await page.waitForFunction(() => /Orphan \(neu\)/.test(document.querySelector('#tmplMgrTable tbody').innerText));
+  await page.evaluate(() => tmxOpenDetail_('T2'));
+  await page.waitForFunction(() => document.getElementById('tmxPhraseName'));
+  await page.fill('#tmxPhraseName', 'X renamed');
+  await page.check('#tmxRenameDisplay');
+  await page.evaluate(() => tmxRenamePhrase_('T2'));
+  await page.waitForFunction(() => /X renamed/.test(document.querySelector('#tmplMgrTable tbody').innerText));
+  assert.deepEqual(await page.evaluate(() => __calls.find((c) => c.fn === 'apiRenameTemplate').args), ['T2', 'X renamed', true]);
   assert.deepEqual(errors, []);
   await page.close();
 });

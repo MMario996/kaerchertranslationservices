@@ -176,6 +176,8 @@ function umxRenderBar_() {
       '<span class="mgrx-sep"></span>' +
       '<input type="text" id="umxCopyFrom" list="umxUserList" placeholder="' + escapeHtml(tr_('umx_copy_ph', 'Zuordnung übernehmen von …')) + '"><datalist id="umxUserList">' + userOpts + '</datalist>' +
       '<button type="button" class="mgrx-btn" onclick="umxCopySegmentation_()">' + escapeHtml(tr_('umx_copy', 'Übernehmen')) + '</button>' +
+      '<button type="button" class="mgrx-btn primary" onclick="umxCopyFromExample_()" title="' + escapeHtml(tr_('umx_copy_all_hint', 'Rolle, Segmentierung, Sprachen und Workflow-Schritte exakt wie beim Beispiel-User (live in Phrase)')) + '"><span class="material-icons-outlined">content_copy</span>' + escapeHtml(tr_('umx_copy_all', '1:1 übernehmen')) + '</button>' +
+      (canAccess ? '<label class="mgrx-area" style="font-size:12px;"><input type="checkbox" id="umxCopyAreas"> ' + escapeHtml(tr_('umx_copy_areas', 'inkl. Portal-Bereiche')) + '</label>' : '') +
       (canAccess ? '<span class="mgrx-sep"></span><select id="umxArea">' + MGRX_AREAS_.filter(a => a[0] !== 'light').map(a => '<option value="' + a[0] + '">' + escapeHtml(a[1]) + '</option>').join('') + '</select>' +
         '<button type="button" class="mgrx-btn" onclick="umxBulkAccess_(true)">' + escapeHtml(tr_('umx_grant', 'Zugriff geben')) + '</button>' +
         '<button type="button" class="mgrx-btn" onclick="umxBulkAccess_(false)">' + escapeHtml(tr_('umx_revoke', 'entziehen')) + '</button>' : '') +
@@ -246,6 +248,36 @@ function umxCopySegmentation_() {
       .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
       .apiCopyUserSegmentation(from, names);
   }, tr_('ax_cb4b782', 'Batch-Änderung'));
+}
+
+/** Ausgewaehlte Nutzer 1:1 wie den Beispiel-User einstellen (apiCopyUserFromExample). */
+function umxCopyFromExample_() {
+  const from = document.getElementById('umxCopyFrom').value.trim();
+  const src = _userMgrRows.find(r => r.username === from);
+  const names = umxSelectedUsernames_().filter(n => n !== from);
+  if (!src) { showCustomAlert(tr_('umx_pick_source', 'Bitte einen Nutzer aus der Liste wählen (Username).')); return; }
+  if (!names.length) { showCustomAlert(tr_('umx_need_targets', 'Bitte mindestens einen anderen Nutzer auswählen.')); return; }
+  const areasCb = document.getElementById('umxCopyAreas');
+  const withAreas = !!(areasCb && areasCb.checked);
+  const fields = [['role', 'Role'], ['clients', 'Clients'], ['domains', 'Domains'], ['subdomains', 'Subdomains'], ['businessUnit', 'Business Unit'],
+    ['sourceLangs', 'Source Langs'], ['targetLangs', 'Target Langs'], ['workflowSteps', 'Workflow Steps']];
+  const preview = fields.map(f => f[1] + ': ' + (src[f[0]] || '–')).join('\n');
+  const msg = tr_('umx_copy_all_confirm', 'Diese Werte 1:1 übernehmen (vorhandene Werte werden ersetzt):') + '\n\n' + preview +
+    (withAreas ? '\n' + tr_('umx_areas', 'Portal-Bereiche') + ': ' + (((umxInfo_(src) || {}).areas || []).filter(a => a !== 'admin' && a !== 'light').map(mgrxAreaLabel_).join(', ') || '–') : '') +
+    '\n\n' + from + ' → ' + names.length + ' ' + tr_('umx_users', 'Nutzer');
+  showCustomConfirm(msg, () => {
+    showToast_(tr_('mgr_saving', 'Saving to Phrase ...'), 'info');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.success === false) { showCustomAlert((res && res.error) ? escapeHtml(res.error) : (((res && res.errors) || []).map(escapeHtml).join('<br>') || 'Error'), tr_('ax_902b0d5', 'Error')); return; }
+        const n = (res.results || []).filter(x => x.changed.length).length;
+        showToast_('✓ ' + n + ' ' + tr_('umx_changed', 'Nutzer geändert'), 'ok');
+        if (res.errors && res.errors.length) showCustomAlert(res.errors.map(escapeHtml).join('<br>'), tr_('ax_a13fa15', 'Teilweise gespeichert'));
+        loadUserManager();
+      })
+      .withFailureHandler(err => showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error')))
+      .apiCopyUserFromExample(from, names, withAreas);
+  }, tr_('umx_copy_all', '1:1 übernehmen'));
 }
 
 function umxBulkAccess_(grant) {
@@ -458,6 +490,11 @@ function tmxRenderDetail_(d) {
       '<button type="button" class="mgrx-btn primary" onclick="tmxSaveName_(\'' + escapeJs(t.uid) + '\')">' + escapeHtml(tr_('tmx_save', 'Speichern')) + '</button></div>' +
       '<label class="mgrx-area" style="margin-top:8px;"><input type="checkbox"' + (t.active ? ' checked' : '') + ' onchange="tmxSetActive_(\'' + escapeJs(t.uid) + '\', this)"> ' + escapeHtml(tr_('tmx_active_hint', 'Aktiv (im Upload-Formular sichtbar)')) + '</label>' +
     '</div>' +
+    '<div class="mgrx-sec"><h4><span class="material-icons-outlined">drive_file_rename_outline</span>' + escapeHtml(tr_('tmx_phrase_name', 'Name in Phrase')) + '</h4>' +
+      '<div class="mgrx-row"><input type="text" id="tmxPhraseName" value="' + escapeHtml(t.phraseName || '') + '" style="flex:1;height:34px;font-size:13px;">' +
+      '<button type="button" class="mgrx-btn primary" id="tmxRenameBtn" onclick="tmxRenamePhrase_(\'' + escapeJs(t.uid) + '\')">' + escapeHtml(tr_('tmx_rename', 'In Phrase umbenennen')) + '</button></div>' +
+      '<label class="mgrx-area" style="margin-top:8px;"><input type="checkbox" id="tmxRenameDisplay"' + (!t.displayName || t.displayName === t.phraseName ? ' checked' : '') + '> ' + escapeHtml(tr_('tmx_rename_display', 'Anzeigenamen im Portal ebenfalls ändern')) + '</label>' +
+    '</div>' +
     '<div class="mgrx-sec"><h4><span class="material-icons-outlined">info</span>' + escapeHtml(tr_('tmx_info', 'Template')) + '</h4><div class="mgrx-kv">' +
       '<b>Phrase Name</b><span>' + escapeHtml(t.phraseName || '–') + '</span><b>Source</b><span>' + escapeHtml(t.sourceLang || '–') + '</span>' +
       '<b>Targets</b><span>' + escapeHtml(t.targetLangs || '–') + '</span>' +
@@ -487,6 +524,29 @@ function tmxSaveName_(uid) {
     })
     .withFailureHandler(err => showCustomAlert(err.message, tr_('ax_902b0d5', 'Error')))
     .apiSetTemplateDisplayName(uid, name);
+}
+
+/** Template live in Phrase umbenennen; Sheet zieht nach (apiRenameTemplate). */
+function tmxRenamePhrase_(uid) {
+  const name = document.getElementById('tmxPhraseName').value.replace(/\s+/g, ' ').trim();
+  const alsoDisplay = !!document.getElementById('tmxRenameDisplay').checked;
+  const r = _tmplMgrRows.find(x => x.uid === uid);
+  if (!name) { showCustomAlert(tr_('tmx_rename_empty', 'Bitte einen Namen eingeben.')); return; }
+  if (r && r.phraseName === name && (!alsoDisplay || r.displayName === name)) return;
+  const btn = document.getElementById('tmxRenameBtn');
+  if (btn) btn.disabled = true;
+  showToast_(tr_('mgr_saving', 'Saving to Phrase ...'), 'info');
+  google.script.run
+    .withSuccessHandler(res => {
+      if (btn) btn.disabled = false;
+      if (!res || !res.success) { showCustomAlert(escapeHtml((res && res.error) || 'Error'), tr_('ax_902b0d5', 'Error')); return; }
+      if (r) { r.phraseName = res.phraseName; r.displayName = res.displayName; }
+      showToast_('✓ ' + tr_('mgr_saved', 'Saved in Phrase and sheet'), 'ok');
+      renderTemplateManager();
+      mgrxClose_();
+    })
+    .withFailureHandler(err => { if (btn) btn.disabled = false; showCustomAlert(escapeHtml(err.message), tr_('ax_902b0d5', 'Error')); })
+    .apiRenameTemplate(uid, name, alsoDisplay);
 }
 
 function tmxSetActive_(uid, cb) {

@@ -447,6 +447,24 @@ test('Nutzer/Templates nach Phrase: Werte, PUT-Body, Pruefung', () => {
   assert.equal(m.mgrSameValue_({ id: 1 }, { id: '2' }), false);
 });
 
+test('Nutzer 1:1 nach Beispiel-User und Template-Umbenennung: reine Helfer', () => {
+  const m = load(['AdminManagers.gs', 'ManagerPhraseSync.gs']);
+  const src = { role: 'SUBMITTER', clients: 'AKW, KNA', domains: 'Marketing', subdomains: 'Web', businessUnit: 'PC',
+    sourceLangs: 'en', targetLangs: 'de_de; fr_fr', workflowSteps: 'Translation' };
+  const tgt = { role: 'submitter', clients: 'kna,akw', domains: 'Technik', subdomains: '', businessUnit: 'PC',
+    sourceLangs: 'en', targetLangs: 'fr_fr, de_de', workflowSteps: '' };
+  assert.deepEqual(plain(m.mgrUserCopyPlan_(src, tgt)), [
+    { field: 'domains', from: 'Technik', to: 'Marketing' },
+    { field: 'subdomains', from: '', to: 'Web' },
+    { field: 'workflowSteps', from: '', to: 'Translation' }]);
+  assert.deepEqual(plain(m.mgrUserCopyPlan_(src, src)), []);
+  assert.deepEqual(plain(m.mgrUserCopyPlan_({ role: 'GUEST' }, { role: 'SUBMITTER', clients: 'AKW' })).map((p) => p.field), ['role', 'clients']);
+  assert.deepEqual(plain(m.mgrAreaDiff_(['general', 'marketing', 'admin'], ['general', 'kec', 'light'])), { grant: ['marketing'], revoke: ['kec'] });
+  assert.equal(m.mgrCleanTemplateName_('  MKT   Flyer  [en] '), 'MKT Flyer [en]');
+  assert.throws(() => m.mgrCleanTemplateName_('   '), /leer/);
+  assert.throws(() => m.mgrCleanTemplateName_('x'.repeat(256)), /zu lang/);
+});
+
 test('SelfTests.gs: alle Logik-Selbsttests laufen auch ausserhalb von Apps Script durch', () => {
   const fs = require('fs');
   const path = require('path');

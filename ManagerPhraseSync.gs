@@ -7,6 +7,9 @@
  *    geschrieben: GET des vollstaendigen Objekts, nur das eine Feld aendern,
  *    PUT zurueck (so gehen keine anderen Einstellungen verloren), danach
  *    erneut lesen und pruefen, ob Phrase den Wert uebernommen hat.
+ *  - apiRenameTemplate: Template live in Phrase umbenennen, Sheet zieht nach
+ *  - apiCopyUserFromExample: Nutzer 1:1 wie einen Beispiel-User einstellen
+ *    (Rolle, Segmentierung, Sprachen, Workflow-Schritte; optional Bereiche)
  *
  * Im Sheet stehen weiterhin Namen (z. B. "AKW, KNA") - darauf filtert die
  * Template-Sichtbarkeit (templateMatchesUser_). Nach Phrase gehen IDs.
@@ -139,14 +142,32 @@ function mgrPut_(url, body) {
 
 /** GET, ein Feld setzen, PUT, pruefen. Wirft mit verstaendlicher Meldung. */
 function mgrPhraseEdit_(url, phraseField, wanted, prepare) {
+  var one = {};
+  one[phraseField] = wanted;
+  mgrPhraseEditMany_(url, one, prepare);
+}
+
+/**
+ * Wie mgrPhraseEdit_, aber mehrere Felder in EINEM PUT (GET, Felder setzen,
+ * PUT, erneut lesen, jedes Feld pruefen).
+ * readKey: optional { phraseField: Feldname im GET } (z. B. name -> templateName).
+ */
+function mgrPhraseEditMany_(url, wantedByField, prepare, readKey) {
+  var fields = Object.keys(wantedByField || {});
+  if (!fields.length) return;
   var detail = maxTplGet_(url) || {};
   var body = mgrEditBody_(detail);
   if (prepare) prepare(body, detail);
-  body[phraseField] = wanted;
+  fields.forEach(function (f) { body[f] = wantedByField[f]; });
   mgrPut_(url, body);
   var after = maxTplGet_(url) || {};
-  if (!mgrSameValue_(after[phraseField], wanted)) {
-    throw new Error("Phrase hat " + phraseField + " nicht uebernommen (jetzt: " + JSON.stringify(after[phraseField] || null) + ").");
+  var bad = fields.filter(function (f) {
+    var k = (readKey && readKey[f]) || f;
+    return !mgrSameValue_(after[k], wantedByField[f]);
+  });
+  if (bad.length) {
+    throw new Error("Phrase hat " + bad.join(", ") + " nicht uebernommen (jetzt: " +
+      bad.map(function (f) { return f + "=" + JSON.stringify(after[(readKey && readKey[f]) || f] || null); }).join("; ") + ").");
   }
 }
 
@@ -214,4 +235,185 @@ function apiUpdateTemplateField(templateUid, field, value) {
   rows.forEach(function (r) { sh.getRange(r, col + 1).setValue(val); });
   logAuditEvent_(caller, "TEMPLATE_FIELD_UPDATE", uid + "." + field + " = " + val);
   return result;
+}
+
+// --- Template in Phrase umbenennen ---------------------------------------------
+
+/** Neuen Template-Namen pruefen/normalisieren. Wirft bei ungueltigem Namen. */
+function mgrCleanTemplateName_(name) {
+  var n = String(name == null ? "" : name).replace(/\s+/g, " ").trim();
+  if (!n) throw new Error("Name darf nicht leer sein.");
+  if (n.length > 255) throw new Error("Name ist zu lang (max. 255 Zeichen).");
+  return n;
+}
+
+/**
+ * Template in Phrase umbenennen (live) und danach im Sheet die Spalte
+ * "Phrase Name" nachziehen. Den Anzeigenamen im Portal ebenfalls setzen, wenn
+ * alsoDisplayName true ist oder er bisher dem alten Phrase-Namen entsprach.
+ * Reihenfolge wie bei apiUpdateTemplateField: erst Phrase, dann Sheet.
+ */
+function apiRenameTemplate(templateUid, newName, alsoDisplayName) {
+  var caller = assertManager_("templates");
+  var uid = String(templateUid || "").trim();
+  if (!uid) return { success: false, error: "Template UID fehlt." };
+  var name;
+  try { name = mgrCleanTemplateName_(newName); } catch (e) { return { success: false, error: e.message }; }
+
+  var sh = openAccessSS_().getSheetByName(templateSheetName_());
+  if (!sh) return { success: false, error: "Sheet " + templateSheetName_() + " nicht gefunden." };
+  var data = sh.getDataRange().getValues();
+  var h = data[0].map(function (x) { return String(x).trim().toLowerCase(); });
+  var cUid = h.findIndex(function (x) { return x.indexOf("uid") >= 0; });
+  var cPhrase = h.findIndex(function (x) { return x.indexOf("phrase name") >= 0 || x.indexOf("original") >= 0; });
+  var cDisp = h.findIndex(function (x) { return (x.indexOf("name") >= 0 || x.indexOf("display") >= 0 || x.indexOf("anzeige") >= 0) && x.indexOf("phrase") < 0 && x.indexOf("original") < 0; });
+  if (cUid < 0) return { success: false, error: "Spalte 'Template UID' nicht gefunden." };
+
+  var url = phraseApiUrlV1_("/projectTemplates/" + encodeURIComponent(uid));
+  var oldName = "";
+  try {
+    mgrPhraseEditMany_(url, { name: name }, function (body, detail) {
+      oldName = String(detail.templateName || detail.name || "");
+    }, { name: "templateName" });
+  } catch (e) {
+    return { success: false, error: "Phrase: " + e.message };
+  }
+
+  var displayName = "";
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][cUid] || "").trim() !== uid) continue;
+    if (cPhrase >= 0) sh.getRange(i + 1, cPhrase + 1).setValue(name);
+    if (cDisp >= 0) {
+      var curDisp = String(data[i][cDisp] || "").trim();
+      if (alsoDisplayName || !curDisp || curDisp === oldName) {
+        sh.getRange(i + 1, cDisp + 1).setValue(name);
+        displayName = name;
+      } else {
+        displayName = curDisp;
+      }
+    }
+  }
+  try { phraseScriptCache_().remove("phrase_tmpl_details_" + uid); } catch (e) {}
+  logAuditEvent_(caller, "TEMPLATE_RENAME_PHRASE", uid + ": '" + oldName + "' -> '" + name + "'");
+  return { success: true, phraseName: name, displayName: displayName || name, oldName: oldName };
+}
+
+// --- Nutzer 1:1 nach Beispiel-User -----------------------------------------------
+
+/** Felder, die "1:1 uebernehmen" kopiert (Name, E-Mail, Status bleiben). */
+var MGR_USER_COPY_FIELDS_ = ["role", "clients", "domains", "subdomains", "businessUnit",
+  "sourceLangs", "targetLangs", "workflowSteps"];
+
+/** Portal-Bereiche, die beim Kopieren nie angefasst werden (Rechte-Eskalation). */
+var MGR_USER_COPY_SKIP_AREAS_ = ["admin", "light"];
+
+/**
+ * Was muss sich an target aendern, damit es src entspricht?
+ * Liefert [{ field, from, to }] nur fuer abweichende Felder. Vergleich bei
+ * Mehrfachfeldern ohne Ruecksicht auf Reihenfolge/Gross-Klein.
+ */
+function mgrUserCopyPlan_(src, target) {
+  var norm = function (v) { return splitMulti_(v).map(function (x) { return x.toLowerCase(); }).sort().join("|"); };
+  return MGR_USER_COPY_FIELDS_.map(function (f) {
+    var to = f === "role" ? String(src[f] || "").trim() : splitMulti_(src[f]).join(", ");
+    var from = String(target[f] || "");
+    var same = f === "role" ? to.toUpperCase() === from.trim().toUpperCase() : norm(to) === norm(from);
+    return same ? null : { field: f, from: from, to: to };
+  }).filter(Boolean);
+}
+
+/** Portal-Bereiche angleichen: { grant: [...], revoke: [...] } ohne Admin/Admin-Light. */
+function mgrAreaDiff_(srcAreas, targetAreas) {
+  var ok = function (a) { return MGR_USER_COPY_SKIP_AREAS_.indexOf(a) < 0; };
+  var s = (srcAreas || []).filter(ok);
+  var t = (targetAreas || []).filter(ok);
+  return {
+    grant: s.filter(function (a) { return t.indexOf(a) < 0; }),
+    revoke: t.filter(function (a) { return s.indexOf(a) < 0; })
+  };
+}
+
+/**
+ * Nutzer 1:1 wie einen Beispiel-User einstellen: Rolle, Clients, Domains,
+ * Subdomains, Business Unit, Quell-/Zielsprachen, Workflow-Schritte.
+ * Pro Nutzer erst Phrase (ein GET/PUT mit allen Feldern, danach Pruefung),
+ * erst bei Erfolg das Sheet - so laufen Sheet und Phrase nicht auseinander.
+ * includeAreas (nur Admin): Portal-Bereiche ebenfalls angleichen
+ * (Admin und Admin-Light werden nie kopiert).
+ */
+function apiCopyUserFromExample(fromUsername, toUsernames, includeAreas) {
+  var caller = assertManager_("users");
+  var srcName = String(fromUsername || "").trim();
+  var sh = openUserSheetSS_().getSheetByName("FetchTMS_USERS-Prod");
+  if (!sh) return { success: false, error: "Sheet FetchTMS_USERS-Prod nicht gefunden." };
+  var data = sh.getDataRange().getValues();
+  var colIdx = {};
+  data[0].map(function (x) { return String(x).trim(); }).forEach(function (x, i) { if (USER_MGR_HEADER_MAP[x]) colIdx[USER_MGR_HEADER_MAP[x]] = i; });
+  if (colIdx.username == null) return { success: false, error: "Spalte 'Username' nicht gefunden." };
+  var rowOf = function (r) {
+    var o = {};
+    Object.keys(colIdx).forEach(function (f) { o[f] = String(r[colIdx[f]] == null ? "" : r[colIdx[f]]).trim(); });
+    return o;
+  };
+  var src = null;
+  for (var i = 1; i < data.length; i++) if (String(data[i][colIdx.username] || "").trim() === srcName) src = rowOf(data[i]);
+  if (!src) return { success: false, error: "Beispiel-User '" + srcName + "' nicht gefunden." };
+
+  var want = {};
+  (Array.isArray(toUsernames) ? toUsernames : [toUsernames]).forEach(function (u) {
+    u = String(u || "").trim();
+    if (u && u !== srcName) want[u] = true;
+  });
+  if (!Object.keys(want).length) return { success: false, error: "Keine Ziel-Nutzer ausgewaehlt." };
+
+  var cat = null;
+  var results = [];
+  var errors = [];
+  var targets = [];
+  for (var r = 1; r < data.length; r++) {
+    var uname = String(data[r][colIdx.username] || "").trim();
+    if (!want[uname]) continue;
+    var tgt = rowOf(data[r]);
+    targets.push(tgt);
+    var plan = mgrUserCopyPlan_(src, tgt).filter(function (p) { return colIdx[p.field] != null; });
+    if (!plan.length) { results.push({ username: uname, changed: [] }); continue; }
+    try {
+      var wanted = {};
+      plan.forEach(function (p) {
+        var pf = MGR_USER_PHRASE_FIELDS_[p.field];
+        if (!pf) return;
+        if (!cat) cat = mgrCatalog_();
+        wanted[pf] = mgrPhraseValue_(pf, p.to, cat);
+      });
+      var uid = mgrPhraseUserUid_(uname);
+      mgrPhraseEditMany_(phraseApiUrlV3_("/users/" + encodeURIComponent(uid)), wanted);
+    } catch (e) {
+      errors.push(uname + ": Phrase: " + e.message);
+      continue;
+    }
+    plan.forEach(function (p) { sh.getRange(r + 1, colIdx[p.field] + 1).setValue(p.to); });
+    results.push({ username: uname, changed: plan });
+  }
+
+  var areaChanges = 0;
+  if (includeAreas && isAdmin_(caller)) {
+    var areas = mgrAreaMap_();
+    var srcAreas = areas[String(src.email || "").toLowerCase()] || [];
+    targets.forEach(function (t) {
+      var email = String(t.email || "").toLowerCase();
+      if (!email) return;
+      var d = mgrAreaDiff_(srcAreas, areas[email] || []);
+      [[d.grant, true], [d.revoke, false]].forEach(function (x) {
+        if (!x[0].length) return;
+        var res = apiSetAccessBulk([email], x[0], x[1]) || {};
+        areaChanges += res.changed || 0;
+        (res.errors || []).forEach(function (e) { errors.push(t.username + ": " + e); });
+      });
+    });
+  }
+
+  logAuditEvent_(caller, "USER_COPY_FROM_EXAMPLE", srcName + " -> " +
+    results.map(function (x) { return x.username + "(" + x.changed.length + ")"; }).join(", ").slice(0, 400) +
+    (errors.length ? " | Fehler: " + errors.length : ""));
+  return { success: results.length > 0 || !errors.length, from: srcName, results: results, areaChanges: areaChanges, errors: errors };
 }
